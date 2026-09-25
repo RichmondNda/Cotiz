@@ -6,6 +6,9 @@
 
 Rendre la V0 cohérente de bout en bout et préparer le branchement NestJS.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## À faire
 
 1. **Parcours complets** (Playwright, en script `tests/e2e/` ou manuellement avec captures) :

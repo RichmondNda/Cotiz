@@ -8,6 +8,9 @@
 Implémente l'onboarding, le tableau de bord, la liste des projets et la création de projet (thème `manager`, layout
 `backoffice`). Utilisatrice connectée : Awa Koné, Entraide Yopougon.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## Écrans
 
 | Écran | Route | États (web / mobile) | Captures |

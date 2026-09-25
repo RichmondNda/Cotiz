@@ -6,6 +6,9 @@
 
 Préparer le repo pour que tous les lots suivants partent d'une base propre. **Aucun écran dans ce lot.**
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## À faire
 
 1. Inspecte le repo : version de Nuxt, structure (`app/` ou racine), TypeScript, lint, scripts npm, ce qui existe déjà
@@ -27,3 +30,4 @@ Préparer le repo pour que tous les lots suivants partent d'une base propre. **A
 ## Fin de lot
 
 Compte rendu court + message de commit proposé : `chore: socle du front Cotiz (design system, structure, outillage)`.
+

@@ -43,7 +43,14 @@ En cas de conflit entre la capture et la spec : **la capture gagne**, et tu le s
 
 ## Stack et architecture
 
-- Nuxt (version déjà présente dans le repo ; sinon Nuxt 4), TypeScript strict, `<script setup lang="ts">`.
+- Nuxt 4 (4.5), TypeScript strict, `<script setup lang="ts">`.
+- **L'app Nuxt vit dans `frontend/`** ; `design/`, `prompts/`, `.claude/` et ce fichier restent à la racine du repo.
+  Toutes les commandes npm, le script de capture et `.verif/` s'utilisent **depuis `frontend/`** ; depuis là, les
+  références de la maquette sont sous `../design/`.
+- Scripts npm (`frontend/package.json`) : `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `capture`.
+- Types de domaine : `frontend/types/` (import via `~~/types`), inclus dans le typecheck de l'app et du serveur.
+- Styles du DS : copies **non modifiées** de `design/css/` dans `frontend/app/assets/css/`, plus `app.css`
+  (reset léger, fond `var(--page)`). Polices chargées dans `nuxt.config` (`app.head`). Logos copiés dans `frontend/public/`.
 - État global : Pinia uniquement si nécessaire (session mockée, compteurs de navigation). Sinon composables.
 - Styles : `bundle.css` et `cotiz-tokens.css` chargés globalement ; styles spécifiques en `<style scoped>` qui
   **n'utilisent que des variables de tokens**.
@@ -103,9 +110,10 @@ types/                   types partagés (Projet, Souscripteur, Echeance, Paieme
 - Avant de coder un lot : lire les captures et le HTML de référence de chaque écran du lot, puis proposer un plan court.
 - **Réutiliser** les composants existants avant d'en créer. Un nouveau composant générique va dans `components/cz/`
   ou `components/metier/`, pas dans une page.
-- Après chaque écran : `node scripts/capture-ecran.mjs <route> [--role …] [--scenario …]`, puis comparer
+- Après chaque écran, depuis `frontend/` : `node scripts/capture-ecran.mjs <route> [--role …] [--scenario …]`
+  (serveur `npm run dev` lancé ; sortie dans `frontend/.verif/`), puis comparer
   (lire les deux images) avec la capture de référence de chaque état. Corriger les écarts avant de passer au suivant.
-- `npm run typecheck` (ou `npx nuxi typecheck`) et `npm run lint` doivent passer à la fin du lot.
+- `npm run typecheck` et `npm run lint` (depuis `frontend/`) doivent passer à la fin du lot.
 - Ne jamais toucher à `design/` (lecture seule).
 - Si une information manque ou si une règle ci-dessus bloque : **demander**, ne pas inventer.
 

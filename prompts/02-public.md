@@ -8,6 +8,9 @@
 Implémente les 8 écrans de l'espace public avec les layouts `public` (landing, demande, légal) et `auth` (connexions,
 mot de passe) créés au lot 01.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## Écrans
 
 | Écran | Route | États (web / mobile) | Captures |

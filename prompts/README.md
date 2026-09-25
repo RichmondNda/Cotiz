@@ -20,7 +20,7 @@ Contenu :
 | `design/` | Captures (323, tous les états), HTML rendu, CSS du DS, specs, sources de la maquette, données de référence |
 | `prompts/NN-*.md` | Un prompt par lot |
 | `.claude/commands/` | `/lot`, `/verifier-ecran`, `/revue-lot` |
-| `scripts/capture-ecran.mjs` | Capture une route en 1440 et 390 px pour la comparer aux maquettes |
+| `frontend/scripts/capture-ecran.mjs` | Capture une route en 1440 et 390 px pour la comparer aux maquettes |
 
 ## Déroulé d'un lot
 
@@ -29,7 +29,7 @@ Contenu :
 3. Passe en **mode plan** (Maj+Tab) et tape `/lot NN`. Claude lit les références et propose un plan : relis, corrige, valide.
 4. Il implémente écran par écran et se vérifie avec `/verifier-ecran`. Interviens si tu vois une dérive.
 5. `/revue-lot NN`, puis corrections.
-6. Vérifie toi-même dans le navigateur (`npm run dev`), en desktop et en mobile (outils de dev, 390 px).
+6. Vérifie toi-même dans le navigateur (`cd frontend && npm run dev`), en desktop et en mobile (outils de dev, 390 px).
 7. Commit, merge, `/clear`, lot suivant.
 
 ## Ordre des lots

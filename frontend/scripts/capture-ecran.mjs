@@ -15,7 +15,7 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
 const args = process.argv.slice(2)
-const route = args.find((a) => a.startsWith('/'))
+const route = args.find(a => a.startsWith('/'))
 if (!route) {
   console.error('Route manquante. Ex. : node scripts/capture-ecran.mjs /asso --role gestionnaire')
   process.exit(1)
@@ -39,8 +39,8 @@ for (const [dev, width, height] of [['web', 1440, 900], ['mobile', 390, 844]]) {
   if (role) await ctx.addCookies([{ name: 'cotiz_role', value: role, url: base }])
   const page = await ctx.newPage()
   const errors = []
-  page.on('pageerror', (e) => errors.push(e.message))
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
+  page.on('pageerror', e => errors.push(e.message))
+  page.on('console', m => m.type() === 'error' && errors.push(m.text()))
   await page.goto(url.toString(), { waitUntil: 'networkidle' })
   await page.waitForTimeout(600) // laisse passer la latence simulée des mocks
   const out = `.verif/${nom}__${dev}.png`

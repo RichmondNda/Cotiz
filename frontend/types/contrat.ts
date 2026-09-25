@@ -1,0 +1,20 @@
+import type { DateISO, Identifiant, MontantFCFA } from './commun'
+
+/** Incertain : les maquettes montrent « Signature attendue » / « Signé » ; pas d'état « refusé » vu. */
+export type StatutContrat = 'a_signer' | 'signe'
+
+export interface Contrat {
+  id: Identifiant
+  projetId: Identifiant
+  souscripteurId: Identifiant
+  associationId: Identifiant
+  /** Texte final, variables du modèle remplacées. */
+  texte: string
+  engagement: MontantFCFA // ex. 500 000 F (Centre), 170 000 F (Voyage)
+  statut: StatutContrat
+  envoyeLe: DateISO
+  signeLe?: DateISO
+  /** Signature de l'association à la création du projet (« Je signe ce contrat au nom de l'association »). */
+  signeParAssociationLe?: DateISO
+  pdfUrl?: string
+}

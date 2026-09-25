@@ -9,8 +9,8 @@ Pour chaque écran du lot, contrôle la « Définition de terminé » de `CLAUDE
 vocabulaire, états vide/chargement/erreur, mobile ≥ 44 px, accessibilité, cohérence des données).
 
 Vérifie aussi, dans le code :
-- aucune couleur hexadécimale hors tokens (`grep -rnE "#[0-9A-Fa-f]{3,6}" app/ --include=*.vue`), aucun `href="#"` ;
-- aucun import direct de `server/mocks` depuis `app/` ;
+- aucune couleur hexadécimale hors tokens (`grep -rnE "#[0-9A-Fa-f]{3,6}" frontend/app/ --include=*.vue`), aucun `href="#"` ;
+- aucun import direct de `frontend/server/mocks` depuis `frontend/app/` ;
 - aucun composant dupliqué entre pages (ce qui est répété deux fois doit être dans `components/`) ;
 - tous les liens du lot mènent à des routes existantes.
 

@@ -8,6 +8,9 @@
 Implémente la file de validation des paiements, le détail d'un paiement, l'annuaire, la fiche souscripteur, les relances
 et les contrats.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## Écrans
 
 | Écran | Route | États (web / mobile) | Captures |

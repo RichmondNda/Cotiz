@@ -8,6 +8,9 @@
 Construire tout ce que les écrans réutiliseront : composants du design system en Vue, composants métier, les 4 layouts,
 la session mockée, et l'infrastructure de mocks. **Toujours aucun écran métier** : seulement une page de démonstration.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## Références
 
 - `design/design-system/README.md` (règles), `design/design-system/components/<Composant>/README.md` + `preview.html`

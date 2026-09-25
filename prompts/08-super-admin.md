@@ -8,6 +8,9 @@
 Implémente les 11 écrans de l'espace plateforme (thème `superadmin`, indigo, desktop uniquement) dans le layout
 `backoffice`. Utilisateur connecté : Richy.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## Écrans
 
 | Écran | Route | États (web / mobile) | Captures |

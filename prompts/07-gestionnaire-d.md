@@ -7,6 +7,9 @@
 
 Implémente équipe, abonnement, paramètres de l'association, notifications, profil, et le menu « Plus » mobile.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## Écrans
 
 | Écran | Route | États (web / mobile) | Captures |

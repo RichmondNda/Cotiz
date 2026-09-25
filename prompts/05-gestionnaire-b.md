@@ -8,6 +8,9 @@
 Implémente le détail d'un projet avec ses 6 onglets, l'ajout de souscripteur et l'import Excel. Projet de référence :
 Centre communautaire.
 
+## Précision 
+Le dossier de travail du frontend est le dossier frontend c'est dans celui là qu'il faut travailler pour la partie front
+
 ## Écrans
 
 | Écran | Route | États (web / mobile) | Captures |
