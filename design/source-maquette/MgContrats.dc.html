@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Contrats</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:17px;color:#1B1830}
+.mg-lbl{font-size:12.5px;color:#6B6478}
+.mg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mg-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid #F0EDF3}
+.mg-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1000px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="contrats" hint-size="240px,1000px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Contrats" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<div class="cz-pagehead"><div><h1>Contrats</h1><p>Un contrat par projet · signé par l’association puis contre-signé par chaque souscripteur</p></div><div class="end"><a class="cz-btn" href="MgNouveauProjet.dc.html" style="color: #FFFFFF;">Nouveau projet</a></div></div>
+<div class="cz-alert cz-alert--info"><div><b>Un contrat n’est plus modifiable après sa création.</b> Ce que vos souscripteurs ont accepté reste ainsi intact. Pour changer les conditions, créez un nouveau projet.</div></div>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v5h5M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8z"/></svg></div><div class="t">Aucun contrat pour l’instant</div><div class="d">Le contrat se rédige à la création d’un projet.</div><a class="cz-btn" href="MgNouveauProjet.dc.html" style="color: #FFFFFF; margin-top: 8px;">Créer un projet</a></div></div></sc-if>
+<sc-if value="{{notEmpty}}" hint-placeholder-val="{{ true }}">
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th>Projet</th><th>Signé par l’association</th><th>Signatures des souscripteurs</th><th class="num">En attente</th><th>Statut</th><th></th></tr></thead>
+<tbody><sc-for list="{{rows}}" as="r" hint-placeholder-count="3"><tr onClick="{{r.open}}" class="{{r.trCls}}">
+<td><b style="color: #1B1830;">{{r.name}}</b><div class="mg-lbl">{{r.terms}}</div></td>
+<td>{{r.assoSig}}</td>
+<td style="min-width: 220px;"><div class="mg-row" style="font-size: 12.5px; margin-bottom: 4px;"><span>{{r.signed}}</span><span style="color: #6B6478;">{{r.pct}}</span></div><div class="{{r.barCls}}"><i style="{{r.barW}}"></i></div></td>
+<td class="num">{{r.pending}}</td>
+<td><span class="{{r.badgeCls}}">{{r.badge}}</span></td>
+<td><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{r.open}}">Voir</button></td>
+</tr></sc-for></tbody></table></div>
+</sc-if>
+</main>
+</div>
+<sc-if value="{{panelOpen}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4);" onClick="{{close}}"></div>
+<aside class="cz-panel" role="dialog" aria-label="Détail du contrat" style="position: absolute; top: 0; right: 0; bottom: 0; width: 480px; z-index: 41; border-radius: 0; display: flex; flex-direction: column;">
+<div class="ph mg-row" style="padding: 20px 24px; border-bottom: 1px solid #E4E0EA;"><div><div class="mg-lbl">Contrat</div><b style="font-family: Poppins, sans-serif; font-size: 18px; color: #1B1830;">{{cur.name}}</b></div><button type="button" class="cz-btn cz-btn--ghost cz-btn--icon" onClick="{{close}}" aria-label="Fermer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="pb" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex: 1;">
+<div style="background: #EFECFB; border-radius: 12px; padding: 14px 16px; font-size: 14px; line-height: 1.55; color: #26215C;"><b>Engagement :</b> {{cur.terms}}</div>
+<div class="mg-row" style="font-size: 14px;"><span class="mg-lbl" style="font-size: 14px;">Signé par l’association</span><b>{{cur.assoSig}}</b></div>
+<div class="mg-row" style="font-size: 14px;"><span class="mg-lbl" style="font-size: 14px;">Contre-signatures</span><b>{{cur.signed}}</b></div>
+<div style="display: flex; gap: 8px;"><a class="cz-btn cz-btn--secondary" href="MgProjetContrat.dc.html" style="flex: 1;">Lire le contrat</a><button type="button" class="cz-btn cz-btn--secondary" style="flex: 1;">Télécharger (PDF)</button></div>
+<h2 class="t" style="font-size: 15px;">Signatures en attente</h2>
+<div class="mg-list"><sc-for list="{{cur.waiting}}" as="w" hint-placeholder-count="2"><div><span class="cz-avatar cz-avatar--sm cz-avatar--warning">{{w.ini}}</span><span style="flex-grow: 1;"><b style="display: block; font-size: 14px; color: #1B1830;">{{w.name}}</b><span class="mg-lbl">{{w.since}}</span></span><span class="cz-badge cz-badge--warning cz-badge--sm">À signer</span></div></sc-for></div>
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div>Rappel de signature envoyé aux souscripteurs en attente.</div></div></sc-if>
+</div>
+<div class="pf" style="padding: 16px 24px; border-top: 1px solid #E4E0EA;"><button type="button" class="cz-btn cz-btn--block" onClick="{{remind}}">Rappeler les non-signataires</button></div>
+</aside></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "detail-ouvert", "aucun-contrat"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: null, sent: false }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const C = [
+      { name: 'Centre communautaire', terms: '50 000 F à l’entrée, puis 25 000 F par mois pendant 18 mois. Total : 500 000 F.', assoSig: '01/03/2026 · Awa Koné', signed: '51 / 52', pct: '98 %', w: 98, pending: '1', badge: 'Actif', badgeCls: ok,
+        waiting: [{ name: 'Fatou Traoré', ini: 'FT', since: 'ajoutée le [DATE] · rappel auto actif' }] },
+      { name: 'Voyage solidaire', terms: '50 000 F à l’entrée, puis 10 000 F par mois pendant 12 mois. Total : 170 000 F.', assoSig: '18/09/2026 · Awa Koné', signed: '[N] / [N]', pct: '[N] %', w: 60, pending: '[N]', badge: 'Signatures en cours', badgeCls: warn,
+        waiting: [{ name: 'Moussa Diarra', ini: 'MD', since: 'invité le 18/09/2026' }, { name: 'Adjoua Yao', ini: 'AY', since: 'invitée le [DATE]' }] },
+      { name: 'Tontine solidaire 2027', terms: 'Cycle roulant · 10 000 F par mois à partir de janvier 2027.', assoSig: '[DATE] · Awa Koné', signed: '12 / 30 places', pct: '40 %', w: 40, pending: '—', badge: 'Inscriptions ouvertes', badgeCls: info, waiting: [] }
+    ];
+    const open = S.open !== null ? S.open : (etat === 'detail-ouvert' ? 1 : -1);
+    const v = {
+      empty: etat === 'aucun-contrat', notEmpty: etat !== 'aucun-contrat',
+      rows: C.map((c, i) => ({ ...c, barCls: 'cz-bar' + (c.w >= 95 ? ' cz-bar--success' : ''), barW: `width: ${c.w}%;`, trCls: open === i ? 'is-selected' : '', open: () => this.setState({ open: i, sent: false }) })),
+      panelOpen: open >= 0, cur: C[open >= 0 ? open : 0], close: () => this.setState({ open: -1 }),
+      sent: S.sent, remind: () => this.setState({ sent: true })
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center;' }, v);
+  }
+}
+</script>
+</body>
+</html>

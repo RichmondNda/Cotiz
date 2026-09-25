@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bienvenue sur Cotiz</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea{font:inherit;color:inherit}
+h1.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:28px;color:#1B1830}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1000px; background: #F4F2ED; font-family: Inter, Arial, sans-serif; display: flex; flex-direction: column;">
+<header style="height: 72px; padding: 0 48px; display: flex; align-items: center; gap: 32px; background: #FFFFFF; box-shadow: 0 2px 10px rgba(40,30,80,0.07);">
+<span style="display: flex; align-items: center; gap: 8px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 19px; color: #26215C;"><svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="ob-m"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#ob-m)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>Cotiz</span>
+<div style="flex-grow: 1; max-width: 520px; margin: 0 auto;"><div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;"><b>Étape {{step}} sur 4 — {{stepName}}</b><span style="color: #6B6478;">{{pct}} %</span></div><div class="cz-bar"><i style="{{barStyle}}"></i></div></div>
+<a href="MgDashboard.dc.html" style="font-size: 14px; font-weight: 600;">Terminer plus tard</a>
+</header>
+<main style="flex-grow: 1; display: flex; justify-content: center; padding: 48px;">
+<div class="cz-card" style="width: 720px; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 22px; align-self: flex-start;">
+
+<sc-if value="{{is1}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; padding: 16px 0;">
+<svg width="120" height="120" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="ob-m2"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#ob-m2)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>
+<h1 class="t">Bienvenue sur Cotiz, Awa !</h1>
+<p style="margin: 0; font-size: 16px; color: #6B6478;">En 3 minutes, configurons l’espace d’Entraide Yopougon.</p>
+<button type="button" class="cz-btn cz-btn--lg" onClick="{{next}}" style="margin-top: 8px;">Commencer</button>
+</div>
+</sc-if>
+
+<sc-if value="{{is2}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<h1 class="t">Votre association</h1>
+<div style="display: flex; gap: 16px; align-items: center;">
+<sc-if value="{{logoOn}}" hint-placeholder-val="{{ false }}"><span class="cz-avatar cz-avatar--org" style="width: 72px; height: 72px; font-size: 22px;">EY</span></sc-if>
+<button type="button" class="cz-drop" onClick="{{toggleLogo}}" style="flex-grow: 1; cursor: pointer; font: inherit;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5M7 9.5l5-5 5 5M4.5 20h15"/></svg><div>{{logoText}}</div><span class="fmt">PNG ou JPG · recadrage carré</span></button>
+</div>
+<label class="cz-field"><span class="cz-label">Nom de l’association</span><input class="cz-input" value="Entraide Yopougon"></label>
+<label class="cz-field"><span class="cz-label">Description courte</span><textarea class="cz-input cz-input--area" rows="2">Entraide entre familles du quartier de Yopougon.</textarea></label>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
+<label class="cz-field"><span class="cz-label">Ville</span><input class="cz-input" value="Abidjan"></label>
+<label class="cz-field"><span class="cz-label">Téléphone de contact</span><input class="cz-input" value="+225 07 08 09 10 11"></label>
+<label class="cz-field"><span class="cz-label">Email de contact</span><input class="cz-input" value="awa@entraide.ci"></label>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{is3}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<h1 class="t" style="font-size: 24px;">Comment vos membres vous paient</h1>
+<sc-for list="{{methods}}" as="m" hint-placeholder-count="3">
+<div style="border: 1.5px solid #E4E0EA; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+<button type="button" class="cz-check" onClick="{{m.toggle}}" style="background: transparent; border: none; padding: 0; min-height: 36px; font-size: 14.5px; font-weight: 600; text-align: left;"><span class="{{m.cbCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>{{m.label}}</button>
+<sc-if value="{{m.on}}" hint-placeholder-val="{{ false }}"><label class="cz-field"><span class="cz-label">{{m.field}}</span><input class="cz-input" value="{{m.value}}"></label></sc-if>
+</div>
+</sc-for>
+</div>
+<div data-theme="member" style="background: #FAECE7; border-radius: 16px; padding: 18px; align-self: start;">
+<div style="font-family: Poppins, sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #993C1D; margin-bottom: 10px;">CE QUE VERRA LE SOUSCRIPTEUR</div>
+<div style="background: #FFFFFF; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+<b style="font-family: Poppins, sans-serif; font-size: 14px;">Comment payer Entraide Yopougon</b>
+<sc-for list="{{onMethods}}" as="m" hint-placeholder-count="2"><div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid #F2EFF5;"><b>{{m.label}}</b><span class="cz-mono" style="color: #6B6478;">{{m.value}}</span></div></sc-for>
+<span style="color: #6B6478;">Après votre versement, déclarez-le dans Cotiz avec une preuve.</span>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{is4}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 18px;">
+<h1 class="t">C’est prêt !</h1>
+<div style="background: #FAF9FC; border-radius: 12px; padding: 16px; display: grid; grid-template-columns: 160px 1fr; gap: 8px 14px; font-size: 14px;"><span style="color: #6B6478;">Association</span><b>Entraide Yopougon · Abidjan</b><span style="color: #6B6478;">Contact</span><b>awa@entraide.ci</b><span style="color: #6B6478;">Moyens de paiement</span><b>{{methodSummary}}</b></div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+<a href="MgNouveauProjet.dc.html" class="cz-card is-clickable" style="padding: 22px; border: 2px solid #7F77DD; color: inherit; display: flex; flex-direction: column; gap: 8px;"><span style="width: 44px; height: 44px; border-radius: 12px; background: #7F77DD; color: #FFFFFF; display: inline-flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span><b style="font-family: Poppins, sans-serif; font-size: 17px; color: #1B1830;">Créer mon premier projet</b><span style="font-size: 13.5px; color: #6B6478;">Montant, fréquence, durée : on vous guide.</span></a>
+<a href="MgDashboard.dc.html" class="cz-card is-clickable" style="padding: 22px; color: inherit; display: flex; flex-direction: column; gap: 8px;"><span style="width: 44px; height: 44px; border-radius: 12px; background: #EFECFB; color: #5B51C4; display: inline-flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span><b style="font-family: Poppins, sans-serif; font-size: 17px; color: #1B1830;">Découvrir l’espace d’abord</b><span style="font-size: 13.5px; color: #6B6478;">Accéder au tableau de bord.</span></a>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{showNav}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px solid #F1EEF4;"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{back}}">Retour</button><button type="button" class="cz-btn" onClick="{{next}}">Continuer</button></div>
+</sc-if>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etape":{"editor":"enum","options":["1-bienvenue","2-association","3-paiements","4-pret"],"default":"1-bienvenue"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: null, logo: false, m: { vir: true, mm: true, esp: false } }; }
+  renderVals() {
+    const step = this.state.step || parseInt(this.props.etape || '1', 10) || 1;
+    const N = ['Bienvenue', 'Votre association', 'Moyens de paiement', 'C’est prêt'];
+    const M = [['vir', 'Virement bancaire', 'IBAN', 'CI[XX] [XXXX XXXX XXXX XXXX XXXX]'], ['mm', 'Mobile money', 'Numéro et opérateur', '+225 07 08 09 10 11 · [Opérateur]'], ['esp', 'Espèces', 'Instructions', 'Remise au trésorier lors de la réunion mensuelle']];
+    const m = this.state.m;
+    return {
+      step, stepName: N[step - 1], pct: step * 25, barStyle: `width: ${step * 25}%;`,
+      is1: step === 1, is2: step === 2, is3: step === 3, is4: step === 4, showNav: step === 2 || step === 3,
+      next: () => this.setState({ step: Math.min(4, step + 1) }), back: () => this.setState({ step: Math.max(1, step - 1) }),
+      logoOn: this.state.logo, logoText: this.state.logo ? 'Logo déposé — cliquer pour remplacer' : 'Déposez votre logo ou parcourez vos fichiers',
+      toggleLogo: () => this.setState({ logo: !this.state.logo }),
+      methods: M.map(([k, label, field, value]) => ({ label, field, value, on: m[k], cbCls: 'cz-cb' + (m[k] ? ' is-on' : ''), toggle: () => this.setState({ m: { ...m, [k]: !m[k] } }) })),
+      onMethods: M.filter(([k]) => m[k]).map(([, label, , value]) => ({ label, value })),
+      methodSummary: M.filter(([k]) => m[k]).map(([, l]) => l).join(', ') || 'Aucun'
+    };
+  }
+}
+</script>
+</body>
+</html>

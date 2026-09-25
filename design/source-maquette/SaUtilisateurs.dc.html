@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Plateforme — Utilisateurs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F2F2F8;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#3B3470;text-decoration:none}a:hover{color:#2A2552}
+input,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div data-theme="superadmin" style="width: 1440px; height: 900px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F2F2F8; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="SaSidebar" active="utilisateurs" hint-size="240px,900px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="SaTopbar" current="Utilisateurs" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 18px;">
+<div class="cz-pagehead"><div style="display: flex; align-items: center; gap: 12px;"><h1>Utilisateurs plateforme</h1><span class="cz-soon">V2</span></div><sc-if value="{{showInvite}}" hint-placeholder-val="{{ true }}"><div class="end"><button type="button" class="cz-btn" onClick="{{openInvite}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Inviter un membre</button></div></sc-if></div>
+<sc-if value="{{soon}}" hint-placeholder-val="{{ false }}">
+<div class="cz-empty" style="padding: 48px;"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 11.5a3 3 0 1 0 0-6M18 20a6 6 0 0 0-2.5-4.9"/></svg></div><span class="cz-soon">Bientôt disponible</span><div class="d" style="margin-top: 10px; max-width: 420px;">Gérez l’équipe interne de Cotiz et tracez les actions sensibles dans un journal d’audit.</div></div>
+</sc-if>
+<sc-if value="{{nominal}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-tabs" role="tablist">
+<button type="button" role="tab" aria-selected="{{isTeam}}" onClick="{{showTeam}}" style="{{teamTab}}">Équipe</button>
+<button type="button" role="tab" aria-selected="{{isAudit}}" onClick="{{showAudit}}" style="{{auditTab}}">Journal d’audit</button>
+</div>
+<sc-if value="{{isTeam}}" hint-placeholder-val="{{ true }}">
+<div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Dernière connexion</th><th>Statut</th></tr></thead><tbody>
+<tr><td><div class="cz-person"><span class="cz-avatar cz-avatar--sm" style="background: #E4E3EF; color: #2A2552;">R</span><b>Richy</b></div></td><td>[email]</td><td><span class="cz-badge cz-badge--brand">Propriétaire</span></td><td style="color: #6B6478;">aujourd’hui, 9 h 02</td><td><span class="cz-badge cz-badge--success">Actif</span></td></tr>
+<tr><td><div class="cz-person"><span class="cz-avatar cz-avatar--sm" style="background: #E4E3EF; color: #2A2552;">··</span><b>[Membre de l’équipe]</b></div></td><td>[email]</td><td><span class="cz-badge">Administrateur</span></td><td style="color: #6B6478;">[date]</td><td><span class="cz-badge cz-badge--success">Actif</span></td></tr>
+<tr><td><div class="cz-person"><span class="cz-avatar cz-avatar--sm" style="background: #E4E3EF; color: #2A2552;">··</span><b>[Membre de l’équipe]</b></div></td><td>[email]</td><td><span class="cz-badge">Support</span></td><td style="color: #6B6478;">—</td><td><span class="cz-badge cz-badge--warning">Invitation envoyée</span></td></tr>
+</tbody></table></div>
+</sc-if>
+<sc-if value="{{isAudit}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px;">
+<div class="cz-toolbar"><button type="button" class="cz-chip">Acteur : tous</button><button type="button" class="cz-chip is-on">Action : décisions et suspensions</button><button type="button" class="cz-chip">Période : 30 derniers jours</button></div>
+<div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Date</th><th>Acteur</th><th>Action</th><th>Cible</th><th>Adresse IP</th></tr></thead><tbody>
+<tr><td style="color: #6B6478;">25/09/2026 09:02</td><td>Richy</td><td>Consultation d’une demande</td><td><a href="SaDemande.dc.html">Tontine des commerçantes d’Adjamé</a></td><td class="cz-mono">[IP]</td></tr>
+<tr><td style="color: #6B6478;">24/09/2026 16:40</td><td>Richy</td><td><span class="cz-badge cz-badge--success cz-badge--sm">Demande approuvée</span></td><td><a href="SaAssociation.dc.html">Jeunesse solidaire de Bouaké</a></td><td class="cz-mono">[IP]</td></tr>
+<tr><td style="color: #6B6478;">11/09/2026 11:15</td><td>Richy</td><td><span class="cz-badge cz-badge--danger cz-badge--sm">Demande refusée</span></td><td>Club des amis de Grand-Bassam</td><td class="cz-mono">[IP]</td></tr>
+<tr><td style="color: #6B6478;">05/09/2026 08:00</td><td>Système</td><td><span class="cz-badge cz-badge--warning cz-badge--sm">Abonnement impayé</span></td><td><a href="SaAssociation.dc.html">Association des ressortissants de Man</a></td><td class="cz-mono">—</td></tr>
+<tr><td style="color: #6B6478;">[date]</td><td>Richy</td><td>Plan modifié</td><td><a href="SaPlan.dc.html">Essentiel</a></td><td class="cz-mono">[IP]</td></tr>
+</tbody></table></div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+</main>
+</div>
+<sc-if value="{{inviteOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal" role="dialog" aria-modal="true" aria-label="Inviter un membre">
+<div class="mh">Inviter un membre de l’équipe</div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 12px;">
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Email</span><input class="cz-input" placeholder="prenom@cotiz.app"></label>
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Rôle</span><select class="cz-input"><option>Support</option><option>Administrateur</option><option>Propriétaire</option></select></label></div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{closeInvite}}">Annuler</button><button type="button" class="cz-btn cz-btn--sm" onClick="{{closeInvite}}">Envoyer l’invitation</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","bientot-disponible"],"default":"nominal"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'team', invite: false }; }
+  renderVals() {
+    const soon = this.props.etat === 'bientot-disponible';
+    const t = (on) => `padding: 10px 16px; min-height: 44px; background: transparent; border: none; border-bottom: 2.5px solid ${on ? '#3B3470' : 'transparent'}; margin-bottom: -1px; font-family: Poppins, sans-serif; font-size: 13.5px; color: ${on ? '#2A2552' : '#6B6478'}; cursor: pointer;`;
+    const team = this.state.tab === 'team';
+    return {
+      soon, nominal: !soon, showInvite: !soon,
+      isTeam: team, isAudit: !team, teamTab: t(team), auditTab: t(!team),
+      showTeam: () => this.setState({ tab: 'team' }), showAudit: () => this.setState({ tab: 'audit' }),
+      inviteOpen: this.state.invite, openInvite: () => this.setState({ invite: true }), closeInvite: () => this.setState({ invite: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Paramètres</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:17px;color:#1B1830}
+.mg-lbl{font-size:12.5px;color:#6B6478}
+.mg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mg-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid #F0EDF3}
+.mg-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1250px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="parametres" hint-size="240px,1250px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Paramètres de l’association" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<div class="cz-pagehead"><div><h1>Paramètres de l’association</h1><p>Ces informations sont visibles par vos souscripteurs</p></div></div>
+<div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; align-items: start;">
+<nav aria-label="Sections" style="display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0;"><sc-for list="{{secs}}" as="x" hint-placeholder-count="3"><button type="button" onClick="{{x.pick}}" style="{{x.style}}">{{x.label}}</button></sc-for></nav>
+<div style="display: flex; flex-direction: column; gap: 16px; max-width: 760px;">
+<section id="infos" class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Informations générales</h2>
+<div style="display: flex; align-items: center; gap: 16px;"><span class="cz-avatar cz-avatar--org cz-avatar--lg" style="width: 64px; height: 64px; font-size: 22px;">EY</span><div><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{touch}}">Changer le logo</button><div class="cz-help" style="margin-top: 4px;">PNG ou JPG carré, 1 Mo maximum</div></div></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+<label class="cz-field"><span class="cz-label">Nom de l’association</span><input class="cz-input" value="Entraide Yopougon" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Ville</span><input class="cz-input" value="Abidjan" onChange="{{touch}}"></label>
+</div>
+<label class="cz-field"><span class="cz-label">Description</span><textarea class="cz-input cz-input--area" onChange="{{touch}}">[DESCRIPTION DE L’ASSOCIATION]</textarea></label>
+</section>
+<section id="contact" class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Contact affiché aux souscripteurs</h2>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+<label class="cz-field"><span class="cz-label">Téléphone</span><input class="cz-input" value="+225 07 08 09 10 11" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Email</span><input class="cz-input" value="awa@entraide.ci" onChange="{{touch}}"></label>
+</div>
+</section>
+<section id="paiement" class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 14px;">
+<div class="mg-row"><h2 class="t">Modalités de paiement par défaut</h2><span class="cz-badge cz-badge--info cz-badge--sm">Reprises à la création d’un projet</span></div>
+<p style="margin: 0; font-size: 13.5px; color: #6B6478;">Les paiements ne transitent pas par Cotiz : vos souscripteurs vous paient directement, puis déclarent leur versement.</p>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+<label class="cz-field"><span class="cz-label">Numéro mobile money</span><input class="cz-input" value="+225 07 08 09 10 11" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Opérateur</span><input class="cz-input" value="[Opérateur]" onChange="{{touch}}"></label>
+</div>
+<label class="cz-field"><span class="cz-label">IBAN / RIB (facultatif)</span><input class="cz-input cz-mono" value="[IBAN DE L’ASSOCIATION]" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Instructions complémentaires</span><textarea class="cz-input cz-input--area" onChange="{{touch}}" placeholder="Ex. : indiquez votre nom dans le motif du virement"></textarea></label>
+</section>
+<section id="region" class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 10px;">
+<h2 class="t">Région et devise</h2>
+<div class="mg-row" style="font-size: 14px;"><span>Devise</span><b>Franc CFA (F CFA)</b></div>
+<div class="mg-row" style="font-size: 14px;"><span>Fuseau horaire</span><b>Abidjan (GMT)</b></div>
+<div class="mg-row" style="font-size: 14px;"><span>Langue</span><b>Français</b></div>
+</section>
+<div style="height: 60px;"></div>
+</div>
+</div>
+</main>
+</div>
+<sc-if value="{{dirty}}" hint-placeholder-val="{{ false }}"><div style="position: absolute; left: 240px; right: 0; bottom: 0; z-index: 30; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 14px 32px; display: flex; align-items: center; gap: 12px; box-shadow: 0 -6px 20px rgba(40,30,80,0.08);"><span style="flex-grow: 1; font-size: 14px;"><b>Modifications non enregistrées</b></span><button type="button" class="cz-btn cz-btn--ghost" onClick="{{cancel}}">Annuler</button><button type="button" class="cz-btn" onClick="{{save}}">Enregistrer</button></div></sc-if>
+<sc-if value="{{saved}}" hint-placeholder-val="{{ false }}"><div class="cz-toast" role="status" style="position: absolute; right: 32px; bottom: 32px; z-index: 50;"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></span><div><div class="ttl">Paramètres enregistrés</div><div class="msg">Vos souscripteurs voient les nouvelles informations.</div></div><button type="button" class="act" onClick="{{hide}}" style="background: none; border: none; cursor: pointer;">Fermer</button></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "modifications-non-enregistrees", "enregistre"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1250}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { dirty: null, saved: false, sec: 'infos' }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const dirty = S.dirty !== null ? S.dirty : etat === 'modifications-non-enregistrees';
+    const saved = S.saved || (etat === 'enregistre' && S.dirty === null);
+    const v = {
+      secs: [['infos', 'Informations'], ['contact', 'Contact'], ['paiement', 'Modalités de paiement'], ['region', 'Région et devise']].map(([k, l]) => ({ label: l, href: '#' + k, pick: () => this.setState({ sec: k }),
+        style: `display: block; width: 100%; text-align: left; border: none; background: transparent; cursor: pointer; padding: 9px 12px; border-radius: 9px; font-size: 13.5px; ${S.sec === k ? 'background: #EFECFB; color: #5B51C4; font-weight: 600;' : 'color: #6B6478;'}` })),
+      dirty, saved, touch: () => this.setState({ dirty: true, saved: false }),
+      cancel: () => this.setState({ dirty: false }), save: () => this.setState({ dirty: false, saved: true }), hide: () => this.setState({ saved: false, dirty: false })
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center;' }, v);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cotiz — Connexion gestionnaire</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div data-theme="manager" style="{{s.root}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}">
+<div style="position: relative; overflow: hidden; background: #7F77DD; color: #FFFFFF; padding: 48px; display: flex; flex-direction: column; justify-content: space-between;">
+<span style="position: absolute; width: 360px; height: 360px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.14); right: -120px; top: -100px;"></span>
+<span style="position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.14); left: -80px; bottom: 120px;"></span>
+<span style="position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #D85A30; right: 180px; top: 150px;"></span>
+<a href="{{links.home}}" style="position: relative; display: flex; align-items: center; gap: 10px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; color: #FFFFFF;">
+<svg width="34" height="34" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="ca-m"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#FFFFFF" mask="url(#ca-m)"/><circle cx="75.5" cy="50" r="5" fill="#FFFFFF"/></svg>Cotiz</a>
+<div style="position: relative; display: flex; flex-direction: column; gap: 28px;">
+<b style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 34px; line-height: 1.2;">Votre association, organisée.</b>
+<div style="background: #F4F2ED; border-radius: 16px; padding: 16px; width: 440px; color: #2C2A38; box-shadow: 0 20px 50px rgba(40,30,80,0.22); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+<div class="cz-kpi" style="padding: 12px;"><div class="l" style="font-size: 11.5px;">Collecté ce mois</div><div class="v" style="font-size: 19px;">1 240 000 F</div></div>
+<div class="cz-kpi" style="padding: 12px;"><div class="l" style="font-size: 11.5px;">Paiements à valider</div><div class="v" style="font-size: 19px;">6</div></div>
+<div class="cz-kpi" style="padding: 12px;"><div class="l" style="font-size: 11.5px;">Souscripteurs en retard</div><div class="v" style="font-size: 19px;">14</div></div>
+<div class="cz-kpi" style="padding: 12px;"><div class="l" style="font-size: 11.5px;">Taux de recouvrement</div><div class="v" style="font-size: 19px;">82 %</div></div>
+</div>
+</div>
+<span style="position: relative; font-size: 13px; opacity: 0.9;">votre association organisée</span>
+</div>
+</sc-if>
+
+<div style="{{s.formSide}}">
+<div style="{{s.form}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}">
+<a href="{{links.home}}" style="display: flex; align-items: center; gap: 8px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; color: #26215C; margin-bottom: 8px;">
+<svg width="32" height="32" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="ca-mm"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#ca-mm)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>Cotiz</a>
+</sc-if>
+<div><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Espace association</h1>
+<p style="margin: 4px 0 0; font-size: 14px; color: #6B6478;">Connectez-vous pour gérer vos projets et vos souscripteurs.</p></div>
+
+<sc-if value="{{badCreds}}" hint-placeholder-val="{{ false }}">
+<div class="cz-alert cz-alert--danger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg><div><b>Email ou mot de passe incorrect.</b> Vérifiez vos identifiants et réessayez.</div></div>
+</sc-if>
+<sc-if value="{{locked}}" hint-placeholder-val="{{ false }}">
+<div class="cz-alert cz-alert--danger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><div><b>Trop de tentatives.</b> Par sécurité, la connexion est bloquée pendant 15 minutes.</div></div>
+</sc-if>
+<sc-if value="{{suspended}}" hint-placeholder-val="{{ false }}">
+<div class="cz-alert cz-alert--danger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg><div><b>L’espace de votre association est suspendu.</b> Contactez-nous pour le réactiver : [ADRESSE EMAIL DE CONTACT].</div></div>
+</sc-if>
+
+<label class="cz-field"><span class="cz-label">Email</span><input class="{{inputCls}}" type="email" value="awa@entraide.ci" autocomplete="email"></label>
+<div class="cz-field"><label class="cz-label" for="ca-pw">Mot de passe</label>
+<div class="{{pwCls}}" style="padding-right: 4px;"><input id="ca-pw" type="{{pwType}}" value="motdepasse" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0;">
+<button type="button" onClick="{{togglePw}}" aria-label="{{pwLabel}}" style="width: 36px; height: 36px; border: none; background: transparent; color: #6B6478; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+<button type="button" onClick="{{toggleKeep}}" class="cz-check" style="background: transparent; border: none; padding: 0; min-height: 44px; font-size: 14px;"><span class="{{keepCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Rester connecté</button>
+<a href="{{links.motDePasse}}" style="font-size: 14px; font-weight: 600;">Mot de passe oublié ?</a>
+</div>
+<sc-if value="{{loading}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--block is-loading" style="height: 46px;"><span class="cz-spin"></span>Connexion…</button></sc-if>
+<sc-if value="{{notLoading}}" hint-placeholder-val="{{ true }}"><a class="cz-btn cz-btn--block" href="{{links.dashboard}}" style="height: 46px;">Se connecter</a></sc-if>
+<div style="display: flex; align-items: center; gap: 12px; color: #A8A2B4; font-size: 12px;"><span style="flex-grow: 1; height: 1px; background: #E4E0EA;"></span>ou<span style="flex-grow: 1; height: 1px; background: #E4E0EA;"></span></div>
+<a href="{{links.connexion}}" style="font-size: 14px; color: #2C2A38;">Vous êtes souscripteur ? <b style="color: #5B51C4;">Accéder à votre espace</b></a>
+<a href="{{links.demande}}" style="font-size: 14px; color: #2C2A38;">Pas encore inscrit ? <b style="color: #5B51C4;">Créer mon association</b></a>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device":{"editor":"enum","options":["web","mobile"],"default":"web"},"etat":{"editor":"enum","options":["nominal","identifiants-incorrects","compte-suspendu","blocage-15-min","chargement"],"default":"nominal"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { showPw: false, keep: true, submitted: false }; }
+  renderVals() {
+    const m = this.props.device === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const etat = this.props.etat || 'nominal';
+    const badCreds = etat === 'identifiants-incorrects';
+    const loading = etat === 'chargement' || this.state.submitted;
+    return {
+      web: !m, mobile: m,
+      badCreds, suspended: etat === 'compte-suspendu', locked: etat === 'blocage-15-min', blocked: etat === 'blocage-15-min',
+      loading, notLoading: !loading,
+      inputCls: 'cz-input' + (badCreds ? ' is-error' : ''),
+      pwCls: 'cz-input' + (badCreds ? ' is-error' : ''),
+      pwType: this.state.showPw ? 'text' : 'password',
+      pwLabel: this.state.showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe',
+      togglePw: () => this.setState({ showPw: !this.state.showPw }),
+      keepCls: 'cz-cb' + (this.state.keep ? ' is-on' : ''),
+      toggleKeep: () => this.setState({ keep: !this.state.keep }),
+      submit: () => this.setState({ submitted: true }),
+      links: { home: L('Main'), motDePasse: L('MotDePasse'), connexion: L('Connexion'), demande: L('Demande'), dashboard: L('MgDashboard') },
+      s: {
+        root: m ? 'width: 100%; height: 900px; display: flex; flex-direction: column; background: #FFFFFF; font-family: Inter, Arial, sans-serif;'
+                : 'width: 100%; height: 900px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #FFFFFF; font-family: Inter, Arial, sans-serif;',
+        formSide: m ? 'padding: 32px 20px; display: flex; justify-content: center;' : 'display: flex; align-items: center; justify-content: center; padding: 48px;',
+        form: 'width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px;'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

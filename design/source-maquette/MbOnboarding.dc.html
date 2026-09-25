@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bienvenue — onboarding souscripteur</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<div style="{{s.col}}">
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<div style="{{s.card}}">
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<span style="display: flex; align-items: center; gap: 8px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; color: #26215C;"><svg width="30" height="30" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="mbo-m"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#mbo-m)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>Cotiz</span>
+<sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><a href="{{links.home}}" style="font-size: 14px; font-weight: 600; color: #6B6478; min-height: 44px; display: inline-flex; align-items: center; padding: 0 6px;">Passer</a></sc-if>
+</div>
+<div style="{{s.illu}}">
+<span style="position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 2px solid rgba(216,90,48,0.18);"></span>
+<span style="position: absolute; width: 150px; height: 150px; border-radius: 50%; background: #F8DDD3;"></span>
+<span style="position: relative; width: 88px; height: 88px; border-radius: 24px; background: #FFFFFF; color: #D85A30; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(153,60,29,0.18);"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{slide.icon}}"/></svg></span>
+<span style="position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #D85A30; right: 22%; top: 18%;"></span>
+</div>
+<div style="text-align: center; display: flex; flex-direction: column; gap: 10px;">
+<h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; line-height: 1.25; color: #1B1830;">{{slide.title}}</h1>
+<p style="margin: 0; font-size: 15.5px; line-height: 1.6; color: #6B6478;">{{slide.text}}</p>
+</div>
+<div style="display: flex; justify-content: center; gap: 8px;" aria-label="{{dotsLabel}}">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="3"><button type="button" onClick="{{d.go}}" aria-label="{{d.label}}" style="{{d.style}}"></button></sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--block cz-btn--lg" onClick="{{next}}">Suivant</button></sc-if>
+<sc-if value="{{last}}" hint-placeholder-val="{{ false }}"><a class="cz-btn cz-btn--block cz-btn--lg" href="{{links.home}}" style="color: #FFFFFF;">Voir mes projets</a></sc-if>
+<sc-if value="{{notFirst}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--ghost cz-btn--block" onClick="{{prev}}">Précédent</button></sc-if>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "etape": {"editor": "enum", "options": ["1", "2", "3"], "default": "1"}, "$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { i: null }; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const idx = S.i !== null ? S.i : Math.max(0, Math.min(2, parseInt(P.etape || '1', 10) - 1));
+    const slides = [
+      { title: 'Bienvenue Moussa !', text: 'Entraide Yopougon vous a inscrit sur Cotiz. Retrouvez ici vos projets, vos échéances et tous vos paiements.', icon: 'M3.5 10.5L12 3.5l8.5 7M5.5 9v9.5a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9M10 20.5V15h4v5.5' },
+      { title: 'Suivez vos échéances', text: 'Voyez d’un coup d’œil ce qui est payé, ce qui arrive et ce qui est en retard, projet par projet.', icon: 'M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM4 9.5h16M8.5 2.5v3M15.5 2.5v3M8 14l2.5 2.5L16 12' },
+      { title: 'Déclarez vos paiements', text: 'Après un versement mobile money ou bancaire, déclarez-le en quelques secondes avec votre preuve. Votre association le valide.', icon: 'M12 5v14M5 12h14' }
+    ];
+    const go = (i) => () => this.setState({ i });
+    const v = {
+      slide: slides[idx], last: idx === 2, notLast: idx < 2, notFirst: idx > 0,
+      dotsLabel: 'Étape ' + (idx + 1) + ' sur 3',
+      dots: slides.map((_, i) => ({ go: go(i), label: 'Aller à l’étape ' + (i + 1), style: `width: ${i === idx ? 26 : 10}px; height: 10px; border-radius: 999px; border: none; padding: 0; cursor: pointer; background: ${i === idx ? '#D85A30' : '#E4E0EA'};` })),
+      next: go(Math.min(2, idx + 1)), prev: go(Math.max(0, idx - 1)),
+      links: { home: L('MbAccueil') },
+      s: {
+        card: m ? 'display: flex; flex-direction: column; gap: 26px; min-height: 780px; padding: 6px 6px 0; box-sizing: border-box;' : 'background: #FFFFFF; border-radius: 20px; padding: 32px 40px; box-shadow: 0 1px 3px rgba(40,30,80,0.06); display: flex; flex-direction: column; gap: 26px; margin-top: 40px;',
+        illu: 'position: relative; height: 260px; display: flex; align-items: center; justify-content: center;'
+      }
+    };
+    const hasNav = false && !(m && false && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 900px; position: relative; display: grid; grid-template-columns: ' + (false ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,80px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '24px' : '24px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

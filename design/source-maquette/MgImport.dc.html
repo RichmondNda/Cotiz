@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet — Import Excel</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,select{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:20px;color:#1B1830}
+.errcell{background:#FBE0E0;border:1.5px solid #D93A3A;border-radius:8px;padding:4px 8px;width:150px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1100px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,1100px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" parent="Centre communautaire" parent-href="MgProjet.dc.html" parent2="Souscripteurs" parent2-href="MgProjetSouscripteurs.dc.html" current="Import Excel" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 18px;">
+<div class="cz-pagehead"><div style="display: flex; align-items: center; gap: 10px;"><h1>Importer des souscripteurs</h1><span class="cz-soon">V2</span></div><div class="end"><a class="cz-btn cz-btn--ghost" href="MgProjetSouscripteurs.dc.html">Annuler</a></div></div>
+<div class="cz-steps" style="background: #FFFFFF; border-radius: 14px; padding: 14px 18px;">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4"><div class="{{s.cls}}"><b>{{s.n}}</b>{{s.label}}</div><sc-if value="{{s.line}}" hint-placeholder-val="{{ true }}"><div class="{{s.lnCls}}"></div></sc-if></sc-for>
+</div>
+<div class="cz-card" style="padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+
+<sc-if value="{{is1}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 16px;">
+<h2 class="t">Votre fichier</h2>
+<sc-if value="{{invalid}}" hint-placeholder-val="{{ false }}"><div class="cz-drop is-error" style="padding: 48px;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg><b>membres.pdf n’est pas un fichier valide</b><span class="fmt">Formats acceptés : .xlsx ou .csv</span></div></sc-if>
+<sc-if value="{{valid}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-drop" onClick="{{next}}" style="padding: 48px; cursor: pointer; font: inherit;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5M7 9.5l5-5 5 5M4.5 20h15"/></svg><div style="font-size: 15px;">Glissez votre fichier ici ou <strong>parcourez vos fichiers</strong></div><span class="fmt">.xlsx ou .csv · cliquez pour simuler le dépôt de « membres_entraide.xlsx »</span></button></sc-if>
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 13.5px;"><span style="color: #6B6478;">Colonnes attendues : prénom, nom, téléphone, email (optionnel), adresse (optionnelle).</span><a href="#" style="font-weight: 600;">Télécharger le modèle Excel</a></div>
+</div></sc-if>
+
+<sc-if value="{{is2}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Correspondance des colonnes</h2>
+<p style="margin: 0; font-size: 14px; color: #6B6478;">membres_entraide.xlsx · 53 lignes. Nous avons associé automatiquement les colonnes reconnues.</p>
+<table class="cz-table"><thead><tr><th>Colonne du fichier</th><th>Exemples</th><th>Champ Cotiz</th></tr></thead><tbody>
+<tr><td><b>Prénom</b></td><td style="color: #6B6478;">Aïcha · Yao · Mariam</td><td><select class="cz-input" style="width: 220px;"><option selected>Prénom</option></select></td></tr>
+<tr><td><b>NOM</b></td><td style="color: #6B6478;">Bamba · Kouamé · Coulibaly</td><td><select class="cz-input" style="width: 220px;"><option selected>Nom</option></select></td></tr>
+<tr><td><b>Tel</b></td><td class="cz-mono" style="color: #6B6478;">0712345678 · 0501… · 0102…</td><td><select class="cz-input" style="width: 220px;"><option selected>Téléphone</option></select></td></tr>
+<tr><td><b>Mail</b></td><td style="color: #6B6478;">[email] · — · [email]</td><td><select class="cz-input" style="width: 220px;"><option selected>Email</option></select></td></tr>
+<tr><td><b>Quartier</b></td><td style="color: #6B6478;">Yopougon · Abobo · Cocody</td><td><select class="cz-input" style="width: 220px;"><option>Adresse</option><option selected>Ignorer</option></select></td></tr>
+</tbody></table>
+</div></sc-if>
+
+<sc-if value="{{is3}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Vérification</h2>
+<div class="cz-grid4">
+<button type="button" onClick="{{fReady}}" class="cz-tile" style="background: #DFF3E7; border: none; text-align: left; cursor: pointer;"><div class="t" style="color: #1E6B3E;">Prêtes</div><div class="v" style="color: #1E6B3E;">{{ready}}</div></button>
+<button type="button" onClick="{{fExisting}}" class="cz-tile" style="background: #DEEBF7; border: none; text-align: left; cursor: pointer;"><div class="t" style="color: #1E5585;">Comptes existants rattachés</div><div class="v" style="color: #1E5585;">3</div></button>
+<button type="button" onClick="{{fErrors}}" class="cz-tile" style="background: #FBE0E0; border: none; text-align: left; cursor: pointer;"><div class="t" style="color: #96201F;">Erreurs</div><div class="v" style="color: #96201F;">{{errors}}</div></button>
+<button type="button" onClick="{{fDup}}" class="cz-tile" style="background: #FBEEDB; border: none; text-align: left; cursor: pointer;"><div class="t" style="color: #8A5410;">Doublon dans le fichier</div><div class="v" style="color: #8A5410;">1</div></button>
+</div>
+<table class="cz-table"><thead><tr><th>Ligne</th><th>Prénom</th><th>Nom</th><th>Téléphone</th><th>Statut</th><th></th></tr></thead><tbody>
+<sc-if value="{{showErr1}}" hint-placeholder-val="{{ true }}"><tr><td>12</td><td>Yao</td><td>Kouamé</td><td><input class="errcell" value="07 12 34" aria-label="Téléphone ligne 12"></td><td><span class="cz-badge cz-badge--danger">Téléphone incomplet</span></td><td class="num"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{fix1}}">Corriger</button> <button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{fix1}}">Ignorer</button></td></tr></sc-if>
+<sc-if value="{{showErr2}}" hint-placeholder-val="{{ true }}"><tr><td>27</td><td><input class="errcell" value="" placeholder="Prénom manquant" aria-label="Prénom ligne 27"></td><td>Coulibaly</td><td class="cz-mono">+225 05 [XX XX XX XX]</td><td><span class="cz-badge cz-badge--danger">Prénom manquant</span></td><td class="num"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{fix2}}">Corriger</button> <button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{fix2}}">Ignorer</button></td></tr></sc-if>
+<tr><td>31</td><td>Mariam</td><td>Diallo</td><td class="cz-mono">+225 01 [XX XX XX XX]</td><td><span class="cz-badge cz-badge--warning">Doublon de la ligne 8</span></td><td class="num"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm">Ignorer</button></td></tr>
+<tr><td>4</td><td>Kadiatou</td><td>Sanogo</td><td class="cz-mono">+225 01 [XX XX XX XX]</td><td><span class="cz-badge cz-badge--info">Compte existant</span></td><td></td></tr>
+<tr><td>1</td><td>Aïcha</td><td>Bamba</td><td class="cz-mono">+225 07 12 34 56 78</td><td><span class="cz-badge cz-badge--success">Prête</span></td><td></td></tr>
+</tbody></table>
+</div></sc-if>
+
+<sc-if value="{{is4}}" hint-placeholder-val="{{ false }}"><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<div style="display: flex; flex-direction: column; gap: 14px;"><h2 class="t">Envoi des invitations</h2>
+<div class="cz-field"><span class="cz-label">Canal</span><div class="cz-seg" style="align-self: flex-start;"><span class="is-on">SMS</span><span>Email</span><span>Les deux</span></div></div>
+<sc-if value="{{notStarted}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--lg" onClick="{{start}}" style="align-self: flex-start;">Importer {{total}} souscripteurs</button></sc-if>
+<sc-if value="{{finished}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div><b>Import terminé.</b> {{total}} souscripteurs inscrits au projet Centre communautaire, {{total}} invitations envoyées par SMS.</div></div><a class="cz-btn" href="MgProjetSouscripteurs.dc.html" style="align-self: flex-start;">Voir les souscripteurs</a></sc-if>
+</div>
+<div style="background: #FAF9FC; border: 1px solid #E4E0EA; border-radius: 12px; padding: 16px; font-size: 13.5px;"><div style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #6B6478; margin-bottom: 8px;">APERÇU DU SMS</div>Entraide Yopougon vous a inscrit au projet « Centre communautaire » sur Cotiz. Vos identifiants : [lien de connexion]. Mot de passe provisoire : [code].</div>
+</div></sc-if>
+
+<sc-if value="{{showNav}}" hint-placeholder-val="{{ false }}"><div style="display: flex; justify-content: space-between; padding-top: 16px; border-top: 1px solid #F1EEF4;"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{back}}">Retour</button><button type="button" class="cz-btn" onClick="{{next}}">Continuer</button></div></sc-if>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["1-fichier","fichier-invalide","2-colonnes","3-verification","4-envoi","import-termine"],"default":"1-fichier"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: null, fixed1: false, fixed2: false, done: null }; }
+  renderVals() {
+    const etat = this.props.etat || '1-fichier';
+    const preset = { '1-fichier': 1, 'fichier-invalide': 1, '2-colonnes': 2, '3-verification': 3, '4-envoi': 4, 'import-termine': 4 }[etat];
+    const step = this.state.step || preset;
+    const L = ['Fichier', 'Colonnes', 'Vérification', 'Envoi'];
+    const fixed = (this.state.fixed1 ? 1 : 0) + (this.state.fixed2 ? 1 : 0);
+    const done = this.state.done === null ? etat === 'import-termine' : this.state.done;
+    return {
+      is1: step === 1, is2: step === 2, is3: step === 3, is4: step === 4, showNav: step === 2 || step === 3,
+      invalid: etat === 'fichier-invalide' && !this.state.step, valid: !(etat === 'fichier-invalide' && !this.state.step),
+      steps: L.map((label, i) => ({ label, n: i + 1 < step ? '✓' : String(i + 1), cls: 's ' + (i + 1 < step ? 'is-done' : i + 1 === step ? 'is-cur' : ''), line: i < 3, lnCls: 'ln' + (i + 1 < step ? ' is-done' : '') })),
+      next: () => this.setState({ step: Math.min(4, step + 1) }), back: () => this.setState({ step: Math.max(1, step - 1) }),
+      ready: 47 + fixed, errors: 2 - fixed, total: 50 + fixed,
+      showErr1: !this.state.fixed1, showErr2: !this.state.fixed2,
+      fix1: () => this.setState({ fixed1: true }), fix2: () => this.setState({ fixed2: true }),
+      fReady: () => {}, fExisting: () => {}, fErrors: () => {}, fDup: () => {},
+      notStarted: !done, finished: done, start: () => this.setState({ done: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

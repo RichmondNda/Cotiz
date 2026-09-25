@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Paiements à valider</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1000px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="paiements" hint-size="240px,1000px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Paiements à valider" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-pagehead"><div style="display: flex; align-items: center; gap: 12px;"><h1>Paiements à valider</h1><span class="cz-count" style="height: 24px; font-size: 13px; padding: 0 10px;">{{pendingCount}}</span></div><div class="end" style="font-size: 12.5px; color: #6B6478; align-items: center;">Raccourcis : V valider · R rejeter · ↓ suivant</div></div>
+<div class="cz-tabs" role="tablist">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+</div>
+<div class="cz-toolbar"><button type="button" class="cz-chip">Projet : tous</button><button type="button" class="cz-chip">Ancienneté : toutes</button><button type="button" class="cz-chip">Montant : tous</button></div>
+
+<sc-if value="{{hasItems}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: 2fr 3fr; gap: 16px; align-items: start;">
+<div class="cz-card" style="padding: 8px; display: flex; flex-direction: column; gap: 4px;">
+<sc-for list="{{items}}" as="p" hint-placeholder-count="6">
+<button type="button" onClick="{{p.select}}" aria-pressed="{{p.on}}" style="{{p.style}}">
+<span class="cz-avatar cz-avatar--sm">{{p.ini}}</span>
+<span style="flex-grow: 1; min-width: 0;"><b style="display: block; color: #1B1830;">{{p.name}}</b><span style="font-size: 12.5px; color: #6B6478;">{{p.project}}</span></span>
+<span style="text-align: right;"><b style="display: block; font-family: Poppins, sans-serif; color: #1B1830;">{{p.amount}}</b><span style="{{p.agoStyle}}">{{p.ago}}</span></span>
+</button>
+</sc-for>
+</div>
+<div class="cz-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+<div style="display: flex; align-items: center; gap: 12px;"><span class="cz-avatar">{{cur.ini}}</span><div style="flex-grow: 1;"><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">{{cur.name}}</a><div style="font-size: 13px; color: #6B6478;">{{cur.project}}</div></div><span class="{{curBadgeCls}}">{{curBadge}}</span></div>
+<div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 32px; color: #1B1830;">{{cur.amount}}</div>
+<div style="font-size: 13.5px; color: #6B6478;">Déclaré le {{cur.date}} · {{cur.method}}</div>
+<div style="display: flex; gap: 16px; align-items: flex-start;"><div class="cz-proof"><span class="glyph"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg></span>preuve.jpg</div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;"><div class="cz-alert cz-alert--info" style="font-size: 13px;"><div>Vérifiez sur votre relevé un versement de <b>{{cur.amount}}</b> vers le {{cur.date}}.</div></div><div style="font-size: 13.5px;"><span style="color: #6B6478;">Couvre :</span> <b>{{cur.covers}}</b></div><a href="MgPaiement.dc.html" style="font-size: 13.5px; font-weight: 600;">Ouvrir le détail complet →</a></div></div>
+<sc-if value="{{curPending}}" hint-placeholder-val="{{ true }}"><div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 14px; border-top: 1px solid #F1EEF4;"><button type="button" class="cz-btn cz-btn--danger-outline" onClick="{{reject}}">Rejeter</button><button type="button" class="cz-btn cz-btn--success" onClick="{{validate}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Valider le paiement</button></div></sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-empty" style="padding: 56px;"><div class="i i--success"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></div><div class="t">Rien à valider</div><div class="d">Tous les paiements déclarés ont été traités.</div><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgDashboard.dc.html">Retour au tableau de bord</a></div></sc-if>
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="cz-toast" role="status" style="align-self: flex-end;"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></span><div><div class="ttl">{{toastTitle}}</div><div class="msg">Passage au paiement suivant.</div></div><button type="button" class="act" onClick="{{undo}}" style="background: transparent; border: none;">Annuler</button></div></sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["file-pleine","file-vide","valides"],"default":"file-pleine"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: props.etat === 'valides' ? 'ok' : 'todo', sel: 0, done: props.etat === 'file-vide' ? { 0: 'ok', 1: 'ok', 2: 'ok', 3: 'ok', 4: 'ok', 5: 'ok' } : {}, last: null }; }
+  renderVals() {
+    const s = this.state;
+    const ALL = [
+      { ini: 'AK', name: 'Awa Koné', project: 'Centre communautaire', amount: '75 000 F', ago: 'il y a 3 jours', date: '22/09/2026', method: 'Mobile money', covers: 'sept., oct., nov. 2026' },
+      { ini: 'JK', name: 'Jean Kouassi', project: 'Centre communautaire', amount: '12 500 F', ago: 'il y a 2 jours', date: '23/09/2026', method: 'Mobile money', covers: 'solde d’août 2026' },
+      { ini: 'KS', name: 'Kadiatou Sanogo', project: 'Centre communautaire', amount: '25 000 F', ago: 'il y a 2 jours', date: '23/09/2026', method: 'Virement bancaire', covers: 'sept. 2026' },
+      { ini: 'SG', name: 'Serge Gnagne', project: 'Centre communautaire', amount: '25 000 F', ago: 'hier', date: '24/09/2026', method: 'Mobile money', covers: 'sept. 2026' },
+      { ini: 'IT', name: 'Ibrahim Touré', project: 'Voyage solidaire', amount: '10 000 F', ago: 'hier', date: '24/09/2026', method: 'Mobile money', covers: 'sept. 2026' },
+      { ini: 'AY', name: 'Adjoua Yao', project: 'Voyage solidaire', amount: '50 000 F', ago: 'aujourd’hui', date: '25/09/2026', method: 'Virement bancaire', covers: 'fonds d’entrée' }
+    ].map((p, i) => ({ ...p, i, st: s.done[i] || 'todo' }));
+    const items = ALL.filter((p) => s.tab === 'all' || p.st === s.tab);
+    const cur = items.find((p) => p.i === s.sel) || items[0] || ALL[0];
+    const act = (st) => () => {
+      const done = { ...s.done, [cur.i]: st };
+      const nxt = ALL.find((p) => p.i !== cur.i && !(done[p.i]));
+      this.setState({ done, sel: nxt ? nxt.i : -1, last: [cur.i, st] });
+    };
+    const pendingCount = ALL.filter((p) => p.st === 'todo').length;
+    const B = { todo: ['cz-badge cz-badge--warning', 'En attente'], ok: ['cz-badge cz-badge--success', 'Validé'], ko: ['cz-badge cz-badge--danger', 'Rejeté'] };
+    return {
+      pendingCount,
+      tabs: [['todo', 'À valider · ' + pendingCount], ['ok', 'Validés'], ['ko', 'Rejetés'], ['all', 'Tous']].map(([k, label]) => ({ label, on: k === s.tab, pick: () => this.setState({ tab: k }),
+        style: `padding: 10px 16px; min-height: 44px; background: transparent; border: none; border-bottom: 2.5px solid ${k === s.tab ? '#7F77DD' : 'transparent'}; margin-bottom: -1px; font-family: Poppins, sans-serif; font-size: 13.5px; color: ${k === s.tab ? '#5B51C4' : '#6B6478'}; cursor: pointer;` })),
+      hasItems: items.length > 0, empty: items.length === 0 && s.tab === 'todo',
+      items: items.map((p) => ({ ...p, on: p.i === cur.i, select: () => this.setState({ sel: p.i }),
+        agoStyle: 'font-size: 12px; color: #6B6478;',
+        style: `display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer; text-align: left; font: inherit; font-size: 14px; background: ${p.i === cur.i ? '#EFECFB' : 'transparent'};` })),
+      cur, curPending: cur.st === 'todo', curBadgeCls: B[cur.st][0], curBadge: B[cur.st][1],
+      validate: act('ok'), reject: act('ko'),
+      toast: !!s.last, toastTitle: s.last ? (s.last[1] === 'ok' ? 'Paiement validé' : 'Paiement rejeté') : '',
+      undo: () => { const d = { ...s.done }; delete d[s.last[0]]; this.setState({ done: d, sel: s.last[0], last: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

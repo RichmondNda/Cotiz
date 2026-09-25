@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cotiz — Demande envoyée</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+@keyframes cz-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes cz-draw{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+.cz-okicon{animation:cz-pop .5s ease-out both}
+.cz-okicon path{stroke-dasharray:30;animation:cz-draw .45s .35s ease-out both}
+</style>
+</helmet>
+<div data-theme="manager" style="{{s.root}}">
+<header style="{{s.header}}">
+<a href="{{links.home}}" style="display: flex; align-items: center; gap: 8px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 19px; color: #26215C;">
+<svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="cf-m"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#cf-m)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>Cotiz</a>
+</header>
+<main style="{{s.main}}">
+<div class="cz-card cz-card--lg" style="{{s.card}}">
+<span class="cz-okicon" style="width: 80px; height: 80px; border-radius: 50%; background: #DFF3E7; color: #2E9E5B; display: inline-flex; align-items: center; justify-content: center;"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12.5l4 4L18 8.5"/></svg></span>
+<h1 style="{{s.h1}}">Demande envoyée !</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #2C2A38; max-width: 460px;">Nous examinons votre demande et revenons vers vous sous 48 h ouvrées à l’adresse <b>awa@entraide.ci</b>.</p>
+<div style="display: flex; align-items: center; gap: 10px; background: #FAF9FC; border: 1px solid #E4E0EA; border-radius: 10px; padding: 10px 14px;"><span style="font-size: 12.5px; color: #6B6478;">Référence</span><span style="font-family: ui-monospace, Menlo, monospace; font-size: 14px; color: #1B1830;">[RÉF. DE LA DEMANDE]</span></div>
+<div style="width: 100%; max-width: 420px; text-align: left; margin-top: 8px;">
+<div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; color: #1B1830; margin-bottom: 14px;">Et maintenant ?</div>
+<div class="cz-timeline">
+<div class="it"><b>Demande reçue</b><div class="m">Aujourd’hui · c’est fait</div></div>
+<div class="it w"><b>Vérification par notre équipe</b><div class="m">Sous 48 h ouvrées</div></div>
+<div class="it i"><b>Réception de vos accès</b><div class="m">Par email, pour configurer votre espace</div></div>
+</div>
+</div>
+<a class="cz-btn cz-btn--secondary" href="{{links.home}}" style="{{s.btn}}">Retour à l’accueil</a>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device":{"editor":"enum","options":["web","mobile"],"default":"web"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const m = this.props.device === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    return {
+      links: { home: L('Main') },
+      s: {
+        root: `width: 100%; height: ${m ? 1000 : 900}px; display: flex; flex-direction: column; background: #FAECE7; font-family: Inter, Arial, sans-serif; overflow: hidden;`,
+        header: m ? 'height: 64px; padding: 0 16px; display: flex; align-items: center; background: #FFFFFF; box-sizing: border-box;'
+                  : 'height: 72px; padding: 0 48px; display: flex; align-items: center; background: #FFFFFF; box-sizing: border-box;',
+        main: m ? 'padding: 24px 16px; display: flex; justify-content: center;' : 'padding: 56px 48px; display: flex; justify-content: center;',
+        card: `width: ${m ? '100%' : '600px'}; box-sizing: border-box; padding: ${m ? '28px 18px' : '40px 48px'}; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;`,
+        h1: `margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: ${m ? 26 : 30}px; color: #1B1830;`,
+        btn: m ? 'width: 100%; height: 50px; margin-top: 8px;' : 'margin-top: 8px;'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

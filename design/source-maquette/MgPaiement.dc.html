@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Détail d’un paiement</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,select,textarea{font:inherit;color:inherit}
+h2.t{margin:0 0 12px;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1200px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="paiements" hint-size="240px,1200px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0; position: relative;">
+<dc-import name="MgTopbar" parent="Paiements" parent-href="MgPaiements.dc.html" current="Awa Koné · 75 000 F" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px 110px; display: flex; flex-direction: column; gap: 16px;">
+<div style="display: flex; align-items: center; gap: 14px;">
+<span class="cz-avatar cz-avatar--lg">AK</span>
+<div style="flex-grow: 1;"><a href="MgSouscripteur.dc.html" style="font-weight: 600; font-size: 16px; color: #1B1830;">Awa Koné</a><div style="font-size: 13.5px; color: #6B6478;">Centre communautaire · déclaré le 22/09/2026 · Mobile money</div></div>
+<span class="{{badgeCls}}">{{badge}}</span>
+</div>
+<div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 32px; color: #1B1830;">75 000 F</div>
+<sc-if value="{{validated}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div><b>Paiement validé le 25/09/2026 par Awa Koné.</b> Les échéances de septembre, octobre et novembre sont marquées payées.</div></div></sc-if>
+
+<div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start;">
+<section class="cz-card" style="padding: 22px;"><h2 class="t">Preuve</h2>
+<sc-if value="{{isImage}}" hint-placeholder-val="{{ true }}"><div style="height: 300px; border-radius: 12px; background: linear-gradient(160deg, #DEEBF7, #FAF9FC); border: 1px solid #E4E0EA; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #6B6478; font-size: 13px;"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3B82C4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>capture_mobile_money.jpg<div style="display: flex; gap: 6px;"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Zoomer">+</button><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Pivoter">↻</button><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Télécharger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></svg></button></div></div></sc-if>
+<sc-if value="{{isPdf}}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 16px; align-items: flex-end;"><div class="cz-proof cz-proof--pdf" style="width: 160px; height: 200px;"><span class="glyph"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v5h5M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8z"/></svg></span>recu.pdf · p.1</div><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm">Ouvrir le PDF</button></div></sc-if>
+<sc-if value="{{isRef}}" hint-placeholder-val="{{ false }}"><div class="cz-ref"><span style="font-size: 12px; color: #6B6478;">Réf.</span><span class="cz-mono">OM-20260922-[XXXX]</span><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Copier"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></svg></button></div><p style="margin: 10px 0 0; font-size: 13px; color: #6B6478;">Aucun fichier joint : le souscripteur a indiqué une référence de transaction.</p></sc-if>
+<div class="cz-alert cz-alert--info" style="margin-top: 14px;"><div>Vérifiez sur votre relevé un versement de <b>75 000 F</b> vers le 22 septembre.</div></div>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<section class="cz-card" style="padding: 22px;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"><h2 class="t" style="margin: 0;">Répartition</h2><sc-if value="{{canEdit}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{toggleAdjust}}">{{adjustLabel}}</button></sc-if></div>
+<div class="cz-alloc" style="box-shadow: none; padding: 0;">
+<div class="rows" style="margin-top: 0;">
+<sc-for list="{{alloc}}" as="a" hint-placeholder-count="4"><button type="button" onClick="{{a.toggle}}" disabled="{{a.locked}}" class="{{a.rowCls}}" style="width: 100%; border: none; font: inherit; text-align: left;"><span class="{{a.cbCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="lbl"><b>{{a.l}}</b><span class="{{a.badgeCls}}">{{a.badge}}</span></span><span class="amt">{{a.amt}}</span></button></sc-for>
+</div>
+<div class="ft"><span>Total réparti</span><b class="{{totalCls}}">{{total}} / 75 000 F</b></div>
+</div>
+</section>
+<section class="cz-card" style="padding: 22px;"><h2 class="t">Situation sur le projet</h2>
+<div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px;">
+<span class="cz-cell cz-cell--ok" title="Entrée · payée"></span><span class="cz-cell cz-cell--ok" title="Mars"></span><span class="cz-cell cz-cell--ok" title="Avril"></span><span class="cz-cell cz-cell--ok" title="Mai"></span><span class="cz-cell cz-cell--ok" title="Juin"></span><span class="cz-cell cz-cell--ok" title="Juillet"></span><span class="cz-cell cz-cell--ok" title="Août"></span><span class="{{cellCls}}" title="Septembre"></span><span class="{{cellCls}}" title="Octobre"></span><span class="{{cellCls}}" title="Novembre"></span><span class="cz-cell cz-cell--fut"></span><span class="cz-cell cz-cell--fut"></span><span class="cz-cell cz-cell--fut"></span>
+</div>
+<div style="font-size: 13.5px; margin-bottom: 12px;">Reste à payer : <b>{{rest}}</b></div>
+<div class="cz-timeline"><div class="it"><b>25 000 F validé</b><div class="m">05/08/2026 · août · par Aminata Konaté</div></div><div class="it"><b>25 000 F validé</b><div class="m">05/07/2026 · juillet</div></div><div class="it"><b>25 000 F validé</b><div class="m">05/06/2026 · juin</div></div></div>
+</section>
+</div>
+</div>
+<sc-if value="{{diffOpen}}" hint-placeholder-val="{{ false }}"><section class="cz-card" style="padding: 18px; display: flex; gap: 14px; align-items: flex-end;"><label class="cz-field" style="width: 260px;"><span class="cz-label">Montant réellement reçu</span><div class="cz-input cz-input--suffix"><input value="50 000" style="border: none; outline: none; background: transparent; flex-grow: 1;"><span class="sfx">F CFA</span></div></label><span style="font-size: 13px; color: #6B6478;">La répartition sera recalculée et le souscripteur prévenu de l’écart.</span></section></sc-if>
+</main>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 14px 32px; display: flex; align-items: center; gap: 12px; box-shadow: 0 -2px 10px rgba(40,30,80,0.07);">
+<sc-if value="{{canEdit}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{toggleDiff}}" style="background: transparent; border: none; color: #5B51C4; font-weight: 600; font-size: 14px; cursor: pointer;">Le montant reçu est différent</button></sc-if>
+<div style="flex-grow: 1;"></div>
+<sc-if value="{{confirming}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px;">Confirmer la réception de 75 000 F ?</span><button type="button" class="cz-btn cz-btn--ghost" onClick="{{cancelConfirm}}">Annuler</button><button type="button" class="cz-btn cz-btn--success" onClick="{{doValidate}}">Oui, valider</button></sc-if>
+<sc-if value="{{idle}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--danger-outline" onClick="{{openReject}}">Rejeter</button><button type="button" class="cz-btn cz-btn--success" onClick="{{askConfirm}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Valider le paiement</button></sc-if>
+<sc-if value="{{validated}}" hint-placeholder-val="{{ false }}"><a class="cz-btn" href="MgPaiements.dc.html">Paiement suivant</a></sc-if>
+</div>
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="cz-toast" role="status" style="position: absolute; right: 32px; bottom: 88px;"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></span><div><div class="ttl">Paiement validé</div><div class="msg">3 échéances d’Awa Koné sont à jour</div></div><button type="button" class="act" onClick="{{undo}}" style="background: transparent; border: none;">Annuler (10 s)</button></div></sc-if>
+</div>
+
+<sc-if value="{{rejectOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal cz-modal--md" role="dialog" aria-modal="true" aria-label="Rejeter le paiement">
+<div class="mh">Rejeter le paiement de 75 000 F d’Awa Koné ?</div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 12px; color: #2C2A38;">
+<label class="cz-field"><span class="cz-label">Motif <span class="req">*</span></span><select class="cz-input"><option>Preuve illisible</option><option>Montant non reçu</option><option>Montant différent</option><option>Autre</option></select></label>
+<label class="cz-field"><span class="cz-label">Message au souscripteur</span><textarea class="cz-input cz-input--area" rows="3">Bonjour Awa, la capture jointe est illisible. Merci de déclarer à nouveau votre paiement avec une photo nette du reçu.</textarea></label>
+</div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{closeReject}}">Annuler</button><a class="cz-btn cz-btn--danger cz-btn--sm" href="MgPaiements.dc.html">Rejeter le paiement</a></div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["image","pdf","reference-seule","repartition-ajustee","modale-rejet","valide"],"default":"image"},"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const e = props.etat || 'image';
+    this.state = { adjust: e === 'repartition-ajustee', sel: e === 'repartition-ajustee' ? { sep: true, oct: true, nov: false, dec: false } : { sep: true, oct: true, nov: true, dec: false }, reject: e === 'modale-rejet', confirm: false, validated: e === 'valide', toast: false, diff: false };
+  }
+  renderVals() {
+    const s = this.state; const e = this.props.etat || 'image';
+    const A = [['sep', 'Septembre 2026', 'Déclarée'], ['oct', 'Octobre 2026', 'À venir'], ['nov', 'Novembre 2026', 'À venir'], ['dec', 'Décembre 2026', 'À venir']];
+    const n = A.filter(([k]) => s.sel[k]).length;
+    const total = n * 25000;
+    const fmt = (v) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return {
+      isImage: !['pdf', 'reference-seule'].includes(e), isPdf: e === 'pdf', isRef: e === 'reference-seule',
+      validated: s.validated, canEdit: !s.validated, idle: !s.validated && !s.confirm, confirming: s.confirm && !s.validated,
+      badge: s.validated ? 'Validé' : 'En attente', badgeCls: s.validated ? 'cz-badge cz-badge--success' : 'cz-badge cz-badge--warning',
+      adjustLabel: s.adjust ? 'Terminer l’ajustement' : 'Ajuster', toggleAdjust: () => this.setState({ adjust: !s.adjust }),
+      alloc: A.map(([k, l, st]) => ({
+        l, amt: '25 000 F', locked: !s.adjust,
+        rowCls: 'row' + (s.sel[k] ? '' : ' is-off'), cbCls: 'cz-cb' + (s.sel[k] ? ' is-on' : ''),
+        badge: st, badgeCls: 'cz-badge cz-badge--sm ' + (st === 'Déclarée' ? 'cz-badge--warning' : 'cz-badge--info'),
+        toggle: () => this.setState({ sel: { ...s.sel, [k]: !s.sel[k] } })
+      })),
+      total: fmt(total) + ' F', totalCls: total === 75000 ? '' : 'neg',
+      cellCls: 'cz-cell cz-cell--' + (s.validated ? 'ok' : 'wait'),
+      rest: s.validated ? '225 000 F' : '300 000 F',
+      rejectOpen: s.reject, openReject: () => this.setState({ reject: true }), closeReject: () => this.setState({ reject: false }),
+      askConfirm: () => this.setState({ confirm: true }), cancelConfirm: () => this.setState({ confirm: false }),
+      doValidate: () => this.setState({ validated: true, confirm: false, toast: true }),
+      toast: s.toast, undo: () => this.setState({ validated: false, toast: false }),
+      diffOpen: s.diff, toggleDiff: () => this.setState({ diff: !s.diff })
+    };
+  }
+}
+</script>
+</body>
+</html>

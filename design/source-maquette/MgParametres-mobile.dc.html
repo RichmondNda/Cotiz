@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Paramètres de l’association (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="MgPlus-mobile.dc.html" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Paramètres</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Visibles par vos souscripteurs</div></div></header>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 170px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<sc-if value="{{saved}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div>Paramètres enregistrés.</div></div></sc-if>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 12px;"><h2 class="t">Informations</h2>
+<div style="display: flex; align-items: center; gap: 12px;"><span class="cz-avatar cz-avatar--org cz-avatar--lg">EY</span><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{touch}}">Changer le logo</button></div>
+<label class="cz-field"><span class="cz-label">Nom</span><input class="cz-input" value="Entraide Yopougon" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Ville</span><input class="cz-input" value="Abidjan" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Description</span><textarea class="cz-input cz-input--area" onChange="{{touch}}">[DESCRIPTION DE L’ASSOCIATION]</textarea></label></div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 12px;"><h2 class="t">Contact</h2>
+<label class="cz-field"><span class="cz-label">Téléphone</span><input class="cz-input" value="+225 07 08 09 10 11" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Email</span><input class="cz-input" value="awa@entraide.ci" onChange="{{touch}}"></label></div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 12px;"><h2 class="t">Modalités de paiement par défaut</h2>
+<label class="cz-field"><span class="cz-label">Mobile money</span><input class="cz-input" value="+225 07 08 09 10 11" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">Opérateur</span><input class="cz-input" value="[Opérateur]" onChange="{{touch}}"></label>
+<label class="cz-field"><span class="cz-label">IBAN / RIB</span><input class="cz-input cz-mono" value="[IBAN DE L’ASSOCIATION]" onChange="{{touch}}"></label></div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;"><h2 class="t">Région</h2><div class="m-row"><span>Devise</span><b>F CFA</b></div><div class="m-row"><span>Fuseau</span><b>Abidjan (GMT)</b></div></div>
+</div>
+</div>
+<dc-import name="MgMobNav" active="plus" hint-size="100%,72px" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;"></dc-import>
+<sc-if value="{{dirty}}" hint-placeholder-val="{{ false }}"><div class="m-bar" style="bottom: 72px; padding-bottom: 12px;"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{cancel}}">Annuler</button><button type="button" class="cz-btn" onClick="{{save}}">Enregistrer</button></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "modifications-non-enregistrees", "enregistre"], "default": "nominal"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { dirty: null, saved: null }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const v = {
+      dirty: S.dirty !== null ? S.dirty : etat === 'modifications-non-enregistrees',
+      saved: S.saved !== null ? S.saved : etat === 'enregistre',
+      touch: () => this.setState({ dirty: true, saved: false }), cancel: () => this.setState({ dirty: false }), save: () => this.setState({ dirty: false, saved: true })
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

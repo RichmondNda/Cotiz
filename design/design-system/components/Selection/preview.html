@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>Selection</title></head>
+<body>
+<div class="pv pv-stack">
+ <table class="pv-matrix">
+  <thead><tr><th></th><th>Repos</th><th>Survol</th><th>Focus</th><th>Coché / actif</th><th>Erreur</th><th>Désactivé</th><th>Désactivé actif</th></tr></thead>
+  <tbody>
+   <tr><th>Case à cocher</th>
+    <td><span class="cz-cb"></span></td><td><span class="cz-cb is-hover"></span></td><td><span class="cz-cb is-focus"></span></td>
+    <td><span class="cz-cb is-on"><i data-icon="coche"></i></span></td><td><span class="cz-cb is-error"></span></td>
+    <td><span class="cz-cb is-disabled"></span></td><td><span class="cz-cb is-disabled is-on"><i data-icon="coche"></i></span></td></tr>
+   <tr><th>Interrupteur</th>
+    <td><span class="cz-toggle"></span></td><td><span class="cz-toggle" style="filter:brightness(.95)"></span></td><td><span class="cz-toggle is-focus"></span></td>
+    <td><span class="cz-toggle is-on"></span></td><td class="cz-help">—</td>
+    <td><span class="cz-toggle is-disabled"></span></td><td><span class="cz-toggle is-disabled is-on"></span></td></tr>
+  </tbody>
+ </table>
+ <div class="pv-row" style="gap:40px">
+  <div class="pv-stack" style="gap:12px">
+   <div class="pv-h" style="margin:0">Lignes entièrement cliquables</div>
+   <label class="cz-check"><span class="cz-cb is-on"><i data-icon="coche"></i></span>Virement bancaire</label>
+   <label class="cz-check"><span class="cz-cb"></span>Mobile money</label>
+   <label class="cz-check is-disabled"><span class="cz-cb is-disabled"></span>Espèces (bientôt)</label>
+   <label class="cz-check"><span class="cz-toggle is-on"></span>Relances automatiques</label>
+   <label class="cz-check"><span class="cz-toggle"></span>Notifications par SMS</label>
+  </div>
+  <div class="pv-stack" style="gap:12px">
+   <div class="pv-h" style="margin:0">Contrôle segmenté — 2 à 4 choix exclusifs</div>
+   <div class="cz-seg"><span class="is-on">Dates fixes</span><span>Cycle roulant</span></div>
+   <div class="cz-seg"><span>Cartes</span><span class="is-on">Tableau</span><span class="is-hover">Grille</span></div>
+   <div class="cz-seg is-disabled"><span class="is-on">Mensuel</span><span>Trimestriel</span></div>
+  </div>
+  <div class="pv-stack" style="gap:12px">
+   <div class="pv-h" style="margin:0">Compteur — petites quantités</div>
+   <div class="pv-row center"><div class="cz-counter"><button class="cz-btn cz-btn--icon cz-btn--sm">−</button><b>30</b><button class="cz-btn cz-btn--icon cz-btn--sm">+</button></div><span class="cz-help">Repos</span></div>
+   <div class="pv-row center"><div class="cz-counter is-focus"><button class="cz-btn cz-btn--icon cz-btn--sm">−</button><b>30</b><button class="cz-btn cz-btn--icon cz-btn--sm">+</button></div><span class="cz-help">Focus</span></div>
+   <div class="pv-row center"><div class="cz-counter"><button class="cz-btn cz-btn--icon cz-btn--sm" disabled>−</button><b>1</b><button class="cz-btn cz-btn--icon cz-btn--sm">+</button></div><span class="cz-help">Minimum atteint</span></div>
+  </div>
+  <div class="pv-univ" style="grid-template-columns:1fr;gap:8px">
+   <div data-theme="superadmin" class="pv-row center"><span class="cz-cb is-on"><i data-icon="coche"></i></span><span class="cz-toggle is-on"></span><div class="cz-seg"><span class="is-on">Actives</span><span>Suspendues</span></div></div>
+   <div data-theme="manager" class="pv-row center"><span class="cz-cb is-on"><i data-icon="coche"></i></span><span class="cz-toggle is-on"></span><div class="cz-seg"><span class="is-on">Dates fixes</span><span>Cycle</span></div></div>
+   <div data-theme="member" class="pv-row center"><span class="cz-cb is-on"><i data-icon="coche"></i></span><span class="cz-toggle is-on"></span><div class="cz-seg"><span class="is-on">Mensuel</span><span>Tout</span></div></div>
+  </div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

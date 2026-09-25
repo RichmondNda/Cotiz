@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>Badge</title></head>
+<body>
+<style>.map{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.map .cz-card{padding:14px 16px}.map .o{font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--text-strong);margin-bottom:8px}.map .pv-row{gap:6px}</style>
+<div class="pv pv-stack">
+ <table class="pv-matrix">
+  <thead><tr><th></th><th>Succès</th><th>Alerte</th><th>Erreur</th><th>Information</th><th>Neutre</th><th>Identité</th></tr></thead>
+  <tbody>
+   <tr><th>Avec pastille</th><td><span class="cz-badge cz-badge--success"><span class="dot"></span>Validé</span></td><td><span class="cz-badge cz-badge--warning"><span class="dot"></span>Déclaré</span></td><td><span class="cz-badge cz-badge--danger"><span class="dot"></span>En retard</span></td><td><span class="cz-badge cz-badge--info"><span class="dot"></span>À venir</span></td><td><span class="cz-badge"><span class="dot"></span>Brouillon</span></td><td><span class="cz-badge cz-badge--brand"><span class="dot"></span>Fonds d'entrée</span></td></tr>
+   <tr><th>Texte seul</th><td><span class="cz-badge cz-badge--success">Payée</span></td><td><span class="cz-badge cz-badge--warning">En attente</span></td><td><span class="cz-badge cz-badge--danger">Rejeté</span></td><td><span class="cz-badge cz-badge--info">Onboarding</span></td><td><span class="cz-badge">Terminé</span></td><td><span class="cz-badge cz-badge--brand">Fonds d'entrée</span></td></tr>
+   <tr><th>Petit (11 px)</th><td><span class="cz-badge cz-badge--success cz-badge--sm">À jour</span></td><td><span class="cz-badge cz-badge--warning cz-badge--sm">Partielle</span></td><td><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></td><td><span class="cz-badge cz-badge--info cz-badge--sm">À venir</span></td><td><span class="cz-badge cz-badge--sm">Brouillon</span></td><td><span class="cz-badge cz-badge--brand cz-badge--sm">Nouveau</span></td></tr>
+   <tr><th>Compteurs</th><td colspan="6"><div class="pv-row center"><span class="cz-count">6</span><span class="cz-count cz-count--neutral">52</span><span class="cz-count cz-count--danger">3</span><span class="cz-help">Orange = action en attente · gris = simple total · rouge plein = notifications non lues</span></div></td></tr>
+  </tbody>
+ </table>
+ <div class="pv-univ">
+  <div data-theme="superadmin"><div class="pv-row"><span class="cz-badge cz-badge--brand">Plan Pro</span><span class="cz-badge cz-badge--success">Active</span></div></div>
+  <div data-theme="manager"><div class="pv-row"><span class="cz-badge cz-badge--brand">Fonds d'entrée</span><span class="cz-badge cz-badge--success">Validé</span></div></div>
+  <div data-theme="member"><div class="pv-row"><span class="cz-badge cz-badge--brand">Membre</span><span class="cz-badge cz-badge--success">À jour</span></div></div>
+ </div>
+ <div>
+  <div class="pv-h">Table de correspondance — à respecter partout</div>
+  <div class="map">
+   <div class="cz-card cz-card--flat"><div class="o">Échéance</div><div class="pv-row"><span class="cz-badge cz-badge--info">À venir</span><span class="cz-badge cz-badge--warning">Déclarée</span><span class="cz-badge cz-badge--success">Payée</span><span class="cz-badge cz-badge--warning">Partielle</span><span class="cz-badge cz-badge--danger">En retard</span></div></div>
+   <div class="cz-card cz-card--flat"><div class="o">Paiement déclaré</div><div class="pv-row"><span class="cz-badge cz-badge--warning">En attente</span><span class="cz-badge cz-badge--success">Validé</span><span class="cz-badge cz-badge--danger">Rejeté</span></div></div>
+   <div class="cz-card cz-card--flat"><div class="o">Projet</div><div class="pv-row"><span class="cz-badge">Brouillon</span><span class="cz-badge cz-badge--info">Inscriptions ouvertes</span><span class="cz-badge cz-badge--success">En cours</span><span class="cz-badge">Terminé</span></div></div>
+   <div class="cz-card cz-card--flat"><div class="o">Souscripteur sur projet</div><div class="pv-row"><span class="cz-badge cz-badge--warning">Signature attendue</span><span class="cz-badge cz-badge--success">À jour</span><span class="cz-badge cz-badge--danger">En retard · 2</span></div></div>
+   <div class="cz-card cz-card--flat"><div class="o">Association</div><div class="pv-row"><span class="cz-badge cz-badge--success">Active</span><span class="cz-badge cz-badge--warning">Impayé</span><span class="cz-badge cz-badge--danger">Suspendue</span><span class="cz-badge cz-badge--info">Onboarding</span></div></div>
+   <div class="cz-card cz-card--flat"><div class="o">Demande de création</div><div class="pv-row"><span class="cz-badge cz-badge--warning">À traiter</span><span class="cz-badge cz-badge--success">Approuvée</span><span class="cz-badge cz-badge--danger">Refusée</span></div></div>
+  </div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

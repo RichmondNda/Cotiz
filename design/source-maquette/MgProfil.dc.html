@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Mon profil</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:17px;color:#1B1830}
+.mg-lbl{font-size:12.5px;color:#6B6478}
+.mg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mg-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid #F0EDF3}
+.mg-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1050px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="profil" hint-size="240px,1050px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Mon profil" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<div class="cz-pagehead"><div><h1>Mon profil</h1><p>Vos informations de gestionnaire et vos préférences</p></div></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; max-width: 1080px;">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; align-items: center; gap: 14px;"><span class="cz-avatar cz-avatar--lg">AK</span><div><b style="display: block; font-family: Poppins, sans-serif; font-size: 18px; color: #1B1830;">Awa Koné</b><span class="cz-badge cz-badge--brand cz-badge--sm">Gestionnaire principale · Entraide Yopougon</span></div></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"><label class="cz-field"><span class="cz-label">Prénom</span><input class="cz-input" value="Awa"></label><label class="cz-field"><span class="cz-label">Nom</span><input class="cz-input" value="Koné"></label></div>
+<label class="cz-field"><span class="cz-label">Email de connexion</span><input class="cz-input" value="awa@entraide.ci"></label>
+<label class="cz-field"><span class="cz-label">Téléphone</span><input class="cz-input" value="+225 07 08 09 10 11"></label>
+<div style="display: flex; justify-content: flex-end;"><button type="button" class="cz-btn">Enregistrer</button></div>
+</div>
+<div class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 12px;">
+<div class="mg-row"><h2 class="t">Mot de passe</h2><sc-if value="{{pwClosed}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{openPw}}">Modifier</button></sc-if></div>
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div>Mot de passe modifié. Utilisez-le dès votre prochaine connexion.</div></div></sc-if>
+<sc-if value="{{pwClosed}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 13.5px; color: #6B6478;">Dernière modification : [DATE]</p></sc-if>
+<sc-if value="{{pwOpen}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 12px;">
+<label class="cz-field"><span class="cz-label">Mot de passe actuel</span><input class="cz-input" type="password" value="motdepasse"></label>
+<label class="cz-field"><span class="cz-label">Nouveau mot de passe</span><input class="cz-input" type="password" value="nouveaumotdepasse"><span class="cz-help">8 caractères minimum, dont un chiffre.</span></label>
+<label class="cz-field"><span class="cz-label">Confirmer</span><input class="cz-input" type="password" value="nouveaumotdepasse"></label>
+<div style="display: flex; justify-content: flex-end; gap: 8px;"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{closePw}}">Annuler</button><button type="button" class="cz-btn" onClick="{{savePw}}">Changer le mot de passe</button></div>
+</div></sc-if>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 4px;">
+<h2 class="t" style="margin-bottom: 6px;">M’avertir quand…</h2>
+<div class="mg-list"><sc-for list="{{prefs}}" as="p" hint-placeholder-count="3"><button type="button" onClick="{{p.toggle}}" style="width: 100%; background: transparent; border: none; border-bottom: 1px solid #F0EDF3; cursor: pointer; text-align: left;"><span style="flex-grow: 1;"><b style="display: block; font-size: 14px; font-weight: 500; color: #1B1830;">{{p.t}}</b><span class="mg-lbl">{{p.d}}</span></span><sc-if value="{{p.v2}}" hint-placeholder-val="{{ false }}"><span class="cz-soon" style="font-size: 11px; padding: 2px 8px;">V2</span></sc-if><span class="{{p.cls}}"></span></button></sc-for></div>
+</div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 10px;">
+<a href="MgParametres.dc.html" class="mg-row" style="font-size: 14px; font-weight: 600; min-height: 40px;">Paramètres de l’association <span>→</span></a>
+<a href="MgEquipe.dc.html" class="mg-row" style="font-size: 14px; font-weight: 600; min-height: 40px;">Gérer l’équipe <span>→</span></a>
+<a href="ConnexionAssociation.dc.html" class="cz-btn cz-btn--danger-outline cz-btn--block" style="margin-top: 6px;">Se déconnecter</a>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "changement-mot-de-passe", "mot-de-passe-modifie"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1050}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { pw: null, done: false, n: [true, true, false] }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const open = S.pw !== null ? S.pw : etat === 'changement-mot-de-passe';
+    const done = S.done || (etat === 'mot-de-passe-modifie' && S.pw === null);
+    const PR = [
+      { t: 'Un souscripteur déclare un paiement', d: 'Notification dans votre espace' },
+      { t: 'Un souscripteur signe un contrat', d: 'Notification dans votre espace' },
+      { t: 'Résumé quotidien par email', d: 'Paiements à valider et nouveaux retards', v2: true }
+    ];
+    const v = {
+      pwOpen: open, pwClosed: !open, done,
+      openPw: () => this.setState({ pw: true, done: false }), closePw: () => this.setState({ pw: false }), savePw: () => this.setState({ pw: false, done: true }),
+      prefs: PR.map((p, i) => ({ ...p, v2: !!p.v2, cls: 'cz-toggle' + (S.n[i] ? ' is-on' : ''), toggle: () => { const n = S.n.slice(); n[i] = !n[i]; this.setState({ n }); } }))
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center;' }, v);
+  }
+}
+</script>
+</body>
+</html>

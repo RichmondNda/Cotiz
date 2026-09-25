@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>SelecteurEcheances</title></head>
+<body>
+<style>.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.g4 .cz-alloc{height:100%}.g4 .row{font-size:13px}</style>
+<div class="pv pv-stack" data-theme="member" style="background:var(--page)">
+ <div class="g4">
+  <div class="pv-stack" style="gap:8px"><div class="pv-h" style="margin:0">1 · Réparti entièrement</div>
+   <div class="cz-alloc">
+    <div class="hd"><b>Montant déclaré : 75 000 F</b><span class="cz-badge cz-badge--success cz-badge--sm">Réparti entièrement</span></div>
+    <div class="rows">
+     <div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Août 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Sept. 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Oct. 2026</b><span class="cz-badge cz-badge--info cz-badge--sm">À venir</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-off"><span class="cz-cb"></span><div class="lbl"><b>Nov. 2026</b></div><span class="amt">25 000 F</span></div>
+    </div>
+    <div class="ft"><span>3 échéances couvertes</span><b>Reste à répartir : 0 F</b></div>
+   </div>
+   <button class="cz-btn cz-btn--lg cz-btn--block">Envoyer la déclaration</button></div>
+  <div class="pv-stack" style="gap:8px"><div class="pv-h" style="margin:0">2 · Montant insuffisant</div>
+   <div class="cz-alloc">
+    <div class="hd"><b>Montant déclaré : 60 000 F</b><span class="cz-badge cz-badge--warning cz-badge--sm">Dernière partielle</span></div>
+    <div class="rows">
+     <div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Août 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Sept. 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-partial"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Oct. 2026</b><span class="cz-badge cz-badge--warning cz-badge--sm">Partielle</span></div><span class="amt">10 000 F<small>sur 25 000 F</small></span></div>
+     <div class="row is-off"><span class="cz-cb"></span><div class="lbl"><b>Nov. 2026</b></div><span class="amt">25 000 F</span></div>
+    </div>
+    <div class="ft"><span>2 couvertes + 1 partielle</span><b>Reste à répartir : 0 F</b></div>
+   </div>
+   <button class="cz-btn cz-btn--lg cz-btn--block">Envoyer la déclaration</button></div>
+  <div class="pv-stack" style="gap:8px"><div class="pv-h" style="margin:0">3 · Sur-répartition (ajustement)</div>
+   <div class="cz-alloc">
+    <div class="hd"><b>Montant déclaré : 75 000 F</b><span class="cz-badge cz-badge--danger cz-badge--sm">Dépasse le montant</span></div>
+    <div class="rows">
+     <div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Août 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Sept. 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Oct. 2026</b><span class="cz-badge cz-badge--info cz-badge--sm">À venir</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-focus"><span class="cz-cb is-on is-focus"><i data-icon="coche"></i></span><div class="lbl"><b>Nov. 2026</b><span class="cz-badge cz-badge--info cz-badge--sm">À venir</span></div><span class="amt">25 000 F</span></div>
+    </div>
+    <div class="ft"><span>4 échéances cochées</span><b class="neg">Reste à répartir : −25 000 F</b></div>
+   </div>
+   <button class="cz-btn cz-btn--lg cz-btn--block" disabled>Envoyer la déclaration</button></div>
+  <div class="pv-stack" style="gap:8px"><div class="pv-h" style="margin:0">4 · Montant non saisi / preuve absente</div>
+   <div class="cz-alloc">
+    <div class="hd"><b>Montant déclaré : —</b><span class="cz-badge cz-badge--sm">À saisir</span></div>
+    <div class="rows">
+     <div class="row is-late" style="opacity:.8"><span class="cz-cb"></span><div class="lbl"><b>Août 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-late" style="opacity:.8"><span class="cz-cb"></span><div class="lbl"><b>Sept. 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div>
+     <div class="row is-off"><span class="cz-cb"></span><div class="lbl"><b>Oct. 2026</b></div><span class="amt">25 000 F</span></div>
+     <div class="row is-off"><span class="cz-cb"></span><div class="lbl"><b>Nov. 2026</b></div><span class="amt">25 000 F</span></div>
+    </div>
+    <div class="ft"><span>Aucune échéance couverte</span><b class="pos">Saisissez le montant versé</b></div>
+   </div>
+   <button class="cz-btn cz-btn--lg cz-btn--block" disabled>Envoyer la déclaration</button></div>
+ </div>
+ <div class="cz-alert cz-alert--info"><i data-icon="information"></i><div><b>Règles :</b> pré-sélection automatique de la plus ancienne non payée à la plus récente jusqu'à épuisement (<code>Cotiz.allocate()</code>) · retards en premier sur fond rouge pâle · la dernière couverte passe en « partielle » avec le montant affecté · compteur « Reste à répartir » en direct, rouge si négatif · envoi désactivé tant que le reste ≠ 0 ou que la preuve manque.</div></div>
+ <div class="pv-univ" style="grid-template-columns:minmax(0,560px)">
+  <div data-theme="manager" style="background:var(--page)"><div class="pv-h">Univers gestionnaire — même composant en lecture dans le détail d’un paiement déclaré</div>
+   <div class="cz-alloc"><div class="hd"><b>Montant déclaré : 50 000 F</b><span class="cz-badge cz-badge--success cz-badge--sm">Réparti entièrement</span></div>
+    <div class="rows"><div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Août 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div><div class="row is-late"><span class="cz-cb is-on"><i data-icon="coche"></i></span><div class="lbl"><b>Sept. 2026</b><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></div><span class="amt">25 000 F</span></div></div>
+    <div class="ft"><span>2 échéances couvertes</span><b>Reste à répartir : 0 F</b></div></div></div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

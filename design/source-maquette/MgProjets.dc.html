@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Projets</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 900px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,900px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Projets" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-pagehead"><div><h1>Projets</h1><p>3 projets · Entraide Yopougon</p></div><div class="end"><a class="cz-btn" href="MgNouveauProjet.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Créer un projet</a></div></div>
+<div class="cz-toolbar">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.on}}">{{c.label}}</button></sc-for>
+<label class="cz-input cz-search" style="width: 240px; margin-left: auto;"><span class="lead"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.5-4.5"/></svg></span><input value="{{query}}" placeholder="Rechercher un projet" aria-label="Rechercher un projet" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font: inherit;"></label>
+<div class="cz-seg" role="radiogroup" aria-label="Affichage"><button type="button" role="radio" aria-checked="{{isCards}}" onClick="{{showCards}}" style="{{segCards}}">Cartes</button><button type="button" role="radio" aria-checked="{{isTable}}" onClick="{{showTable}}" style="{{segTable}}">Tableau</button></div>
+</div>
+
+<sc-if value="{{cardsView}}" hint-placeholder-val="{{ true }}">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+<sc-for list="{{rows}}" as="p" hint-placeholder-count="3">
+<div style="position: relative;">
+<a class="cz-pcard" href="MgProjet.dc.html" style="width: auto; color: inherit; display: block;"><div class="hd"><div><div class="nm">{{p.name}}</div><div class="as">{{p.sub}}</div></div><span class="{{p.badgeCls}}">{{p.status}}</span></div><div class="{{p.barCls}}"><i style="{{p.barW}}"></i></div><div class="row"><span>{{p.progress}}</span><span>{{p.pct}}</span></div><div class="ft"><span style="font-size: 12.5px; color: #6B6478;">{{p.footer}}</span><span class="{{p.alertCls}}">{{p.alert}}</span></div></a>
+</div>
+</sc-for>
+<sc-if value="{{showGhost}}" hint-placeholder-val="{{ true }}"><a class="cz-card cz-card--ghost" href="MgNouveauProjet.dc.html"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nouveau projet</a></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{tableView}}" hint-placeholder-val="{{ false }}">
+<div class="cz-table-wrap" style="overflow: visible;"><table class="cz-table">
+<thead><tr><th class="is-sortable is-sorted">Projet ↓</th><th>Statut</th><th>Fréquence</th><th class="num">Par échéance</th><th class="num">Souscripteurs</th><th class="num">Collecté</th><th class="num">Recouvrement</th><th>Prochaine échéance</th><th style="width: 56px;"></th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="p" hint-placeholder-count="3">
+<tr><td><a href="MgProjet.dc.html" style="font-weight: 600; color: #1B1830;">{{p.name}}</a></td><td><span class="{{p.badgeCls}}">{{p.status}}</span></td><td>{{p.freq}}</td><td class="num">{{p.amount}}</td><td class="num">{{p.subs}}</td><td class="num">{{p.collected}}</td><td class="num">{{p.rate}}</td><td style="color: #6B6478;">{{p.next}}</td>
+<td style="position: relative;"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{p.toggle}}" aria-label="Actions" aria-expanded="{{p.menu}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></button>
+<sc-if value="{{p.menu}}" hint-placeholder-val="{{ false }}"><div class="cz-menu" style="position: absolute; right: 8px; top: 48px; z-index: 5;"><a class="it" href="MgProjet.dc.html" style="color: #2C2A38;">Ouvrir</a><a class="it" href="MgNouveauProjet.dc.html" style="color: #2C2A38;">Dupliquer</a><hr><a class="it danger" href="MgProjetParametres.dc.html">Archiver</a></div></sc-if></td></tr>
+</sc-for>
+</tbody></table></div>
+</sc-if>
+
+<sc-if value="{{noResult}}" hint-placeholder-val="{{ false }}"><div class="cz-empty"><div class="i i--neutral"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.5-4.5"/></svg></div><div class="t">Aucun projet ne correspond</div><div class="d">Aucun projet terminé pour « Tontine ».</div><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{reset}}">Effacer les filtres</button></div></sc-if>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-empty" style="padding: 56px;"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.5 6 .9-4.3 4.3 1 6L12 17l-5.3 2.7 1-6L3.4 9.4l6-.9z"/></svg></div><div class="t">Aucun projet pour l’instant</div><div class="d">Créez votre premier projet pour commencer à inscrire des souscripteurs.</div><a class="cz-btn cz-btn--sm" href="MgNouveauProjet.dc.html">Créer un projet</a></div></sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","vide","filtre-sans-resultat"],"default":"nominal"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { filter: null, view: 'cards', menu: -1 }; }
+  renderVals() {
+    const etat = this.props.etat || 'nominal';
+    const P = [
+      { name: 'Centre communautaire', sub: 'Mensuel · 25 000 F · depuis mars 2026', k: 'run', freq: 'Mensuelle, le 5', amount: '25 000 F', subs: '52', collected: '9 594 000 F', rate: '82 %', next: '5 oct. 2026', progress: '9 594 000 F collectés', pct: '37 %', barW: 'width: 37%;', barCls: 'cz-bar', footer: 'Prochaine : 5 oct.', alert: '14 en retard', alertCls: 'cz-badge cz-badge--danger' },
+      { name: 'Voyage solidaire', sub: 'Mensuel · 10 000 F · 12 mois', k: 'run', freq: 'Mensuelle', amount: '10 000 F', subs: '[N]', collected: '[MONTANT] F', rate: '[N] %', next: '5 oct. 2026', progress: '[MONTANT] F collectés', pct: '[N] %', barW: 'width: 30%;', barCls: 'cz-bar', footer: 'Prochaine : 5 oct.', alert: '1 signature attendue', alertCls: 'cz-badge cz-badge--warning' },
+      { name: 'Tontine solidaire 2027', sub: 'Cycle roulant · 10 000 F', k: 'open', freq: 'Mensuelle', amount: '10 000 F', subs: '12 / 30', collected: '—', rate: '—', next: 'janv. 2027', progress: '12 / 30 souscripteurs', pct: '40 %', barW: 'width: 40%;', barCls: 'cz-bar cz-bar--info', footer: 'Démarre en janvier 2027', alert: 'Inscriptions en cours', alertCls: 'cz-badge cz-badge--info' }
+    ];
+    const B = { run: ['cz-badge cz-badge--success', 'En cours'], open: ['cz-badge cz-badge--info', 'Inscriptions ouvertes'] };
+    const filter = this.state.filter || (etat === 'filtre-sans-resultat' ? 'done' : 'all');
+    let rows = etat === 'vide' ? [] : P.filter((p) => filter === 'all' || p.k === filter);
+    const segBase = 'min-height: 36px; padding: 6px 14px; border: none; border-radius: 8px; font-family: Poppins, sans-serif; font-size: 13px; cursor: pointer;';
+    const on = segBase + ' background: #FFFFFF; color: #5B51C4; box-shadow: 0 1px 3px rgba(0,0,0,0.08);', off = segBase + ' background: transparent; color: #6B6478;';
+    const cards = this.state.view === 'cards';
+    const has = rows.length > 0;
+    return {
+      query: etat === 'filtre-sans-resultat' ? 'Tontine' : '',
+      chips: [['all', 'Tous · 3'], ['run', 'En cours · 2'], ['open', 'Inscriptions ouvertes · 1'], ['draft', 'Brouillons · 0'], ['done', 'Terminés · 0']].map(([k, label]) => ({ label, on: k === filter, cls: 'cz-chip' + (k === filter ? ' is-on' : ''), pick: () => this.setState({ filter: k }) })),
+      isCards: cards, isTable: !cards, segCards: cards ? on : off, segTable: cards ? off : on,
+      showCards: () => this.setState({ view: 'cards' }), showTable: () => this.setState({ view: 'table' }),
+      cardsView: cards && has, tableView: !cards && has, showGhost: filter === 'all',
+      noResult: !has && etat !== 'vide', empty: etat === 'vide',
+      reset: () => this.setState({ filter: 'all' }),
+      rows: rows.map((p, i) => ({ ...p, badgeCls: B[p.k][0], status: B[p.k][1], menu: this.state.menu === i, toggle: () => this.setState({ menu: this.state.menu === i ? -1 : i }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

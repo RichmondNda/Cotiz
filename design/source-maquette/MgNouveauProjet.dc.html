@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Création de projet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,select,textarea{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:20px;color:#1B1830}
+.recap{display:grid;grid-template-columns:170px 1fr auto;gap:8px 14px;font-size:14px;padding:14px 0;border-bottom:1px solid #F1EEF4}
+.recap span{color:#6B6478}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1250px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,1250px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0; position: relative;">
+<dc-import name="MgTopbar" parent="Projets" parent-href="MgProjets.dc.html" current="Nouveau projet" hint-size="100%,64px"></dc-import>
+
+<sc-if value="{{notDone}}" hint-placeholder-val="{{ true }}">
+<main style="padding: 24px 32px 110px; display: flex; flex-direction: column; gap: 20px;">
+<div class="cz-pagehead"><div><h1>Nouveau projet</h1></div><div class="end"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{askLeave}}">Quitter</button></div></div>
+<div class="cz-steps" style="background: #FFFFFF; border-radius: 14px; padding: 14px 18px;">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="6">
+<button type="button" onClick="{{s.go}}" class="{{s.cls}}" style="background: transparent; border: none; cursor: pointer; font: inherit; padding: 0;"><b>{{s.n}}</b>{{s.label}}</button><sc-if value="{{s.line}}" hint-placeholder-val="{{ true }}"><div class="{{s.lnCls}}"></div></sc-if>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: 3fr 2fr; gap: 24px; align-items: start;">
+<div class="cz-card" style="padding: 28px; display: flex; flex-direction: column; gap: 16px;">
+
+<sc-if value="{{is1}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 16px;">
+<h2 class="t">Informations</h2>
+<label class="cz-field"><span class="cz-label">Nom du projet <span class="req">*</span></span><input class="cz-input" value="{{name}}" onChange="{{onName}}"><span class="cz-help">Visible par les souscripteurs</span></label>
+<div class="cz-field"><span class="cz-label">Description</span><div style="border: 1.5px solid #E4E0EA; border-radius: 10px; overflow: hidden;"><div style="display: flex; gap: 4px; padding: 6px; background: #FAF9FC; border-bottom: 1px solid #E4E0EA;"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Gras" style="font-weight: 700;">G</button><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Liste">•≡</button></div><textarea rows="3" style="width: 100%; box-sizing: border-box; border: none; outline: none; padding: 10px 14px; resize: none;">Construction d’un centre communautaire pour les familles du quartier : salle de réunion, bibliothèque et espace pour les enfants.</textarea></div></div>
+<div class="cz-drop"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><div>Image de couverture (optionnelle) — <strong>parcourir</strong></div><span class="fmt">JPG ou PNG · 5 Mo</span></div>
+<div class="cz-field"><span class="cz-label">Nombre de souscripteurs requis</span><div style="display: flex; align-items: center; gap: 16px;"><div class="cz-counter"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{decReq}}" aria-label="Diminuer">−</button><b>{{req}}</b><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{incReq}}" aria-label="Augmenter">+</button></div><label class="cz-check"><span class="cz-cb"></span>Sans limite</label></div></div>
+</div></sc-if>
+
+<sc-if value="{{is2}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 16px;">
+<h2 class="t">Financement</h2>
+<div style="display: flex; align-items: center; gap: 12px;"><button type="button" role="switch" aria-checked="{{entry}}" aria-label="Fonds d’entrée" onClick="{{toggleEntry}}" class="{{entryCls}}" style="border: none; cursor: pointer;"></button><b style="font-size: 14px;">Fonds d’entrée</b></div>
+<sc-if value="{{entry}}" hint-placeholder-val="{{ true }}"><label class="cz-field"><span class="cz-label">Montant du fonds d’entrée</span><div class="cz-input cz-input--suffix"><input value="50 000" style="border: none; outline: none; background: transparent; flex-grow: 1;"><span class="sfx">F CFA</span></div></label></sc-if>
+<label class="cz-field"><span class="cz-label">Montant par échéance <span class="req">*</span></span><div class="cz-input cz-input--suffix"><input value="25 000" style="border: none; outline: none; background: transparent; flex-grow: 1;"><span class="sfx">F CFA</span></div></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+<label class="cz-field"><span class="cz-label">Fréquence</span><select class="cz-input"><option>Hebdomadaire</option><option selected>Mensuelle</option><option>Trimestrielle</option><option>Semestrielle</option><option>Annuelle</option></select></label>
+<label class="cz-field"><span class="cz-label">Jour d’échéance</span><select class="cz-input"><option>Le 1 du mois</option><option selected>Le 5 du mois</option><option>Le 10 du mois</option><option>Le 15 du mois</option></select></label>
+</div>
+</div></sc-if>
+
+<sc-if value="{{is3}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 16px;">
+<h2 class="t">Calendrier</h2>
+<div class="cz-seg" role="radiogroup" aria-label="Type de calendrier" style="align-self: flex-start;"><button type="button" role="radio" aria-checked="{{fixed}}" onClick="{{setFixed}}" style="{{segFixed}}">Dates fixes</button><button type="button" role="radio" aria-checked="{{rolling}}" onClick="{{setRolling}}" style="{{segRolling}}">Cycle roulant</button></div>
+<sc-if value="{{fixed}}" hint-placeholder-val="{{ true }}"><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+<label class="cz-field"><span class="cz-label">Date de début</span><input class="cz-input" value="05/03/2026"></label>
+<label class="cz-field"><span class="cz-label">Date de fin</span><input class="cz-input" value="05/08/2027"></label>
+<div class="cz-alert cz-alert--info" style="grid-column: span 2;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18M6 3v3M18 3v3"/><rect x="3" y="6" width="18" height="15" rx="3"/></svg><div><b>18 échéances</b> de mars 2026 à août 2027, le 5 de chaque mois.</div></div>
+</div></sc-if>
+<sc-if value="{{rolling}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 14px;"><label class="cz-field"><span class="cz-label">Date de début</span><input class="cz-input" value="05/01/2027"></label><div class="cz-alert cz-alert--info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.7v.2"/></svg><div>Les échéances se génèrent en continu jusqu’à clôture du projet.</div></div></div></sc-if>
+<label class="cz-field"><span class="cz-label">Délai de grâce avant « en retard »</span><div class="cz-input cz-input--suffix" style="width: 200px;"><input value="5" style="border: none; outline: none; background: transparent; flex-grow: 1;"><span class="sfx">jours</span></div></label>
+</div></sc-if>
+
+<sc-if value="{{is4}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Modalités de paiement</h2>
+<p style="margin: 0; font-size: 14px; color: #6B6478;">Reprises des moyens par défaut de l’association, modifiables pour ce projet.</p>
+<label class="cz-check"><span class="cz-cb is-on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Virement bancaire</label>
+<label class="cz-check"><span class="cz-cb is-on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Mobile money</label>
+<label class="cz-check"><span class="cz-cb"></span>Espèces</label>
+<label class="cz-field"><span class="cz-label">Instructions spécifiques</span><textarea class="cz-input cz-input--area" rows="2">Indiquez votre nom et « Centre » en référence du virement.</textarea></label>
+</div></sc-if>
+
+<sc-if value="{{is5}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Contrat</h2>
+<div style="display: flex; gap: 6px; flex-wrap: wrap; font-size: 12.5px; align-items: center;"><span style="color: #6B6478;">Insérer :</span><button type="button" class="cz-chip">{nom_souscripteur}</button><button type="button" class="cz-chip">{montant}</button><button type="button" class="cz-chip">{frequence}</button><button type="button" class="cz-chip">{date_debut}</button></div>
+<textarea class="cz-input cz-input--area" rows="7" style="line-height: 1.6;">Je soussigné(e) {nom_souscripteur} m’engage à verser à Entraide Yopougon un fonds d’entrée de 50 000 F, puis {montant} de façon {frequence} à partir du {date_debut}, pour le projet Centre communautaire.
+
+[Clauses du modèle à compléter par l’association.]</textarea>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;"><label class="cz-field"><span class="cz-label">Signataire</span><input class="cz-input" value="Awa Koné"></label><label class="cz-field"><span class="cz-label">Fonction</span><input class="cz-input" value="Trésorière"></label></div>
+<button type="button" class="cz-check" onClick="{{toggleSign}}" style="background: transparent; border: none; padding: 0; min-height: 40px; font-size: 14px;"><span class="{{signCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Je signe ce contrat au nom de l’association</button>
+<div class="cz-alert cz-alert--info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.7v.2"/></svg><div>Le contrat ne pourra plus être modifié après création du projet.</div></div>
+</div></sc-if>
+
+<sc-if value="{{is6}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column;">
+<h2 class="t" style="margin-bottom: 6px;">Récapitulatif</h2>
+<div class="recap"><span>Informations</span><b>{{name}} · 60 souscripteurs requis</b><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{go1}}">Modifier</button></div>
+<div class="recap"><span>Financement</span><b>Entrée 50 000 F · 25 000 F / mois, le 5</b><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{go2}}">Modifier</button></div>
+<div class="recap"><span>Calendrier</span><b>{{calSummary}}</b><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{go3}}">Modifier</button></div>
+<div class="recap"><span>Paiement</span><b>Virement bancaire, mobile money</b><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{go4}}">Modifier</button></div>
+<div class="recap"><span>Contrat</span><b>Signé par Awa Koné, trésorière</b><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{go5}}">Modifier</button></div>
+<div style="margin-top: 16px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 15px;">12 premières échéances</div>
+<table class="cz-table" style="margin-top: 6px;"><thead><tr><th>Échéance</th><th>Date</th><th class="num">Montant</th></tr></thead><tbody>
+<sc-for list="{{schedule}}" as="e" hint-placeholder-count="6"><tr><td style="height: 36px;">{{e.l}}</td><td style="height: 36px; color: #6B6478;">{{e.d}}</td><td class="num" style="height: 36px;">{{e.a}}</td></tr></sc-for>
+</tbody></table>
+<div style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 15px;"><span>Total attendu par souscripteur</span><b style="font-family: Poppins, sans-serif; font-size: 18px;">500 000 F</b></div>
+</div></sc-if>
+</div>
+
+<aside style="position: sticky; top: 16px; display: flex; flex-direction: column; gap: 10px;">
+<div style="font-family: Poppins, sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #6B6478;">APERÇU CÔTÉ SOUSCRIPTEUR</div>
+<div data-theme="member" style="background: #FAECE7; border-radius: 16px; padding: 18px;">
+<div class="cz-pcard cz-pcard--member" style="width: auto; cursor: default;"><div class="hd"><div><div class="nm">{{previewName}}</div><div class="as">Entraide Yopougon</div></div><span class="cz-badge cz-badge--info">À venir</span></div><div class="lbl">Reste à payer</div><div class="amt">500 000 F</div><div class="cz-bar"><i style="width: 0%;"></i></div><div class="row"><span>0 F versé</span><span>sur 500 000 F</span></div><div class="ft"><div class="next"><span>Première échéance</span><b>50 000 F · entrée</b></div><span class="cz-btn cz-btn--sm">Déclarer</span></div></div>
+</div>
+<div style="background: #FFFFFF; border-radius: 12px; padding: 12px 14px; font-size: 13.5px;">Entrée <b>50 000 F</b> · puis <b>25 000 F / mois × 18</b> · Total <b>500 000 F</b></div>
+</aside>
+</div>
+</main>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 14px 32px; display: flex; align-items: center; gap: 12px; box-shadow: 0 -2px 10px rgba(40,30,80,0.07);">
+<button type="button" class="cz-btn cz-btn--ghost">Enregistrer le brouillon</button>
+<div style="flex-grow: 1;"></div>
+<sc-if value="{{notFirst}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--secondary" onClick="{{back}}">Retour</button></sc-if>
+<sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn" onClick="{{next}}">Continuer</button></sc-if>
+<sc-if value="{{is6}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn" onClick="{{create}}">Créer le projet</button></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+<main style="padding: 64px 32px; display: flex; justify-content: center;">
+<div class="cz-card" style="width: 560px; padding: 44px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+<span style="width: 80px; height: 80px; border-radius: 50%; background: #DFF3E7; color: #2E9E5B; display: inline-flex; align-items: center; justify-content: center;"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12.5l4 4L18 8.5"/></svg></span>
+<h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Projet créé !</h1>
+<p style="margin: 0; font-size: 15px; color: #6B6478;">« {{name}} » est prêt. Inscrivez maintenant vos souscripteurs.</p>
+<div style="display: flex; gap: 12px; margin-top: 8px;"><a class="cz-btn" href="MgAjoutSouscripteur.dc.html">Ajouter des souscripteurs</a><a class="cz-btn cz-btn--secondary" href="MgProjet.dc.html">Voir le projet</a></div>
+</div>
+</main>
+</sc-if>
+</div>
+
+<sc-if value="{{leaveOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal" role="dialog" aria-modal="true" aria-label="Quitter la création"><div class="mh">Quitter sans enregistrer ?</div><div class="mb">Les informations saisies pour « {{name}} » seront perdues. Vous pouvez aussi enregistrer un brouillon.</div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{stay}}">Rester</button><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgProjets.dc.html">Enregistrer le brouillon</a><a class="cz-btn cz-btn--danger cz-btn--sm" href="MgProjets.dc.html">Quitter sans enregistrer</a></div></div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etape":{"editor":"enum","options":["1","2","3","4","5","6","succes"],"default":"1"},"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: null, name: 'Centre communautaire', req: 60, entry: true, cal: 'fixed', sign: true, done: false, leave: false }; }
+  renderVals() {
+    const s = this.state;
+    const preset = this.props.etape || '1';
+    const done = s.done || (preset === 'succes' && s.step === null);
+    const step = s.step || (preset === 'succes' ? 6 : parseInt(preset, 10)) || 1;
+    const L = ['Informations', 'Financement', 'Calendrier', 'Paiement', 'Contrat', 'Récapitulatif'];
+    const segBase = 'min-height: 36px; padding: 6px 14px; border: none; border-radius: 8px; font-family: Poppins, sans-serif; font-size: 13px; cursor: pointer;';
+    const on = segBase + ' background: #FFFFFF; color: #5B51C4; box-shadow: 0 1px 3px rgba(0,0,0,0.08);', off = segBase + ' background: transparent; color: #6B6478;';
+    const months = ['mars 2026', 'avr. 2026', 'mai 2026', 'juin 2026', 'juil. 2026', 'août 2026', 'sept. 2026', 'oct. 2026', 'nov. 2026', 'déc. 2026', 'janv. 2027'];
+    const go = (n) => () => this.setState({ step: n });
+    return {
+      done, notDone: !done,
+      is1: step === 1, is2: step === 2, is3: step === 3, is4: step === 4, is5: step === 5, is6: step === 6,
+      notFirst: step > 1, notLast: step < 6,
+      next: () => this.setState({ step: Math.min(6, step + 1) }), back: () => this.setState({ step: Math.max(1, step - 1) }),
+      go1: go(1), go2: go(2), go3: go(3), go4: go(4), go5: go(5),
+      steps: L.map((label, i) => {
+        const n = i + 1;
+        return { label, n: n < step ? '✓' : String(n), go: go(n), cls: 's ' + (n < step ? 'is-done' : n === step ? 'is-cur' : ''), line: n < 6, lnCls: 'ln' + (n < step ? ' is-done' : '') };
+      }),
+      name: s.name, previewName: s.name || 'Nom du projet', onName: (e) => this.setState({ name: e.target.value }),
+      req: s.req, incReq: () => this.setState({ req: s.req + 1 }), decReq: () => this.setState({ req: Math.max(1, s.req - 1) }),
+      entry: s.entry, entryCls: 'cz-toggle' + (s.entry ? ' is-on' : ''), toggleEntry: () => this.setState({ entry: !s.entry }),
+      fixed: s.cal === 'fixed', rolling: s.cal === 'rolling', segFixed: s.cal === 'fixed' ? on : off, segRolling: s.cal === 'rolling' ? on : off,
+      setFixed: () => this.setState({ cal: 'fixed' }), setRolling: () => this.setState({ cal: 'rolling' }),
+      calSummary: s.cal === 'fixed' ? 'Dates fixes · mars 2026 → août 2027 (18 échéances) · grâce 5 j' : 'Cycle roulant dès le 05/01/2027 · grâce 5 j',
+      signCls: 'cz-cb' + (s.sign ? ' is-on' : ''), toggleSign: () => this.setState({ sign: !s.sign }),
+      schedule: [{ l: 'Fonds d’entrée', d: '05/03/2026', a: '50 000 F' }].concat(months.map((m, i) => ({ l: 'Échéance ' + (i + 1), d: '5 ' + m, a: '25 000 F' }))),
+      create: () => this.setState({ done: true }),
+      leaveOpen: s.leave, askLeave: () => this.setState({ leave: true }), stay: () => this.setState({ leave: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

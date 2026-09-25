@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>En-tête de projet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; display: flex; flex-direction: column; gap: 14px; font-family: Inter, Arial, sans-serif; position: relative; z-index: 5;">
+<div style="height: 88px; border-radius: 16px; background: #EFECFB; position: relative; overflow: hidden;">
+<span style="position: absolute; width: 220px; height: 220px; border-radius: 50%; border: 18px solid #7F77DD; opacity: 0.18; right: 60px; top: -60px;"></span>
+<span style="position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #D85A30; right: 150px; top: 36px;"></span>
+<span style="position: absolute; left: 18px; bottom: 12px; font-size: 11.5px; color: #5B51C4;">Image de couverture</span>
+</div>
+<div style="display: flex; align-items: flex-end; gap: 16px;">
+<div style="flex-grow: 1;">
+<div style="display: flex; align-items: center; gap: 12px;"><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Centre communautaire</h1><span class="cz-badge cz-badge--success">En cours</span></div>
+<div style="font-size: 14px; color: #6B6478; margin-top: 2px;">Mensuel · 25 000 F · 52 souscripteurs · depuis mars 2026</div>
+</div>
+<a class="cz-btn" href="MgAjoutSouscripteur.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Ajouter un souscripteur</a>
+<div style="position: relative;">
+<button type="button" class="cz-btn cz-btn--icon" onClick="{{toggle}}" aria-label="Plus d’actions" aria-expanded="{{open}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></button>
+<sc-if value="{{open}}" hint-placeholder-val="{{ false }}"><div class="cz-menu" style="position: absolute; right: 0; top: 48px;"><a class="it" href="MgNouveauProjet.dc.html" style="color: #2C2A38;">Dupliquer</a><a class="it" href="MgProjetRapports.dc.html" style="color: #2C2A38;">Exporter</a><hr><a class="it danger" href="MgProjetParametres.dc.html">Clôturer le projet</a></div></sc-if>
+</div>
+</div>
+<nav class="cz-tabs" aria-label="Sections du projet">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+<a href="{{t.href}}" aria-current="{{t.current}}" style="{{t.style}}">{{t.label}}<sc-if value="{{t.count}}" hint-placeholder-val="{{ false }}"><span class="{{t.countCls}}">{{t.count}}</span></sc-if></a>
+</sc-for>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["apercu","souscripteurs","paiements","contrat","parametres","rapports"],"default":"apercu"},"$preview":{"width":1136,"height":230}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: false }; }
+  renderVals() {
+    const tab = this.props.tab || 'apercu';
+    const T = [['apercu', 'Vue d’ensemble', 'MgProjet.dc.html'], ['souscripteurs', 'Souscripteurs', 'MgProjetSouscripteurs.dc.html', '52', 'n'], ['paiements', 'Paiements', 'MgProjetPaiements.dc.html', '4', 'w'], ['contrat', 'Contrat', 'MgProjetContrat.dc.html'], ['parametres', 'Paramètres', 'MgProjetParametres.dc.html'], ['rapports', 'Rapports', 'MgProjetRapports.dc.html']];
+    return {
+      open: this.state.open, toggle: () => this.setState({ open: !this.state.open }),
+      tabs: T.map(([k, label, href, count, kind]) => ({
+        label, href, count: count || false, current: k === tab ? 'page' : 'false',
+        countCls: kind === 'w' ? 'cz-count' : 'cz-count cz-count--neutral',
+        style: `display: flex; gap: 7px; align-items: center; padding: 10px 16px; min-height: 44px; box-sizing: border-box; border-bottom: 2.5px solid ${k === tab ? '#7F77DD' : 'transparent'}; margin-bottom: -1px; font-family: Poppins, sans-serif; font-size: 13.5px; color: ${k === tab ? '#5B51C4' : '#6B6478'};`
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

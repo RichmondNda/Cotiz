@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Plateforme — Associations</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F2F2F8;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#3B3470;text-decoration:none}a:hover{color:#2A2552}
+</style>
+</helmet>
+<div data-theme="superadmin" style="width: 1440px; height: 900px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F2F2F8; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="SaSidebar" active="associations" hint-size="240px,900px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="SaTopbar" current="Associations" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-pagehead"><div style="display: flex; align-items: center; gap: 12px;"><h1>Associations</h1><span class="cz-count cz-count--neutral" style="height: 24px; font-size: 13px; padding: 0 10px;">147</span></div>
+<div class="end"><button type="button" class="cz-btn cz-btn--secondary"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></svg>Exporter</button><a class="cz-btn" href="SaNouvelleAssociation.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Créer une association</a></div></div>
+<div class="cz-toolbar">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
+<button type="button" class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.on}}">{{c.label}}</button>
+</sc-for>
+<span style="width: 1px; height: 24px; background: #E4E0EA; margin: 0 4px;"></span>
+<button type="button" class="{{planChip}}">Plan : {{planLabel}}</button>
+<button type="button" class="cz-chip">Pays : tous</button>
+<label class="cz-input cz-search" style="width: 240px; margin-left: auto;"><span class="lead"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.5-4.5"/></svg></span><input placeholder="Rechercher" aria-label="Rechercher une association" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font: inherit;"></label>
+<div class="cz-seg" role="radiogroup" aria-label="Affichage"><button type="button" role="radio" aria-checked="{{isTable}}" onClick="{{showTable}}" style="{{segTable}}">Tableau</button><button type="button" role="radio" aria-checked="{{isCards}}" onClick="{{showCards}}" style="{{segCards}}">Cartes</button></div>
+</div>
+
+<sc-if value="{{showTableView}}" hint-placeholder-val="{{ true }}">
+<div class="cz-table-wrap" style="overflow: visible;">
+<table class="cz-table">
+<thead><tr><th>Association</th><th>Plan</th><th>Statut</th><th class="num">Projets</th><th class="num">Souscripteurs</th><th>Dernière activité</th><th>Entrée</th><th style="width: 56px;"></th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<tr><td><div class="cz-person"><span class="cz-avatar cz-avatar--org cz-avatar--sa" style="width: 36px; height: 36px; font-size: 12px;">{{r.ini}}</span><div><a href="SaAssociation.dc.html" style="font-weight: 600; color: #1B1830;">{{r.name}}</a><div class="sub">{{r.city}}</div></div></div></td>
+<td><span class="cz-badge cz-badge--brand">{{r.plan}}</span></td><td><span class="{{r.badgeCls}}">{{r.status}}</span></td><td class="num">{{r.projects}}</td><td class="num">{{r.subs}}</td><td style="color: #6B6478;">{{r.last}}</td><td style="color: #6B6478;">{{r.since}}</td>
+<td style="position: relative;"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{r.toggle}}" aria-label="Actions" aria-expanded="{{r.menu}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></button>
+<sc-if value="{{r.menu}}" hint-placeholder-val="{{ false }}"><div class="cz-menu" style="position: absolute; right: 8px; top: 48px; z-index: 5;"><a class="it" href="SaAssociation.dc.html" style="color: #2C2A38;">Voir</a><a class="it" href="SaAssociation.dc.html" style="color: #2C2A38;">Changer de plan</a><hr><a class="it danger" href="SaAssociation.dc.html">Suspendre</a></div></sc-if></td></tr>
+</sc-for>
+</tbody></table>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-empty" style="box-shadow: none;"><div class="i i--neutral"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h17l-6.5 7.5v6l-4 2v-8z"/></svg></div><div class="t">Aucune association</div><div class="d">Aucune association ne correspond à ces filtres.</div><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{reset}}">Réinitialiser les filtres</button></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{showCardView}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<a class="cz-pcard" href="SaAssociation.dc.html" style="width: auto; color: inherit;">
+<div style="display: flex; gap: 12px; align-items: center;"><span class="cz-avatar cz-avatar--org cz-avatar--sa">{{r.ini}}</span><div style="flex-grow: 1;"><div class="nm">{{r.name}}</div><div class="as">Plan {{r.plan}} · {{r.subs}} souscripteurs</div></div><span class="{{r.badgeCls}}">{{r.status}}</span></div>
+<div style="display: flex; gap: 22px; margin-top: 14px; font-size: 13px;"><div><b style="font-family: Poppins, sans-serif; font-size: 17px;">{{r.projects}}</b><br><span style="color: #6B6478;">projets</span></div><div><b style="font-family: Poppins, sans-serif; font-size: 17px;">{{r.last}}</b><br><span style="color: #6B6478;">dernière activité</span></div></div>
+</a>
+</sc-for>
+</div>
+</sc-if>
+<div class="cz-tfoot"><span>{{footer}}</span><div class="cz-pagin"><span class="is-disabled">‹</span><span class="is-on">1</span><span>2</span><span>3</span><span>›</span></div></div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","filtres-actifs","vide"],"default":"nominal"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { filter: null, view: 'table', menu: -1 }; }
+  renderVals() {
+    const etat = this.props.etat || 'nominal';
+    const ALL = [
+      { ini: 'EY', name: 'Entraide Yopougon', city: 'Abidjan', plan: 'Essentiel', k: 'active', projects: 3, subs: 52, last: 'aujourd’hui', since: '02/2024' },
+      { ini: 'AR', name: 'Association des ressortissants de Man', city: 'Abidjan', plan: 'Pro', k: 'unpaid', projects: 5, subs: 142, last: 'il y a 2 j', since: '01/2025' },
+      { ini: 'JS', name: 'Jeunesse solidaire de Bouaké', city: 'Bouaké', plan: 'Découverte', k: 'onb', projects: 0, subs: 0, last: 'hier', since: '09/2026' }
+    ];
+    const B = { active: ['cz-badge cz-badge--success', 'Active'], unpaid: ['cz-badge cz-badge--warning', 'Impayée'], susp: ['cz-badge cz-badge--danger', 'Suspendue'], onb: ['cz-badge cz-badge--info', 'Onboarding'] };
+    const filter = this.state.filter || (etat === 'filtres-actifs' ? 'unpaid' : etat === 'vide' ? 'susp' : 'all');
+    const planFiltered = etat === 'filtres-actifs' && !this.state.filter;
+    const rows = ALL.filter((r) => (filter === 'all' || r.k === filter) && (!planFiltered || r.plan === 'Pro'));
+    const segBase = 'min-height: 36px; padding: 6px 14px; border: none; border-radius: 8px; font-family: Poppins, sans-serif; font-size: 13px; cursor: pointer;';
+    const on = segBase + ' background: #FFFFFF; color: #2A2552; box-shadow: 0 1px 3px rgba(0,0,0,0.08);';
+    const off = segBase + ' background: transparent; color: #6B6478;';
+    const isTable = this.state.view === 'table';
+    return {
+      chips: [['all', 'Toutes · 147'], ['active', 'Actives · 132'], ['unpaid', 'Impayées · 15'], ['susp', 'Suspendues · 0'], ['onb', 'Onboarding · 1']].map(([k, label]) => ({
+        label, on: k === filter, cls: 'cz-chip' + (k === filter ? ' is-on' : ''),
+        pick: () => this.setState({ filter: k, menu: -1 })
+      })),
+      planChip: 'cz-chip' + (planFiltered ? ' is-on' : ''), planLabel: planFiltered ? 'Pro' : 'tous',
+      isTable, isCards: !isTable, segTable: isTable ? on : off, segCards: isTable ? off : on,
+      showTable: () => this.setState({ view: 'table' }), showCards: () => this.setState({ view: 'cards' }),
+      showTableView: isTable, showCardView: !isTable,
+      empty: rows.length === 0,
+      reset: () => this.setState({ filter: 'all' }),
+      footer: rows.length ? `Affichage de ${rows.length} association${rows.length > 1 ? 's' : ''} de démonstration · 147 au total` : '0 résultat',
+      rows: rows.map((r, i) => ({ ...r, badgeCls: B[r.k][0], status: B[r.k][1], menu: this.state.menu === i, toggle: () => this.setState({ menu: this.state.menu === i ? -1 : i }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

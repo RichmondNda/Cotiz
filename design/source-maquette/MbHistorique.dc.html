@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Historique des paiements</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<dc-import name="MbNav" device="{{device}}" active="historique" hint-size="{{s.navHint}}" style="{{s.nav}}"></dc-import>
+<div style="{{s.col}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><header style="background: #FFFFFF; padding: 8px 8px 8px 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><div style="flex-grow: 1; min-width: 0; padding-left: 6px;"><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Historique</div><div style="font-size: 12.5px; color: #6B6478;">Tous vos paiements, toutes associations</div></div></header></sc-if>
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;"><div><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Historique</h1><p style="margin: 4px 0 0; font-size: 14px; color: #6B6478;">Tous vos paiements, toutes associations</p></div></div></sc-if>
+<div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px;"><sc-for list="{{filters}}" as="c" hint-placeholder-count="3"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}" style="min-height: 40px; white-space: nowrap;">{{c.label}}</button></sc-for></div>
+
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="i"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6M3.5 4v4h4M12 7.5V12l3 2"/></svg></div><div class="t">Aucun paiement pour l’instant</div><div class="d">Vos paiements apparaîtront ici dès votre première déclaration.</div><a class="cz-btn" href="{{links.declarer}}" style="color: #FFFFFF; margin-top: 8px;">Déclarer un paiement</a></div></div></sc-if>
+
+<sc-if value="{{notEmpty}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div style="{{s.kpis}}">
+<div class="cz-kpi"><div class="l">Total versé</div><div class="v">{{k.paid}}</div><div class="d up">{{k.n}} paiements validés</div></div>
+<div class="cz-kpi"><div class="l">Reste à payer</div><div class="v">{{k.rest}}</div><div class="{{k.dCls}}">{{k.d}}</div></div>
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div class="cz-kpi"><div class="l">Premier paiement</div><div class="v">05/03/2026</div><div class="d">{{k.first}}</div></div></sc-if>
+</div>
+<div class="cz-card">
+<div class="mb-row" style="margin-bottom: 10px; flex-wrap: wrap;"><b style="font-family: Poppins, sans-serif; font-size: 15px; color: #1B1830;">Mes versements par mois</b>
+<span style="display: flex; gap: 12px; font-size: 12px; color: #6B6478;"><sc-if value="{{showC}}" hint-placeholder-val="{{ true }}"><span style="display: inline-flex; align-items: center; gap: 5px;"><i style="width: 10px; height: 10px; border-radius: 3px; background: #D85A30;"></i>Centre</span></sc-if><sc-if value="{{showM}}" hint-placeholder-val="{{ true }}"><span style="display: inline-flex; align-items: center; gap: 5px;"><i style="width: 10px; height: 10px; border-radius: 3px; background: #7F77DD;"></i>Mutuelle</span></sc-if><span style="display: inline-flex; align-items: center; gap: 5px;"><i style="width: 14px; height: 2px; background: #1B1830;"></i>Cumul</span></span></div>
+<div style="position: relative; height: 170px; padding-top: 10px;">
+<svg viewBox="0 0 700 150" preserveAspectRatio="none" style="position: absolute; left: 0; right: 0; top: 10px; width: 100%; height: 150px; overflow: visible;" aria-hidden="true"><path d="{{curve}}" fill="none" stroke="#1B1830" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+<div style="display: flex; align-items: flex-end; height: 150px; gap: 0;"><sc-for list="{{bars}}" as="b" hint-placeholder-count="7"><div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%;"><div style="{{b.m}}"></div><div style="{{b.c}}"></div></div></sc-for></div>
+</div>
+<div style="display: flex; margin-top: 6px;"><sc-for list="{{bars}}" as="b" hint-placeholder-count="7"><span style="flex: 1; text-align: center; font-size: 11.5px; color: #6B6478;">{{b.l}}</span></sc-for></div>
+<div class="mb-lbl" style="margin-top: 6px;">{{curveNote}}</div>
+</div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<div class="cz-notif-group">{{g.month}} · {{g.total}}</div>
+<div class="mb-list"><sc-for list="{{g.items}}" as="it" hint-placeholder-count="2"><button type="button" onClick="{{it.open}}" style="width: 100%; background: transparent; border: none; border-bottom: 1px solid #F0EDF3; cursor: pointer; text-align: left;"><span style="{{it.dot}}"></span><span style="flex-grow: 1; min-width: 0;"><b style="display: block; font-size: 14.5px; color: #1B1830;">{{it.project}}</b><span class="mb-lbl">{{it.date}} · {{it.covers}}</span></span><span style="text-align: right;"><b style="display: block; font-size: 14.5px; color: #1B1830;">{{it.amount}}</b><span class="cz-badge cz-badge--success cz-badge--sm">Validé</span></span></button></sc-for></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ false }}"><div style="{{s.overlay}}" onClick="{{close}}"><div style="{{s.sheet}}" onClick="{{stop}}" role="dialog" aria-label="Détail du paiement">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><span style="width: 40px; height: 4px; border-radius: 999px; background: #E4E0EA; align-self: center;"></span></sc-if>
+<div class="mb-row"><b style="font-family: Poppins, sans-serif; font-size: 17px; color: #1B1830;">Détail du paiement</b><button type="button" class="cz-btn cz-btn--ghost cz-btn--icon" onClick="{{close}}" aria-label="Fermer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div style="text-align: center; padding: 6px 0 12px; border-bottom: 1px solid #E4E0EA;"><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 30px; color: #1B1830;">{{sel.amount}}</div><span class="cz-badge cz-badge--success">Validé le {{sel.valid}}</span></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Projet</span><b>{{sel.project}}</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Association</span><b>{{sel.asso}}</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Échéances couvertes</span><b>{{sel.covers}}</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Date du versement</span><b>{{sel.date}}</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Moyen</span><b>Mobile money</b></div>
+<button type="button" class="cz-btn cz-btn--secondary cz-btn--block">Voir la preuve</button>
+</div></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "etat": {"editor": "enum", "options": ["nominal", "filtre-actif", "aucun-paiement"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1400}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: null, open: null }; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const etat = P.etat || 'nominal';
+    const f = S.f !== null ? S.f : (etat === 'filtre-actif' ? 'c' : 'all');
+    const empty = etat === 'aucun-paiement';
+    const C = 'Centre communautaire', M = 'Mutuelle santé', EY = 'Entraide Yopougon', AM = 'Assoc. des ressortissants de Man';
+    const PAY = [
+      { k: 'm', month: 'Septembre 2026', project: M, asso: AM, date: '05/09/2026', valid: '06/09/2026', covers: 'septembre', a: 10000 },
+      { k: 'm', month: 'Août 2026', project: M, asso: AM, date: '05/08/2026', valid: '06/08/2026', covers: 'août', a: 10000 },
+      { k: 'c', month: 'Juillet 2026', project: C, asso: EY, date: '05/07/2026', valid: '07/07/2026', covers: 'juillet', a: 25000 },
+      { k: 'm', month: 'Juillet 2026', project: M, asso: AM, date: '05/07/2026', valid: '06/07/2026', covers: 'entrée + juillet', a: 30000 },
+      { k: 'c', month: 'Juin 2026', project: C, asso: EY, date: '05/06/2026', valid: '06/06/2026', covers: 'juin', a: 25000 },
+      { k: 'c', month: 'Mai 2026', project: C, asso: EY, date: '05/05/2026', valid: '06/05/2026', covers: 'mai', a: 25000 },
+      { k: 'c', month: 'Avril 2026', project: C, asso: EY, date: '05/04/2026', valid: '07/04/2026', covers: 'avril', a: 25000 },
+      { k: 'c', month: 'Mars 2026', project: C, asso: EY, date: '05/03/2026', valid: '06/03/2026', covers: 'entrée + mars', a: 75000 }
+    ].map((p, i) => ({ ...p, i }));
+    const list = PAY.filter((p) => f === 'all' || p.k === f);
+    const groups = [];
+    list.forEach((p) => { let g = groups.find((x) => x.month === p.month); if (!g) { g = { month: p.month, items: [], sum: 0 }; groups.push(g); } g.sum += p.a;
+      g.items.push({ ...p, amount: fmt(p.a), open: () => this.setState({ open: p.i }), dot: `width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: ${p.k === 'c' ? '#D85A30' : '#7F77DD'};` }); });
+    const MO = ['Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.'];
+    const cV = [75, 25, 25, 25, 25, 0, 0], mV = [0, 0, 0, 0, 30, 10, 10];
+    const useC = f !== 'm', useM = f !== 'c';
+    let cum = 0; const cums = MO.map((_, i) => (cum += (useC ? cV[i] : 0) + (useM ? mV[i] : 0)));
+    const max = cum || 1;
+    const curve = cums.map((c, i) => (i ? 'L' : 'M') + ((i + 0.5) * 100).toFixed(0) + ' ' + (150 - c / max * 140).toFixed(1)).join(' ');
+    const bh = (x) => Math.round(x / 75 * 110);
+    const paid = list.reduce((t, p) => t + p.a, 0);
+    const sel = S.open !== null ? { ...PAY[S.open], amount: fmt(PAY[S.open].a) } : { ...PAY[0], amount: fmt(PAY[0].a) };
+    const v = {
+      empty, notEmpty: !empty,
+      filters: [['all', 'Tous'], ['c', C], ['m', M]].map(([k, l]) => ({ label: l, cls: 'cz-chip' + (f === k ? ' is-on' : ''), pick: () => this.setState({ f: k }) })),
+      k: { paid: fmt(paid), n: String(list.length), rest: f === 'c' ? '325 000 F' : f === 'm' ? '70 000 F' : '395 000 F',
+        d: f === 'm' ? 'À jour' : '50 000 F en retard', dCls: 'd ' + (f === 'm' ? 'up' : 'bad'), first: f === 'm' ? 'Mutuelle : 05/07/2026' : 'Centre communautaire' },
+      showC: useC, showM: useM,
+      bars: MO.map((l, i) => ({ l, c: `width: 58%; max-width: 44px; height: ${useC ? bh(cV[i]) : 0}px; background: #D85A30; border-radius: ${useM && mV[i] ? '0 0 4px 4px' : '4px'};`, m: `width: 58%; max-width: 44px; height: ${useM ? bh(mV[i]) : 0}px; background: #7F77DD; border-radius: ${useC && cV[i] ? '4px 4px 0 0' : '4px'};` })),
+      curve, curveNote: 'Cumul versé depuis mars : ' + fmt(cum * 1000),
+      groups: groups.map((g) => ({ ...g, total: fmt(g.sum) })),
+      sheetOpen: S.open !== null, sel,
+      close: () => this.setState({ open: null }), stop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      links: { declarer: L('MbDeclarer') },
+      s: { kpis: m ? 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;' }
+    };
+    const hasNav = true && !(m && false && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 1400px; position: relative; display: grid; grid-template-columns: ' + (true ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,150px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '170px' : '24px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

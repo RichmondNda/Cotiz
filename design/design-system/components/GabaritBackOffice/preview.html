@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>GabaritBackOffice</title></head>
+<body>
+<div class="pv pv-stack">
+ <div class="pv-h">Gestionnaire · tableau de bord /asso</div>
+ <div class="cz-shell" data-theme="manager">
+  <aside class="cz-side">
+   <div class="logo"><span data-mark="26"></span>Cotiz</div>
+   <div class="org"><span class="cz-avatar cz-avatar--org" style="width:34px;height:34px;font-size:12px">EY</span><div><b>Entraide Yopougon</b>Plan Essentiel</div></div>
+   <div class="it is-on"><i data-icon="tableau-de-bord"></i>Tableau de bord</div>
+   <div class="it"><i data-icon="projet"></i>Projets</div>
+   <div class="it is-hover"><i data-icon="souscripteurs"></i>Souscripteurs</div>
+   <div class="it"><i data-icon="paiement"></i>Paiements<span class="cz-count">6</span></div>
+   <div class="it"><i data-icon="relance"></i>Relances</div>
+   <div class="it"><i data-icon="contrat"></i>Contrats</div>
+   <div class="sep"></div>
+   <div class="it"><i data-icon="souscripteurs"></i>Équipe</div>
+   <div class="it"><i data-icon="facturation"></i>Abonnement</div>
+   <div class="it"><i data-icon="parametres"></i>Paramètres</div>
+   <div class="it"><i data-icon="chevron-gauche"></i>Replier</div>
+  </aside>
+  <div class="cz-main">
+   <div class="cz-top"><span class="cz-crumb"><span class="cur">Tableau de bord</span></span><div class="cz-input cz-search"><span class="lead"><i data-icon="recherche"></i></span><span class="ph grow">Rechercher un souscripteur, un projet…</span></div><span class="cz-bell"><i data-icon="notification"></i><span class="cz-count cz-count--danger">3</span></span><span class="cz-avatar cz-avatar--sm">AK</span></div>
+   <div class="cz-content">
+    <div class="cz-pagehead"><div><h1>Bonjour Awa</h1><p>Entraide Yopougon · vendredi 25 septembre 2026</p></div><div class="end"><button class="cz-btn"><i data-icon="ajouter"></i>Créer un projet</button></div></div>
+    <div class="cz-alert cz-alert--warning"><i data-icon="en-attente"></i><div><b>6 paiements attendent votre validation</b>, dont 2 depuis plus de 5 jours. <u>Traiter</u></div></div>
+    <div class="cz-grid4">
+     <div class="cz-kpi is-clickable"><div class="l"><span class="ic"><i data-icon="paiement"></i></span>Collecté ce mois</div><div class="v">1 240 000 F</div><div class="d">sur 1 300 000 F attendus</div></div>
+     <div class="cz-kpi is-clickable"><div class="l"><span class="ic ic--warning"><i data-icon="en-attente"></i></span>Paiements à valider</div><div class="v">6</div><div class="d warn">Le plus ancien : il y a 3 jours</div></div>
+     <div class="cz-kpi is-clickable"><div class="l"><span class="ic ic--danger"><i data-icon="alerte"></i></span>Souscripteurs en retard</div><div class="v">14</div><div class="d bad">sur 52 actifs</div></div>
+     <div class="cz-kpi is-clickable"><div class="l"><span class="ic ic--success"><i data-icon="valide"></i></span>Taux de recouvrement</div><div class="v">82 %</div><div class="d">des échéances échues</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 class="cz-h2">Mes projets</h2><span style="color:var(--brand-dark);font-weight:600;font-size:13.5px">Tous les projets →</span></div>
+    <div class="cz-grid3">
+     <div class="cz-pcard" style="width:auto"><div class="hd"><div><div class="nm">Centre communautaire</div><div class="as">Mensuel · 25 000 F · depuis mars 2026</div></div><span class="cz-badge cz-badge--success">En cours</span></div><div class="cz-bar"><i style="width:68%"></i></div><div class="row"><span>8 500 000 F collectés</span><span>68 %</span></div><div class="ft"><div class="cz-stack"><span class="cz-avatar cz-avatar--sm">AK</span><span class="cz-avatar cz-avatar--sm cz-avatar--success">MD</span><span class="cz-avatar cz-avatar--sm cz-avatar--warning">+48</span></div><span class="cz-badge cz-badge--danger">3 en retard</span></div></div>
+     <div class="cz-pcard" style="width:auto"><div class="hd"><div><div class="nm">Tontine solidaire 2027</div><div class="as">Cycle roulant · 10 000 F</div></div><span class="cz-badge cz-badge--info">Inscriptions ouvertes</span></div><div class="cz-bar cz-bar--info"><i style="width:40%"></i></div><div class="row"><span>12 / 30 souscripteurs</span><span>40 %</span></div><div class="ft"><span class="cz-help">Démarre le 1ᵉʳ janvier</span><button class="cz-btn cz-btn--sm cz-btn--secondary">Inscrire</button></div></div>
+     <div class="cz-card cz-card--ghost"><i data-icon="ajouter" data-size="26"></i>Nouveau projet</div>
+    </div>
+   </div>
+  </div>
+ </div>
+ <div class="pv-h" style="margin-top:12px">Super-admin · tableau de bord /plateforme</div>
+ <div class="cz-shell" data-theme="superadmin">
+  <aside class="cz-side">
+   <div class="logo"><span data-mark="26"></span>Cotiz</div>
+   <div class="role"><span class="cz-badge cz-badge--brand"><i data-icon="plateforme" data-size="14"></i>Espace plateforme</span></div>
+   <div class="it is-on"><i data-icon="tableau-de-bord"></i>Tableau de bord</div>
+   <div class="it"><i data-icon="contrat"></i>Demandes<span class="cz-count">4</span></div>
+   <div class="it"><i data-icon="association"></i>Associations</div>
+   <div class="it"><i data-icon="plans"></i>Plans</div>
+   <div class="it"><i data-icon="facturation"></i>Facturation</div>
+   <div class="it"><i data-icon="souscripteurs"></i>Utilisateurs</div>
+   <div class="sep"></div>
+   <div class="it"><i data-icon="parametres"></i>Paramètres</div>
+   <div class="it"><i data-icon="aide"></i>Aide</div>
+  </aside>
+  <div class="cz-main">
+   <div class="cz-top"><span class="cz-crumb"><span class="cur">Plateforme</span></span><div class="cz-input cz-search"><span class="lead"><i data-icon="recherche"></i></span><span class="ph grow">Rechercher une association…</span></div><span class="cz-bell"><i data-icon="notification"></i></span><span class="cz-avatar cz-avatar--sm">R</span></div>
+   <div class="cz-content">
+    <div class="cz-pagehead"><div><h1>Bonjour Richy</h1><p>Vendredi 25 septembre 2026</p></div><div class="end"><button class="cz-btn"><i data-icon="ajouter"></i>Créer une association</button></div></div>
+    <div class="cz-card" style="padding:18px 20px">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-family:var(--font-display);font-size:16px">4 demandes à traiter</b><span class="cz-badge cz-badge--warning">À traiter</span></div>
+     <table class="cz-table"><tbody>
+      <tr><td><b>Jeunesse solidaire de Bouaké</b><div class="cz-help">Bouaké · plan Découverte</div></td><td class="cz-help">il y a 2 jours</td><td class="num"><button class="cz-btn cz-btn--sm">Examiner</button></td></tr>
+     </tbody></table></div>
+    <div class="cz-grid4">
+     <div class="cz-kpi"><div class="l"><span class="ic"><i data-icon="association"></i></span>Associations actives</div><div class="v">147</div><div class="d up"><i data-icon="tendance"></i>+6 ce mois</div></div>
+     <div class="cz-kpi"><div class="l"><span class="ic"><i data-icon="souscripteurs"></i></span>Souscripteurs</div><div class="v">194</div><div class="d">sur la plateforme</div></div>
+     <div class="cz-kpi"><div class="l"><span class="ic ic--success"><i data-icon="facturation"></i></span>Revenu mensuel récurrent</div><div class="v">•• ••• F</div><div class="d">132 abonnements à jour</div></div>
+     <div class="cz-kpi"><div class="l"><span class="ic ic--danger"><i data-icon="alerte"></i></span>Abonnements impayés</div><div class="v" style="color:var(--danger-fg)">15</div><div class="d bad">sur 147 associations</div></div>
+    </div>
+   </div>
+  </div>
+ </div>
+ <div class="pv-row" style="gap:24px;margin-top:12px">
+  <div><div class="pv-h">Barre repliée (72 px) — tablette &lt; 1024</div>
+   <div class="cz-shell is-collapsed" data-theme="manager" style="min-height:360px;width:420px">
+    <aside class="cz-side"><div class="logo" style="justify-content:center;padding:4px 0 12px"><span data-mark="26"></span></div><div class="it is-on"><i data-icon="tableau-de-bord"></i></div><div class="it"><i data-icon="projet"></i></div><div class="it"><i data-icon="souscripteurs"></i></div><div class="it"><i data-icon="paiement"></i><span class="cz-count">6</span></div><div class="it"><i data-icon="relance"></i></div><div class="it"><i data-icon="contrat"></i></div><div class="sep"></div><div class="it"><i data-icon="chevron-droite"></i></div></aside>
+    <div class="cz-main"><div class="cz-top" style="padding:0 14px"><span class="cz-crumb"><span class="cur">Projets</span></span><span style="margin-left:auto" class="cz-bell"><i data-icon="notification"></i></span></div><div class="cz-content" style="padding:16px"><div class="cz-skel" style="height:24px;width:60%"></div><div class="cz-skel" style="height:90px"></div><div class="cz-skel" style="height:90px"></div></div></div>
+   </div></div>
+  <div><div class="pv-h">Mobile &lt; 768 — menu tiroir</div>
+   <div class="cz-phone" data-theme="manager" style="height:360px">
+    <div class="pt"><i data-icon="menu"></i><b>Projets</b><span class="cz-avatar cz-avatar--sm">AK</span></div>
+    <div class="pb" style="padding-bottom:12px"><div class="cz-skel" style="height:80px"></div><div class="cz-skel" style="height:80px"></div></div>
+   </div></div>
+  <div style="flex:1;min-width:260px"><div class="pv-h">Règles</div><ul class="cz-help" style="margin:0;padding-left:18px;line-height:1.8">
+   <li>Barre latérale : logo, puis (gestionnaire) l'association courante ; entrée active brand-pale / brand-dark / 600 ; compteur orange des éléments à traiter.</li>
+   <li>Bas de barre : paramètres, aide, repli.</li>
+   <li>Barre supérieure : fil d'Ariane, recherche globale, cloche avec compteur, avatar et menu.</li>
+   <li>En-tête de page : H1, sous-titre gris, actions à droite — primaire le plus à droite.</li>
+   <li>Fond de page = token page de l'univers ; cartes blanches.</li></ul></div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

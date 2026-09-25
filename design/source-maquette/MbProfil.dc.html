@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Profil et paramètres</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<dc-import name="MbNav" device="{{device}}" active="profil" hint-size="{{s.navHint}}" style="{{s.nav}}"></dc-import>
+<div style="{{s.col}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><header style="background: #FFFFFF; padding: 8px 8px 8px 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><div style="flex-grow: 1; min-width: 0; padding-left: 6px;"><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Profil</div></div></header></sc-if>
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;"><div><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Profil</h1></div></div></sc-if>
+<div class="cz-card cz-card--lg" style="display: flex; align-items: center; gap: 14px;">
+<span class="cz-avatar cz-avatar--lg">MD</span>
+<div style="flex-grow: 1; min-width: 0;"><b style="display: block; font-family: Poppins, sans-serif; font-size: 18px; color: #1B1830;">Moussa Diarra</b><span class="mb-lbl" style="font-size: 13.5px;">Souscripteur · 2 associations</span></div>
+</div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t" style="font-size: 16px;">Mes informations</h2>
+<div class="cz-field"><span class="cz-label">Téléphone</span><div class="cz-input" style="background: #F6F4F8; color: #6B6478; display: flex; align-items: center; justify-content: space-between;">+225 05 44 21 87 90<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 11h11v9h-11zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg></div><span class="cz-help">Numéro non modifiable. Contactez votre association pour le changer.</span></div>
+<label class="cz-field"><span class="cz-label">Email (facultatif)</span><input class="cz-input" type="email" placeholder="vous@exemple.com"></label>
+</div>
+<div class="mb-list">
+<a href="{{links.contrats}}"><span style="color: #D85A30; display: inline-flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v5h5M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8z"/></svg></span><span style="flex-grow: 1;">Mes contrats</span><span class="cz-count cz-count--danger">1</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6478" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+<a href="{{links.assos}}"><span style="color: #D85A30; display: inline-flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20.5V9l8-5.5 8 5.5v11.5M9 20.5v-6h6v6"/></svg></span><span style="flex-grow: 1;">Mes associations</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6478" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+<a href="{{links.notifs}}"><span style="color: #D85A30; display: inline-flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6c0 4-2 5-2 5h16s-2-1-2-5a6 6 0 0 0-6-6zM10 20a2 2 0 0 0 4 0"/></svg></span><span style="flex-grow: 1;">Notifications</span><span class="cz-count cz-count--danger">2</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6478" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+</div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 4px;">
+<h2 class="t" style="font-size: 16px; margin-bottom: 6px;">Rappels d’échéance</h2>
+<button type="button" onClick="{{toggleSms}}" style="display: flex; align-items: center; gap: 12px; min-height: 52px; background: transparent; border: none; padding: 0; cursor: pointer; text-align: left;"><span style="flex-grow: 1;"><b style="display: block; font-size: 14.5px; font-weight: 500; color: #1B1830;">Par SMS</b><span class="mb-lbl">3 jours avant chaque échéance</span></span><span class="cz-soon" style="font-size: 11px; padding: 2px 8px;">V2</span><span class="{{smsCls}}"></span></button>
+<button type="button" onClick="{{toggleMail}}" style="display: flex; align-items: center; gap: 12px; min-height: 52px; background: transparent; border: none; border-top: 1px solid #F0EDF3; padding: 0; cursor: pointer; text-align: left;"><span style="flex-grow: 1;"><b style="display: block; font-size: 14.5px; font-weight: 500; color: #1B1830;">Par email</b><span class="mb-lbl">Récapitulatif et validations</span></span><span class="cz-soon" style="font-size: 11px; padding: 2px 8px;">V2</span><span class="{{mailCls}}"></span></button>
+</div>
+<div class="mb-list">
+<a href="{{links.mdp}}"><span style="color: #6B6478; display: inline-flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 11h11v9h-11zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg></span><span style="flex-grow: 1;">Changer mon mot de passe</span></a>
+<a href="{{links.intro}}"><span style="color: #6B6478; display: inline-flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.4M12 16.8v.2"/></svg></span><span style="flex-grow: 1;">Aide · revoir la présentation</span></a>
+<a href="{{links.logout}}" style="color: #D93A3A; font-weight: 600;"><span style="display: inline-flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14M10 16.5L5.5 12 10 7.5M5.5 12H15"/></svg></span><span style="flex-grow: 1;">Se déconnecter</span></a>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "$preview": {"width": 1440, "height": 1150}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sms: true, mail: false }; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const v = {
+      smsCls: 'cz-toggle' + (S.sms ? ' is-on' : ''), mailCls: 'cz-toggle' + (S.mail ? ' is-on' : ''),
+      toggleSms: () => this.setState({ sms: !S.sms }), toggleMail: () => this.setState({ mail: !S.mail }),
+      links: { contrats: L('MbContrats'), assos: L('MbAssociations'), notifs: L('MbNotifications'), mdp: L('MotDePasse'), intro: L('MbOnboarding'), logout: L('Connexion') }
+    };
+    const hasNav = true && !(m && false && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 1150px; position: relative; display: grid; grid-template-columns: ' + (true ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,150px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '170px' : '24px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

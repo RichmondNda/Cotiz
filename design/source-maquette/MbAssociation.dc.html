@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Entraide Yopougon</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<dc-import name="MbNav" device="{{device}}" active="projets" hint-size="{{s.navHint}}" style="{{s.nav}}"></dc-import>
+<div style="{{s.col}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><header style="background: #FFFFFF; padding: 8px 8px 8px 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="{{links.back}}" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Entraide Yopougon</div></div></header></sc-if>
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<div class="cz-card cz-card--lg" style="{{s.head}}">
+<span class="cz-avatar cz-avatar--org cz-avatar--lg" style="width: 64px; height: 64px; font-size: 22px;">EY</span>
+<div style="flex-grow: 1; min-width: 0;"><sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><a href="{{links.back}}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 600; margin-bottom: 4px;">← Mes associations</a></sc-if>
+<h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 24px; color: #1B1830;">Entraide Yopougon</h1>
+<div class="mb-lbl" style="font-size: 14px;">Abidjan · membre depuis mars 2026</div></div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+<a class="cz-btn cz-btn--secondary" href="tel:+2250708091011"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h3.5l1.5 4.5-2 1.5a11 11 0 0 0 6 6l1.5-2 4.5 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>Appeler</a>
+<a class="cz-btn cz-btn--secondary" href="mailto:"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h16v11H4zM4 7l8 6 8-6"/></svg>Écrire</a>
+</div>
+</div>
+<h2 class="t">Mes projets dans cette association</h2>
+<div style="{{s.two}}">
+<a class="cz-pcard cz-pcard--member cz-pcard--late" href="{{links.projet}}" style="color: inherit;"><div class="hd"><div><div class="nm">Centre communautaire</div><div class="as">500 000 F · 18 mois</div></div><span class="cz-badge cz-badge--danger">En retard</span></div><div class="lbl">Reste à payer</div><div class="amt" style="color: #96201F;">325 000 F</div><div class="cz-bar cz-bar--danger"><i style="width: 35%;"></i></div><div class="ft"><span>2 échéances en retard</span><span>Contrat signé</span></div></a>
+<a class="cz-pcard cz-pcard--member cz-pcard--sign" href="{{links.contrat}}" style="color: inherit;"><div class="hd"><div><div class="nm">Voyage solidaire</div><div class="as">170 000 F · 12 mois</div></div><span class="cz-badge cz-badge--warning">Signature attendue</span></div><div class="msg">Signez le contrat pour voir votre échéancier.</div><div class="ft"><span>50 000 F à l’entrée</span><span>puis 10 000 F / mois</span></div></a>
+</div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 12px;">
+<h2 class="t" style="font-size: 16px;">Comment payer Entraide Yopougon</h2>
+<div><div class="mb-lbl" style="margin-bottom: 4px;">Mobile money</div><div class="cz-ref"><span class="cz-mono">+225 07 08 09 10 11 · [Opérateur]</span><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{copyMm}}">{{mmLbl}}</button></div></div>
+<div><div class="mb-lbl" style="margin-bottom: 4px;">Virement bancaire</div><div class="cz-ref"><span class="cz-mono">[IBAN DE L’ASSOCIATION]</span><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{copyIban}}">{{ibanLbl}}</button></div></div>
+<p style="margin: 0; font-size: 13px; color: #6B6478;">Après votre versement, pensez à le déclarer avec votre preuve.</p>
+<a class="cz-btn cz-btn--block" href="{{links.declarer}}" style="color: #FFFFFF;">Déclarer un paiement</a>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "$preview": {"width": 1440, "height": 1150}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { copied: '' }; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const v = {
+      mmLbl: S.copied === 'mm' ? 'Copié' : 'Copier', ibanLbl: S.copied === 'iban' ? 'Copié' : 'Copier',
+      copyMm: () => this.setState({ copied: 'mm' }), copyIban: () => this.setState({ copied: 'iban' }),
+      links: { back: L('MbAssociations'), projet: L('MbProjet'), contrat: L('MbContrat'), declarer: L('MbDeclarer') },
+      s: { head: m ? 'display: flex; flex-direction: column; align-items: flex-start; gap: 12px;' : 'display: flex; align-items: center; gap: 18px;' }
+    };
+    const hasNav = true && !(m && false && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 1150px; position: relative; display: grid; grid-template-columns: ' + (true ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,150px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '170px' : '24px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

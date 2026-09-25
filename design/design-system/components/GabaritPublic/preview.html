@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>GabaritPublic</title></head>
+<body>
+<style>
+.visual{position:relative;height:300px}
+.visual .desk{position:absolute;left:0;top:10px;width:88%;transform:rotate(-2deg);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-modal);background:var(--violet-page)}
+.visual .desk .bar{height:28px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;padding:0 10px}
+.visual .desk .bar i{width:8px;height:8px;border-radius:50%;background:var(--border)}
+.visual .phn{position:absolute;right:0;bottom:-10px;width:190px;border-radius:24px;border:6px solid var(--text-strong);background:var(--corail-page);padding:10px;box-shadow:var(--shadow-modal)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.aud{border-radius:var(--r-card);padding:24px;background:var(--page)}
+.aud h3{font-family:var(--font-display);font-size:20px;margin:0 0 14px;color:var(--brand-dark)}
+.aud li{display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:14px}.aud ul{list-style:none;padding:0;margin:0}
+.aud li span{color:var(--brand)}
+.prob{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+</style>
+<div data-theme="manager">
+ <header class="cz-pub-head is-scrolled"><div class="brand"><span data-mark="30"></span>Cotiz</div><nav><span>Fonctionnement</span><span>Tarifs</span><span>FAQ</span></nav><div class="end"><button class="cz-btn cz-btn--secondary">Se connecter<i data-icon="chevron-bas"></i></button><button class="cz-btn">Créer mon association</button></div></header>
+ <section class="cz-hero">
+  <div><h1>Les cotisations de votre association, enfin sous contrôle</h1><p>Projets, échéances, paiements, relances : tout au même endroit. Vos membres savent ce qu'ils doivent, vous savez qui a payé.</p>
+   <div class="pv-row center"><button class="cz-btn cz-btn--lg">Créer mon association</button><span style="color:var(--violet-dark);font-weight:600;font-size:14px">Voir comment ça marche ↓</span></div>
+   <div class="reassure">Sans engagement · Mise en place en 48 h · Données hébergées en sécurité</div></div>
+  <div class="visual">
+   <div class="desk"><div class="bar"><i></i><i></i><i></i></div><div style="padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+    <div class="cz-kpi" style="padding:10px"><div class="l" style="font-size:10px">Collecté ce mois</div><div class="v" style="font-size:16px">1 240 000 F</div></div>
+    <div class="cz-kpi" style="padding:10px"><div class="l" style="font-size:10px">À valider</div><div class="v" style="font-size:16px">6</div></div>
+    <div class="cz-kpi" style="padding:10px"><div class="l" style="font-size:10px">En retard</div><div class="v" style="font-size:16px">14</div></div>
+    <div style="grid-column:span 3;background:var(--surface);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px">
+     <div style="display:flex;gap:4px"><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--late"></span><span class="cz-cell cz-cell--sm cz-cell--late"></span><span class="cz-cell cz-cell--sm cz-cell--fut"></span></div>
+     <div style="display:flex;gap:4px"><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--wait"></span><span class="cz-cell cz-cell--sm cz-cell--fut"></span></div>
+     <div style="display:flex;gap:4px"><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--part"></span><span class="cz-cell cz-cell--sm cz-cell--ok"></span><span class="cz-cell cz-cell--sm cz-cell--fut"></span></div></div></div></div>
+   <div class="phn" data-theme="member"><div class="cz-summary" style="padding:12px;border-radius:14px"><div class="l" style="font-size:10px">Total restant à payer</div><div class="v" style="font-size:20px">395 000 F</div></div><div class="cz-pcard cz-pcard--member" style="width:auto;padding:10px;margin-top:8px"><div class="nm" style="font-size:12px">Centre communautaire</div><div class="cz-bar" style="margin:6px 0 0"><i style="width:62%"></i></div></div></div>
+  </div>
+ </section>
+ <section class="cz-section"><h2>Ça vous parle ?</h2>
+  <div class="prob">
+   <div class="cz-card"><span style="color:var(--corail)"><i data-icon="contrat" data-size="28"></i></span><p class="cz-card-t" style="margin-top:10px">Le cahier qui se perd</p><p class="cz-card-s">Des années de cotisations notées à la main, et une seule copie.</p></div>
+   <div class="cz-card"><span style="color:var(--corail)"><i data-icon="relance" data-size="28"></i></span><p class="cz-card-t" style="margin-top:10px">Les relances par WhatsApp une par une</p><p class="cz-card-s">Des soirées entières à écrire les mêmes messages.</p></div>
+   <div class="cz-card"><span style="color:var(--corail)"><i data-icon="aide" data-size="28"></i></span><p class="cz-card-t" style="margin-top:10px">Personne ne sait qui a payé quoi</p><p class="cz-card-s">Et chaque réunion commence par un débat sur les comptes.</p></div>
+  </div></section>
+ <section class="cz-section alt"><h2>Deux publics, un seul outil</h2>
+  <div class="two">
+   <div class="aud" data-theme="manager" style="background:var(--surface)"><h3>Pour les gestionnaires</h3><ul><li><span data-icon="projet"></span>Créez vos projets en quelques minutes</li><li><span data-icon="echeance"></span>Voyez d'un coup d'œil qui est à jour</li><li><span data-icon="valide"></span>Validez les paiements déclarés</li><li><span data-icon="relance"></span>Relancez sans y passer vos soirées</li></ul></div>
+   <div class="aud" data-theme="member" style="background:var(--surface)"><h3>Pour vos membres</h3><ul><li><span data-icon="paiement"></span>Ils savent combien ils doivent</li><li><span data-icon="en-attente"></span>Ils voient leur prochaine échéance</li><li><span data-icon="importer"></span>Ils déclarent un virement en 1 minute</li><li><span data-icon="telephone"></span>Sur leur téléphone, sans rien installer</li></ul></div>
+  </div></section>
+ <section class="cz-section"><h2>Tarifs</h2>
+  <div class="prob">
+   <div class="cz-price"><div class="nm">Découverte</div><div class="pr">•• ••• F <small>/ mois</small></div><div class="cz-help">Limites : projets · souscripteurs · gestionnaires</div><ul><li><i data-icon="coche"></i>Grille d'échéances</li><li><i data-icon="coche"></i>Déclaration et validation</li></ul><button class="cz-btn cz-btn--secondary cz-btn--block">Choisir</button></div>
+   <div class="cz-price is-featured"><div class="nm">Essentiel <span class="cz-badge cz-badge--brand">Le plus choisi</span></div><div class="pr">•• ••• F <small>/ mois</small></div><div class="cz-help">Limites : projets · souscripteurs · gestionnaires</div><ul><li><i data-icon="coche"></i>Tout Découverte</li><li><i data-icon="coche"></i>Contrats et signature</li><li><i data-icon="coche"></i>Relances automatiques</li></ul><button class="cz-btn cz-btn--block">Choisir Essentiel</button></div>
+   <div class="cz-price"><div class="nm">Pro</div><div class="pr">•• ••• F <small>/ mois</small></div><div class="cz-help">Limites : projets · souscripteurs · gestionnaires</div><ul><li><i data-icon="coche"></i>Tout Essentiel</li><li><i data-icon="coche"></i>Import Excel</li><li><i data-icon="coche"></i>Rapports avancés</li></ul><button class="cz-btn cz-btn--secondary cz-btn--block">Choisir</button></div>
+  </div><p class="cz-help" style="text-align:center;margin:16px 0 0">Besoin de plus ? Contactez-nous.</p></section>
+ <section class="cz-section alt"><h2>Questions fréquentes</h2>
+  <div style="max-width:720px;margin:0 auto">
+   <div class="cz-acc is-open"><div class="q">L'argent passe-t-il par Cotiz ?<i data-icon="chevron-bas"></i></div><div class="a">Non. Vos membres versent directement à l'association, puis déclarent leur paiement dans Cotiz avec une preuve. Vous confirmez la réception.</div></div>
+   <div class="cz-acc"><div class="q">Mes membres doivent-ils installer une application ?<i data-icon="chevron-bas"></i></div></div>
+   <div class="cz-acc"><div class="q">Mes données sont-elles sécurisées ?<i data-icon="chevron-bas"></i></div></div>
+  </div></section>
+ <div class="cz-cta-band"><b>Prêt à organiser votre association ?</b><button class="cz-btn cz-btn--white cz-btn--lg">Créer mon association</button></div>
+ <footer class="cz-foot"><div><div class="brand" style="display:flex;gap:8px;align-items:center;font-family:var(--font-display);font-weight:600;font-size:18px;color:var(--ink-title)"><span data-mark="28"></span>Cotiz</div><div class="tag">votre association organisée</div><div class="cz-help" style="margin-top:14px">© 2026 Cotiz</div></div>
+  <div><h4>Produit</h4><a>Fonctionnement</a><a>Tarifs</a><a>FAQ</a></div><div><h4>Ressources</h4><a>Guide gestionnaire</a><a>Guide souscripteur</a></div><div><h4>Légal</h4><a>CGU</a><a>Confidentialité</a><a>Mentions légales</a></div><div><h4>Contact</h4><a>Nous écrire</a><a>Réseaux sociaux</a></div></footer>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

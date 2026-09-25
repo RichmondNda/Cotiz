@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet — Paiements</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input{font:inherit;color:inherit}
+@keyframes cz-flash{0%{transform:scale(1.5);box-shadow:0 0 0 6px #DFF3E7}100%{transform:scale(1);box-shadow:none}}
+.cz-cell.flash{animation:cz-flash .6s ease-out}
+.cellbtn{border:none;padding:0;cursor:pointer}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1250px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,1250px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" parent="Projets" parent-href="MgProjets.dc.html" parent2="Centre communautaire" parent2-href="MgProjet.dc.html" current="Paiements" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<dc-import name="MgProjetHeader" tab="paiements" hint-size="100%,230px"></dc-import>
+
+<sc-if value="{{hasPending}}" hint-placeholder-val="{{ true }}">
+<section style="background: #FBEEDB; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+<b style="font-family: Poppins, sans-serif; font-size: 15px; color: #8A5410;">À valider · {{pendingCount}}</b>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+<sc-for list="{{pending}}" as="p" hint-placeholder-count="4">
+<div class="cz-card" style="padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+<div class="cz-person"><span class="cz-avatar cz-avatar--sm">{{p.ini}}</span><div><b>{{p.name}}</b><div class="sub">{{p.ago}}</div></div></div>
+<div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830;">{{p.amount}}</div>
+<div style="font-size: 12.5px; color: #6B6478;">{{p.covers}}</div>
+<button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{p.examine}}">Examiner</button>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<div class="cz-toolbar">
+<label class="cz-input cz-search" style="width: 220px;"><span class="lead"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.5-4.5"/></svg></span><input placeholder="Souscripteur" aria-label="Rechercher" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0;"></label>
+<button type="button" class="cz-chip">Statut : tous</button><button type="button" class="cz-chip">Période : mars 2026 → févr. 2027</button>
+<div class="cz-grid-legend" style="margin-left: 8px;"><span><span class="cz-cell cz-cell--sm cz-cell--ok"></span>Payée</span><span><span class="cz-cell cz-cell--sm cz-cell--wait"></span>Déclarée</span><span><span class="cz-cell cz-cell--sm cz-cell--part"></span>Partielle</span><span><span class="cz-cell cz-cell--sm cz-cell--late"></span>En retard</span><span><span class="cz-cell cz-cell--sm cz-cell--fut"></span>À venir</span></div>
+<div class="cz-seg" role="radiogroup" aria-label="Affichage" style="margin-left: auto;"><button type="button" role="radio" aria-checked="{{isGrid}}" onClick="{{showGrid}}" style="{{segGrid}}">Grille</button><button type="button" role="radio" aria-checked="{{isList}}" onClick="{{showList}}" style="{{segList}}">Liste des paiements</button></div>
+</div>
+
+<sc-if value="{{isGrid}}" hint-placeholder-val="{{ true }}">
+<div class="cz-grid-wrap"><table class="cz-grid">
+<thead><tr><th>Souscripteur</th><sc-for list="{{cols}}" as="c" hint-placeholder-count="13"><th class="{{c.cls}}">{{c.l}}</th></sc-for><th style="text-align: right; padding-right: 14px;">Reste</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+<tr><td><div class="cz-person"><span class="{{r.avCls}}">{{r.ini}}</span><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">{{r.name}}</a></div></td>
+<sc-for list="{{r.cells}}" as="c" hint-placeholder-count="13"><td class="{{c.tdCls}}"><sc-if value="{{c.show}}" hint-placeholder-val="{{ true }}"><button type="button" class="{{c.cls}}" onClick="{{c.open}}" aria-label="{{c.label}}" title="{{c.label}}"></button></sc-if></td></sc-for>
+<td class="{{r.restCls}}">{{r.rest}}</td></tr>
+</sc-for>
+<tr><td colspan="15" style="color: #6B6478; font-size: 12.5px;">… 45 autres souscripteurs · triés par nombre de retards</td></tr>
+</tbody></table></div>
+</sc-if>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{ false }}">
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th>Date</th><th>Souscripteur</th><th class="num">Montant</th><th>Échéances couvertes</th><th>Preuve</th><th>Statut</th><th>Validé par</th></tr></thead>
+<tbody>
+<sc-for list="{{payments}}" as="p" hint-placeholder-count="6"><tr><td style="color: #6B6478;">{{p.date}}</td><td><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">{{p.name}}</a></td><td class="num">{{p.amount}}</td><td>{{p.covers}}</td><td><span style="display: inline-flex; width: 32px; height: 40px; border-radius: 6px; background: #DEEBF7; border: 1px solid #E4E0EA;"></span></td><td><span class="{{p.cls}}">{{p.status}}</span></td><td style="color: #6B6478;">{{p.by}}</td></tr></sc-for>
+</tbody></table></div>
+</sc-if>
+</main>
+</div>
+
+<sc-if value="{{panelOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); z-index: 30; display: flex; justify-content: flex-end;">
+<div class="cz-panel" role="dialog" aria-modal="true" aria-label="{{panelTitle}}" style="height: 100%; border-radius: 18px 0 0 18px;">
+<div class="ph">{{panelTitle}}<button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{closePanel}}" aria-label="Fermer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="pb" style="flex-grow: 1;">
+<div class="cz-person"><span class="cz-avatar">{{panel.ini}}</span><div><b>{{panel.name}}</b><div class="sub">Centre communautaire</div></div><span class="{{panel.badgeCls}}" style="margin-left: auto;">{{panel.badge}}</span></div>
+<div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 32px; color: #1B1830;">{{panel.amount}}</div>
+<div style="font-size: 13.5px; color: #6B6478;">{{panel.detail}}</div>
+<sc-if value="{{panel.isPayment}}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 14px; align-items: flex-end;"><div class="cz-proof" style="cursor: zoom-in;"><span class="glyph"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg></span>capture_virement.jpg</div><a href="MgPaiement.dc.html" style="font-size: 13.5px; font-weight: 600;">Ouvrir le détail complet →</a></div></sc-if>
+<sc-if value="{{panel.isLateCell}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--danger"><div>Aucun paiement rattaché à cette échéance. <b>En retard depuis {{panel.days}} jours.</b></div></div></sc-if>
+<sc-if value="{{panel.validated}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div><b>Paiement validé.</b> Les cases sont passées au vert dans la grille.</div></div></sc-if>
+</div>
+<div class="pf">
+<sc-if value="{{panel.canValidate}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--danger-outline cz-btn--sm" onClick="{{closePanel}}">Rejeter</button><button type="button" class="cz-btn cz-btn--success cz-btn--sm" onClick="{{validate}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Valider le paiement</button></sc-if>
+<sc-if value="{{panel.isLateCell}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm">Envoyer une relance</button></sc-if>
+<sc-if value="{{panel.closeOnly}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{closePanel}}">Fermer</button></sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["grille-nominale","beaucoup-de-retards","panneau-echeance","vue-liste"],"default":"grille-nominale"},"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { view: props.etat === 'vue-liste' ? 'list' : 'grid', panel: props.etat === 'panneau-echeance' ? { t: 'cell', r: 0, c: 7 } : null, validated: {}, flash: null };
+  }
+  renderVals() {
+    const s = this.state;
+    const many = this.props.etat === 'beaucoup-de-retards';
+    const COLS = ['Entrée', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.', 'Janv.', 'Févr.'];
+    const MONTHS = ['Fonds d’entrée', 'Mars 2026', 'Avril 2026', 'Mai 2026', 'Juin 2026', 'Juillet 2026', 'Août 2026', 'Septembre 2026', 'Octobre 2026', 'Novembre 2026', 'Décembre 2026', 'Janvier 2027', 'Février 2027'];
+    const CUR = 7;
+    const P = {
+      awa: { ini: 'AK', name: 'Awa Koné', amount: '75 000 F', covers: 'Sept., oct., nov.', ago: 'il y a 3 jours', date: '22/09/2026' },
+      jean: { ini: 'JK', name: 'Jean Kouassi', amount: '12 500 F', covers: 'Solde d’août', ago: 'il y a 2 jours', date: '23/09/2026' },
+      kad: { ini: 'KS', name: 'Kadiatou Sanogo', amount: '25 000 F', covers: 'Sept.', ago: 'il y a 2 jours', date: '23/09/2026' },
+      serge: { ini: 'SG', name: 'Serge Gnagne', amount: '25 000 F', covers: 'Sept.', ago: 'hier', date: '24/09/2026' }
+    };
+    const rowsDef = [
+      { ini: 'MD', name: 'Moussa Diarra', av: 'danger', st: 'ooooooll' , rest: '325 000 F', late: true },
+      { ini: 'KB', name: 'Koffi Brou', av: 'danger', st: 'ooooooll', rest: '325 000 F', late: true },
+      { ini: 'JK', name: 'Jean Kouassi', av: '', st: 'ooooooPo', rest: '287 500 F', late: true, pay: 'jean', payCols: [6] },
+      { ini: 'AK', name: 'Awa Koné', av: '', st: 'oooooooWWW', rest: '300 000 F', pay: 'awa', payCols: [7, 8, 9] },
+      { ini: 'KS', name: 'Kadiatou Sanogo', av: '', st: many ? 'oooolllW' : 'oooooooW', rest: many ? '375 000 F' : '300 000 F', late: many, pay: 'kad', payCols: [7] },
+      { ini: 'SG', name: 'Serge Gnagne', av: '', st: many ? 'ooooollW' : 'oooooooW', rest: many ? '350 000 F' : '300 000 F', late: many, pay: 'serge', payCols: [7] },
+      { ini: 'FT', name: 'Fatou Traoré', av: 'warning', st: 'f------f', rest: '500 000 F' }
+    ];
+    const LBL = { o: 'Payée', l: 'En retard', W: 'Déclarée, à valider', P: 'Partielle', f: 'À venir', '-': '' };
+    const CLS = { o: 'ok', l: 'late', W: 'wait', P: 'part', f: 'fut' };
+    const rows = rowsDef.map((r, ri) => {
+      const done = r.pay && s.validated[r.pay];
+      return {
+        ...r, avCls: 'cz-avatar cz-avatar--sm' + (r.av ? ' cz-avatar--' + r.av : ''),
+        restCls: r.late ? 'rest late' : 'rest',
+        cells: COLS.map((_, ci) => {
+          let code = r.st[ci] || 'f';
+          if (done && (code === 'W' || code === 'P')) code = 'o';
+          const show = code !== '-';
+          const flash = done && s.flash === r.pay && (r.payCols || []).includes(ci) ? ' flash' : '';
+          return {
+            show, tdCls: ci === CUR ? 'cur' : '',
+            cls: 'cellbtn cz-cell cz-cell--' + (CLS[code] || 'fut') + flash,
+            label: `${MONTHS[ci]} · ${ci === 0 ? '50 000' : '25 000'} F · ${LBL[code] || 'À venir'}`,
+            open: () => this.setState({ panel: { t: 'cell', r: ri, c: ci } })
+          };
+        })
+      };
+    });
+    const pendingKeys = ['awa', 'jean', 'kad', 'serge'].filter((k) => !s.validated[k]);
+    let panel = null;
+    if (s.panel) {
+      if (s.panel.t === 'pay') {
+        const p = P[s.panel.k]; const v = !!s.validated[s.panel.k];
+        panel = { ...p, isPayment: true, isLateCell: false, validated: v, canValidate: !v, closeOnly: v, badge: v ? 'Validé' : 'En attente', badgeCls: v ? 'cz-badge cz-badge--success' : 'cz-badge cz-badge--warning', detail: `Déclaré le ${p.date} · mobile money · couvre ${p.covers.toLowerCase()}`, title: 'Paiement déclaré', days: 0 };
+      } else {
+        const r = rowsDef[s.panel.r]; const code = rows[s.panel.r].cells[s.panel.c].cls.match(/cz-cell--(\w+)/)[1];
+        const isWait = code === 'wait' || code === 'part';
+        const p = r.pay ? P[r.pay] : null;
+        panel = { ini: r.ini, name: r.name, amount: s.panel.c === 0 ? '50 000 F' : '25 000 F', isPayment: isWait, isLateCell: code === 'late', validated: false, canValidate: isWait, closeOnly: !isWait && code !== 'late',
+          badge: { ok: 'Payée', late: 'En retard', wait: 'Déclarée', part: 'Partielle', fut: 'À venir' }[code], badgeCls: 'cz-badge ' + ({ ok: 'cz-badge--success', late: 'cz-badge--danger', wait: 'cz-badge--warning', part: 'cz-badge--warning', fut: 'cz-badge--info' }[code]),
+          detail: isWait && p ? `Échéance de ${MONTHS[s.panel.c].toLowerCase()} · paiement de ${p.amount} déclaré le ${p.date}` : `Échéance de ${MONTHS[s.panel.c].toLowerCase()} · le 5`, days: s.panel.c === 6 ? 51 : 20, payKey: r.pay };
+        panel.title = 'Échéance · ' + MONTHS[s.panel.c];
+      }
+    }
+    const segBase = 'min-height: 36px; padding: 6px 14px; border: none; border-radius: 8px; font-family: Poppins, sans-serif; font-size: 13px; cursor: pointer;';
+    const on = segBase + ' background: #FFFFFF; color: #5B51C4; box-shadow: 0 1px 3px rgba(0,0,0,0.08);', off = segBase + ' background: transparent; color: #6B6478;';
+    const grid = s.view === 'grid';
+    const key = s.panel ? (s.panel.t === 'pay' ? s.panel.k : panel.payKey) : null;
+    return {
+      hasPending: pendingKeys.length > 0, pendingCount: pendingKeys.length,
+      pending: pendingKeys.map((k) => ({ ...P[k], examine: () => this.setState({ panel: { t: 'pay', k } }) })),
+      cols: COLS.map((l, i) => ({ l, cls: i === CUR ? 'cur' : '' })),
+      rows,
+      isGrid: grid, isList: !grid, segGrid: grid ? on : off, segList: grid ? off : on,
+      showGrid: () => this.setState({ view: 'grid' }), showList: () => this.setState({ view: 'list' }),
+      payments: [
+        { date: '24/09/2026', name: 'Serge Gnagne', amount: '25 000 F', covers: 'Sept.', k: 'serge' },
+        { date: '23/09/2026', name: 'Kadiatou Sanogo', amount: '25 000 F', covers: 'Sept.', k: 'kad' },
+        { date: '23/09/2026', name: 'Jean Kouassi', amount: '12 500 F', covers: 'Solde août', k: 'jean' },
+        { date: '22/09/2026', name: 'Awa Koné', amount: '75 000 F', covers: 'Sept., oct., nov.', k: 'awa' },
+        { date: '06/09/2026', name: 'Jean Kouassi', amount: '37 500 F', covers: 'Sept. + 12 500 F août', k: 'x', done: true },
+        { date: '05/08/2026', name: 'Awa Koné', amount: '25 000 F', covers: 'Août', k: 'x', done: true }
+      ].map((p) => { const v = p.done || s.validated[p.k]; return { ...p, cls: v ? 'cz-badge cz-badge--success' : 'cz-badge cz-badge--warning', status: v ? 'Validé' : 'En attente', by: v ? (p.done ? 'Aminata Konaté' : 'Awa Koné') : '—' }; }),
+      panelOpen: !!panel, panel: panel || {}, panelTitle: panel ? panel.title : '',
+      closePanel: () => this.setState({ panel: null }),
+      validate: () => { if (key) this.setState({ validated: { ...s.validated, [key]: true }, flash: key, panel: null }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

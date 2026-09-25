@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>Espacements</title></head>
+<body>
+<style>
+.sp{display:flex;align-items:center;gap:14px;font-size:12.5px}.sp .bar{height:16px;background:var(--brand);border-radius:3px}
+.sp code{font-family:var(--font-mono);font-size:11.5px;color:var(--text-muted);width:130px}
+.rd{width:84px;height:64px;background:var(--brand-pale);border:1.5px solid var(--brand)}
+.sh{width:120px;height:72px;background:var(--surface);border-radius:var(--r-card)}
+</style>
+<div class="pv pv-stack">
+ <div class="pv-row" style="gap:32px">
+  <div class="cz-card" style="flex:1;min-width:300px">
+   <div class="pv-h">Espacement — base 4</div>
+   <div class="pv-stack" style="gap:8px">
+    <div class="sp"><code>space-1 · 4px</code><div class="bar" style="width:4px"></div></div>
+    <div class="sp"><code>space-2 · 8px</code><div class="bar" style="width:8px"></div></div>
+    <div class="sp"><code>space-3 · 12px</code><div class="bar" style="width:12px"></div></div>
+    <div class="sp"><code>space-4 · 16px</code><div class="bar" style="width:16px"></div></div>
+    <div class="sp"><code>space-6 · 24px</code><div class="bar" style="width:24px"></div></div>
+    <div class="sp"><code>space-8 · 32px</code><div class="bar" style="width:32px"></div></div>
+    <div class="sp"><code>space-12 · 48px</code><div class="bar" style="width:48px"></div></div>
+   </div>
+   <p class="cz-help" style="margin:12px 0 0">Padding de carte 24 px (16–18 px sur mobile) · gouttière de grille 16 px · entre sections 32 px.</p>
+  </div>
+  <div class="cz-card" style="flex:1.4;min-width:360px">
+   <div class="pv-h">Dimensions clés</div>
+   <table class="cz-table" style="font-size:12.5px">
+    <tbody>
+    <tr><td style="height:34px">Boutons</td><td class="num cz-mono">34 · 42 · 50 px</td></tr>
+    <tr><td style="height:34px">Champ · cible tactile</td><td class="num cz-mono">44 px</td></tr>
+    <tr><td style="height:34px">Ligne de tableau · case de grille</td><td class="num cz-mono">56 px · 22 px</td></tr>
+    <tr><td style="height:34px">Barre latérale · repliée · barre sup.</td><td class="num cz-mono">240 · 72 · 64 px</td></tr>
+    <tr><td style="height:34px">Contenu back-office · souscripteur</td><td class="num cz-mono">1280 · 960 px</td></tr>
+    <tr><td style="height:34px">Modale · formulaire · panneau · menu</td><td class="num cz-mono">420 · 560 · 480 · 220 px</td></tr>
+    </tbody>
+   </table>
+  </div>
+ </div>
+ <div class="cz-card">
+  <div class="pv-h">Rayons</div>
+  <div class="pv-row" style="gap:18px">
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-xs)"></div><div class="pv-cap">r-xs 6<br>case, cellule</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-tooltip)"></div><div class="pv-cap">r-tooltip 7</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-sm)"></div><div class="pv-cap">r-sm 8<br>pagination</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-btn-sm)"></div><div class="pv-cap">r-btn-sm 9</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-field)"></div><div class="pv-cap">r-field 10<br>bouton, champ</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-md)"></div><div class="pv-cap">r-md 12<br>toast, alerte</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-tile)"></div><div class="pv-cap">r-tile 14<br>KPI</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-card)"></div><div class="pv-cap">r-card 16<br>carte</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-card-lg)"></div><div class="pv-cap">r-card-lg 18<br>souscripteur, modale</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-sheet) var(--r-sheet) 0 0"></div><div class="pv-cap">r-sheet 20<br>feuille basse</div></div>
+   <div class="pv-item"><div class="rd" style="border-radius:var(--r-pill);width:96px;height:36px;margin:14px 0"></div><div class="pv-cap">r-pill 999<br>badge</div></div>
+  </div>
+ </div>
+ <div class="pv-band">
+  <div class="pv-h">Ombres</div>
+  <div class="pv-row" style="gap:22px">
+   <div class="pv-item"><div class="sh" style="box-shadow:var(--shadow)"></div><div class="pv-cap">shadow<br>carte au repos</div></div>
+   <div class="pv-item"><div class="sh" style="box-shadow:var(--shadow-hover)"></div><div class="pv-cap">shadow-hover<br>carte survolée</div></div>
+   <div class="pv-item"><div class="sh" style="box-shadow:var(--shadow-toast)"></div><div class="pv-cap">shadow-toast</div></div>
+   <div class="pv-item"><div class="sh" style="box-shadow:var(--shadow-menu)"></div><div class="pv-cap">shadow-menu</div></div>
+   <div class="pv-item"><div class="sh" style="box-shadow:var(--shadow-modal)"></div><div class="pv-cap">shadow-modal</div></div>
+   <div class="pv-item"><div class="sh" style="box-shadow:var(--focus-ring);border:1.5px solid var(--brand);border-radius:var(--r-field);height:44px;margin:14px 0"></div><div class="pv-cap">focus-ring<br>halo 3 px brand-pale</div></div>
+  </div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

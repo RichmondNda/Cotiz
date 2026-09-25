@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Paiements à valider (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><div style="flex-grow: 1; min-width: 0; padding-left: 10px;"><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Paiements</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{sub}}</div></div><a href="MgNotifications-mobile.dc.html" aria-label="Notifications : 3 non lues" style="position: relative; color: #6B6478; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6c0 4-2 5-2 5h16s-2-1-2-5a6 6 0 0 0-6-6zM10 20a2 2 0 0 0 4 0"/></svg><span class="cz-count cz-count--danger" style="position: absolute; top: 5px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px;">3</span></a></header>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 96px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="cz-seg" style="width: 100%; box-sizing: border-box;"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><span class="{{t.cls}}" onClick="{{t.pick}}" style="flex: 1; text-align: center; white-space: nowrap; padding: 7px 6px;">{{t.label}}</span></sc-for></div>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="i i--success"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><div class="t">Tout est à jour</div><div class="d">Aucune déclaration en attente de validation.</div></div></div></sc-if>
+<sc-for list="{{items}}" as="p" hint-placeholder-count="4">
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 10px; padding: 14px;">
+<a href="MgPaiement-mobile.dc.html" style="display: flex; align-items: center; gap: 12px; color: inherit;"><span class="cz-avatar cz-avatar--sm">{{p.ini}}</span><span style="flex-grow: 1; min-width: 0;"><b style="display: block; font-size: 14.5px; color: #1B1830;">{{p.name}}</b><span class="m-lbl">{{p.project}} · {{p.ago}}</span></span><span style="text-align: right;"><b style="display: block; font-family: Poppins, sans-serif; font-size: 16px; color: #1B1830;">{{p.amount}}</b><span class="{{p.badgeCls}}">{{p.status}}</span></span></a>
+<div class="m-lbl" style="font-size: 12.5px;">{{p.method}} · couvre {{p.covers}}</div>
+<sc-if value="{{p.todo}}" hint-placeholder-val="{{ true }}"><div style="display: flex; gap: 8px;"><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgPaiement-mobile.dc.html" style="flex: 1;">Voir la preuve</a><button type="button" class="cz-btn cz-btn--success cz-btn--sm" onClick="{{p.validate}}" style="flex: 1;">Valider</button></div></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+<dc-import name="MgMobNav" active="paiements" hint-size="100%,72px" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;"></dc-import>
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{ false }}"><div class="cz-toast" role="status" style="position: absolute; left: 12px; right: 12px; bottom: 86px; z-index: 30;"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></span><div><div class="ttl">Paiement validé</div><div class="msg">{{toast}}</div></div><button type="button" class="act" onClick="{{undo}}" style="background: none; border: none; cursor: pointer;">Annuler</button></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["file-pleine", "file-vide", "valides"], "default": "file-pleine"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: null, done: null, toast: '' }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'file-pleine';
+    const ALL = [
+      { ini: 'AK', name: 'Awa Koné', project: 'Centre communautaire', amount: '75 000 F', ago: 'il y a 3 j', method: 'Mobile money', covers: 'sept., oct., nov.' },
+      { ini: 'JK', name: 'Jean Kouassi', project: 'Centre communautaire', amount: '12 500 F', ago: 'il y a 2 j', method: 'Mobile money', covers: 'solde d’août' },
+      { ini: 'KS', name: 'Kadiatou Sanogo', project: 'Centre communautaire', amount: '25 000 F', ago: 'il y a 2 j', method: 'Virement', covers: 'sept.' },
+      { ini: 'SG', name: 'Serge Gnagne', project: 'Centre communautaire', amount: '25 000 F', ago: 'hier', method: 'Mobile money', covers: 'sept.' },
+      { ini: 'IT', name: 'Ibrahim Touré', project: 'Voyage solidaire', amount: '10 000 F', ago: 'hier', method: 'Mobile money', covers: 'sept.' },
+      { ini: 'AY', name: 'Adjoua Yao', project: 'Voyage solidaire', amount: '50 000 F', ago: 'aujourd’hui', method: 'Virement', covers: 'fonds d’entrée' }
+    ];
+    const done = S.done || (etat === 'file-vide' ? { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 } : {});
+    const tab = S.tab || (etat === 'valides' ? 'ok' : 'todo');
+    const list = ALL.map((p, i) => ({ ...p, i, st: done[i] ? 'ok' : 'todo' })).filter((p) => tab === 'all' || p.st === tab);
+    const nTodo = ALL.filter((_, i) => !done[i]).length;
+    const v = {
+      sub: nTodo ? nTodo + ' à valider' : 'Aucune déclaration en attente',
+      tabs: [['todo', 'À valider (' + nTodo + ')'], ['ok', 'Validés'], ['all', 'Tous']].map(([k, l]) => ({ label: l, cls: tab === k ? 'is-on' : '', pick: () => this.setState({ tab: k }) })),
+      empty: list.length === 0,
+      items: list.map((p) => ({ ...p, todo: p.st === 'todo', status: p.st === 'todo' ? 'À valider' : 'Validé', badgeCls: p.st === 'todo' ? warn : ok,
+        validate: () => this.setState({ done: { ...done, [p.i]: 1 }, toast: p.name + ' · ' + p.amount, last: p.i }) })),
+      hasToast: !!S.toast, toast: S.toast,
+      undo: () => { const d = { ...done }; delete d[S.last]; this.setState({ done: d, toast: '' }); }
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

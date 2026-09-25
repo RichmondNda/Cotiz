@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>Bouton</title></head>
+<body>
+<div class="pv pv-stack">
+ <table class="pv-matrix">
+  <thead><tr><th></th><th>Repos</th><th>Survol</th><th>Focus</th><th>Pressé</th><th>Chargement</th><th>Désactivé</th></tr></thead>
+  <tbody>
+   <tr><th>Primaire</th>
+    <td><button class="cz-btn">Créer un projet</button></td>
+    <td><button class="cz-btn is-hover">Créer un projet</button></td>
+    <td><button class="cz-btn is-focus">Créer un projet</button></td>
+    <td><button class="cz-btn is-active">Créer un projet</button></td>
+    <td><button class="cz-btn is-loading"><span class="cz-spin"></span>Enregistrement…</button></td>
+    <td><button class="cz-btn" disabled>Créer un projet</button></td></tr>
+   <tr><th>Secondaire</th>
+    <td><button class="cz-btn cz-btn--secondary">Exporter</button></td>
+    <td><button class="cz-btn cz-btn--secondary is-hover">Exporter</button></td>
+    <td><button class="cz-btn cz-btn--secondary is-focus">Exporter</button></td>
+    <td><button class="cz-btn cz-btn--secondary is-active">Exporter</button></td>
+    <td><button class="cz-btn cz-btn--secondary is-loading"><span class="cz-spin"></span>Export…</button></td>
+    <td><button class="cz-btn cz-btn--secondary" disabled>Exporter</button></td></tr>
+   <tr><th>Fantôme</th>
+    <td><button class="cz-btn cz-btn--ghost">Annuler</button></td>
+    <td><button class="cz-btn cz-btn--ghost is-hover">Annuler</button></td>
+    <td><button class="cz-btn cz-btn--ghost is-focus">Annuler</button></td>
+    <td><button class="cz-btn cz-btn--ghost is-active">Annuler</button></td>
+    <td><button class="cz-btn cz-btn--ghost is-loading"><span class="cz-spin"></span>Annulation…</button></td>
+    <td><button class="cz-btn cz-btn--ghost" disabled>Annuler</button></td></tr>
+   <tr><th>Succès</th>
+    <td><button class="cz-btn cz-btn--success"><i data-icon="coche"></i>Valider le paiement</button></td>
+    <td><button class="cz-btn cz-btn--success is-hover"><i data-icon="coche"></i>Valider le paiement</button></td>
+    <td><button class="cz-btn cz-btn--success is-focus"><i data-icon="coche"></i>Valider le paiement</button></td>
+    <td><button class="cz-btn cz-btn--success is-active"><i data-icon="coche"></i>Valider le paiement</button></td>
+    <td><button class="cz-btn cz-btn--success is-loading"><span class="cz-spin"></span>Validation…</button></td>
+    <td><button class="cz-btn cz-btn--success" disabled><i data-icon="coche"></i>Valider le paiement</button></td></tr>
+   <tr><th>Danger</th>
+    <td><button class="cz-btn cz-btn--danger">Supprimer</button></td>
+    <td><button class="cz-btn cz-btn--danger is-hover">Supprimer</button></td>
+    <td><button class="cz-btn cz-btn--danger is-focus">Supprimer</button></td>
+    <td><button class="cz-btn cz-btn--danger is-active">Supprimer</button></td>
+    <td><button class="cz-btn cz-btn--danger is-loading"><span class="cz-spin"></span>Suppression…</button></td>
+    <td><button class="cz-btn cz-btn--danger" disabled>Supprimer</button></td></tr>
+   <tr><th>Danger contour</th>
+    <td><button class="cz-btn cz-btn--danger-outline">Rejeter</button></td>
+    <td><button class="cz-btn cz-btn--danger-outline is-hover">Rejeter</button></td>
+    <td><button class="cz-btn cz-btn--danger-outline is-focus">Rejeter</button></td>
+    <td><button class="cz-btn cz-btn--danger-outline is-active">Rejeter</button></td>
+    <td><button class="cz-btn cz-btn--danger-outline is-loading"><span class="cz-spin"></span>Rejet…</button></td>
+    <td><button class="cz-btn cz-btn--danger-outline" disabled>Rejeter</button></td></tr>
+   <tr><th>Icône</th>
+    <td><button class="cz-btn cz-btn--icon" aria-label="Actions"><i data-icon="actions"></i></button> <button class="cz-btn cz-btn--icon" aria-label="Modifier"><i data-icon="modifier"></i></button></td>
+    <td><button class="cz-btn cz-btn--icon is-hover"><i data-icon="actions"></i></button></td>
+    <td><button class="cz-btn cz-btn--icon is-focus"><i data-icon="actions"></i></button></td>
+    <td><button class="cz-btn cz-btn--icon is-active"><i data-icon="actions"></i></button></td>
+    <td><button class="cz-btn cz-btn--icon is-loading"><span class="cz-spin"></span></button></td>
+    <td><button class="cz-btn cz-btn--icon" disabled><i data-icon="actions"></i></button></td></tr>
+  </tbody>
+ </table>
+ <div>
+  <div class="pv-h">Tailles et icône</div>
+  <div class="pv-row center">
+   <button class="cz-btn cz-btn--lg">Déclarer un paiement</button>
+   <button class="cz-btn"><i data-icon="ajouter"></i>Créer un projet</button>
+   <button class="cz-btn cz-btn--sm">Inscrire</button>
+   <button class="cz-btn cz-btn--secondary cz-btn--sm"><i data-icon="telecharger"></i>Exporter</button>
+   <span class="cz-help">Grand 50 · Moyen 42 · Petit 34 — icône 18 px à gauche, écart 8 px</span>
+  </div>
+ </div>
+ <div>
+  <div class="pv-h">Même composant dans les trois univers</div>
+  <div class="pv-univ">
+   <div data-theme="superadmin"><div class="pv-h">Super-admin</div><div class="pv-row"><button class="cz-btn">Valider la demande</button><button class="cz-btn cz-btn--secondary">Voir le détail</button></div></div>
+   <div data-theme="manager"><div class="pv-h">Gestionnaire</div><div class="pv-row"><button class="cz-btn">Créer un projet</button><button class="cz-btn cz-btn--secondary">Importer</button></div></div>
+   <div data-theme="member"><div class="pv-h">Souscripteur</div><div class="pv-row"><button class="cz-btn">Déclarer un paiement</button><button class="cz-btn cz-btn--ghost">Historique</button></div></div>
+  </div>
+ </div>
+ <div class="pv-row center" data-theme="member">
+  <div class="pv-band pv-row center" style="flex:1"><button class="cz-btn cz-btn--lg cz-btn--block" style="max-width:340px">Déclarer un paiement</button><button class="cz-fab"><i data-icon="ajouter"></i>Déclarer un paiement</button><span class="cz-help">Mobile : primaire pleine largeur en bas d'écran · bouton flottant corail au-dessus de la navigation basse</span></div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

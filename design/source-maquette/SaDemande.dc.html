@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Plateforme — Traitement d’une demande</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F2F2F8;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#3B3470;text-decoration:none}a:hover{color:#2A2552}
+input,select,textarea{font:inherit;color:inherit}
+dl{margin:0;display:grid;grid-template-columns:190px 1fr;gap:10px 16px;font-size:14px}
+dt{color:#6B6478}dd{margin:0;color:#1B1830}
+</style>
+</helmet>
+<div data-theme="superadmin" style="width: 1440px; height: 1200px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F2F2F8; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="SaSidebar" active="demandes" hint-size="240px,1200px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="SaTopbar" parent="Demandes" parent-href="SaDemandes.dc.html" current="Tontine des commerçantes d’Adjamé" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 18px;">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<div style="display: flex; align-items: center; gap: 12px;"><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Tontine des commerçantes d’Adjamé</h1><span class="{{badgeCls}}">{{badge}}</span></div>
+<div style="font-size: 13.5px; color: #6B6478;">Reçue le 21/09/2026 à 10 h 14 · Référence <span class="cz-mono" style="color: #1B1830;">[RÉF. DEMANDE]</span></div>
+</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start;">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<section class="cz-card" style="padding: 22px;"><h2 style="margin: 0 0 14px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; color: #1B1830;">L’association</h2>
+<dl><dt>Type</dt><dd>Tontine</dd><dt>Ville · Pays</dt><dd>Abidjan · Côte d’Ivoire</dd><dt>N° d’enregistrement</dt><dd>Non renseigné</dd><dt>Description</dt><dd>[Description de l’activité saisie par le demandeur — 500 caractères maximum.]</dd></dl></section>
+<section class="cz-card" style="padding: 22px;"><h2 style="margin: 0 0 14px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; color: #1B1830;">Le responsable</h2>
+<dl><dt>Nom</dt><dd>Mariam Ouattara</dd><dt>Fonction</dt><dd>Présidente</dd>
+<dt>Email</dt><dd style="display: flex; align-items: center; gap: 8px;">m.ouattara@[domaine]<button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Copier l’email"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></svg></button></dd>
+<dt>Téléphone</dt><dd style="display: flex; align-items: center; gap: 8px;"><span class="cz-mono">+225 07 [XX XX XX XX]</span><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" aria-label="Copier le téléphone"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></svg></button></dd></dl></section>
+<section class="cz-card" style="padding: 22px;"><h2 style="margin: 0 0 14px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; color: #1B1830;">Besoins exprimés</h2>
+<dl><dt>Souscripteurs estimés</dt><dd>50 à 100</dd><dt>Projets envisagés</dt><dd>2 à 3</dd><dt>Plan souhaité</dt><dd><span class="cz-badge cz-badge--brand">Essentiel</span></dd><dt>Source</dt><dd>Une autre association</dd></dl></section>
+<section class="cz-card" style="padding: 22px;"><h2 style="margin: 0 0 14px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; color: #1B1830;">Historique</h2>
+<div class="cz-timeline">
+<div class="it i"><b>Demande reçue</b><div class="m">21/09/2026 · 10 h 14</div></div>
+<div class="it b"><b>Consultée par Richy</b><div class="m">25/09/2026 · 9 h 02</div></div>
+<sc-if value="{{approved}}" hint-placeholder-val="{{ false }}"><div class="it"><b>Approuvée — espace créé</b><div class="m">25/09/2026 · par Richy · plan Essentiel</div></div></sc-if>
+<sc-if value="{{refused}}" hint-placeholder-val="{{ false }}"><div class="it l"><b>Refusée</b><div class="m">25/09/2026 · par Richy · Informations incomplètes</div></div></sc-if>
+</div></section>
+</div>
+
+<aside style="position: sticky; top: 16px;">
+<sc-if value="{{pending}}" hint-placeholder-val="{{ true }}">
+<div class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+<h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 16px; color: #1B1830;">Décision</h2>
+<label class="cz-field"><span class="cz-label">Plan à attribuer</span><select class="cz-input"><option>Découverte</option><option selected>Essentiel</option><option>Pro</option></select><span class="cz-help">Pré-rempli avec le souhait du demandeur</span></label>
+<div class="cz-field"><span class="cz-label">Comptes gestionnaires autorisés</span>
+<div class="cz-counter" style="align-self: flex-start;"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{dec}}" aria-label="Diminuer">−</button><b>{{managers}}</b><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{inc}}" aria-label="Augmenter">+</button></div></div>
+<label class="cz-field"><span class="cz-label">Début de l’abonnement</span><input class="cz-input" value="01/10/2026"></label>
+<label class="cz-field"><span class="cz-label">Note interne</span><textarea class="cz-input cz-input--area" rows="3" placeholder="Non visible par l’association"></textarea></label>
+<button type="button" class="cz-btn cz-btn--success cz-btn--block" onClick="{{openApprove}}" style="height: 46px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Approuver et créer l’espace</button>
+<button type="button" class="cz-btn cz-btn--danger-outline cz-btn--block" onClick="{{openRefuse}}">Refuser</button>
+</div>
+</sc-if>
+<sc-if value="{{approved}}" hint-placeholder-val="{{ false }}">
+<div class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 12px;">
+<span class="cz-badge cz-badge--success" style="align-self: flex-start;">Approuvée</span>
+<p style="margin: 0; font-size: 14px;">L’espace a été créé avec le plan <b>Essentiel</b> et {{managers}} comptes gestionnaires. Mariam Ouattara a reçu ses identifiants par email.</p>
+<a class="cz-btn cz-btn--block" href="SaAssociation.dc.html">Voir l’association créée</a>
+</div>
+</sc-if>
+<sc-if value="{{refused}}" hint-placeholder-val="{{ false }}">
+<div class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 12px;">
+<span class="cz-badge cz-badge--danger" style="align-self: flex-start;">Refusée</span>
+<dl style="grid-template-columns: 70px 1fr;"><dt>Motif</dt><dd>Informations incomplètes</dd><dt>Envoyé</dt><dd>25/09/2026 à m.ouattara@[domaine]</dd></dl>
+<a class="cz-btn cz-btn--secondary cz-btn--block" href="SaDemandes.dc.html">Retour aux demandes</a>
+</div>
+</sc-if>
+</aside>
+</div>
+</main>
+</div>
+
+<sc-if value="{{approveOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal" role="dialog" aria-modal="true" aria-label="Approuver la demande">
+<div class="mh">Approuver Tontine des commerçantes d’Adjamé ?</div>
+<div class="mb">L’association Tontine des commerçantes d’Adjamé sera créée avec le plan Essentiel. Mariam Ouattara recevra ses identifiants par email.
+<label class="cz-check" style="margin-top: 14px; color: #2C2A38;"><span class="cz-cb"></span>Joindre un message personnalisé</label></div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{close}}">Annuler</button><button type="button" class="cz-btn cz-btn--success cz-btn--sm" onClick="{{confirmApprove}}">Approuver et créer l’espace</button></div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{refuseOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal cz-modal--md" role="dialog" aria-modal="true" aria-label="Refuser la demande">
+<div class="mh">Refuser la demande de Tontine des commerçantes d’Adjamé ?</div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 12px;">
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Motif <span class="req">*</span></span><select class="cz-input"><option>Informations incomplètes</option><option>Activité hors périmètre</option><option>Doublon d’une association existante</option><option>Autre</option></select></label>
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Précisions</span><textarea class="cz-input cz-input--area" rows="3">Merci de compléter le numéro d’enregistrement et la description de l’activité.</textarea></label>
+<div style="background: #FAF9FC; border: 1px solid #E4E0EA; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #2C2A38;"><div style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #6B6478; margin-bottom: 6px;">APERÇU DE L’EMAIL</div>Bonjour Mariam, nous ne pouvons pas donner suite à votre demande pour le moment. Motif : informations incomplètes. Merci de compléter le numéro d’enregistrement et la description de l’activité.</div>
+</div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{close}}">Annuler</button><button type="button" class="cz-btn cz-btn--danger cz-btn--sm" onClick="{{confirmRefuse}}">Refuser la demande</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["a-traiter","approuvee","refusee","modale-approbation","modale-refus"],"default":"a-traiter"},"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { decision: null, modal: null, managers: 2 }; }
+  renderVals() {
+    const etat = this.props.etat || 'a-traiter';
+    const decision = this.state.decision || ({ approuvee: 'ok', refusee: 'ko' }[etat] || null);
+    const modal = this.state.modal === null ? ({ 'modale-approbation': 'ok', 'modale-refus': 'ko' }[etat] || '') : this.state.modal;
+    const B = { ok: ['cz-badge cz-badge--success', 'Approuvée'], ko: ['cz-badge cz-badge--danger', 'Refusée'] };
+    const b = B[decision] || ['cz-badge cz-badge--warning', 'À traiter'];
+    return {
+      badgeCls: b[0], badge: b[1],
+      pending: !decision, approved: decision === 'ok', refused: decision === 'ko',
+      approveOpen: modal === 'ok' && !decision, refuseOpen: modal === 'ko' && !decision,
+      managers: this.state.managers,
+      inc: () => this.setState({ managers: this.state.managers + 1 }),
+      dec: () => this.setState({ managers: Math.max(1, this.state.managers - 1) }),
+      openApprove: () => this.setState({ modal: 'ok' }), openRefuse: () => this.setState({ modal: 'ko' }),
+      close: () => this.setState({ modal: '' }),
+      confirmApprove: () => this.setState({ decision: 'ok', modal: '' }),
+      confirmRefuse: () => this.setState({ decision: 'ko', modal: '' })
+    };
+  }
+}
+</script>
+</body>
+</html>

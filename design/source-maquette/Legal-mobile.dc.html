@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cotiz — Informations légales (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>body{margin:0;background:#FFFFFF;font-family:Inter,Arial,sans-serif;color:#2C2A38}a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}</style>
+</helmet>
+<div style="width: 390px; height: 2300px; overflow: hidden; background: #FFFFFF;">
+<dc-import name="Legal" device="mobile" document="{{document}}" hint-size="390px,2300px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"document":{"editor":"enum","options":["cgu","confidentialite","mentions"],"default":"cgu"},"$preview":{"width":390,"height":2300}}'>
+class Component extends DCLogic {
+  renderVals() { return { document: this.props.document || 'cgu' }; }
+}
+</script>
+</body>
+</html>

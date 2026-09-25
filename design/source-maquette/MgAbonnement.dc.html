@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Abonnement</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:17px;color:#1B1830}
+.mg-lbl{font-size:12.5px;color:#6B6478}
+.mg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mg-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid #F0EDF3}
+.mg-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1150px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="abonnement" hint-size="240px,1150px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Abonnement" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<div class="cz-pagehead"><div><h1>Abonnement</h1><p>Votre formule Cotiz, son utilisation et vos factures</p></div></div>
+<sc-if value="{{soon}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--warning"><div><b>Votre abonnement arrive à échéance le [DATE].</b> Réglez la facture [N° FACTURE] pour éviter la suspension de votre espace.</div></div></sc-if>
+<sc-if value="{{suspended}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--danger"><div><b>Espace suspendu pour non-paiement.</b> Vos souscripteurs ne peuvent plus déclarer de paiement. Réglez la facture [N° FACTURE] ou contactez-nous : [ADRESSE EMAIL DE CONTACT].</div></div></sc-if>
+<div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start;">
+<div class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 14px; border: 2px solid #7F77DD;">
+<div class="mg-row"><div><div class="mg-lbl">Formule actuelle</div><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">Essentiel</div></div><span class="{{stCls}}">{{st}}</span></div>
+<div style="font-family: Poppins, sans-serif; font-size: 20px; font-weight: 600; color: #5B51C4;">[PRIX] F <span style="font-size: 14px; color: #6B6478; font-weight: 500;">/ an</span></div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13.5px;">
+<div><div class="mg-lbl">Client depuis</div><b>février 2024</b></div>
+<div><div class="mg-lbl">Prochaine facture</div><b>[DATE]</b></div>
+<div><div class="mg-lbl">Paiement</div><b>Virement ou mobile money à Cotiz</b></div>
+<div><div class="mg-lbl">Contrat plateforme</div><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" style="padding-left: 0;">Télécharger (PDF)</button></div>
+</div>
+</div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t" style="font-size: 15px;">Utilisation</h2>
+<sc-for list="{{usage}}" as="u" hint-placeholder-count="3"><div><div class="mg-row" style="font-size: 13.5px; margin-bottom: 5px;"><span>{{u.l}}</span><b>{{u.v}}</b></div><div class="cz-bar"><i style="{{u.w}}"></i></div></div></sc-for>
+<p style="margin: 0; font-size: 12.5px; color: #6B6478;">Les plafonds de chaque formule sont définis par Cotiz.</p>
+</div>
+</div>
+<h2 class="t">Factures</h2>
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th>Facture</th><th>Période</th><th>Émise le</th><th class="num">Montant</th><th>Statut</th><th></th></tr></thead>
+<tbody><sc-for list="{{invoices}}" as="f" hint-placeholder-count="3"><tr><td class="cz-mono">{{f.n}}</td><td>{{f.p}}</td><td>{{f.d}}</td><td class="num">[MONTANT] F</td><td><span class="{{f.cls}}">{{f.s}}</span></td><td><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm">PDF</button></td></tr></sc-for></tbody></table></div>
+<div class="cz-card" style="display: flex; align-items: center; gap: 16px;">
+<div style="flex-grow: 1;"><b style="color: #1B1830;">Besoin d’une autre formule ?</b><div class="mg-lbl" style="font-size: 13.5px;">Découverte, Essentiel ou Pro : l’équipe Cotiz change votre formule à votre demande.</div></div>
+<sc-if value="{{asked}}" hint-placeholder-val="{{ false }}"><span class="cz-badge cz-badge--success">Demande envoyée</span></sc-if>
+<sc-if value="{{notAsked}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--secondary" onClick="{{ask}}">Demander un changement</button></sc-if>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["actif", "echeance-proche", "suspendu"], "default": "actif"}, "$preview": {"width": 1440, "height": 1150}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ask: false }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'actif';
+    const St = { actif: ['Actif', 'cz-badge cz-badge--success'], 'echeance-proche': ['Échéance proche', 'cz-badge cz-badge--warning'], suspendu: ['Suspendu', 'cz-badge cz-badge--danger'] }[etat];
+    const v = {
+      st: St[0], stCls: St[1], soon: etat === 'echeance-proche', suspended: etat === 'suspendu',
+      usage: [{ l: 'Projets', v: '3 / [N]', w: 'width: 30%;' }, { l: 'Souscripteurs', v: '52 / [N]', w: 'width: 26%;' }, { l: 'Gestionnaires', v: '3 / [N]', w: 'width: 60%;' }],
+      invoices: [
+        { n: '[N° FACTURE]', p: '[PÉRIODE EN COURS]', d: '[DATE]', s: etat === 'actif' ? 'Payée' : etat === 'suspendu' ? 'Impayée' : 'À payer', cls: etat === 'actif' ? ok : etat === 'suspendu' ? bad : warn },
+        { n: '[N° FACTURE]', p: '[PÉRIODE PRÉCÉDENTE]', d: '[DATE]', s: 'Payée', cls: ok },
+        { n: '[N° FACTURE]', p: '[PÉRIODE PRÉCÉDENTE]', d: '[DATE]', s: 'Payée', cls: ok }
+      ],
+      asked: S.ask, notAsked: !S.ask, ask: () => this.setState({ ask: true })
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center;' }, v);
+  }
+}
+</script>
+</body>
+</html>

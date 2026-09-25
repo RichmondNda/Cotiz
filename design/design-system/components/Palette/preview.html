@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>Palette</title></head>
+<body>
+<style>
+.sw{width:100%}.sw .c{height:56px;border-radius:10px;border:1px solid rgba(0,0,0,.07)}
+.sw .n{font-size:12.5px;font-weight:600;margin-top:6px;color:var(--text-strong)}.sw .t{font-size:11px;color:var(--text-muted);font-family:var(--font-mono)}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.g6{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.uh{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;color:#fff;background:var(--brand);margin-bottom:12px;font-family:var(--font-display);font-weight:600}
+.uh small{margin-left:auto;font-weight:500;font-size:11.5px;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:999px}
+.fx{display:grid;grid-template-columns:120px repeat(3,1fr);gap:10px;align-items:center}
+.fx .k{font-size:13px;font-weight:600}
+</style>
+<div class="pv pv-stack">
+ <div>
+  <div class="pv-h">Univers d'identité — un par profil, piloté par data-theme</div>
+  <div class="pv-univ">
+   <div data-theme="superadmin"><div class="uh"><i data-icon="plateforme" data-size="20"></i>Espace plateforme<small>superadmin</small></div>
+    <div class="g4">
+     <div class="sw"><div class="c" style="background:var(--indigo)"></div><div class="n">indigo</div><div class="t">#3B3470</div></div>
+     <div class="sw"><div class="c" style="background:var(--indigo-dark)"></div><div class="n">-dark</div><div class="t">#2A2552</div></div>
+     <div class="sw"><div class="c" style="background:var(--indigo-pale)"></div><div class="n">-pale</div><div class="t">#E4E3EF</div></div>
+     <div class="sw"><div class="c" style="background:var(--indigo-page)"></div><div class="n">-page</div><div class="t">#F2F2F8</div></div>
+    </div></div>
+   <div data-theme="manager"><div class="uh"><i data-icon="souscripteurs" data-size="20"></i>Espace association<small>manager</small></div>
+    <div class="g4">
+     <div class="sw"><div class="c" style="background:var(--violet)"></div><div class="n">violet</div><div class="t">#7F77DD</div></div>
+     <div class="sw"><div class="c" style="background:var(--violet-dark)"></div><div class="n">-dark</div><div class="t">#5B51C4</div></div>
+     <div class="sw"><div class="c" style="background:var(--violet-pale)"></div><div class="n">-pale</div><div class="t">#EFECFB</div></div>
+     <div class="sw"><div class="c" style="background:var(--violet-page)"></div><div class="n">-page</div><div class="t">#F4F2ED</div></div>
+    </div></div>
+   <div data-theme="member"><div class="uh"><i data-icon="mon-espace" data-size="20"></i>Mon espace<small>member</small></div>
+    <div class="g4">
+     <div class="sw"><div class="c" style="background:var(--corail)"></div><div class="n">corail</div><div class="t">#D85A30</div></div>
+     <div class="sw"><div class="c" style="background:var(--corail-dark)"></div><div class="n">-dark</div><div class="t">#993C1D</div></div>
+     <div class="sw"><div class="c" style="background:var(--corail-pale)"></div><div class="n">-pale</div><div class="t">#F8DDD3</div></div>
+     <div class="sw"><div class="c" style="background:var(--corail-page)"></div><div class="n">-page</div><div class="t">#FAECE7</div></div>
+    </div></div>
+  </div>
+  <p class="cz-help" style="margin-top:8px">Les composants ne lisent que les alias <b>brand · brand-dark · brand-pale · page</b> ; ils prennent la valeur de l'univers courant. <b>ink-title</b> #26215C encre le mot-symbole et les titres de documents.</p>
+ </div>
+ <div>
+  <div class="pv-h">Socle fonctionnel — identique dans les trois univers, sens fixe, jamais décoratif</div>
+  <div class="fx" style="margin-bottom:6px"><span></span><span class="cz-help">Plein</span><span class="cz-help">Fond clair (-bg)</span><span class="cz-help">Texte (-fg)</span></div>
+  <div class="pv-stack" style="gap:10px">
+   <div class="fx"><span class="k">Succès · validé</span>
+    <div class="sw"><div class="c" style="background:var(--success)"></div><div class="t">success #2E9E5B</div></div>
+    <div class="sw"><div class="c" style="background:var(--success-bg)"></div><div class="t">#DFF3E7</div></div>
+    <div class="sw"><div class="c" style="background:var(--success-fg)"></div><div class="t">#1E6B3E · 5,6:1 sur -bg</div></div></div>
+   <div class="fx"><span class="k">Erreur · retard</span>
+    <div class="sw"><div class="c" style="background:var(--danger)"></div><div class="t">danger #D93A3A</div></div>
+    <div class="sw"><div class="c" style="background:var(--danger-bg)"></div><div class="t">#FBE0E0</div></div>
+    <div class="sw"><div class="c" style="background:var(--danger-fg)"></div><div class="t">#96201F · 6,7:1</div></div></div>
+   <div class="fx"><span class="k">Alerte · en attente</span>
+    <div class="sw"><div class="c" style="background:var(--warning)"></div><div class="t">warning #E8963C</div></div>
+    <div class="sw"><div class="c" style="background:var(--warning-bg)"></div><div class="t">#FBEEDB</div></div>
+    <div class="sw"><div class="c" style="background:var(--warning-fg)"></div><div class="t">#8A5410 · 5,5:1</div></div></div>
+   <div class="fx"><span class="k">Information · à venir</span>
+    <div class="sw"><div class="c" style="background:var(--info)"></div><div class="t">info #3B82C4</div></div>
+    <div class="sw"><div class="c" style="background:var(--info-bg)"></div><div class="t">#DEEBF7</div></div>
+    <div class="sw"><div class="c" style="background:var(--info-fg)"></div><div class="t">#1E5585 · 6,4:1</div></div></div>
+  </div>
+ </div>
+ <div>
+  <div class="pv-h">Neutres — textes, bordures, surfaces</div>
+  <div class="g6">
+   <div class="sw"><div class="c" style="background:var(--text-strong)"></div><div class="n">text-strong</div><div class="t">#1B1830</div></div>
+   <div class="sw"><div class="c" style="background:var(--text)"></div><div class="n">text</div><div class="t">#2C2A38</div></div>
+   <div class="sw"><div class="c" style="background:var(--text-muted)"></div><div class="n">text-muted</div><div class="t">#6B6478</div></div>
+   <div class="sw"><div class="c" style="background:var(--text-disabled)"></div><div class="n">text-disabled</div><div class="t">#A8A2B4</div></div>
+   <div class="sw"><div class="c" style="background:var(--border)"></div><div class="n">border</div><div class="t">#E4E0EA</div></div>
+   <div class="sw"><div class="c" style="background:var(--surface)"></div><div class="n">surface</div><div class="t">#FFFFFF</div></div>
+  </div>
+  <div class="pv-h" style="margin-top:16px">Neutres d'interface — valeurs de la spécification UI</div>
+  <div class="g6">
+   <div class="sw"><div class="c" style="background:var(--surface-subtle)"></div><div class="n">surface-subtle</div><div class="t">#FAF9FC</div></div>
+   <div class="sw"><div class="c" style="background:var(--surface-hover)"></div><div class="n">surface-hover</div><div class="t">#F4F2F8</div></div>
+   <div class="sw"><div class="c" style="background:var(--track)"></div><div class="n">track</div><div class="t">#ECE9F2</div></div>
+   <div class="sw"><div class="c" style="background:var(--cell-future)"></div><div class="n">cell-future</div><div class="t">#E6E3EC</div></div>
+   <div class="sw"><div class="c" style="background:var(--neutral-bg)"></div><div class="n">neutral-bg</div><div class="t">#ECEAF0</div></div>
+   <div class="sw"><div class="c" style="background:var(--disabled-bg)"></div><div class="n">disabled-bg</div><div class="t">#E9E6EE</div></div>
+   <div class="sw"><div class="c" style="background:var(--disabled-field)"></div><div class="n">disabled-field</div><div class="t">#F4F2F6</div></div>
+   <div class="sw"><div class="c" style="background:var(--toggle-off)"></div><div class="n">toggle-off</div><div class="t">#D8D4DE</div></div>
+   <div class="sw"><div class="c" style="background:var(--divider)"></div><div class="n">divider</div><div class="t">#F1EEF4</div></div>
+   <div class="sw"><div class="c" style="background:var(--divider-row)"></div><div class="n">divider-row</div><div class="t">#F2EFF5</div></div>
+   <div class="sw"><div class="c" style="background:var(--ink-title)"></div><div class="n">ink-title</div><div class="t">#26215C</div></div>
+   <div class="sw"><div class="c" style="background:var(--overlay)"></div><div class="n">overlay</div><div class="t">text-strong 40 %</div></div>
+  </div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

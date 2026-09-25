@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Plateforme — Détail d’une association</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F2F2F8;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#3B3470;text-decoration:none}a:hover{color:#2A2552}
+input{font:inherit;color:inherit}
+dl{margin:0;display:grid;grid-template-columns:130px 1fr;gap:8px 14px;font-size:14px}dt{color:#6B6478}dd{margin:0;color:#1B1830}
+h2.t{margin:0 0 14px;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+</style>
+</helmet>
+<div data-theme="superadmin" style="width: 1440px; height: 1200px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F2F2F8; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="SaSidebar" active="associations" hint-size="240px,1200px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="SaTopbar" parent="Associations" parent-href="SaAssociations.dc.html" current="{{a.name}}" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 18px;">
+<div style="display: flex; align-items: center; gap: 16px;">
+<span class="cz-avatar cz-avatar--org cz-avatar--sa" style="width: 56px; height: 56px; font-size: 18px;">{{a.ini}}</span>
+<div><div style="display: flex; align-items: center; gap: 12px;"><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">{{a.name}}</h1><span class="{{badgeCls}}">{{badge}}</span></div>
+<div style="font-size: 14px; color: #6B6478;">{{a.city}} · Plan {{a.plan}} · client depuis {{a.since}}</div></div>
+<div style="margin-left: auto; display: flex; gap: 10px; position: relative;">
+<button type="button" class="cz-btn cz-btn--secondary" disabled title="Disponible en V3">Se connecter en tant que <span class="cz-soon" style="font-size: 11px; padding: 1px 8px;">V3</span></button>
+<button type="button" class="cz-btn cz-btn--icon" onClick="{{toggleMenu}}" aria-label="Plus d’actions" aria-expanded="{{menu}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></button>
+<sc-if value="{{menu}}" hint-placeholder-val="{{ false }}"><div class="cz-menu" style="position: absolute; right: 0; top: 48px; z-index: 6;">
+<button type="button" class="it" onClick="{{goSubscription}}" style="width: 100%; border: none; background: transparent; font: inherit; text-align: left;">Changer de plan</button>
+<sc-if value="{{suspended}}" hint-placeholder-val="{{ false }}"><button type="button" class="it" onClick="{{reactivate}}" style="width: 100%; border: none; background: transparent; font: inherit; text-align: left;">Réactiver</button></sc-if>
+<hr><button type="button" class="it danger" onClick="{{openSuspend}}" style="width: 100%; border: none; background: transparent; font: inherit; text-align: left;">Suspendre l’association</button></div></sc-if>
+</div>
+</div>
+
+<sc-if value="{{unpaid}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--warning"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><div><b>Abonnement impayé depuis le 5 septembre 2026.</b> L’accès sera suspendu le 10 octobre sans régularisation. <u>Voir la facturation</u></div></div></sc-if>
+<sc-if value="{{suspended}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--danger" style="align-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg><div><b>Association suspendue le 25/09/2026.</b> Ses gestionnaires et souscripteurs n’ont plus accès à leur espace.</div><button type="button" class="cz-btn cz-btn--sm" onClick="{{reactivate}}" style="margin-left: auto;">Réactiver</button></div></sc-if>
+
+<div class="cz-tabs" role="tablist">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+<button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}<sc-if value="{{t.v2}}" hint-placeholder-val="{{ false }}"><span class="cz-soon" style="font-size: 10.5px; padding: 0 7px;">V2</span></sc-if></button>
+</sc-for>
+</div>
+
+<sc-if value="{{tOverview}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-grid4">
+<div class="cz-kpi"><div class="l">Projets actifs</div><div class="v">{{a.projects}}</div></div>
+<div class="cz-kpi"><div class="l">Souscripteurs</div><div class="v">{{a.subs}}</div></div>
+<div class="cz-kpi"><div class="l">Collecté cumulé</div><div class="v">{{a.collected}}</div></div>
+<div class="cz-kpi"><div class="l">Taux de recouvrement</div><div class="v">{{a.rate}}</div></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+<section class="cz-card" style="padding: 22px;"><h2 class="t">Contact principal</h2><div class="cz-person" style="margin-bottom: 12px;"><span class="cz-avatar">{{a.contactIni}}</span><div><b>{{a.contact}}</b><div class="sub">{{a.role}}</div></div></div><dl><dt>Email</dt><dd>{{a.email}}</dd><dt>Téléphone</dt><dd class="cz-mono">{{a.phone}}</dd></dl></section>
+<section class="cz-card" style="padding: 22px;"><h2 class="t">Abonnement</h2>
+<dl style="margin-bottom: 14px;"><dt>Plan</dt><dd>{{a.plan}}</dd><dt>Prix</dt><dd>[PRIX] F / mois</dd><dt>Prochaine échéance</dt><dd>01/10/2026</dd></dl>
+<div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+<div><div style="display: flex; justify-content: space-between;"><span>Projets</span><b>{{a.qProj}}</b></div><div class="cz-bar" style="margin-top: 4px;"><i style="{{a.qProjW}}"></i></div></div>
+<div><div style="display: flex; justify-content: space-between;"><span>Souscripteurs</span><b>{{a.qSubs}}</b></div><div class="cz-bar" style="margin-top: 4px;"><i style="{{a.qSubsW}}"></i></div></div>
+<div><div style="display: flex; justify-content: space-between;"><span>Gestionnaires</span><b>{{a.qMgr}}</b></div><div class="cz-bar" style="margin-top: 4px;"><i style="{{a.qMgrW}}"></i></div></div>
+</div></section>
+<section class="cz-card" style="padding: 22px;"><h2 class="t">Événements du compte</h2><div class="cz-timeline">
+<sc-for list="{{a.events}}" as="e" hint-placeholder-count="3"><div class="{{e.cls}}"><b>{{e.t}}</b><div class="m">{{e.d}}</div></div></sc-for>
+</div></section>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{tProjects}}" hint-placeholder-val="{{ false }}">
+<div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Projet</th><th>Statut</th><th class="num">Souscripteurs</th><th class="num">Collecté</th><th>Créé le</th></tr></thead><tbody>
+<sc-for list="{{a.projectRows}}" as="p" hint-placeholder-count="3"><tr><td style="font-weight: 600; color: #1B1830;">{{p.n}}</td><td><span class="{{p.cls}}">{{p.s}}</span></td><td class="num">{{p.subs}}</td><td class="num">{{p.col}}</td><td style="color: #6B6478;">{{p.d}}</td></tr></sc-for>
+</tbody></table></div>
+</sc-if>
+
+<sc-if value="{{tSubs}}" hint-placeholder-val="{{ false }}">
+<div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Souscripteur</th><th>Téléphone</th><th class="num">Projets</th><th>Statut</th></tr></thead><tbody>
+<sc-for list="{{a.subRows}}" as="p" hint-placeholder-count="4"><tr><td style="font-weight: 600; color: #1B1830;">{{p.n}}</td><td class="cz-mono">{{p.tel}}</td><td class="num">{{p.pr}}</td><td><span class="{{p.cls}}">{{p.s}}</span></td></tr></sc-for>
+</tbody></table></div>
+</sc-if>
+
+<sc-if value="{{tSubscription}}" hint-placeholder-val="{{ false }}">
+<div class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; justify-content: space-between; align-items: center;"><h2 class="t" style="margin: 0;">Historique de facturation</h2><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm">Changer de plan</button></div>
+<table class="cz-table"><thead><tr><th>Période</th><th class="num">Montant</th><th>Statut</th><th>Facture</th></tr></thead><tbody>
+<tr><td>Septembre 2026</td><td class="num">[PRIX] F</td><td><span class="{{a.lastInvoiceCls}}">{{a.lastInvoice}}</span></td><td><a href="#">PDF</a></td></tr>
+<tr><td>Août 2026</td><td class="num">[PRIX] F</td><td><span class="cz-badge cz-badge--success">Payée</span></td><td><a href="#">PDF</a></td></tr>
+<tr><td>Juillet 2026</td><td class="num">[PRIX] F</td><td><span class="cz-badge cz-badge--success">Payée</span></td><td><a href="#">PDF</a></td></tr>
+</tbody></table>
+</div>
+</sc-if>
+
+<sc-if value="{{tUsage}}" hint-placeholder-val="{{ false }}">
+<div class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+<div style="display: flex; align-items: center; gap: 10px;"><h2 class="t" style="margin: 0;">Usage</h2><span class="cz-soon">Bientôt disponible</span></div>
+<p style="margin: 0; font-size: 14px; color: #6B6478;">Cet onglet montrera les connexions des 30 derniers jours, les paiements traités par mois et le délai moyen de validation des paiements.</p>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; opacity: 0.6;"><div class="cz-skel" style="height: 120px;"></div><div class="cz-skel" style="height: 120px;"></div><div class="cz-skel" style="height: 120px;"></div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{tSettings}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px; max-width: 760px;">
+<section class="cz-card" style="padding: 22px;"><h2 class="t">Comptes gestionnaires autorisés</h2><p style="margin: 0 0 12px; font-size: 13.5px; color: #6B6478;">Surcharge la limite du plan pour cette association.</p>
+<div class="cz-counter" style="display: inline-flex;"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{dec}}" aria-label="Diminuer">−</button><b>{{mgr}}</b><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{inc}}" aria-label="Augmenter">+</button></div></section>
+<section class="cz-card cz-card--flat" style="padding: 22px; border-color: #D93A3A;"><h2 class="t" style="color: #96201F;">Zone de danger</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px;"><div style="font-size: 14px;"><b>Suspendre l’association</b><div style="color: #6B6478; font-size: 13px;">Les gestionnaires et souscripteurs perdent l’accès. Les données sont conservées.</div></div><button type="button" class="cz-btn cz-btn--danger" onClick="{{openSuspend}}">Suspendre</button></div></section>
+</div>
+</sc-if>
+</main>
+</div>
+
+<sc-if value="{{suspendOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal cz-modal--md" role="dialog" aria-modal="true" aria-label="Suspendre l’association">
+<div class="mh">Suspendre {{a.name}} ?</div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 12px;">Les {{a.subs}} souscripteurs et les gestionnaires perdront l’accès. Tapez le nom de l’association pour confirmer.
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Motif <span class="req">*</span></span><select class="cz-input"><option>Abonnement impayé</option><option>Demande de l’association</option><option>Usage non conforme</option><option>Autre</option></select></label>
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Nom de l’association</span><input class="cz-input" value="{{typed}}" onChange="{{onType}}" placeholder="{{a.name}}"></label>
+</div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{closeSuspend}}">Annuler</button><button type="button" class="cz-btn cz-btn--danger cz-btn--sm" disabled="{{cantSuspend}}" onClick="{{confirmSuspend}}">Suspendre l’association</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"association":{"editor":"enum","options":["entraide-yopougon","ressortissants-man","jeunesse-bouake"],"default":"entraide-yopougon"},"etat":{"editor":"enum","options":["selon-association","suspendue"],"default":"selon-association"},"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'overview', menu: false, suspendOpen: false, typed: '', status: null, mgr: 3 }; }
+  renderVals() {
+    const w = (v, max) => `width: ${Math.min(100, Math.round(v / max * 100))}%;` + (v / max >= 0.9 ? ' background: #E8963C;' : '');
+    const ok = 'cz-badge cz-badge--success', warn = 'cz-badge cz-badge--warning', bad = 'cz-badge cz-badge--danger', info = 'cz-badge cz-badge--info', neu = 'cz-badge';
+    const DATA = {
+      'entraide-yopougon': { ini: 'EY', name: 'Entraide Yopougon', city: 'Abidjan', plan: 'Essentiel', since: 'février 2024', status: 'active', projects: 3, subs: 52, collected: '[MONTANT] F', rate: '82 %',
+        contact: 'Awa Koné', contactIni: 'AK', role: 'Gestionnaire principale · trésorière', email: 'awa@entraide.ci', phone: '+225 07 08 09 10 11',
+        qProj: '3 / [N]', qProjW: 'width: 60%;', qSubs: '52 / [N]', qSubsW: 'width: 52%;', qMgr: '2 / [N]', qMgrW: 'width: 66%;',
+        lastInvoice: 'Payée', lastInvoiceCls: ok,
+        events: [{ cls: 'it b', t: 'Changement de plan', d: 'Découverte → Essentiel' }, { cls: 'it', t: 'Gestionnaire ajoutée', d: 'Aminata Konaté' }, { cls: 'it i', t: 'Espace créé', d: 'Février 2024' }],
+        projectRows: [
+          { n: 'Centre communautaire', s: 'En cours', cls: ok, subs: 52, col: '8 500 000 F', d: 'Mars 2026' },
+          { n: 'Tontine solidaire 2027', s: 'Inscriptions ouvertes', cls: info, subs: '12 / 30', col: '—', d: '[DATE]' },
+          { n: 'Voyage solidaire', s: 'En cours', cls: ok, subs: '[N]', col: '[MONTANT] F', d: '[DATE]' }],
+        subRows: [
+          { n: 'Awa Koné', tel: '+225 07 08 09 10 11', pr: 1, s: 'À jour', cls: ok },
+          { n: 'Moussa Diarra', tel: '+225 05 44 21 87 90', pr: 2, s: 'En retard', cls: bad },
+          { n: 'Fatou Traoré', tel: '+225 01 22 33 44 55', pr: 1, s: 'Signature attendue', cls: warn },
+          { n: 'Jean Kouassi', tel: '+225 07 55 66 77 88', pr: 1, s: 'À jour', cls: ok }] },
+      'ressortissants-man': { ini: 'AR', name: 'Association des ressortissants de Man', city: 'Abidjan', plan: 'Pro', since: 'janvier 2025', status: 'unpaid', projects: 5, subs: 142, collected: '[MONTANT] F', rate: '[N] %',
+        contact: '[Responsable]', contactIni: '··', role: 'Gestionnaire principal', email: '[email]', phone: '+225 [XX XX XX XX XX]',
+        qProj: '3 / 5', qProjW: w(3, 5), qSubs: '142 / 200', qSubsW: w(142, 200), qMgr: '2 / 3', qMgrW: w(2, 3),
+        lastInvoice: 'Impayée', lastInvoiceCls: bad,
+        events: [{ cls: 'it w', t: 'Abonnement impayé', d: '5 sept. 2026' }, { cls: 'it', t: 'Passage au plan Pro', d: '[DATE]' }, { cls: 'it i', t: 'Espace créé', d: 'Janvier 2025' }],
+        projectRows: [{ n: '[5 projets — non détaillés dans les données de référence]', s: '—', cls: neu, subs: '—', col: '—', d: '—' }],
+        subRows: [{ n: '[142 souscripteurs — non détaillés dans les données de référence]', tel: '—', pr: '—', s: '—', cls: neu }] },
+      'jeunesse-bouake': { ini: 'JS', name: 'Jeunesse solidaire de Bouaké', city: 'Bouaké', plan: 'Découverte', since: 'septembre 2026', status: 'onb', projects: 0, subs: 0, collected: '0 F', rate: '—',
+        contact: '[Responsable]', contactIni: '··', role: 'Gestionnaire principal', email: '[email]', phone: '+225 [XX XX XX XX XX]',
+        qProj: '0 / [N]', qProjW: 'width: 0%;', qSubs: '0 / [N]', qSubsW: 'width: 0%;', qMgr: '1 / [N]', qMgrW: 'width: 33%;',
+        lastInvoice: 'À venir', lastInvoiceCls: info,
+        events: [{ cls: 'it i', t: 'Onboarding en cours', d: 'Étape 2 sur 4' }, { cls: 'it', t: 'Demande approuvée', d: '24 sept. 2026 · par Richy' }],
+        projectRows: [{ n: 'Aucun projet pour l’instant', s: '—', cls: neu, subs: '—', col: '—', d: '—' }],
+        subRows: [{ n: 'Aucun souscripteur pour l’instant', tel: '—', pr: '—', s: '—', cls: neu }] }
+    };
+    const a = DATA[this.props.association || 'entraide-yopougon'];
+    const status = this.state.status || (this.props.etat === 'suspendue' ? 'susp' : a.status);
+    const B = { active: [ok, 'Active'], unpaid: [warn, 'Impayée'], susp: [bad, 'Suspendue'], onb: [info, 'Onboarding'] };
+    const tab = this.state.tab;
+    const TABS = [['overview', 'Vue d’ensemble'], ['projects', 'Projets'], ['subs', 'Souscripteurs'], ['subscription', 'Abonnement'], ['usage', 'Usage'], ['settings', 'Paramètres']];
+    return {
+      a, badgeCls: B[status][0], badge: B[status][1],
+      unpaid: status === 'unpaid', suspended: status === 'susp',
+      menu: this.state.menu, toggleMenu: () => this.setState({ menu: !this.state.menu }),
+      goSubscription: () => this.setState({ tab: 'subscription', menu: false }),
+      reactivate: () => this.setState({ status: 'active', menu: false }),
+      openSuspend: () => this.setState({ suspendOpen: true, menu: false, typed: '' }),
+      closeSuspend: () => this.setState({ suspendOpen: false }),
+      onType: (e) => this.setState({ typed: e.target.value }),
+      typed: this.state.typed, cantSuspend: this.state.typed !== a.name,
+      confirmSuspend: () => this.setState({ status: 'susp', suspendOpen: false }),
+      suspendOpen: this.state.suspendOpen,
+      mgr: this.state.mgr, inc: () => this.setState({ mgr: this.state.mgr + 1 }), dec: () => this.setState({ mgr: Math.max(1, this.state.mgr - 1) }),
+      tOverview: tab === 'overview', tProjects: tab === 'projects', tSubs: tab === 'subs', tSubscription: tab === 'subscription', tUsage: tab === 'usage', tSettings: tab === 'settings',
+      tabs: TABS.map(([k, label]) => ({
+        label, on: k === tab, v2: k === 'usage',
+        pick: () => this.setState({ tab: k }),
+        style: `display: flex; gap: 8px; align-items: center; padding: 10px 16px; min-height: 44px; background: transparent; border: none; border-bottom: 2.5px solid ${k === tab ? '#3B3470' : 'transparent'}; margin-bottom: -1px; font-family: Poppins, sans-serif; font-size: 13.5px; color: ${k === tab ? '#2A2552' : '#6B6478'}; cursor: pointer;`
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

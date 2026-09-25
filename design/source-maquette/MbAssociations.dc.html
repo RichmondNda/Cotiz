@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Mes associations</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<dc-import name="MbNav" device="{{device}}" active="projets" hint-size="{{s.navHint}}" style="{{s.nav}}"></dc-import>
+<div style="{{s.col}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><header style="background: #FFFFFF; padding: 8px 8px 8px 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><div style="flex-grow: 1; min-width: 0; padding-left: 6px;"><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Mes associations</div><div style="font-size: 12.5px; color: #6B6478;">Vos projets, regroupés par association</div></div></header></sc-if>
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;"><div><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Mes associations</h1><p style="margin: 4px 0 0; font-size: 14px; color: #6B6478;">Vos projets, regroupés par association</p></div></div></sc-if>
+<div style="{{s.grid}}">
+<sc-for list="{{assos}}" as="a" hint-placeholder-count="2">
+<section class="cz-card" style="display: flex; flex-direction: column; gap: 12px;">
+<a href="{{a.href}}" style="display: flex; align-items: center; gap: 12px; color: inherit;">
+<span class="cz-avatar cz-avatar--org cz-avatar--lg">{{a.ini}}</span>
+<span style="flex-grow: 1; min-width: 0;"><b style="display: block; font-family: Poppins, sans-serif; font-size: 16px; color: #1B1830;">{{a.name}}</b><span class="mb-lbl">{{a.city}} · {{a.count}}</span></span>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B6478" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></a>
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<sc-for list="{{a.projects}}" as="p" hint-placeholder-count="2">
+<a href="{{p.href}}" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: #FAF8F6; border: 1px solid #F0EDF3; color: inherit; min-height: 60px; box-sizing: border-box;">
+<span style="flex-grow: 1; min-width: 0;"><b style="display: block; font-size: 14.5px; color: #1B1830;">{{p.name}}</b><span class="mb-lbl">{{p.sub}}</span></span>
+<span class="{{p.badgeCls}}">{{p.badge}}</span></a>
+</sc-for>
+</div>
+</section>
+</sc-for>
+</div>
+<sc-if value="{{single}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--info"><div>Vous ne faites partie que d’une association pour l’instant. Si une autre association vous inscrit sur Cotiz, elle apparaîtra ici.</div></div></sc-if>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "etat": {"editor": "enum", "options": ["nominal", "une-seule-association"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {}; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const single = (P.etat || 'nominal') === 'une-seule-association';
+    const EY = { name: 'Entraide Yopougon', ini: 'EY', city: 'Abidjan', count: '2 projets', href: L('MbAssociation'), projects: [
+      { name: 'Centre communautaire', sub: 'Reste 325 000 F · 50 000 F en retard', href: L('MbProjet'), badge: 'En retard', badgeCls: 'cz-badge cz-badge--danger cz-badge--sm' },
+      { name: 'Voyage solidaire', sub: '170 000 F · contrat à signer', href: L('MbContrat'), badge: 'Signature attendue', badgeCls: 'cz-badge cz-badge--warning cz-badge--sm' }] };
+    const AM = { name: 'Assoc. des ressortissants de Man', ini: 'RM', city: '[VILLE]', count: '1 projet', href: L('MbAssociation'), projects: [
+      { name: 'Mutuelle santé', sub: 'Reste 70 000 F · prochaine échéance 5 oct.', href: L('MbProjet'), badge: 'À jour', badgeCls: 'cz-badge cz-badge--success cz-badge--sm' }] };
+    const v = {
+      single, assos: single ? [EY] : [EY, AM],
+      s: { grid: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start;' }
+    };
+    const hasNav = true && !(m && false && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 1000px; position: relative; display: grid; grid-template-columns: ' + (true ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,150px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '170px' : '24px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

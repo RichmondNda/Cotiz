@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>Tableau</title></head>
+<body>
+<div class="pv pv-stack pv-band" style="border-radius:0">
+ <div class="cz-toolbar">
+  <div class="cz-input cz-search" style="width:240px"><span class="lead"><i data-icon="recherche"></i></span><span class="ph grow">Nom, téléphone…</span></div>
+  <span class="cz-chip is-on">Tous · 52</span><span class="cz-chip">En retard · 14</span><span class="cz-chip">Signature attendue · 3</span><span class="cz-chip"><i data-icon="filtre"></i>Filtre</span>
+  <div class="end"><button class="cz-btn cz-btn--secondary cz-btn--sm"><i data-icon="telecharger"></i>Exporter</button><button class="cz-btn cz-btn--sm"><i data-icon="ajouter"></i>Ajouter</button></div>
+ </div>
+ <div class="cz-bulk"><span class="cz-cb is-on"><i data-icon="coche"></i></span>1 sélectionné<div class="end"><button class="cz-btn cz-btn--secondary cz-btn--sm"><i data-icon="relance"></i>Relancer</button><button class="cz-btn cz-btn--ghost cz-btn--sm">Exporter</button></div></div>
+ <div class="cz-table-wrap">
+  <table class="cz-table">
+   <thead><tr><th style="width:44px"><span class="cz-cb"></span></th><th class="is-sortable is-sorted">Souscripteur <span class="sort"><i data-icon="tri"></i></span></th><th>Téléphone</th><th class="num is-sortable is-hover">Versé <span class="sort"><i data-icon="tri"></i></span></th><th class="num">Reste</th><th>Statut</th><th style="width:56px"></th><th style="width:130px">État de ligne</th></tr></thead>
+   <tbody>
+    <tr><td><span class="cz-cb"></span></td><td><div class="cz-person"><span class="cz-avatar cz-avatar--sm">AK</span><div><b>Awa Koné</b><div class="sub">Inscrite le 12/03/2026</div></div></div></td><td class="cz-mono">+225 07 08 09 10 11</td><td class="num">250 000 F</td><td class="num">150 000 F</td><td><span class="cz-badge cz-badge--success">À jour</span></td><td><button class="cz-btn cz-btn--icon cz-btn--sm" style="border:none;background:transparent"><i data-icon="actions"></i></button></td><td class="cz-help">Repos</td></tr>
+    <tr class="is-hover"><td><span class="cz-cb is-hover"></span></td><td><div class="cz-person"><span class="cz-avatar cz-avatar--sm cz-avatar--danger">MD</span><div><b>Moussa Diarra</b><div class="sub">Inscrit le 12/03/2026</div></div></div></td><td class="cz-mono">+225 05 44 21 87 90</td><td class="num">150 000 F</td><td class="num strong">250 000 F</td><td><span class="cz-badge cz-badge--danger">En retard · 2</span></td><td><button class="cz-btn cz-btn--icon cz-btn--sm is-hover"><i data-icon="actions"></i></button></td><td class="cz-help">Survol</td></tr>
+    <tr class="is-selected"><td><span class="cz-cb is-on"><i data-icon="coche"></i></span></td><td><div class="cz-person"><span class="cz-avatar cz-avatar--sm cz-avatar--warning">FT</span><div><b>Fatou Traoré</b><div class="sub">Inscrite le 02/09/2026</div></div></div></td><td class="cz-mono">+225 01 22 33 44 55</td><td class="num">0 F</td><td class="num">400 000 F</td><td><span class="cz-badge cz-badge--warning">Signature attendue</span></td><td><button class="cz-btn cz-btn--icon cz-btn--sm" style="border:none;background:transparent"><i data-icon="actions"></i></button></td><td class="cz-help">Sélectionnée</td></tr>
+    <tr class="is-focus"><td><span class="cz-cb"></span></td><td><div class="cz-person"><span class="cz-avatar cz-avatar--sm">JK</span><div><b>Jean Kouassi</b><div class="sub">Inscrit le 12/03/2026</div></div></div></td><td class="cz-mono">+225 07 55 66 77 88</td><td class="num">212 500 F</td><td class="num">187 500 F</td><td><span class="cz-badge cz-badge--warning">Partielle</span></td><td><button class="cz-btn cz-btn--icon cz-btn--sm" style="border:none;background:transparent"><i data-icon="actions"></i></button></td><td class="cz-help">Focus clavier</td></tr>
+   </tbody>
+  </table>
+ </div>
+ <div class="cz-tfoot"><span>1–20 sur 52</span><div class="cz-pagin"><span class="is-disabled"><i data-icon="chevron-gauche"></i></span><span class="is-on">1</span><span>2</span><span>3</span><span><i data-icon="chevron-droite"></i></span></div></div>
+ <div class="pv-row" style="gap:16px">
+  <div style="flex:1;min-width:260px"><div class="pv-h">Vide de recherche</div><div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Souscripteur</th><th>Statut</th></tr></thead></table><div class="cz-empty" style="box-shadow:none"><div class="i i--neutral"><i data-icon="recherche"></i></div><div class="t">Aucun résultat</div><div class="d">Aucun souscripteur ne correspond à « Kouadio ».</div><button class="cz-btn cz-btn--ghost cz-btn--sm">Effacer la recherche</button></div></div></div>
+  <div style="flex:1;min-width:260px"><div class="pv-h">Chargement</div><div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Souscripteur</th><th class="num">Reste</th><th>Statut</th></tr></thead><tbody>
+   <tr><td><div class="cz-person"><span class="cz-skel" style="width:30px;height:30px;border-radius:50%"></span><span class="cz-skel" style="height:12px;width:110px"></span></div></td><td><span class="cz-skel" style="display:block;height:12px;width:70px;margin-left:auto"></span></td><td><span class="cz-skel" style="display:block;height:20px;width:70px;border-radius:999px"></span></td></tr>
+   <tr><td><div class="cz-person"><span class="cz-skel" style="width:30px;height:30px;border-radius:50%"></span><span class="cz-skel" style="height:12px;width:90px"></span></div></td><td><span class="cz-skel" style="display:block;height:12px;width:60px;margin-left:auto"></span></td><td><span class="cz-skel" style="display:block;height:20px;width:80px;border-radius:999px"></span></td></tr>
+   <tr><td><div class="cz-person"><span class="cz-skel" style="width:30px;height:30px;border-radius:50%"></span><span class="cz-skel" style="height:12px;width:120px"></span></div></td><td><span class="cz-skel" style="display:block;height:12px;width:70px;margin-left:auto"></span></td><td><span class="cz-skel" style="display:block;height:20px;width:60px;border-radius:999px"></span></td></tr>
+  </tbody></table></div></div>
+  <div style="flex:1;min-width:260px"><div class="pv-h">Erreur</div><div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Souscripteur</th><th>Statut</th></tr></thead></table><div class="cz-empty" style="box-shadow:none"><div class="i i--danger"><i data-icon="alerte"></i></div><div class="t">Chargement impossible</div><div class="d">La liste n'a pas pu être récupérée. Le reste de la page reste utilisable.</div><button class="cz-btn cz-btn--secondary cz-btn--sm">Réessayer</button></div></div></div>
+ </div>
+ <div>
+  <div class="pv-h">Mobile — le tableau devient une liste de cartes</div>
+  <div class="pv-row">
+   <div class="cz-rowcard" style="width:300px"><div class="top"><div class="cz-person"><span class="cz-avatar cz-avatar--sm">AK</span><b>Awa Koné</b></div><span class="cz-badge cz-badge--success cz-badge--sm">À jour</span></div><div class="figs"><div>Versé<b>250 000 F</b></div><div>Reste<b>150 000 F</b></div></div></div>
+   <div class="cz-rowcard" style="width:300px"><div class="top"><div class="cz-person"><span class="cz-avatar cz-avatar--sm cz-avatar--danger">MD</span><b>Moussa Diarra</b></div><span class="cz-badge cz-badge--danger cz-badge--sm">En retard · 2</span></div><div class="figs"><div>Versé<b>150 000 F</b></div><div>Reste<b style="color:var(--danger-fg)">250 000 F</b></div></div></div>
+  </div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

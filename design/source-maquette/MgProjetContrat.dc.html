@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet — Contrat</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1250px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,1250px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" parent="Projets" parent-href="MgProjets.dc.html" parent2="Centre communautaire" parent2-href="MgProjet.dc.html" current="Contrat" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+<dc-import name="MgProjetHeader" tab="contrat" hint-size="100%,230px"></dc-import>
+<div class="cz-alert cz-alert--info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><div><b>Contrat verrouillé</b> — signé par {{signed}} souscripteurs sur 52.</div><span class="cz-soon" style="margin-left: auto;">V2</span></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start;">
+<article class="cz-card" style="padding: 48px 56px; display: flex; flex-direction: column; gap: 16px; font-size: 14.5px; line-height: 1.7;">
+<div style="display: flex; justify-content: space-between; align-items: center;"><span style="font-size: 12px; color: #6B6478;">Entraide Yopougon · Abidjan</span><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></svg>Télécharger le PDF</button></div>
+<h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; color: #1B1830; text-align: center;">Contrat de souscription — Centre communautaire</h2>
+<p style="margin: 0;">Je soussigné(e) <b>{nom_souscripteur}</b> m’engage à verser à l’association Entraide Yopougon un fonds d’entrée de <b>50 000 F</b>, puis <b>25 000 F</b> de façon <b>mensuelle</b>, le 5 de chaque mois, à partir du <b>5 mars 2026</b> et jusqu’au 5 août 2027, soit 18 échéances.</p>
+<p style="margin: 0;">Les paiements sont effectués directement à l’association, par virement bancaire ou mobile money, puis déclarés dans Cotiz avec une preuve.</p>
+<p style="margin: 0; color: #6B6478;">[Clauses complémentaires définies par l’association : retard, retrait, remboursement.]</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #F1EEF4;">
+<div><div style="font-size: 12px; color: #6B6478;">Pour l’association</div><b>Awa Koné, trésorière</b><div style="font-family: Poppins, sans-serif; font-style: italic; font-size: 22px; color: #5B51C4; margin-top: 6px;">A. Koné</div><div style="font-size: 12px; color: #6B6478;">Signé le 01/03/2026</div></div>
+<div><div style="font-size: 12px; color: #6B6478;">Le souscripteur</div><b>{nom_souscripteur}</b><div style="height: 34px; border-bottom: 1px dashed #E4E0EA; margin-top: 6px;"></div></div>
+</div>
+</article>
+<aside class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+<b style="font-family: Poppins, sans-serif; font-size: 16px; color: #1B1830;">Suivi des signatures</b>
+<div><div style="display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px;"><span>{{signed}} / 52 signés</span><b>{{pct}}</b></div><div class="cz-bar cz-bar--success"><i style="{{barW}}"></i></div></div>
+<sc-if value="{{hasMissing}}" hint-placeholder-val="{{ true }}">
+<div style="font-size: 12.5px; color: #6B6478;">Non-signataires</div>
+<div style="display: flex; align-items: center; gap: 10px;"><span class="cz-avatar cz-avatar--sm cz-avatar--warning">FT</span><div style="flex-grow: 1;"><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">Fatou Traoré</a><div style="font-size: 12px; color: #6B6478;">Ajoutée le 02/09/2026</div></div><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{remind}}">{{remindLabel}}</button></div>
+<a href="MgProjetSouscripteurs.dc.html" style="font-size: 13px; font-weight: 600;">Voir tous →</a>
+</sc-if>
+<sc-if value="{{allSigned}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div><b>Tous les souscripteurs ont signé.</b></div></div></sc-if>
+</aside>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","tous-signes"],"default":"nominal"},"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { reminded: false }; }
+  renderVals() {
+    const all = this.props.etat === 'tous-signes';
+    const signed = all ? 52 : 51;
+    return {
+      signed, pct: Math.round(signed / 52 * 100) + ' %', barW: `width: ${Math.round(signed / 52 * 100)}%;`,
+      hasMissing: !all, allSigned: all,
+      remindLabel: this.state.reminded ? 'Relancée ✓' : 'Relancer', remind: () => this.setState({ reminded: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

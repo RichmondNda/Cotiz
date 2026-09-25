@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet — Rapports</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+h2.t{margin:0 0 10px;font-family:Poppins,sans-serif;font-weight:600;font-size:15px;color:#1B1830}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1400px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,1400px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" parent="Projets" parent-href="MgProjets.dc.html" parent2="Centre communautaire" parent2-href="MgProjet.dc.html" current="Rapports" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+<dc-import name="MgProjetHeader" tab="rapports" hint-size="100%,230px"></dc-import>
+<div class="cz-toolbar">
+<label class="cz-field" style="flex-direction: row; align-items: center; gap: 10px;"><span class="cz-label">Période</span><select class="cz-input" style="width: 240px;"><option>Depuis le début (mars 2026)</option><option>Ce mois-ci</option><option>3 derniers mois</option></select></label>
+<div class="end"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></svg>Exporter CSV</button><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" disabled>Exporter PDF <span class="cz-soon" style="font-size: 10.5px; padding: 0 7px;">V2</span></button></div>
+</div>
+<div class="cz-grid4">
+<div class="cz-kpi"><div class="l">Total attendu à date</div><div class="v">11 700 000 F</div><div class="d">entrée + 7 échéances × 52</div></div>
+<div class="cz-kpi"><div class="l">Total reçu</div><div class="v">9 594 000 F</div><div class="d up">validé</div></div>
+<div class="cz-kpi"><div class="l">Reste à percevoir</div><div class="v" style="color: #96201F;">2 106 000 F</div><div class="d bad">échéances échues</div></div>
+<div class="cz-kpi"><div class="l">Taux de recouvrement</div><div class="v">82 %</div><div class="d">des échéances échues</div></div>
+</div>
+<div style="display: grid; grid-template-columns: 1.3fr 1fr 0.8fr; gap: 16px;">
+<div class="cz-card" style="padding: 20px;"><h2 class="t">Collecte par échéance</h2>
+<svg viewBox="0 0 340 150" width="100%" role="img" aria-label="Collecte par échéance de l’entrée à septembre"><line x1="10" y1="130" x2="335" y2="130" stroke="#E4E0EA"/>
+<rect x="16" y="30" width="15" height="100" rx="3" fill="#E4E0EA"/><rect x="32" y="31" width="15" height="99" rx="3" fill="#7F77DD"/>
+<rect x="62" y="30" width="15" height="100" rx="3" fill="#E4E0EA"/><rect x="78" y="33" width="15" height="97" rx="3" fill="#7F77DD"/>
+<rect x="108" y="30" width="15" height="100" rx="3" fill="#E4E0EA"/><rect x="124" y="40" width="15" height="90" rx="3" fill="#7F77DD"/>
+<rect x="154" y="30" width="15" height="100" rx="3" fill="#E4E0EA"/><rect x="170" y="44" width="15" height="86" rx="3" fill="#7F77DD"/>
+<rect x="200" y="30" width="15" height="100" rx="3" fill="#E4E0EA"/><rect x="216" y="47" width="15" height="83" rx="3" fill="#7F77DD"/>
+<rect x="246" y="30" width="15" height="100" rx="3" fill="#E4E0EA"/><rect x="262" y="50" width="15" height="80" rx="3" fill="#7F77DD"/>
+<rect x="292" y="30" width="15" height="100" rx="3" fill="#E4E0EA"/><rect x="308" y="35" width="15" height="95" rx="3" fill="#7F77DD" opacity="0.55"/>
+<g font-size="9" fill="#6B6478" text-anchor="middle"><text x="31" y="143">Entrée</text><text x="77" y="143">Avr.</text><text x="169" y="143">Juin</text><text x="261" y="143">Août</text><text x="307" y="143">Sept.</text></g></svg></div>
+<div class="cz-card" style="padding: 20px; position: relative;"><h2 class="t">Taux de recouvrement</h2>
+<sc-if value="{{advanced}}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 260 150" width="100%" role="img" aria-label="Taux de recouvrement de 99 % en mars à 82 % en septembre"><line x1="10" y1="130" x2="255" y2="130" stroke="#E4E0EA"/><line x1="10" y1="30" x2="255" y2="30" stroke="#F1EEF4"/><text x="12" y="26" font-size="9" fill="#6B6478">100 %</text>
+<path d="M20 32 L58 36 L96 44 L134 52 L172 60 L210 66 L248 66" fill="none" stroke="#7F77DD" stroke-width="2.5" stroke-linecap="round"/><circle cx="248" cy="66" r="4" fill="#7F77DD"/><text x="226" y="84" font-size="10" fill="#1B1830">82 %</text></svg></sc-if>
+<sc-if value="{{soon}}" hint-placeholder-val="{{ false }}"><div style="height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: #FAF9FC; border-radius: 12px;"><span class="cz-soon">Bientôt disponible</span><span style="font-size: 12.5px; color: #6B6478;">Graphiques avancés en V2</span></div></sc-if>
+</div>
+<div class="cz-card" style="padding: 20px;"><h2 class="t">Souscripteurs par statut</h2>
+<sc-if value="{{advanced}}" hint-placeholder-val="{{ true }}"><div style="display: flex; align-items: center; gap: 12px;"><svg viewBox="0 0 120 120" width="100" role="img" aria-label="37 à jour, 14 en retard, 1 signature attendue"><circle cx="60" cy="60" r="44" fill="none" stroke="#2E9E5B" stroke-width="16" stroke-dasharray="197 276" transform="rotate(-90 60 60)"/><circle cx="60" cy="60" r="44" fill="none" stroke="#D93A3A" stroke-width="16" stroke-dasharray="74 276" stroke-dashoffset="-197" transform="rotate(-90 60 60)"/><circle cx="60" cy="60" r="44" fill="none" stroke="#E8963C" stroke-width="16" stroke-dasharray="5 276" stroke-dashoffset="-271" transform="rotate(-90 60 60)"/><text x="60" y="66" text-anchor="middle" font-family="Poppins" font-weight="600" font-size="20" fill="#1B1830">52</text></svg>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 12.5px;"><span><span class="cz-cell cz-cell--sm cz-cell--ok"></span> À jour · 37</span><span><span class="cz-cell cz-cell--sm cz-cell--late"></span> En retard · 14</span><span><span class="cz-cell cz-cell--sm cz-cell--wait"></span> Signature · 1</span></div></div></sc-if>
+<sc-if value="{{soon}}" hint-placeholder-val="{{ false }}"><div style="height: 100px; display: flex; align-items: center; justify-content: center; background: #FAF9FC; border-radius: 12px;"><span class="cz-soon">Bientôt disponible</span></div></sc-if>
+</div>
+</div>
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th>Souscripteur</th><th class="num">Attendu à date</th><th class="num">Versé</th><th class="num">Reste</th><th class="num">Retards</th><th>Dernier paiement</th></tr></thead>
+<tbody>
+<tr><td><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">Moussa Diarra</a></td><td class="num">225 000 F</td><td class="num">175 000 F</td><td class="num strong">50 000 F</td><td class="num">2</td><td style="color: #6B6478;">05/07/2026</td></tr>
+<tr><td><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">Koffi Brou</a></td><td class="num">225 000 F</td><td class="num">175 000 F</td><td class="num strong">50 000 F</td><td class="num">2</td><td style="color: #6B6478;">04/07/2026</td></tr>
+<tr><td><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">Jean Kouassi</a></td><td class="num">225 000 F</td><td class="num">212 500 F</td><td class="num strong">12 500 F</td><td class="num">1</td><td style="color: #6B6478;">06/09/2026</td></tr>
+<tr><td><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">Awa Koné</a></td><td class="num">225 000 F</td><td class="num">200 000 F</td><td class="num">25 000 F</td><td class="num">0</td><td style="color: #6B6478;">05/08/2026</td></tr>
+<tr><td><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">Fatou Traoré</a></td><td class="num">—</td><td class="num">0 F</td><td class="num">—</td><td class="num">0</td><td style="color: #6B6478;">—</td></tr>
+</tbody></table></div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","graphiques-bientot-disponibles"],"default":"nominal"},"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() { const soon = this.props.etat === 'graphiques-bientot-disponibles'; return { soon, advanced: !soon }; }
+}
+</script>
+</body>
+</html>

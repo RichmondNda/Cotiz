@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Barre supérieure gestionnaire</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#6B6478;text-decoration:none}a:hover{color:#5B51C4}
+</style>
+</helmet>
+<header data-theme="manager" style="width: 100%; height: 64px; box-sizing: border-box; background: #FFFFFF; border-bottom: 1px solid #E4E0EA; display: flex; align-items: center; gap: 20px; padding: 0 24px; position: relative; z-index: 10; font-family: Inter, Arial, sans-serif;">
+<nav aria-label="Fil d’Ariane" style="display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: #6B6478; min-width: 300px;">
+<sc-if value="{{hasParent}}" hint-placeholder-val="{{ false }}"><a href="{{parentHref}}">{{parent}}</a><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></sc-if>
+<sc-if value="{{hasParent2}}" hint-placeholder-val="{{ false }}"><a href="{{parent2Href}}">{{parent2}}</a><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></sc-if>
+<span style="color: #2C2A38;">{{current}}</span>
+</nav>
+<label style="margin: 0 auto; width: 360px;" class="cz-input cz-search"><span class="lead"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.5-4.5"/></svg></span><input placeholder="Rechercher un souscripteur, un projet…" aria-label="Recherche globale" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font: inherit;"></label>
+<a href="MgNotifications.dc.html" class="cz-bell" aria-label="Notifications : 3 non lues" style="color: #6B6478; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6c0 4-2 5-2 5h16s-2-1-2-5a6 6 0 0 0-6-6zM10 20a2 2 0 0 0 4 0"/></svg><span class="cz-count cz-count--danger" style="top: 2px; right: 0;">3</span></a>
+<div style="position: relative;">
+<button type="button" onClick="{{toggle}}" aria-expanded="{{open}}" aria-label="Menu du compte" style="display: flex; align-items: center; gap: 8px; background: transparent; border: none; cursor: pointer; padding: 4px; font-family: Inter, sans-serif; font-size: 13.5px; color: #2C2A38;"><span class="cz-avatar cz-avatar--sm">AK</span>Awa Koné<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+<sc-if value="{{open}}" hint-placeholder-val="{{ false }}">
+<div class="cz-menu" style="position: absolute; right: 0; top: 48px;">
+<a class="it" href="MgProfil.dc.html" style="color: #2C2A38;">Mon profil</a>
+<a class="it" href="MgParametres.dc.html" style="color: #2C2A38;">Paramètres de l’association</a>
+<hr>
+<a class="it danger" href="ConnexionAssociation.dc.html">Se déconnecter</a>
+</div>
+</sc-if>
+</div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"parent":{"editor":null,"default":""},"parentHref":{"editor":null,"default":""},"parent2":{"editor":null,"default":""},"parent2Href":{"editor":null,"default":""},"current":{"editor":null,"default":"Tableau de bord"},"$preview":{"width":1200,"height":64}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: false }; }
+  renderVals() {
+    return {
+      parent: this.props.parent || '', parentHref: this.props.parentHref || 'MgDashboard.dc.html', hasParent: !!this.props.parent,
+      parent2: this.props.parent2 || '', parent2Href: this.props.parent2Href || 'MgDashboard.dc.html', hasParent2: !!this.props.parent2,
+      current: this.props.current || '',
+      open: this.state.open, toggle: () => this.setState({ open: !this.state.open })
+    };
+  }
+}
+</script>
+</body>
+</html>

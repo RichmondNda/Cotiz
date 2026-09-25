@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Signature du contrat — Voyage solidaire</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<sc-if value="{{showNav}}" hint-placeholder-val="{{ true }}"><dc-import name="MbNav" device="{{device}}" active="projets" fab="{{ false }}" hint-size="{{s.navHint}}" style="{{s.nav}}"></dc-import></sc-if>
+<div style="{{s.col}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><header style="background: #FFFFFF; padding: 8px 8px 8px 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="{{links.back}}" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Contrat · Voyage solidaire</div><div style="font-size: 12.5px; color: #6B6478;">Entraide Yopougon</div></div></header></sc-if>
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;"><div><a href="{{links.back}}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 600; margin-bottom: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg>Retour</a><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Contrat · Voyage solidaire</h1><p style="margin: 4px 0 0; font-size: 14px; color: #6B6478;">Entraide Yopougon</p></div></div></sc-if>
+<sc-if value="{{justSigned}}" hint-placeholder-val="{{ false }}">
+<div class="cz-card cz-card--lg" style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 36px 24px;">
+<span style="width: 72px; height: 72px; border-radius: 50%; background: #DFF3E7; color: #2E9E5B; display: inline-flex; align-items: center; justify-content: center;"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+<h2 class="t" style="font-size: 22px;">Contrat signé !</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.6; color: #6B6478; max-width: 420px;">Vous êtes engagé sur le projet Voyage solidaire. Votre première échéance — le fonds d’entrée de 50 000 F — est maintenant dans votre échéancier.</p>
+<div style="font-size: 12.5px; color: #6B6478;">Signé électroniquement le 25/09/2026 à 10:42</div>
+<div style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 360px;">
+<a class="cz-btn cz-btn--block cz-btn--lg" href="{{links.projet}}" style="color: #FFFFFF;">Voir mon échéancier</a>
+<button type="button" class="cz-btn cz-btn--secondary cz-btn--block">Télécharger le contrat signé</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{notJustSigned}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<sc-if value="{{consult}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div><b>Contrat signé le 25/09/2026.</b> Vous pouvez le relire ou le télécharger à tout moment.</div></div></sc-if>
+<div class="cz-card" style="border: 2px solid #D85A30; display: flex; flex-direction: column; gap: 8px;">
+<span class="mb-lbl" style="font-weight: 600; text-transform: uppercase; letter-spacing: .04em;">Votre engagement</span>
+<div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 17px; line-height: 1.45; color: #1B1830;">50 000 F à l’entrée, puis 10 000 F par mois pendant 12 mois.</div>
+<div class="mb-row" style="padding-top: 8px; border-top: 1px solid #E4E0EA;"><span style="font-size: 14px; color: #6B6478;">Total</span><b style="font-family: Poppins, sans-serif; font-size: 20px; color: #993C1D;">170 000 F</b></div>
+</div>
+<article class="cz-card cz-card--lg" style="font-size: 16px; line-height: 1.7; color: #2C2A38;">
+<h2 class="t" style="margin-bottom: 4px;">Contrat de souscription</h2>
+<p style="margin: 0 0 14px; font-size: 13.5px; color: #6B6478;">Projet Voyage solidaire · Entraide Yopougon, Abidjan</p>
+<p style="margin: 0 0 12px;"><b>Entre</b> l’association Entraide Yopougon, et <b>Moussa Diarra</b>, souscripteur, joignable au +225 05 44 21 87 90.</p>
+<p style="margin: 0 0 12px;"><b>Article 1 — Objet.</b> Le souscripteur s’engage à participer au financement du projet Voyage solidaire.</p>
+<p style="margin: 0 0 12px;"><b>Article 2 — Montant.</b> La participation totale est de 170 000 F CFA : un fonds d’entrée de 50 000 F, puis 12 échéances mensuelles de 10 000 F, payables le 5 de chaque mois.</p>
+<p style="margin: 0 0 12px;"><b>Article 3 — Paiement.</b> Les versements sont effectués par mobile money ou virement, puis déclarés sur Cotiz. Un paiement n’est acquis qu’après validation par l’association.</p>
+<p style="margin: 0 0 12px;"><b>Article 4 — Retard.</b> [CONDITIONS EN CAS DE RETARD DÉFINIES PAR L’ASSOCIATION]</p>
+<p style="margin: 0;"><b>Article 5 — Résiliation.</b> [CONDITIONS DE RÉSILIATION DÉFINIES PAR L’ASSOCIATION]</p>
+<div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #E4E0EA; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13.5px;">
+<div><span class="mb-lbl">Pour l’association</span><div style="font-family: Poppins, sans-serif; font-weight: 600; color: #1B1830;">Awa Koné, trésorière</div><div class="mb-lbl">Signé le 18/09/2026</div></div>
+<div><span class="mb-lbl">Le souscripteur</span><div style="font-family: Poppins, sans-serif; font-weight: 600; color: #1B1830;">Moussa Diarra</div><div class="mb-lbl">{{memberSig}}</div></div>
+</div>
+</article>
+<sc-if value="{{consult}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--secondary cz-btn--block">Télécharger le contrat signé</button></sc-if>
+<sc-if value="{{toSignWeb}}" hint-placeholder-val="{{ true }}"><div class="cz-card" style="display: flex; flex-direction: column; gap: 12px;">
+<button type="button" onClick="{{toggle}}" style="display: flex; align-items: flex-start; gap: 10px; background: transparent; border: none; padding: 0; text-align: left; cursor: pointer; min-height: 44px; font-size: 14.5px; line-height: 1.5;"><span class="{{cbCls}}" style="margin-top: 2px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>J’ai lu et j’accepte les termes du contrat.</button>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;"><span class="mb-lbl">Signature électronique horodatée</span><button type="button" class="{{signCls}}" onClick="{{sign}}" aria-disabled="{{disabledStr}}">Signer le contrat</button></div>
+</div></sc-if>
+</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+
+<sc-if value="{{toSignMobile}}" hint-placeholder-val="{{ false }}"><div style="{{s.bar}}">
+<button type="button" onClick="{{toggle}}" style="display: flex; align-items: flex-start; gap: 10px; background: transparent; border: none; padding: 0; text-align: left; cursor: pointer; min-height: 44px; font-size: 14px; line-height: 1.45;"><span class="{{cbCls}}" style="margin-top: 1px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>J’ai lu et j’accepte les termes du contrat.</button>
+<button type="button" class="{{signClsBlock}}" onClick="{{sign}}" aria-disabled="{{disabledStr}}" style="height: 50px;">Signer le contrat</button>
+<span class="mb-lbl" style="text-align: center; font-size: 11.5px;">Signature électronique horodatée</span>
+</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "etat": {"editor": "enum", "options": ["lecture", "case-cochee", "signe", "consultation"], "default": "lecture"}, "$preview": {"width": 1440, "height": 1300}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { checked: null, signed: false }; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const etat = P.etat || 'lecture';
+    const checked = S.checked !== null ? S.checked : etat === 'case-cochee';
+    const justSigned = S.signed || etat === 'signe';
+    const consult = etat === 'consultation';
+    const toSign = !justSigned && !consult;
+    const btn = 'cz-btn' + (checked ? '' : ' is-disabled');
+    const v = {
+      forceNav: !toSign,
+      justSigned, notJustSigned: !justSigned, consult,
+      toSignWeb: toSign && !m, toSignMobile: toSign && m,
+      memberSig: consult ? 'Signé le 25/09/2026 à 10:42' : 'En attente de votre signature',
+      cbCls: 'cz-cb' + (checked ? ' is-on' : ''),
+      toggle: () => this.setState({ checked: !checked }),
+      disabled: !checked, disabledStr: checked ? 'false' : 'true',
+      signCls: btn, signClsBlock: btn + ' cz-btn--block',
+      sign: () => { if (checked) this.setState({ signed: true }); },
+      links: { back: L(consult ? 'MbContrats' : 'MbAccueil'), projet: L('MbProjet') }
+    };
+    const hasNav = true && !(m && true && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 1300px; position: relative; display: grid; grid-template-columns: ' + (true ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,80px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '170px' : '170px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

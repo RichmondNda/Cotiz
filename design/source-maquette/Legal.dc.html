@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cotiz — Informations légales</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+</style>
+</helmet>
+<div data-theme="manager" style="{{s.root}}">
+<dc-import name="PublicHeader" device="{{device}}" hint-size="100%,72px"></dc-import>
+<div style="{{s.band}}">
+<div style="{{s.tabs}}" role="tablist" aria-label="Documents légaux">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="3">
+<button type="button" role="tab" aria-selected="{{d.on}}" onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button>
+</sc-for>
+</div>
+<h1 style="{{s.h1}}">{{doc.title}}</h1>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+<span style="font-size: 13.5px; color: #6B6478;">Dernière mise à jour : [DATE]</span>
+<div style="display: flex; gap: 8px;">
+<button type="button" class="cz-btn cz-btn--secondary cz-btn--sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3.5h10V9M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="6.5" rx="1"/></svg>Imprimer</button>
+<button type="button" class="cz-btn cz-btn--secondary cz-btn--sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></svg>Télécharger en PDF</button>
+</div>
+</div>
+</div>
+
+<div style="{{s.body}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}">
+<nav aria-label="Sommaire" style="position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 2px;">
+<div style="font-family: Poppins, sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #6B6478; padding: 0 12px 8px;">SOMMAIRE</div>
+<sc-for list="{{sections}}" as="sec" hint-placeholder-count="6">
+<a href="{{sec.href}}" onClick="{{sec.pick}}" style="{{sec.navStyle}}">{{sec.title}}</a>
+</sc-for>
+</nav>
+</sc-if>
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}">
+<div style="border: 1px solid #E4E0EA; border-radius: 12px; background: #FFFFFF;">
+<button type="button" onClick="{{toggleToc}}" aria-expanded="{{tocOpen}}" style="width: 100%; min-height: 50px; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: transparent; border: none; font-family: Inter, sans-serif; font-weight: 600; font-size: 14.5px; color: #1B1830;">Sommaire<svg style="{{tocChev}}" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>
+<sc-if value="{{tocOpen}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; padding: 0 8px 10px;">
+<sc-for list="{{sections}}" as="sec" hint-placeholder-count="6"><a href="{{sec.href}}" onClick="{{sec.pick}}" style="{{sec.navStyle}}">{{sec.title}}</a></sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<article style="max-width: 720px; display: flex; flex-direction: column; gap: 28px;">
+<sc-for list="{{sections}}" as="sec" hint-placeholder-count="6">
+<section id="{{sec.id}}" style="display: flex; flex-direction: column; gap: 10px;">
+<h2 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 20px; color: #1B1830;">{{sec.title}}</h2>
+<p style="margin: 0; font-size: 15px; line-height: 1.7; color: #6B6478;">[Texte juridique de la section « {{sec.title}} » à fournir par votre conseil juridique.]</p>
+<p style="margin: 0; font-size: 15px; line-height: 1.7; color: #6B6478;">[Suite du texte.]</p>
+</section>
+</sc-for>
+</article>
+</div>
+<div style="flex-grow: 1;"></div>
+<dc-import name="PublicFooter" device="{{device}}" hint-size="100%,300px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device":{"editor":"enum","options":["web","mobile"],"default":"web"},"document":{"editor":"enum","options":["cgu","confidentialite","mentions"],"default":"cgu"},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { doc: null, active: 0, tocOpen: false }; }
+  renderVals() {
+    const m = this.props.device === 'mobile';
+    const DOCS = {
+      cgu: { label: 'CGU', title: 'Conditions générales d’utilisation', sections: ['Objet', 'Accès au service', 'Comptes et identifiants', 'Paiements entre membres et associations', 'Abonnements', 'Responsabilités', 'Résiliation', 'Droit applicable'] },
+      confidentialite: { label: 'Confidentialité', title: 'Politique de confidentialité', sections: ['Données collectées', 'Finalités', 'Durée de conservation', 'Destinataires', 'Sécurité', 'Vos droits', 'Contact'] },
+      mentions: { label: 'Mentions légales', title: 'Mentions légales', sections: ['Éditeur', 'Directeur de la publication', 'Hébergement', 'Propriété intellectuelle', 'Contact'] }
+    };
+    const key = this.state.doc || this.props.document || 'cgu';
+    const doc = DOCS[key];
+    return {
+      device: this.props.device || 'web', web: !m, mobile: m,
+      doc,
+      docs: Object.keys(DOCS).map((k) => ({
+        label: DOCS[k].label, on: k === key,
+        pick: () => this.setState({ doc: k, active: 0 }),
+        style: `min-height: 40px; padding: 8px 14px; border-radius: 999px; border: 1px solid ${k === key ? '#7F77DD' : '#E4E0EA'}; background: ${k === key ? '#EFECFB' : '#FFFFFF'}; color: ${k === key ? '#5B51C4' : '#2C2A38'}; font-family: Inter, sans-serif; font-size: 13.5px; font-weight: ${k === key ? 600 : 400}; cursor: pointer; white-space: nowrap;`
+      })),
+      sections: doc.sections.map((t, i) => ({
+        id: key + '-' + i, href: '#' + key + '-' + i, title: (i + 1) + '. ' + t,
+        pick: () => this.setState({ active: i }),
+        navStyle: `display: block; padding: 8px 12px; border-radius: 9px; font-size: 13.5px; ${i === this.state.active ? 'background: #EFECFB; color: #5B51C4; font-weight: 600;' : 'color: #6B6478;'}`
+      })),
+      tocOpen: this.state.tocOpen,
+      toggleToc: () => this.setState({ tocOpen: !this.state.tocOpen }),
+      tocChev: this.state.tocOpen ? 'transform: rotate(180deg); color: #7F77DD;' : 'color: #6B6478;',
+      s: {
+        root: `width: 100%; height: ${m ? 2300 : 1500}px; display: flex; flex-direction: column; background: #FFFFFF; font-family: Inter, Arial, sans-serif; overflow: hidden;`,
+        band: m ? 'background: #FAECE7; padding: 24px 16px; display: flex; flex-direction: column; gap: 14px;' : 'background: #FAECE7; padding: 40px 120px 32px; display: flex; flex-direction: column; gap: 16px;',
+        tabs: m ? 'display: flex; gap: 8px; overflow-x: auto;' : 'display: flex; gap: 8px;',
+        h1: `margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: ${m ? 26 : 32}px; color: #26215C;`,
+        body: m ? 'padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 20px;' : 'padding: 40px 120px 64px; display: grid; grid-template-columns: 260px minmax(0, 720px); gap: 64px;'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

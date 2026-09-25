@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Notifications</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:17px;color:#1B1830}
+.mg-lbl{font-size:12.5px;color:#6B6478}
+.mg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mg-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid #F0EDF3}
+.mg-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1000px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="aucun" hint-size="240px,1000px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Notifications" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<div class="cz-pagehead"><div><h1>Notifications</h1><p>{{sub}}</p></div><div class="end"><sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--secondary" onClick="{{markAll}}">Tout marquer comme lu</button></sc-if></div></div>
+<div class="cz-toolbar"><sc-for list="{{filters}}" as="c" hint-placeholder-count="5"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}">{{c.label}}</button></sc-for></div>
+<div style="max-width: 860px; display: flex; flex-direction: column; gap: 8px;">
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6c0 4-2 5-2 5h16s-2-1-2-5a6 6 0 0 0-6-6zM10 20a2 2 0 0 0 4 0"/></svg></div><div class="t">Aucune notification</div><div class="d">Déclarations de paiement, signatures et retards s’afficheront ici.</div></div></div></sc-if>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<div class="cz-notif-group">{{g.t}}</div>
+<sc-for list="{{g.items}}" as="n" hint-placeholder-count="2"><a class="{{n.cls}}" href="{{n.href}}" style="color: inherit;"><span class="ic" style="{{n.icStyle}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.icon}}"/></svg></span><span style="flex-grow: 1; min-width: 0;"><span class="tt" style="display: block;">{{n.tt}}</span><span class="ds" style="display: block;">{{n.ds}}</span><span style="display: inline-block; margin-top: 4px; font-size: 12.5px; font-weight: 600; color: #5B51C4;">{{n.cta}} →</span></span><span class="tm">{{n.tm}}</span><sc-if value="{{n.unread}}" hint-placeholder-val="{{ false }}"><span class="unread-dot" aria-label="Non lue"></span></sc-if></a></sc-for>
+</div>
+</sc-for>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "tout-lu", "vide"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { read: null, f: 'all' }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const read = S.read !== null ? S.read : etat === 'tout-lu';
+    const empty = etat === 'vide';
+    const T = {
+      pay: ['background: #FBEEDB; color: #8A5410;', 'M5.5 5.5h13a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3zM2.5 10h19M6 15h4'],
+      late: ['background: #FBE0E0; color: #96201F;', 'M12 3.5l9 16H3zM12 10v4.5M12 17.3v.2'],
+      sign: ['background: #DFF3E7; color: #1E6B3E;', 'M14 3v5h5M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8zM9 14l2 2 4-4'],
+      info: ['background: #DEEBF7; color: #1E5585;', 'M5.5 3h13v18l-3-2-3.5 2-3.5-2-3 2zM9 8h6M9 12h6']
+    };
+    const G = [
+      { t: 'Aujourd’hui', items: [
+        { k: 'pay', c: 'paiements', tt: 'Nouvelle déclaration de paiement', ds: 'Moussa Diarra a déclaré 75 000 F pour Centre communautaire (août, septembre, octobre).', tm: '10:41', cta: 'Vérifier et valider', href: 'MgPaiement.dc.html', u: true },
+        { k: 'pay', c: 'paiements', tt: '6 paiements à valider', ds: 'Dont 4 sur Centre communautaire.', tm: '08:00', cta: 'Ouvrir la file de validation', href: 'MgPaiements.dc.html', u: true },
+        { k: 'late', c: 'retards', tt: 'Relance automatique envoyée', ds: 'Règle « 15 jours de retard » : 14 souscripteurs relancés sur Centre communautaire.', tm: '07:30', cta: 'Voir les retardataires', href: 'MgRelances.dc.html', u: true }] },
+      { t: 'Cette semaine', items: [
+        { k: 'sign', c: 'contrats', tt: 'Contrat signé', ds: '[Souscripteur] a signé le contrat Voyage solidaire.', tm: 'mar.', cta: 'Voir les contrats', href: 'MgContrats.dc.html' },
+        { k: 'late', c: 'retards', tt: 'Contrat non signé', ds: 'Fatou Traoré n’a pas encore signé le contrat Centre communautaire.', tm: 'lun.', cta: 'Voir le souscripteur', href: 'MgSouscripteur.dc.html' }] },
+      { t: 'Plus ancien', items: [
+        { k: 'info', c: 'abonnement', tt: 'Facture d’abonnement disponible', ds: 'Facture [N° FACTURE] · formule Essentiel.', tm: '[DATE]', cta: 'Voir l’abonnement', href: 'MgAbonnement.dc.html' },
+        { k: 'pay', c: 'paiements', tt: 'Paiement validé par Serge Gnagne', ds: 'Jean Kouassi · 12 500 F · Centre communautaire.', tm: '[DATE]', cta: 'Voir le paiement', href: 'MgPaiement.dc.html' }] }
+    ];
+    const f = S.f;
+    const groups = empty ? [] : G.map((g) => ({ t: g.t, items: g.items.filter((n) => f === 'all' || n.c === f).map((n) => { const u = !!n.u && !read; return { ...n, unread: u, cls: 'cz-notif' + (u ? ' is-unread' : ''), icStyle: T[n.k][0], icon: T[n.k][1] }; }) })).filter((g) => g.items.length);
+    const v = {
+      empty, hasUnread: !read && !empty, markAll: () => this.setState({ read: true }),
+      sub: empty ? 'Rien de nouveau' : read ? 'Tout est lu' : '3 non lues',
+      filters: [['all', 'Toutes'], ['paiements', 'Paiements'], ['retards', 'Retards'], ['contrats', 'Contrats'], ['abonnement', 'Abonnement']].map(([k, l]) => ({ label: l, cls: 'cz-chip' + (f === k ? ' is-on' : ''), pick: () => this.setState({ f: k }) })),
+      groups
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center;' }, v);
+  }
+}
+</script>
+</body>
+</html>

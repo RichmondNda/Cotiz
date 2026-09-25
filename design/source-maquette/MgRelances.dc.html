@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Relances</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:17px;color:#1B1830}
+.mg-lbl{font-size:12.5px;color:#6B6478}
+.mg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mg-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid #F0EDF3}
+.mg-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1150px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="relances" hint-size="240px,1150px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Relances" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<div class="cz-pagehead"><div><h1>Relances</h1><p>Rappels de paiement automatiques et relances ponctuelles</p></div><div class="end"><a class="cz-btn cz-btn--secondary" href="MgPaiements.dc.html">Paiements à valider (6)</a></div></div>
+<div class="cz-tabs" role="tablist"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><span class="{{t.cls}}" role="tab" onClick="{{t.pick}}" aria-selected="{{t.on}}" style="cursor: pointer;">{{t.label}}</span></sc-for></div>
+
+<sc-if value="{{isRetards}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<sc-if value="{{noLate}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="i i--success"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><div class="t">Aucun retard de paiement</div><div class="d">Tous vos souscripteurs sont à jour. Les relances automatiques restent actives.</div></div></div></sc-if>
+<sc-if value="{{hasLate}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="cz-grid3" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;">
+<div class="cz-kpi"><div class="l"><span class="ic ic--danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>Souscripteurs en retard</div><div class="v">14</div><div class="d bad">sur 52 · Centre communautaire</div></div>
+<div class="cz-kpi"><div class="l">Montant en retard</div><div class="v">[MONTANT] F</div><div class="d">cumul des échéances non payées</div></div>
+<div class="cz-kpi"><div class="l">Dernière relance automatique</div><div class="v">20/09/2026</div><div class="d">« 15 jours de retard » · 14 envois</div></div>
+</div>
+<div class="cz-toolbar"><label class="cz-input cz-search" style="width: 260px;"><input placeholder="Nom ou téléphone" aria-label="Rechercher" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0;"></label><button type="button" class="cz-chip is-on">Centre communautaire</button><button type="button" class="cz-chip">Voyage solidaire</button><button type="button" class="cz-chip" style="margin-left: auto;">Retard : tous</button></div>
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ false }}"><div class="cz-bulk"><b>{{selCount}} sélectionné(s)</b><div class="end"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{clearSel}}">Annuler</button><button type="button" class="cz-btn cz-btn--sm" onClick="{{openModal}}">Relancer maintenant</button></div></div></sc-if>
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th style="width: 40px;"><button type="button" onClick="{{toggleAll}}" aria-label="Tout sélectionner" style="background: none; border: none; padding: 0; cursor: pointer;"><span class="{{allCb}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button></th><th>Souscripteur</th><th>Projet</th><th>Échéances en retard</th><th class="num">Montant dû</th><th>Retard depuis</th><th>Dernière relance</th><th></th></tr></thead>
+<tbody><sc-for list="{{rows}}" as="r" hint-placeholder-count="5"><tr class="{{r.trCls}}">
+<td><button type="button" onClick="{{r.toggle}}" aria-label="Sélectionner" style="background: none; border: none; padding: 0; cursor: pointer;"><span class="{{r.cb}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button></td>
+<td><div class="cz-person"><span class="cz-avatar cz-avatar--sm cz-avatar--danger">{{r.ini}}</span><div><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">{{r.name}}</a><div class="sub cz-mono">{{r.tel}}</div></div></div></td>
+<td>{{r.project}}</td><td>{{r.n}}</td><td class="num strong">{{r.due}}</td><td>{{r.since}}</td><td style="color: #6B6478;">{{r.last}}</td>
+<td><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{r.one}}">Relancer</button></td></tr></sc-for></tbody></table></div>
+<div class="cz-tfoot"><span>1–5 sur 14</span><div class="cz-pagin"><span class="is-disabled">‹</span><span class="is-on">1</span><span>2</span><span>3</span><span>›</span></div></div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isAuto}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start;">
+<div class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 6px;">
+<div class="mg-row"><h2 class="t">Règles de relance automatique</h2><span class="cz-badge cz-badge--brand cz-badge--sm">Tous les projets</span></div>
+<p class="mg-lbl" style="margin: 0 0 6px; font-size: 13.5px;">Cotiz envoie ces rappels aux souscripteurs concernés, sans action de votre part.</p>
+<div class="mg-list"><sc-for list="{{rules}}" as="ru" hint-placeholder-count="4"><button type="button" onClick="{{ru.toggle}}" style="width: 100%; background: transparent; border: none; border-bottom: 1px solid #F0EDF3; cursor: pointer; text-align: left;"><span style="{{ru.icStyle}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ru.icon}}"/></svg></span><span style="flex-grow: 1;"><b style="display: block; font-size: 14px; color: #1B1830;">{{ru.t}}</b><span class="mg-lbl">{{ru.d}}</span></span><span class="{{ru.cls}}"></span></button></sc-for></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 10px;">
+<h2 class="t" style="font-size: 15px;">Canaux d’envoi</h2>
+<div class="mg-row" style="font-size: 14px;"><span>Notification dans l’espace souscripteur</span><span class="cz-badge cz-badge--success cz-badge--sm">Actif</span></div>
+<div class="mg-row" style="font-size: 14px;"><span>SMS</span><span class="cz-soon" style="font-size: 11px; padding: 2px 8px;">V2</span></div>
+<div class="mg-row" style="font-size: 14px;"><span>Email</span><span class="cz-soon" style="font-size: 11px; padding: 2px 8px;">V2</span></div>
+</div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 8px;">
+<h2 class="t" style="font-size: 15px;">Aperçu du message</h2>
+<div style="background: #F6F4F8; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.55;">Bonjour Moussa, votre échéance de 25 000 F pour le projet Centre communautaire est prévue le 5 octobre. Pensez à déclarer votre paiement sur Cotiz. — Entraide Yopougon</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isHisto}}" hint-placeholder-val="{{ false }}">
+<div class="cz-table-wrap"><table class="cz-table"><thead><tr><th>Date</th><th>Type</th><th>Projet</th><th class="num">Destinataires</th><th>Canal</th><th>Envoyée par</th></tr></thead>
+<tbody><sc-for list="{{history}}" as="h" hint-placeholder-count="5"><tr><td>{{h.date}}</td><td><span class="{{h.cls}}">{{h.type}}</span></td><td>{{h.project}}</td><td class="num">{{h.n}}</td><td>Notification</td><td style="color: #6B6478;">{{h.by}}</td></tr></sc-for></tbody></table></div>
+</sc-if>
+</main>
+</div>
+<sc-if value="{{modalOpen}}" hint-placeholder-val="{{ false }}"><div style="{{overlayStyle}}" onClick="{{closeModal}}"><div class="cz-modal cz-modal--md" role="dialog" aria-modal="true" aria-label="Envoyer une relance" onClick="{{stop}}" style="width: 520px;">
+<div class="mh">Relancer {{modalCount}}</div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 12px;">
+<div class="cz-field"><span class="cz-label">Message</span><textarea class="cz-input cz-input--area" style="min-height: 110px;">Bonjour, nous n’avons pas encore reçu vos échéances en retard pour le projet Centre communautaire. Merci de régulariser et de déclarer votre paiement sur Cotiz. — Entraide Yopougon</textarea><span class="cz-help">Le montant dû de chaque souscripteur est ajouté automatiquement.</span></div>
+<div class="cz-field"><span class="cz-label">Canal</span><div class="cz-seg"><span class="is-on">Notification</span><span class="is-disabled" title="Disponible en V2">SMS · V2</span><span class="is-disabled" title="Disponible en V2">Email · V2</span></div></div>
+</div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{closeModal}}">Annuler</button><button type="button" class="cz-btn" onClick="{{send}}">Envoyer la relance</button></div>
+</div></div></sc-if>
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}"><div class="cz-toast" role="status" style="position: absolute; right: 32px; bottom: 32px; z-index: 50;"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></span><div><div class="ttl">Relance envoyée</div><div class="msg">{{sentMsg}}</div></div><button type="button" class="act" onClick="{{hideToast}}" style="background: none; border: none; cursor: pointer;">Fermer</button></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "modale-relance", "relance-envoyee", "aucun-retard"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1150}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'retards', sel: null, modal: null, sent: false, rules: [true, true, true, true], canal: 'app' }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const R = [
+      { name: 'Moussa Diarra', ini: 'MD', tel: '+225 05 44 21 87 90', project: 'Centre communautaire', n: '2 (août, sept.)', due: '50 000 F', since: '5 août', last: 'Auto · 20/09' },
+      { name: 'Koffi Brou', ini: 'KB', tel: '+225 07 [XX XX XX XX]', project: 'Centre communautaire', n: '2 (août, sept.)', due: '50 000 F', since: '5 août', last: 'Auto · 20/09' },
+      { name: 'Jean Kouassi', ini: 'JK', tel: '+225 07 55 66 77 88', project: 'Centre communautaire', n: '1 partielle + sept.', due: '37 500 F', since: '5 août', last: 'Manuelle · 12/09' },
+      { name: '[Souscripteur]', ini: '··', tel: '+225 [XX XX XX XX XX]', project: 'Centre communautaire', n: '1 (sept.)', due: '25 000 F', since: '5 sept.', last: 'Auto · 20/09' },
+      { name: '[Souscripteur]', ini: '··', tel: '+225 [XX XX XX XX XX]', project: 'Centre communautaire', n: '1 (sept.)', due: '25 000 F', since: '5 sept.', last: '—' }
+    ];
+    const sel = S.sel || (etat === 'modale-relance' ? [0, 1, 2] : []);
+    const modal = S.modal !== null ? S.modal : (etat === 'modale-relance' ? sel.length : 0);
+    const sent = S.sent || etat === 'relance-envoyee';
+    const tog = (i) => () => this.setState({ sel: sel.includes(i) ? sel.filter((x) => x !== i) : sel.concat([i]) });
+    const RULES = [
+      { t: '3 jours avant l’échéance', d: 'Rappel doux : montant et date de la prochaine échéance', icon: 'M12 3a6 6 0 0 0-6 6c0 4-2 5-2 5h16s-2-1-2-5a6 6 0 0 0-6-6zM10 20a2 2 0 0 0 4 0', c: 'info' },
+      { t: 'Le jour de l’échéance', d: 'Si aucun paiement n’a été déclaré', icon: 'M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM4 9.5h16', c: 'info' },
+      { t: '7 jours de retard', d: 'Signale le retard et le montant dû', icon: 'M12 3.5l9 16H3zM12 10v4.5M12 17.3v.2', c: 'warn' },
+      { t: '15 jours de retard', d: 'Relance ferme, copie au gestionnaire', icon: 'M12 3.5l9 16H3zM12 10v4.5M12 17.3v.2', c: 'late' }
+    ];
+    const IC = { info: 'background: #DEEBF7; color: #1E5585;', warn: 'background: #FBEEDB; color: #8A5410;', late: 'background: #FBE0E0; color: #96201F;' };
+    const rules = S.rules;
+    const v = {
+      tabs: [['retards', 'Retardataires (14)'], ['auto', 'Relances automatiques'], ['histo', 'Historique des envois']].map(([k, l]) => ({ label: l, on: S.tab === k ? 'true' : 'false', cls: S.tab === k ? 'is-on' : '', pick: () => this.setState({ tab: k }) })),
+      isRetards: S.tab === 'retards', isAuto: S.tab === 'auto', isHisto: S.tab === 'histo',
+      noLate: etat === 'aucun-retard', hasLate: etat !== 'aucun-retard',
+      rows: R.map((r, i) => ({ ...r, cb: 'cz-cb' + (sel.includes(i) ? ' is-on' : ''), trCls: sel.includes(i) ? 'is-selected' : '', toggle: tog(i), one: () => this.setState({ sel: [i], modal: 1 }) })),
+      allCb: 'cz-cb' + (sel.length === R.length ? ' is-on' : ''), toggleAll: () => this.setState({ sel: sel.length === R.length ? [] : R.map((_, i) => i) }),
+      hasSel: sel.length > 0, selCount: String(sel.length), clearSel: () => this.setState({ sel: [] }),
+      openModal: () => this.setState({ modal: sel.length }), closeModal: () => this.setState({ modal: 0 }),
+      modalOpen: modal > 0, modalCount: modal === 1 ? (R[sel[0]] || R[0]).name : modal + ' souscripteurs',
+      send: () => this.setState({ modal: 0, sent: true, sel: [] }), sent, hideToast: () => this.setState({ sent: false }),
+      sentMsg: 'Les souscripteurs sélectionnés ont reçu une notification.',
+      rules: RULES.map((r, i) => ({ ...r, cls: 'cz-toggle' + (rules[i] ? ' is-on' : ''), icStyle: 'width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; ' + IC[r.c], toggle: () => { const n = rules.slice(); n[i] = !n[i]; this.setState({ rules: n }); } })),
+      history: [
+        { date: '20/09/2026', type: 'Automatique', cls: info, project: 'Centre communautaire', n: '14', by: 'Cotiz · règle « 15 jours »' },
+        { date: '12/09/2026', type: 'Manuelle', cls: 'cz-badge cz-badge--brand cz-badge--sm', project: 'Centre communautaire', n: '3', by: 'Awa Koné' },
+        { date: '12/09/2026', type: 'Automatique', cls: info, project: 'Centre communautaire', n: '[N]', by: 'Cotiz · règle « 7 jours »' },
+        { date: '05/09/2026', type: 'Automatique', cls: info, project: 'Tous les projets', n: '[N]', by: 'Cotiz · jour d’échéance' },
+        { date: '02/09/2026', type: 'Automatique', cls: info, project: 'Tous les projets', n: '[N]', by: 'Cotiz · 3 jours avant' }
+      ]
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center;' }, v);
+  }
+}
+</script>
+</body>
+</html>

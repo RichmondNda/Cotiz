@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet · Souscripteurs (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="MgProjets-mobile.dc.html" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Centre communautaire</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Souscripteurs · 52</div></div></header>
+<nav aria-label="Sections du projet" class="m-hscroll" style="background: #FFFFFF; border-bottom: 1px solid #E4E0EA; padding: 0 6px; flex-shrink: 0; gap: 0;"><a href="MgProjet-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Vue d’ensemble</a><a href="MgProjetSouscripteurs-mobile.dc.html" aria-current="page" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid #7F77DD; color: #5B51C4; font-weight: 600;">Souscripteurs</a><a href="MgProjetPaiements-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Paiements</a><a href="MgProjetContrat-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Contrat</a><a href="MgProjetParametres-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Paramètres</a><a href="MgProjetRapports-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Rapports</a></nav>
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 96px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; gap: 8px;"><a class="cz-btn" href="MgAjoutSouscripteur-mobile.dc.html" style="flex: 1; color: #FFFFFF;">+ Ajouter</a><a class="cz-btn cz-btn--secondary" href="MgImport-mobile.dc.html" style="flex: 1;">Importer (Excel)</a></div>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="t">Aucun souscripteur</div><div class="d">Ajoutez des membres un par un ou importez une liste Excel.</div></div></div></sc-if>
+<sc-if value="{{notEmpty}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 10px;">
+<label class="cz-input cz-search"><input placeholder="Nom ou téléphone" aria-label="Rechercher" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0;"></label>
+<div class="m-hscroll"><sc-for list="{{chips}}" as="c" hint-placeholder-count="4"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}" style="min-height: 38px;">{{c.label}}</button></sc-for></div>
+<div class="m-list"><sc-for list="{{rows}}" as="r" hint-placeholder-count="6"><div>
+<span class="{{r.avCls}}">{{r.ini}}</span>
+<a href="MgSouscripteur-mobile.dc.html" style="flex-grow: 1; min-width: 0; color: inherit;"><b style="display: block; font-size: 14px; color: #1B1830;">{{r.name}}</b><span class="m-lbl">Reste {{r.rest}}</span></a>
+<span class="{{r.badgeCls}}">{{r.status}}</span>
+<button type="button" class="cz-btn cz-btn--ghost cz-btn--icon cz-btn--sm" onClick="{{r.ask}}" aria-label="Retirer du projet"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div></sc-for></div>
+<div class="m-lbl" style="text-align: center;">{{count}} affichés sur 52</div>
+</div></sc-if>
+</div>
+</div>
+<dc-import name="MgMobNav" active="projets" hint-size="100%,72px" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;"></dc-import>
+<sc-if value="{{rmOpen}}" hint-placeholder-val="{{ false }}"><div style="{{overlayStyle}}" onClick="{{cancel}}"><div class="m-sheet" onClick="{{stop}}" role="dialog" aria-label="Retirer du projet"><span class="m-grip"></span>
+<h2 class="t" style="font-size: 18px;">Retirer {{rmName}} ?</h2>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #6B6478;">Il ne verra plus ce projet. Ses paiements déjà validés restent dans l’historique. Cette action demande une confirmation.</p>
+<button type="button" class="cz-btn cz-btn--danger cz-btn--block" onClick="{{confirm}}" style="height: 48px;">Retirer du projet</button>
+<button type="button" class="cz-btn cz-btn--ghost cz-btn--block" onClick="{{cancel}}">Annuler</button></div></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "aucun-souscripteur", "retrait-confirmation"], "default": "nominal"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { filter: 'all', rm: null, removed: {} }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const R = [
+      ['MD', 'Moussa Diarra', '325 000 F', 'late', 'Retard · 2'], ['KB', 'Koffi Brou', '325 000 F', 'late', 'Retard · 2'], ['JK', 'Jean Kouassi', '287 500 F', 'late', 'Retard · 1'],
+      ['AK', 'Awa Koné', '300 000 F', 'ok', 'À jour'], ['KS', 'Kadiatou Sanogo', '300 000 F', 'ok', 'À jour'], ['SG', 'Serge Gnagne', '300 000 F', 'ok', 'À jour'], ['FT', 'Fatou Traoré', '500 000 F', 'sign', 'À signer']
+    ].map(([ini, name, rest, k, status], i) => ({ i, ini, name, rest, k, status }));
+    const rmIdx = S.rm !== null ? S.rm : (etat === 'retrait-confirmation' ? 0 : -1);
+    const rows = R.filter((r) => !S.removed[r.i] && (S.filter === 'all' || r.k === S.filter));
+    const C = { late: ['cz-badge cz-badge--danger cz-badge--sm', 'cz-avatar cz-avatar--sm cz-avatar--danger'], ok: ['cz-badge cz-badge--success cz-badge--sm', 'cz-avatar cz-avatar--sm'], sign: ['cz-badge cz-badge--warning cz-badge--sm', 'cz-avatar cz-avatar--sm cz-avatar--warning'] };
+    const v = {
+      empty: etat === 'aucun-souscripteur', notEmpty: etat !== 'aucun-souscripteur',
+      chips: [['all', 'Tous · 52'], ['late', 'En retard · 14'], ['ok', 'À jour · 37'], ['sign', 'À signer · 1']].map(([k, l]) => ({ label: l, cls: 'cz-chip' + (S.filter === k ? ' is-on' : ''), pick: () => this.setState({ filter: k }) })),
+      rows: rows.map((r) => ({ ...r, badgeCls: C[r.k][0], avCls: C[r.k][1], ask: () => this.setState({ rm: r.i }) })), count: String(rows.length),
+      rmOpen: rmIdx >= 0, rmName: (R[rmIdx] || R[0]).name,
+      cancel: () => this.setState({ rm: -1 }), confirm: () => this.setState({ removed: { ...S.removed, [rmIdx]: true }, rm: -1 })
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

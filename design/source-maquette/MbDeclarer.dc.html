@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Déclarer un paiement</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<sc-if value="{{showNav}}" hint-placeholder-val="{{ true }}"><dc-import name="MbNav" device="{{device}}" active="aucun" fab="{{ false }}" hint-size="{{s.navHint}}" style="{{s.nav}}"></dc-import></sc-if>
+<div style="{{s.col}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><header style="background: #FFFFFF; padding: 8px 8px 8px 6px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="{{links.back}}" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Déclarer un paiement</div><div style="font-size: 12.5px; color: #6B6478;">Étape {{stepN}} sur 4 · {{stepLabel}}</div></div></header></sc-if>
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;"><div><a href="{{links.back}}" style="display: inline-flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 600; margin-bottom: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg>Retour</a><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Déclarer un paiement</h1><p style="margin: 4px 0 0; font-size: 14px; color: #6B6478;">Étape {{stepN}} sur 4 · {{stepLabel}}</p></div></div></sc-if>
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div class="cz-steps"><sc-for list="{{steps}}" as="st" hint-placeholder-count="4"><sc-if value="{{st.line}}" hint-placeholder-val="{{ false }}"><span class="{{st.lnCls}}"></span></sc-if><span class="{{st.cls}}"><b>{{st.n}}</b>{{st.label}}</span></sc-for></div></sc-if>
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 6px;"><sc-for list="{{steps}}" as="st" hint-placeholder-count="4"><span style="{{st.bar}}"></span></sc-for></div></sc-if>
+
+<sc-if value="{{isProjet}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 12px;">
+<h2 class="t">Pour quel projet ?</h2>
+<sc-for list="{{projects}}" as="p" hint-placeholder-count="3">
+<button type="button" onClick="{{p.pick}}" style="{{p.style}}" aria-pressed="{{p.pressed}}" aria-disabled="{{p.dis}}">
+<span style="{{p.radio}}"><span style="{{p.dot}}"></span></span>
+<span style="flex-grow: 1; min-width: 0; text-align: left;"><b style="display: block; font-family: Poppins, sans-serif; font-size: 15px; color: #1B1830;">{{p.name}}</b><span style="font-size: 12.5px; color: #6B6478;">{{p.asso}}</span></span>
+<span style="text-align: right; font-size: 12.5px;"><b style="{{p.restStyle}}">{{p.rest}}</b><span style="display: block; color: #6B6478;">{{p.sub}}</span></span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isMontant}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div><h2 class="t">Combien avez-vous versé ?</h2><p style="margin: 4px 0 0; font-size: 13.5px; color: #6B6478;">{{projName}} · reste à payer {{projRest}}</p></div>
+<div class="cz-field"><label class="cz-label" for="md-amt">Montant versé</label>
+<div class="{{amtCls}}" style="height: 64px;"><input id="md-amt" inputmode="numeric" value="{{amtStr}}" onChange="{{onAmt}}" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;"><span class="sfx" style="font-size: 18px;">F CFA</span></div>
+<sc-if value="{{tooMuch}}" hint-placeholder-val="{{ false }}"><span class="cz-error">Ce montant dépasse votre reste à payer ({{projRest}}). Vérifiez le montant saisi.</span></sc-if>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;"><sc-for list="{{presets}}" as="c" hint-placeholder-count="3"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}" style="min-height: 40px;">{{c.label}}</button></sc-for></div>
+<div class="cz-alloc">
+<div class="hd"><b>Échéances couvertes</b><span class="cz-badge cz-badge--brand cz-badge--sm">Les plus anciennes d’abord</span></div>
+<div class="rows"><sc-for list="{{alloc}}" as="r" hint-placeholder-count="4"><div class="{{r.cls}}"><span class="{{r.cb}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="lbl"><b>{{r.label}}</b><sc-if value="{{r.late}}" hint-placeholder-val="{{ false }}"><span class="cz-badge cz-badge--danger cz-badge--sm">En retard</span></sc-if><sc-if value="{{r.partial}}" hint-placeholder-val="{{ false }}"><span class="cz-badge cz-badge--warning cz-badge--sm">Partiel</span></sc-if></span><span class="amt">{{r.amt}}<small>{{r.of}}</small></span></div></sc-for></div>
+<div class="ft"><span>{{allocFoot}}</span><b class="{{footCls}}">{{allocFootVal}}</b></div>
+</div>
+<sc-if value="{{partial}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--warning"><div><b>Paiement partiel.</b> {{partialMsg}}</div></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isPreuve}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Votre preuve de paiement</h2>
+<div style="{{s.two}}">
+<label class="cz-field"><span class="cz-label">Date du versement</span><input class="cz-input" value="25/09/2026"></label>
+<div class="cz-field"><span class="cz-label">Moyen de paiement</span><div class="cz-seg" style="width: 100%; box-sizing: border-box;"><sc-for list="{{modes}}" as="mo" hint-placeholder-count="2"><span class="{{mo.cls}}" onClick="{{mo.pick}}" style="flex: 1; text-align: center; min-height: 34px; display: inline-flex; align-items: center; justify-content: center;">{{mo.label}}</span></sc-for></div></div>
+</div>
+<div class="cz-field"><span class="cz-label">Capture ou photo du reçu</span>
+<sc-if value="{{noProof}}" hint-placeholder-val="{{ true }}"><div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button type="button" class="cz-btn cz-btn--secondary" onClick="{{addProof}}" style="flex: 1; min-width: 150px; height: 52px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.5-2h5L16 6h1.5A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM12 10a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/></svg>Prendre une photo</button>
+<button type="button" class="cz-btn cz-btn--secondary" onClick="{{addProof}}" style="flex: 1; min-width: 150px; height: 52px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM4 15.5l4.5-4.5 4 4 2.5-2.5 5 5M15.5 8.5v.1"/></svg>Choisir une image</button>
+</div><span class="cz-help">JPG, PNG ou PDF · 5 Mo maximum</span></sc-if>
+<sc-if value="{{hasProof}}" hint-placeholder-val="{{ false }}"><div style="display: flex; align-items: center; gap: 14px;"><div class="cz-proof" style="width: 84px; height: 104px;"><span class="glyph"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM4 15.5l4.5-4.5 4 4 2.5-2.5 5 5"/></svg></span></div><div style="flex-grow: 1;"><b style="font-size: 14px; color: #1B1830;">capture-paiement.jpg</b><div class="mb-lbl">412 Ko · ajoutée</div></div><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{rmProof}}">Changer</button></div></sc-if>
+</div>
+<label class="cz-field"><span class="cz-label">Référence de la transaction</span><input class="cz-input" value="MP260925.1042.A71"><span class="cz-help">Indiquée dans le SMS de confirmation de votre opérateur.</span></label>
+<label class="cz-field"><span class="cz-label">Commentaire (facultatif)</span><textarea class="cz-input cz-input--area" placeholder="Ex. : versement fait par mon frère"></textarea></label>
+</div>
+</sc-if>
+
+<sc-if value="{{isRecap}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<h2 class="t">Vérifiez avant d’envoyer</h2>
+<div class="cz-card cz-card--lg" style="display: flex; flex-direction: column; gap: 12px;">
+<div style="text-align: center; padding-bottom: 12px; border-bottom: 1px solid #E4E0EA;"><div class="mb-lbl">Montant déclaré</div><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 32px; color: #1B1830;">{{amtFmt}}</div><div class="mb-lbl">{{projName}} · Entraide Yopougon</div></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Échéances couvertes</span><b>{{coversTxt}}</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Date du versement</span><b>25/09/2026</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Moyen</span><b>{{modeTxt}}</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Référence</span><b class="cz-mono">MP260925.1042.A71</b></div>
+<div class="mb-row" style="font-size: 14px;"><span class="mb-lbl" style="font-size: 14px;">Preuve</span><b>capture-paiement.jpg</b></div>
+</div>
+<div class="cz-alert cz-alert--info"><div>Votre association vérifiera la réception avant de valider. Rien n’est débité par Cotiz.</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}"><div style="{{s.bar}}">
+<sc-if value="{{notFirst}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{prev}}">Précédent</button></sc-if>
+<sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button type="button" class="{{nextCls}}" onClick="{{next}}">Continuer</button></sc-if>
+<sc-if value="{{last}}" hint-placeholder-val="{{ false }}"><a class="cz-btn" href="{{links.ok}}" style="color: #FFFFFF;">Envoyer ma déclaration</a></sc-if>
+</div></sc-if>
+
+</div>
+</div>
+</div>
+
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}"><div style="{{s.bar}}"><div style="display: flex; gap: 8px;">
+<sc-if value="{{notFirst}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--secondary" onClick="{{prev}}" style="height: 50px;" aria-label="Étape précédente"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></button></sc-if>
+<sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button type="button" class="{{nextClsBlock}}" onClick="{{next}}" style="height: 50px; flex: 1;">Continuer</button></sc-if>
+<sc-if value="{{last}}" hint-placeholder-val="{{ false }}"><a class="cz-btn cz-btn--block" href="{{links.ok}}" style="height: 50px; flex: 1; color: #FFFFFF;">Envoyer ma déclaration</a></sc-if>
+</div></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "etape": {"editor": "enum", "options": ["projet", "montant", "preuve", "recap"], "default": "projet"}, "cas": {"editor": "enum", "options": ["nominal", "paiement-partiel", "montant-trop-eleve"], "default": "nominal"}, "$preview": {"width": 1440, "height": 1200}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: null, proj: 'centre', amt: null, proof: false, mode: 'mm' }; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const ORDER = ['projet', 'montant', 'preuve', 'recap'];
+    const LABELS = ['Projet', 'Montant', 'Preuve', 'Récapitulatif'];
+    const step = S.step !== null ? S.step : Math.max(0, ORDER.indexOf(P.etape || 'projet'));
+    const cas = P.cas || 'nominal';
+    const centre = S.proj === 'centre';
+    const unit = centre ? 25000 : 10000;
+    const rest = centre ? 325000 : 70000;
+    const defAmt = cas === 'paiement-partiel' ? 60000 : cas === 'montant-trop-eleve' ? 350000 : (centre ? 75000 : 10000);
+    const amt = S.amt !== null ? S.amt : defAmt;
+    const tooMuch = amt > rest;
+    const months = centre ? [['Août 2026', true], ['Septembre 2026', true], ['Octobre 2026', false], ['Novembre 2026', false], ['Décembre 2026', false]] : [['Octobre 2026', false], ['Novembre 2026', false], ['Décembre 2026', false], ['Janvier 2027', false]];
+    let left = Math.min(amt, rest), covered = [], partialRow = null;
+    const alloc = months.map(([label, late]) => {
+      const put = Math.max(0, Math.min(unit, left)); left -= put;
+      const full = put === unit, part = put > 0 && !full;
+      if (put > 0) covered.push(label.split(' ')[0].toLowerCase() + (part ? ' (partiel)' : ''));
+      if (part) partialRow = { label, put };
+      return { label, late: late && put > 0, partial: part, amt: fmt(put), of: 'sur ' + fmt(unit),
+        cls: 'row' + (full ? (late ? ' is-late' : '') : part ? ' is-partial' : ' is-off'), cb: 'cz-cb' + (put > 0 ? ' is-on' : '') };
+    });
+    const presets = centre ? [['1 échéance', 25000], ['Tout le retard', 50000], ['3 mois', 75000]] : [['1 échéance', 10000], ['3 mois', 30000]];
+    const go = (i) => () => this.setState({ step: Math.max(0, Math.min(3, i)) });
+    const canNext = !(step === 1 && (tooMuch || amt <= 0)) && !(step === 2 && !S.proof && S.step !== null && false);
+    const nextCls = 'cz-btn' + (canNext ? '' : ' is-disabled');
+    const v = {
+      stepN: String(step + 1), stepLabel: LABELS[step],
+      isProjet: step === 0, isMontant: step === 1, isPreuve: step === 2, isRecap: step === 3,
+      notFirst: step > 0, notLast: step < 3, last: step === 3,
+      next: () => { if (canNext) go(step + 1)(); }, prev: go(step - 1),
+      nextCls, nextClsBlock: nextCls + ' cz-btn--block',
+      steps: LABELS.map((label, i) => ({ label, n: i < step ? '✓' : String(i + 1), line: i > 0, lnCls: 'ln' + (i <= step ? ' is-done' : ''),
+        cls: 's' + (i < step ? ' is-done' : i === step ? ' is-cur' : ''), bar: `flex: 1; height: 4px; border-radius: 999px; background: ${i <= step ? '#D85A30' : '#E4E0EA'};` })),
+      projects: [
+        { k: 'centre', name: 'Centre communautaire', asso: 'Entraide Yopougon', rest: '50 000 F en retard', sub: 'reste 325 000 F', late: true },
+        { k: 'mutuelle', name: 'Mutuelle santé', asso: 'Assoc. des ressortissants de Man', rest: '70 000 F', sub: 'reste à payer' },
+        { k: 'voyage', name: 'Voyage solidaire', asso: 'Entraide Yopougon', rest: 'Contrat à signer', sub: 'avant tout paiement', off: true }
+      ].map((p) => { const on = S.proj === p.k; return { ...p,
+        pick: () => { if (!p.off) this.setState({ proj: p.k, amt: null }); }, pressed: on ? 'true' : 'false', dis: p.off ? 'true' : 'false',
+        style: `display: flex; align-items: center; gap: 12px; width: 100%; min-height: 68px; padding: 12px 14px; border-radius: 14px; cursor: ${p.off ? 'not-allowed' : 'pointer'}; background: ${p.off ? '#F6F4F8' : '#FFFFFF'}; opacity: ${p.off ? 0.6 : 1}; border: 2px solid ${on ? '#D85A30' : '#E4E0EA'};`,
+        radio: `width: 22px; height: 22px; border-radius: 50%; border: 2px solid ${on ? '#D85A30' : '#C9C3D3'}; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;`,
+        dot: `width: 10px; height: 10px; border-radius: 50%; background: ${on ? '#D85A30' : 'transparent'};`,
+        restStyle: `color: ${p.late ? '#96201F' : p.off ? '#8A5410' : '#1B1830'};` }; }),
+      projName: centre ? 'Centre communautaire' : 'Mutuelle santé', projRest: fmt(rest),
+      amtStr: String(amt).replace(/\B(?=(\d{3})+(?!\d))/g, ' '), amtFmt: fmt(amt), tooMuch,
+      amtCls: 'cz-input cz-input--suffix' + (tooMuch ? ' is-error' : ''),
+      onAmt: (e) => { const n = parseInt(String(e && e.target ? e.target.value : '').replace(/\D/g, ''), 10); this.setState({ amt: isNaN(n) ? 0 : n }); },
+      presets: presets.map(([l, a]) => ({ label: l + ' · ' + fmt(a), cls: 'cz-chip' + (a === amt ? ' is-on' : ''), pick: () => this.setState({ amt: a }) })),
+      alloc, partial: !!partialRow && !tooMuch,
+      partialMsg: partialRow ? `Il restera ${fmt(unit - partialRow.put)} à payer pour ${partialRow.label.split(' ')[0].toLowerCase()}.` : '',
+      allocFoot: tooMuch ? 'Excédent non affecté' : 'Total affecté', allocFootVal: tooMuch ? '+ ' + fmt(amt - rest) : fmt(Math.min(amt, rest)), footCls: tooMuch ? 'neg' : '',
+      coversTxt: covered.slice(0, 4).join(', ') + (covered.length > 4 ? '…' : ''),
+      modes: [['mm', 'Mobile money'], ['vir', 'Virement']].map(([k, l]) => ({ label: l, cls: S.mode === k ? 'is-on' : '', pick: () => this.setState({ mode: k }) })),
+      modeTxt: S.mode === 'mm' ? 'Mobile money' : 'Virement bancaire',
+      hasProof: S.proof || step === 3, noProof: !(S.proof || step === 3),
+      addProof: () => this.setState({ proof: true }), rmProof: () => this.setState({ proof: false }),
+      links: { back: L('MbAccueil'), ok: L('MbDeclarerOk') }
+    };
+    const hasNav = true && !(m && true && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 1200px; position: relative; display: grid; grid-template-columns: ' + (true ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,80px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '150px' : '150px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

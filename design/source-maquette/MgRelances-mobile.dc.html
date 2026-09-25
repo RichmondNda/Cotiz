@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Relances (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="MgPlus-mobile.dc.html" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Relances</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">14 retardataires</div></div></header>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 170px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="cz-seg" style="width: 100%; box-sizing: border-box;"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><span class="{{t.cls}}" onClick="{{t.pick}}" style="flex: 1; text-align: center; padding: 7px 6px;">{{t.label}}</span></sc-for></div>
+<sc-if value="{{isRetards}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 12px;">
+<sc-if value="{{sent}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div><b>Relance envoyée.</b> Les souscripteurs ont reçu une notification.</div></div></sc-if>
+<sc-if value="{{noLate}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="i i--success"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><div class="t">Aucun retard</div><div class="d">Les relances automatiques restent actives.</div></div></div></sc-if>
+<sc-if value="{{hasLate}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 10px;">
+<div class="m-kpis"><div class="cz-kpi"><div class="l">En retard</div><div class="v" style="color: #96201F;">14</div><div class="d">sur 52</div></div><div class="cz-kpi"><div class="l">Dernière auto</div><div class="v">20/09</div><div class="d">14 envois</div></div></div>
+<div class="m-list"><sc-for list="{{rows}}" as="r" hint-placeholder-count="5"><button type="button" onClick="{{r.toggle}}" style="cursor: pointer;"><span class="{{r.cb}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span style="flex-grow: 1; min-width: 0;"><b style="display: block; font-size: 14px; color: #1B1830;">{{r.name}}</b><span class="m-lbl">{{r.n}} · relance : {{r.last}}</span></span><b style="font-size: 14px; color: #96201F;">{{r.due}}</b></button></sc-for></div>
+<div class="m-lbl" style="text-align: center;">5 affichés sur 14</div>
+</div></sc-if>
+</div></sc-if>
+<sc-if value="{{isAuto}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 12px;">
+<div class="m-list"><sc-for list="{{rules}}" as="ru" hint-placeholder-count="4"><button type="button" onClick="{{ru.toggle}}" style="cursor: pointer;"><span style="flex-grow: 1;"><b style="display: block; font-size: 14px; color: #1B1830;">{{ru.t}}</b><span class="m-lbl">{{ru.d}}</span></span><span class="{{ru.cls}}"></span></button></sc-for></div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;"><h2 class="t" style="font-size: 15px;">Canaux</h2><div class="m-row"><span>Notification Cotiz</span><span class="cz-badge cz-badge--success cz-badge--sm">Actif</span></div><div class="m-row"><span>SMS</span><span class="cz-soon" style="font-size: 11px; padding: 2px 8px;">V2</span></div><div class="m-row"><span>Email</span><span class="cz-soon" style="font-size: 11px; padding: 2px 8px;">V2</span></div></div>
+</div></sc-if>
+<sc-if value="{{isHisto}}" hint-placeholder-val="{{ false }}"><div class="m-list"><sc-for list="{{history}}" as="h" hint-placeholder-count="5"><div><span style="flex-grow: 1;"><b style="display: block; font-size: 14px; color: #1B1830;">{{h.date}} · {{h.n}} destinataires</b><span class="m-lbl">{{h.project}} · {{h.by}}</span></span><span class="{{h.cls}}">{{h.type}}</span></div></sc-for></div></sc-if>
+</div>
+</div>
+<dc-import name="MgMobNav" active="plus" hint-size="100%,72px" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;"></dc-import>
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ false }}"><div class="m-bar" style="bottom: 72px; padding-bottom: 12px;"><button type="button" class="cz-btn" onClick="{{openSheet}}">Relancer {{selCount}} souscripteur(s)</button></div></sc-if>
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ false }}"><div style="{{overlayStyle}}" onClick="{{closeSheet}}"><div class="m-sheet" onClick="{{stop}}" role="dialog" aria-label="Envoyer une relance"><span class="m-grip"></span>
+<h2 class="t" style="font-size: 18px;">Relancer {{selCount}} souscripteur(s)</h2>
+<textarea class="cz-input cz-input--area" style="min-height: 110px;">Bonjour, nous n’avons pas encore reçu vos échéances en retard pour le projet Centre communautaire. Merci de régulariser et de déclarer votre paiement sur Cotiz. — Entraide Yopougon</textarea>
+<span class="cz-help">Le montant dû de chaque souscripteur est ajouté automatiquement. Envoi par notification Cotiz (SMS et email en V2).</span>
+<button type="button" class="cz-btn cz-btn--block" onClick="{{send}}" style="height: 48px;">Envoyer la relance</button>
+<button type="button" class="cz-btn cz-btn--ghost cz-btn--block" onClick="{{closeSheet}}">Annuler</button></div></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "relance-envoi", "relance-envoyee", "aucun-retard"], "default": "nominal"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'retards', sel: null, sheet: null, sent: false, rules: [true, true, true, true] }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const R = [['Moussa Diarra', '2 échéances', '50 000 F', 'auto 20/09'], ['Koffi Brou', '2 échéances', '50 000 F', 'auto 20/09'], ['Jean Kouassi', 'partielle + sept.', '37 500 F', 'manuelle 12/09'], ['Mariam Diallo', '1 échéance', '25 000 F', 'auto 20/09'], ['Yves Ahoussou', '1 échéance', '25 000 F', '—']];
+    const sel = S.sel || (etat === 'relance-envoi' ? [0, 1, 2] : []);
+    const sheet = S.sheet !== null ? S.sheet : etat === 'relance-envoi';
+    const tog = (i) => () => this.setState({ sel: sel.includes(i) ? sel.filter((x) => x !== i) : sel.concat([i]) });
+    const RU = [['3 jours avant l’échéance', 'Rappel doux'], ['Le jour de l’échéance', 'Si aucun paiement déclaré'], ['7 jours de retard', 'Signale le retard et le montant dû'], ['15 jours de retard', 'Relance ferme, copie au gestionnaire']];
+    const v = {
+      tabs: [['retards', 'Retards'], ['auto', 'Automatiques'], ['histo', 'Historique']].map(([k, l]) => ({ label: l, cls: S.tab === k ? 'is-on' : '', pick: () => this.setState({ tab: k }) })),
+      isRetards: S.tab === 'retards', isAuto: S.tab === 'auto', isHisto: S.tab === 'histo',
+      noLate: etat === 'aucun-retard', hasLate: etat !== 'aucun-retard', sent: S.sent || etat === 'relance-envoyee',
+      rows: R.map(([name, n, due, last], i) => ({ name, n, due, last, cb: 'cz-cb' + (sel.includes(i) ? ' is-on' : ''), toggle: tog(i) })),
+      hasSel: sel.length > 0 && S.tab === 'retards' && !sheet, selCount: String(sel.length),
+      sheetOpen: sheet, openSheet: () => this.setState({ sheet: true }), closeSheet: () => this.setState({ sheet: false, sel }),
+      send: () => this.setState({ sheet: false, sent: true, sel: [] }),
+      rules: RU.map(([t, d], i) => ({ t, d, cls: 'cz-toggle' + (S.rules[i] ? ' is-on' : ''), toggle: () => { const n = S.rules.slice(); n[i] = !n[i]; this.setState({ rules: n }); } })),
+      history: [
+        { date: '20/09/2026', n: '14', project: 'Centre communautaire', by: 'règle « 15 jours »', type: 'Auto', cls: info },
+        { date: '12/09/2026', n: '3', project: 'Centre communautaire', by: 'Awa Koné', type: 'Manuelle', cls: 'cz-badge cz-badge--brand cz-badge--sm' },
+        { date: '12/09/2026', n: '[N]', project: 'Centre communautaire', by: 'règle « 7 jours »', type: 'Auto', cls: info },
+        { date: '05/09/2026', n: '[N]', project: 'Tous les projets', by: 'jour d’échéance', type: 'Auto', cls: info }
+      ]
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

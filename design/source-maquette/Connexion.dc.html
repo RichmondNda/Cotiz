@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cotiz — Connexion souscripteur</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div data-theme="member" style="{{s.root}}">
+<sc-if value="{{web}}" hint-placeholder-val="{{ true }}">
+<div style="position: relative; overflow: hidden; background: #D85A30; color: #FFFFFF; padding: 48px; display: flex; flex-direction: column; justify-content: space-between;">
+<span style="position: absolute; width: 380px; height: 380px; border-radius: 50%; background: rgba(255,255,255,0.08); right: -140px; bottom: -120px;"></span>
+<span style="position: absolute; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.08); left: 60px; top: 220px;"></span>
+<a href="{{links.home}}" style="position: relative; display: flex; align-items: center; gap: 10px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; color: #FFFFFF;">
+<svg width="34" height="34" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="cs-m"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#FFFFFF" mask="url(#cs-m)"/><circle cx="75.5" cy="50" r="5" fill="#FFFFFF"/></svg>Cotiz</a>
+<b style="position: relative; font-family: Poppins, sans-serif; font-weight: 600; font-size: 36px; line-height: 1.2; max-width: 460px;">Suivez vos cotisations en toute simplicité</b>
+<span style="position: relative; font-size: 13px; opacity: 0.9;">votre association organisée</span>
+</div>
+</sc-if>
+
+<div style="{{s.formSide}}">
+<div style="{{s.form}}">
+<sc-if value="{{mobile}}" hint-placeholder-val="{{ false }}">
+<a href="{{links.home}}" style="display: flex; align-items: center; justify-content: center; gap: 8px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 22px; color: #26215C; margin-bottom: 8px;">
+<svg width="36" height="36" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="cs-mm"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#cs-mm)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>Cotiz</a>
+</sc-if>
+
+<sc-if value="{{login}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<div><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 28px; color: #1B1830;">Mon espace</h1>
+<p style="margin: 4px 0 0; font-size: 14.5px; color: #6B6478;">Connectez-vous avec votre numéro de téléphone.</p></div>
+<sc-if value="{{unknown}}" hint-placeholder-val="{{ false }}">
+<div class="cz-alert cz-alert--danger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg><div>Ce numéro n’est rattaché à aucun compte. Contactez votre association.</div></div>
+</sc-if>
+<sc-if value="{{badPw}}" hint-placeholder-val="{{ false }}">
+<div class="cz-alert cz-alert--danger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg><div><b>Mot de passe incorrect.</b> Réessayez ou choisissez « Mot de passe oublié ».</div></div>
+</sc-if>
+<div class="cz-field"><label class="cz-label" for="cs-tel">Téléphone</label>
+<div class="{{telCls}}" style="height: 50px;"><span class="pfx"><svg width="20" height="14" viewBox="0 0 3 2" aria-hidden="true"><rect width="1" height="2" fill="#F77F00"/><rect x="1" width="1" height="2" fill="#FFFFFF"/><rect x="2" width="1" height="2" fill="#009E60"/></svg>+225<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></span>
+<input id="cs-tel" type="tel" inputmode="numeric" value="{{tel}}" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font-size: 16px;"></div></div>
+<div class="cz-field"><label class="cz-label" for="cs-pw">Mot de passe</label>
+<div class="{{pwCls}}" style="height: 50px; padding-right: 4px;"><input id="cs-pw" type="{{pwType}}" value="motdepasse" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font-size: 16px;">
+<button type="button" onClick="{{togglePw}}" aria-label="{{pwLabel}}" style="width: 44px; height: 44px; border: none; background: transparent; color: #6B6478; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+<a class="cz-btn cz-btn--lg cz-btn--block" href="{{links.accueil}}" style="color: #FFFFFF;">Me connecter</a>
+<a href="{{links.motDePasse}}" style="font-size: 15px; font-weight: 600; text-align: center; padding: 10px;">Mot de passe oublié ?</a>
+<div class="cz-alert cz-alert--info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.7v.2"/></svg><div>Vos identifiants vous ont été envoyés par votre association par SMS ou email.</div></div>
+<a href="{{links.connexionAsso}}" style="font-size: 13px; color: #6B6478; text-align: center;">Vous êtes gestionnaire d’une association ?</a>
+</div>
+</sc-if>
+
+<sc-if value="{{firstLogin}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<div><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">Bienvenue Moussa !</h1>
+<p style="margin: 4px 0 0; font-size: 14.5px; color: #6B6478;">Pour votre première connexion, choisissez votre propre mot de passe.</p></div>
+<label class="cz-field"><span class="cz-label">Nouveau mot de passe</span><input class="cz-input" type="password" value="cotiz2026" style="height: 50px;"></label>
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;"><span style="height: 6px; border-radius: 999px; background: #E8963C;"></span><span style="height: 6px; border-radius: 999px; background: #E8963C;"></span><span style="height: 6px; border-radius: 999px; background: #E8963C;"></span><span style="height: 6px; border-radius: 999px; background: #ECE9F2;"></span></div>
+<span style="font-size: 12.5px; color: #8A5410; font-weight: 600;">Robustesse : correcte</span>
+</div>
+<label class="cz-field"><span class="cz-label">Confirmer le mot de passe</span><input class="cz-input" type="password" value="cotiz2026" style="height: 50px;"></label>
+<a class="cz-btn cz-btn--lg cz-btn--block" href="{{links.onboarding}}" style="color: #FFFFFF;">Enregistrer et continuer</a>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device":{"editor":"enum","options":["web","mobile"],"default":"web"},"etat":{"editor":"enum","options":["nominal","numero-inconnu","mot-de-passe-incorrect","premiere-connexion"],"default":"nominal"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { showPw: false, first: false }; }
+  renderVals() {
+    const m = this.props.device === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const etat = this.props.etat || 'nominal';
+    const unknown = etat === 'numero-inconnu';
+    const badPw = etat === 'mot-de-passe-incorrect';
+    const firstLogin = etat === 'premiere-connexion' || this.state.first;
+    return {
+      web: !m, mobile: m, unknown, badPw, firstLogin, login: !firstLogin,
+      tel: unknown ? '07 00 00 00 00' : '05 44 21 87 90',
+      telCls: 'cz-input cz-input--prefix' + (unknown ? ' is-error' : ''),
+      pwCls: 'cz-input' + (badPw ? ' is-error' : ''),
+      pwType: this.state.showPw ? 'text' : 'password',
+      pwLabel: this.state.showPw ? 'Masquer le mot de passe' : 'Afficher le mot de passe',
+      togglePw: () => this.setState({ showPw: !this.state.showPw }),
+      submit: () => this.setState({ first: true }),
+      links: { home: L('Main'), motDePasse: L('MotDePasse'), connexionAsso: L('ConnexionAssociation'), accueil: L('MbAccueil'), onboarding: L('MbOnboarding') },
+      s: {
+        root: m ? 'width: 100%; height: 900px; display: flex; flex-direction: column; background: #FAECE7; font-family: Inter, Arial, sans-serif;'
+                : 'width: 100%; height: 900px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #FFFFFF; font-family: Inter, Arial, sans-serif;',
+        formSide: m ? 'padding: 36px 16px; display: flex; justify-content: center;' : 'display: flex; align-items: center; justify-content: center; padding: 48px;',
+        form: m ? 'width: 100%; background: #FFFFFF; border-radius: 18px; padding: 24px 18px; box-shadow: 0 2px 10px rgba(40,30,80,0.07); display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;'
+                : 'width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 16px;'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

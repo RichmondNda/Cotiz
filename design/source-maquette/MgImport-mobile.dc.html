@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Import Excel (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="MgProjetSouscripteurs-mobile.dc.html" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Importer des souscripteurs</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Étape {{stepN}} sur 4 · {{stepName}}</div></div></header>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 100px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; gap: 5px;"><sc-for list="{{bars}}" as="b" hint-placeholder-count="4"><span style="{{b}}"></span></sc-for></div>
+<sc-if value="{{is1}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 12px;">
+<sc-if value="{{invalid}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--danger"><div><b>Fichier illisible.</b> Utilisez un fichier .xlsx ou .csv avec une ligne par souscripteur.</div></div></sc-if>
+<div class="cz-drop" style="min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center;"><b>souscripteurs-centre.xlsx</b><span class="m-lbl">50 lignes · 18 Ko</span><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm">Choisir un autre fichier</button></div>
+<button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" style="align-self: flex-start;">Télécharger le modèle Excel</button>
+</div></sc-if>
+<sc-if value="{{is2}}" hint-placeholder-val="{{ false }}"><div class="cz-card" style="display: flex; flex-direction: column; gap: 10px;"><h2 class="t">Associer les colonnes</h2>
+<sc-for list="{{cols}}" as="c" hint-placeholder-count="4"><div class="m-row" style="min-height: 44px; border-bottom: 1px solid #F0EDF3;"><span style="font-size: 14px;">{{c.f}}</span><span class="cz-badge cz-badge--brand cz-badge--sm">{{c.c}}</span></div></sc-for></div></sc-if>
+<sc-if value="{{is3}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 10px;">
+<div class="m-kpis"><div class="cz-kpi"><div class="l">Prêts</div><div class="v" style="color: #1E6B3E;">{{ready}}</div></div><div class="cz-kpi"><div class="l">À corriger</div><div class="v" style="color: #96201F;">{{errors}}</div></div></div>
+<div class="m-list">
+<sc-if value="{{showErr1}}" hint-placeholder-val="{{ true }}"><div><span style="flex-grow: 1;"><b style="display: block; font-size: 14px;">Ligne 12 · [Nom]</b><span class="m-lbl" style="color: #96201F;">Téléphone manquant</span></span><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{fix1}}">Corriger</button></div></sc-if>
+<sc-if value="{{showErr2}}" hint-placeholder-val="{{ true }}"><div><span style="flex-grow: 1;"><b style="display: block; font-size: 14px;">Ligne 31 · [Nom]</b><span class="m-lbl" style="color: #96201F;">Numéro en double (ligne 8)</span></span><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{fix2}}">Ignorer</button></div></sc-if>
+<div><span style="flex-grow: 1;"><b style="display: block; font-size: 14px;">3 comptes déjà existants</b><span class="m-lbl">Ils seront rattachés, sans nouveau compte</span></span><span class="cz-badge cz-badge--info cz-badge--sm">Info</span></div>
+</div></div></sc-if>
+<sc-if value="{{is4}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg" style="text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+<sc-if value="{{notStarted}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 10px;"><h2 class="t" style="font-size: 18px;">Prêt à importer {{total}} souscripteurs</h2><p style="margin: 0; font-size: 14px; color: #6B6478;">Chacun recevra ses identifiants et une invitation à signer le contrat.</p></div></sc-if>
+<sc-if value="{{finished}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 10px; align-items: center;"><span style="width: 64px; height: 64px; border-radius: 50%; background: #DFF3E7; color: #2E9E5B; display: inline-flex; align-items: center; justify-content: center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><h2 class="t" style="font-size: 18px;">Import terminé</h2><p style="margin: 0; font-size: 14px; color: #6B6478;">{{total}} souscripteurs ajoutés · invitations envoyées.</p><a class="cz-btn cz-btn--block" href="MgProjetSouscripteurs-mobile.dc.html" style="color: #FFFFFF;">Voir les souscripteurs</a></div></sc-if>
+</div></sc-if>
+</div>
+</div>
+
+<sc-if value="{{showBar}}" hint-placeholder-val="{{ true }}"><div class="m-bar"><sc-if value="{{notFirst}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--secondary" onClick="{{back}}" style="flex: 0 0 56px;" aria-label="Précédent">‹</button></sc-if>
+<sc-if value="{{notLast}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn" onClick="{{next}}">Continuer</button></sc-if>
+<sc-if value="{{is4}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn" onClick="{{start}}">Lancer l’import</button></sc-if></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["1-fichier", "fichier-invalide", "2-colonnes", "3-verification", "4-envoi", "import-termine"], "default": "1-fichier"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: null, fixed1: false, fixed2: false, done: null }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || '1-fichier';
+    const preset = { '1-fichier': 1, 'fichier-invalide': 1, '2-colonnes': 2, '3-verification': 3, '4-envoi': 4, 'import-termine': 4 }[etat];
+    const step = S.step || preset;
+    const N = ['Fichier', 'Colonnes', 'Vérification', 'Envoi'];
+    const fixed = (S.fixed1 ? 1 : 0) + (S.fixed2 ? 1 : 0);
+    const done = S.done === null ? etat === 'import-termine' : S.done;
+    const v = {
+      stepN: String(step), stepName: N[step - 1], is1: step === 1, is2: step === 2, is3: step === 3, is4: step === 4,
+      notFirst: step > 1, notLast: step < 4, showBar: !done,
+      bars: N.map((_, i) => `flex: 1; height: 4px; border-radius: 999px; background: ${i < step ? '#7F77DD' : '#E4E0EA'};`),
+      invalid: etat === 'fichier-invalide' && !S.step,
+      next: () => this.setState({ step: Math.min(4, step + 1) }), back: () => this.setState({ step: Math.max(1, step - 1) }),
+      cols: [['Prénom', 'Colonne A'], ['Nom', 'Colonne B'], ['Téléphone', 'Colonne C'], ['Email', 'Colonne D']].map(([f, c]) => ({ f, c })),
+      ready: String(47 + fixed), errors: String(2 - fixed), total: String(47 + fixed + 3),
+      showErr1: !S.fixed1, showErr2: !S.fixed2, fix1: () => this.setState({ fixed1: true }), fix2: () => this.setState({ fixed2: true }),
+      notStarted: !done, finished: done, start: () => this.setState({ done: true })
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

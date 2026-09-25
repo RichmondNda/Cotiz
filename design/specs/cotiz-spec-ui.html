@@ -1,0 +1,2508 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cotiz — Spécification UI</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+--success:#2E9E5B;--success-bg:#DFF3E7;--success-fg:#1E6B3E;
+--danger:#D93A3A;--danger-bg:#FBE0E0;--danger-fg:#96201F;
+--warning:#E8963C;--warning-bg:#FBEEDB;--warning-fg:#8A5410;
+--info:#3B82C4;--info-bg:#DEEBF7;--info-fg:#1E5585;
+--text-strong:#1B1830;--text:#2C2A38;--muted:#6B6478;--disabled:#A8A2B4;--border:#E4E0EA;--surface:#fff;
+--sa:#3B3470;--sa-dark:#2A2552;--sa-pale:#E4E3EF;--sa-page:#F2F2F8;
+--mg:#7F77DD;--mg-dark:#5B51C4;--mg-pale:#EFECFB;--mg-page:#F4F2ED;
+--mb:#D85A30;--mb-dark:#993C1D;--mb-pale:#F8DDD3;--mb-page:#FAECE7;
+--brand:var(--mg);--brand-dark:var(--mg-dark);--brand-pale:var(--mg-pale);
+}
+body{font-family:Inter,Arial,sans-serif;background:#F7F5F2;color:var(--text);padding:40px 24px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-family:Poppins;font-size:34px;font-weight:600;color:#26215C;margin-bottom:4px}
+.sub{color:var(--mb-dark);font-size:15px}
+h2{font-family:Poppins;font-size:25px;font-weight:600;color:#26215C;margin:60px 0 10px;padding-bottom:10px;border-bottom:2px solid var(--border)}
+h3{font-family:Poppins;font-size:19px;font-weight:600;margin:34px 0 8px;color:#26215C}
+h4{font-family:Poppins;font-size:13px;font-weight:600;margin:18px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+p{margin-bottom:10px;font-size:14.5px}
+ul,ol{margin:0 0 12px 20px;font-size:14px}
+li{margin-bottom:5px}
+.card{background:#fff;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 2px 10px rgba(40,30,80,.07)}
+.lead{font-size:15.5px;color:var(--muted);max-width:820px}
+.mono{font-family:ui-monospace,monospace;font-size:12.5px}
+code{font-family:ui-monospace,monospace;font-size:12.5px;background:#F2EFF7;padding:1px 6px;border-radius:5px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:10px 0 14px}
+th{text-align:left;font-family:Poppins;font-weight:600;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:9px 10px;border-bottom:1px solid var(--border);background:#FAF9FC}
+td{padding:10px;border-bottom:1px solid #F2EFF5;vertical-align:top}
+tr:last-child td{border-bottom:none}
+.note{background:var(--info-bg);border-left:4px solid var(--info);padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0;font-size:13.5px}
+.warn{background:var(--warning-bg);border-left:4px solid var(--warning);padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0;font-size:13.5px}
+.toc{columns:3;column-gap:28px;font-size:13.5px}
+.toc a{color:var(--mg-dark);text-decoration:none;display:block;padding:3px 0;break-inside:avoid}
+.toc .g{font-family:Poppins;font-weight:600;color:#26215C;margin-top:10px;display:block}
+.logo{display:flex;align-items:center;gap:16px}
+.pill{display:inline-block;border-radius:999px;padding:3px 12px;font-size:11.5px;font-weight:600;font-family:Poppins;vertical-align:middle}
+.p-sa{background:var(--sa-pale);color:var(--sa)}.p-mg{background:var(--mg-pale);color:var(--mg-dark)}.p-mb{background:var(--mb-pale);color:var(--mb-dark)}.p-pub{background:#ECEAE6;color:#4A4640}
+
+/* ---------- Spec d'écran ---------- */
+.screen{background:#fff;border-radius:16px;margin-bottom:22px;box-shadow:0 2px 10px rgba(40,30,80,.07);overflow:hidden}
+.sh{padding:16px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.sh .t{font-family:Poppins;font-weight:600;font-size:17px;color:#26215C}
+.sh .route{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);background:#F4F2F8;padding:3px 9px;border-radius:6px}
+.sh .ver{margin-left:auto;font-size:11.5px;font-family:Poppins;font-weight:600;color:var(--muted)}
+.sb{padding:18px 22px}
+.sb .obj{font-size:14px;color:var(--muted);margin-bottom:12px}
+.zones{display:grid;gap:10px;margin:8px 0 12px}
+.zone{border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.zone .zn{font-family:Poppins;font-weight:600;font-size:13.5px;margin-bottom:4px;display:flex;gap:8px;align-items:center}
+.zone .zn .k{background:var(--brand-pale);color:var(--brand-dark);border-radius:6px;padding:1px 8px;font-size:11.5px}
+.zone ul{margin-bottom:0}
+.zone .cmp{font-size:12px;color:var(--mg-dark);margin-top:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.two{grid-template-columns:1fr}.toc{columns:1}}
+.states{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.states span{font-size:12px;border-radius:7px;padding:4px 10px;background:#F4F2F8;color:var(--text)}
+
+/* ---------- Composants démo ---------- */
+.demo{background:var(--demo-bg,#F4F2ED);border-radius:12px;padding:20px;margin:10px 0 14px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.demo.col{flex-direction:column;align-items:stretch}
+.btn{border:none;border-radius:10px;padding:0 18px;height:42px;font-family:Poppins;font-weight:500;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-dark)}
+.btn-secondary{background:#fff;color:var(--brand-dark);border:1.5px solid var(--brand)}
+.btn-ghost{background:transparent;color:var(--brand-dark)}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger-ghost{background:#fff;color:var(--danger);border:1.5px solid var(--danger)}
+.btn-sm{height:34px;font-size:13px;padding:0 13px;border-radius:9px}
+.btn-lg{height:50px;font-size:15.5px;padding:0 24px;border-radius:12px}
+.btn[disabled]{background:#E9E6EE;color:var(--disabled);border:none;cursor:not-allowed}
+.btn-icon{width:40px;padding:0;justify-content:center;background:#fff;border:1px solid var(--border);color:var(--text)}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block}
+.badge{white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.b-ok{background:var(--success-bg);color:var(--success-fg)}
+.b-err{background:var(--danger-bg);color:var(--danger-fg)}
+.b-warn{background:var(--warning-bg);color:var(--warning-fg)}
+.b-info{background:var(--info-bg);color:var(--info-fg)}
+.b-neutral{background:#ECEAF0;color:var(--muted)}
+.b-brand{background:var(--brand-pale);color:var(--brand-dark)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:250px;flex:1}
+.field label{font-size:13px;font-weight:600;color:var(--text)}
+.field label .req{color:var(--danger)}
+.field .help{font-size:12px;color:var(--muted)}
+.field .err{font-size:12px;color:var(--danger-fg)}
+.input{height:44px;border:1.5px solid var(--border);border-radius:10px;padding:0 14px;font-size:14px;font-family:Inter;background:#fff;color:var(--text);width:100%}
+.input:focus,.input.focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-pale)}
+.input.error{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-bg)}
+.input[disabled]{background:#F4F2F6;color:var(--disabled)}
+.input-group{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;background:#fff;height:44px;overflow:hidden}
+.input-group span{padding:0 12px;color:var(--muted);font-size:13.5px;background:#FAF9FC;height:100%;display:flex;align-items:center;border-left:1px solid var(--border)}
+.input-group input{border:none;height:100%;padding:0 14px;font-size:14px;flex:1;outline:none;font-family:Inter}
+.dropzone{border:2px dashed var(--border);border-radius:12px;padding:22px;text-align:center;font-size:13.5px;color:var(--muted);background:#fff;flex:1;min-width:250px}
+.dropzone strong{color:var(--brand-dark)}
+.checkrow{display:flex;align-items:center;gap:10px;font-size:14px}
+.cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border);background:#fff;display:inline-flex;align-items:center;justify-content:center}
+.cb.on{background:var(--brand);border-color:var(--brand)}
+.toggle{width:40px;height:23px;border-radius:999px;background:#D8D4DE;position:relative;display:inline-block}
+.toggle::after{content:"";position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;top:3px;left:3px}
+.toggle.on{background:var(--brand)}.toggle.on::after{left:20px}
+.seg{display:inline-flex;background:#ECE9F2;border-radius:10px;padding:3px}
+.seg span{padding:7px 14px;font-size:13px;border-radius:8px;font-family:Poppins;color:var(--muted)}
+.seg span.on{background:#fff;color:var(--brand-dark);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.kpi{background:#fff;border-radius:14px;padding:16px 18px;min-width:200px;flex:1;box-shadow:0 2px 10px rgba(40,30,80,.06)}
+.kpi .l{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.kpi .v{font-family:Poppins;font-size:26px;font-weight:600;color:var(--text-strong);margin-top:2px}
+.kpi .d{font-size:12px;margin-top:2px}
+.pcard{background:#fff;border-radius:16px;padding:18px;width:300px;box-shadow:0 2px 10px rgba(40,30,80,.07)}
+.pcard .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.pcard .nm{font-family:Poppins;font-weight:600;font-size:15.5px;color:var(--text-strong)}
+.pcard .as{font-size:12px;color:var(--muted)}
+.bar{height:8px;border-radius:999px;background:#ECE9F2;overflow:hidden;margin:12px 0 6px}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:999px}
+.pcard .row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.pcard .ft{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid #F1EEF4}
+.pcard .amt{font-family:Poppins;font-weight:600;font-size:17px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--brand-pale);color:var(--brand-dark);display:inline-flex;align-items:center;justify-content:center;font-family:Poppins;font-weight:600;font-size:13px;flex-shrink:0}
+.avatar.sm{width:30px;height:30px;font-size:10px;letter-spacing:-.02em}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);width:100%}
+.tabs span{padding:10px 16px;font-family:Poppins;font-size:13.5px;color:var(--muted);border-bottom:2.5px solid transparent;margin-bottom:-1px;display:flex;gap:7px;align-items:center}
+.tabs span.on{color:var(--brand-dark);border-bottom-color:var(--brand)}
+.tabs .cnt{background:var(--warning-bg);color:var(--warning-fg);border-radius:999px;font-size:11px;padding:0 7px;font-weight:600}
+.mtable{width:100%;background:#fff;border-radius:12px;overflow:hidden;font-size:13.5px;border-collapse:collapse}
+.mtable th{background:#FAF9FC}
+.mtable td{vertical-align:middle}
+.cell{width:22px;height:22px;border-radius:6px;display:inline-block;margin-right:3px}
+.c-ok{background:var(--success)}.c-wait{background:var(--warning)}.c-late{background:var(--danger)}.c-fut{background:#E6E3EC}.c-part{background:linear-gradient(90deg,var(--success) 50%,#E6E3EC 50%)}
+.toast{background:#fff;border-radius:12px;padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 20px rgba(40,30,80,.14);border-left:4px solid var(--success);min-width:300px;font-size:13.5px}
+.toast.e{border-left-color:var(--danger)}
+.alert{border-radius:12px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start;font-size:13.5px;width:100%}
+.modal{background:#fff;border-radius:18px;width:420px;box-shadow:0 20px 50px rgba(40,30,80,.22);overflow:hidden}
+.modal .mh{padding:18px 20px 6px;font-family:Poppins;font-weight:600;font-size:17px}
+.modal .mb{padding:4px 20px 16px;font-size:14px;color:var(--muted)}
+.modal .mf{padding:14px 20px;background:#FAF9FC;display:flex;justify-content:flex-end;gap:10px}
+.empty{background:#fff;border-radius:14px;padding:30px;text-align:center;flex:1;min-width:280px}
+.empty .i{width:56px;height:56px;border-radius:50%;background:var(--brand-pale);display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px}
+.empty .t{font-family:Poppins;font-weight:600;font-size:15px}
+.empty .d{font-size:13px;color:var(--muted);margin:4px 0 14px}
+.skel{background:linear-gradient(90deg,#EEEBF2,#F6F4F8,#EEEBF2);border-radius:7px}
+.stepper{display:flex;align-items:center;gap:8px;width:100%;font-size:13px}
+.stepper .s{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.stepper .s b{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#ECE9F2;font-family:Poppins;font-size:12px}
+.stepper .s.done b{background:var(--success);color:#fff}
+.stepper .s.cur b{background:var(--brand);color:#fff}
+.stepper .s.cur{color:var(--text-strong);font-weight:600}
+.stepper .ln{flex:1;height:2px;background:#E4E0EA;min-width:18px}
+.stepper .ln.done{background:var(--success)}
+.notif{display:flex;gap:12px;padding:12px 14px;background:#fff;border-radius:12px;align-items:flex-start;width:100%}
+.notif.unread{background:var(--brand-pale)}
+.notif .ic{width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.notif .tt{font-size:13.5px;font-weight:600}
+.notif .ds{font-size:12.5px;color:var(--muted)}
+.notif .tm{font-size:11.5px;color:var(--disabled);margin-left:auto;white-space:nowrap}
+.timeline{border-left:2px solid var(--border);margin-left:8px;padding-left:18px;width:100%}
+.timeline .it{position:relative;padding-bottom:14px;font-size:13.5px}
+.timeline .it::before{content:"";position:absolute;left:-25px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--success);border:2px solid #fff}
+.timeline .it.w::before{background:var(--warning)}.timeline .it.l::before{background:var(--danger)}
+.timeline .it .m{font-size:12px;color:var(--muted)}
+.shell{display:grid;grid-template-columns:200px 1fr;border-radius:14px;overflow:hidden;width:100%;min-height:260px;border:1px solid var(--border)}
+.shell .side{background:#fff;padding:14px 10px;border-right:1px solid var(--border)}
+.shell .side .it{padding:8px 11px;border-radius:9px;font-size:13px;color:var(--muted);display:flex;gap:9px;align-items:center;margin-bottom:2px}
+.shell .side .it.on{background:var(--brand-pale);color:var(--brand-dark);font-weight:600}
+.shell .main{background:var(--page,#F4F2ED)}
+.shell .top{height:54px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.shell .ct{padding:16px}
+.phone{width:260px;border-radius:30px;border:8px solid #1B1830;overflow:hidden;background:var(--mb-page)}
+.phone .pt{background:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.phone .pb{padding:12px}
+.phone .nav{background:#fff;display:flex;justify-content:space-around;padding:10px 0 12px;border-top:1px solid var(--border)}
+.phone .nav span{font-size:10px;color:var(--muted);text-align:center}
+.phone .nav span.on{color:var(--mb-dark);font-weight:600}
+.searchbar{display:flex;align-items:center;gap:8px;height:40px;border:1.5px solid var(--border);border-radius:10px;padding:0 12px;background:#fff;font-size:13.5px;color:var(--disabled);min-width:230px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px;font-size:12.5px;background:#fff;border:1px solid var(--border)}
+.chip.on{background:var(--brand-pale);border-color:var(--brand);color:var(--brand-dark);font-weight:600}
+.pagin{display:flex;gap:4px;align-items:center;font-size:13px}
+.pagin span{min-width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--border)}
+.pagin span.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.proof{width:120px;height:150px;border-radius:10px;background:linear-gradient(160deg,#EEF3F8,#DCE6F0);border:1px solid var(--border);display:flex;align-items:flex-end;justify-content:center;padding:8px;font-size:11px;color:var(--muted)}
+.cspec{display:grid;grid-template-columns:150px 1fr;gap:4px 14px;font-size:13px;margin-top:6px}
+.cspec dt{color:var(--muted);font-weight:600}
+.dd{background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(40,30,80,.14);padding:6px;width:220px;font-size:13.5px}
+.dd div{padding:8px 11px;border-radius:8px;display:flex;gap:9px;align-items:center}
+.dd div:hover,.dd div.h{background:#F4F2F8}
+.dd div.dg{color:var(--danger)}
+.dd hr{border:none;border-top:1px solid var(--border);margin:4px 0}
+.tip{background:#1B1830;color:#fff;font-size:12px;padding:6px 10px;border-radius:7px}
+.ctr{display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:4px;border:1px solid var(--border)}
+.ctr b{font-family:Poppins;font-size:14px;min-width:30px;text-align:center}
+@media print{body{background:#fff;padding:0}.card,.screen{box-shadow:none;border:1px solid var(--border)}.screen{page-break-inside:avoid}}
+</style></head><body><div class="wrap">
+
+<div class="logo card">
+<svg width="80" height="80" viewBox="0 0 100 100"><defs><mask id="m"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#m)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>
+<div><h1>Cotiz — Spécification UI</h1><div class="sub">Bibliothèque de composants et détail des écrans, zone par zone — support pour la génération de maquettes</div></div></div>
+
+<div class="card">
+<h3 style="margin-top:0">Sommaire</h3>
+<div class="toc">
+<span class="g">Fondations</span>
+<a href="#usage">0 · Comment utiliser ce document</a>
+<a href="#produit">1 · Le produit en une page</a>
+<a href="#tokens">2 · Rappel des tokens</a>
+<a href="#layouts">3 · Gabarits de page</a>
+<span class="g">Composants</span>
+<a href="#c-boutons">4.1 · Boutons</a>
+<a href="#c-badges">4.2 · Badges de statut</a>
+<a href="#c-forms">4.3 · Champs de formulaire</a>
+<a href="#c-cards">4.4 · Cartes</a>
+<a href="#c-tables">4.5 · Tableaux et grille d'échéances</a>
+<a href="#c-nav">4.6 · Navigation</a>
+<a href="#c-feedback">4.7 · Retours et alertes</a>
+<a href="#c-overlays">4.8 · Modales et menus</a>
+<a href="#c-empty">4.9 · États vides et chargement</a>
+<a href="#c-data">4.10 · Visualisation de données</a>
+<a href="#c-special">4.11 · Composants métier</a>
+<span class="g">Écrans</span>
+<a href="#s-public">5 · Espace public</a>
+<a href="#s-sa">6 · Espace super-admin</a>
+<a href="#s-mg">7 · Espace gestionnaire</a>
+<a href="#s-mb">8 · Espace souscripteur</a>
+<span class="g">Annexes</span>
+<a href="#mock">9 · Données fictives de référence</a>
+<a href="#prompts">10 · Consignes pour l'outil de design</a>
+<a href="#checklist">11 · Checklist par écran</a>
+</div></div>
+
+<h2 id="usage">0 · Comment utiliser ce document</h2>
+<div class="card">
+<p class="lead">Ce document est écrit pour être donné tel quel à un outil de génération de design. Chaque écran est décrit de façon autonome : on peut en copier une fiche seule et obtenir une maquette cohérente.</p>
+<h4>Structure d'une fiche d'écran</h4>
+<ul>
+<li><strong>En-tête</strong> — nom, route, espace, version à laquelle l'écran devient fonctionnel côté back-end.</li>
+<li><strong>Objectif</strong> — la question à laquelle l'écran répond pour l'utilisateur. C'est le critère pour arbitrer la hiérarchie visuelle.</li>
+<li><strong>Zones</strong> — découpage de haut en bas (et de gauche à droite sur desktop), avec pour chaque zone les données affichées et les composants de la bibliothèque à utiliser.</li>
+<li><strong>Interactions</strong> — ce qui se passe au clic, au survol, à la soumission.</li>
+<li><strong>États</strong> — vide, chargement, erreur, et les cas particuliers à maquetter.</li>
+<li><strong>Mobile</strong> — adaptations quand elles sont significatives.</li>
+</ul>
+<div class="note"><strong>Règle de couleur :</strong> les composants sont présentés dans l'univers gestionnaire (violet). Dans les autres espaces, la couleur d'identité (<code>--brand</code>) est remplacée par l'indigo (super-admin) ou le corail (souscripteur). Les couleurs de statut — vert, rouge, orange, bleu — ne changent jamais.</div>
+</div>
+
+<h2 id="produit">1 · Le produit en une page</h2>
+<div class="card">
+<p><strong>Cotiz</strong> est une plateforme SaaS qui permet aux associations de gérer les cotisations de leurs membres sur des projets. Un <strong>projet</strong> fonctionne comme une souscription : un fonds d'entrée, puis des cotisations à fréquence fixe (mensuelle, trimestrielle…), sur une durée fixe ou en cycle roulant.</p>
+<p>Les paiements <strong>ne transitent pas par la plateforme</strong> : le souscripteur vire l'argent directement à l'association, puis déclare son paiement dans Cotiz avec une preuve. Le gestionnaire vérifie sur ses comptes et valide. Un paiement peut couvrir plusieurs échéances.</p>
+<table>
+<tr><th>Profil</th><th>Qui</th><th>Ce qu'il fait</th><th>Support principal</th></tr>
+<tr><td><span class="pill p-sa">Super-admin</span></td><td>L'opérateur de Cotiz</td><td>Valide les associations, gère les plans d'abonnement, surveille la plateforme</td><td>Desktop</td></tr>
+<tr><td><span class="pill p-mg">Gestionnaire</span></td><td>Trésorier, président, bénévole d'une association</td><td>Crée les projets, inscrit les souscripteurs, valide les paiements, suit les retards</td><td>Desktop d'abord, tablette</td></tr>
+<tr><td><span class="pill p-mb">Souscripteur</span></td><td>Membre qui cotise, souvent non technicien</td><td>Consulte ce qu'il doit, déclare ses paiements, signe ses contrats</td><td>Mobile d'abord</td></tr>
+</table>
+<h4>Vocabulaire à utiliser dans les maquettes</h4>
+<table>
+<tr><th>Terme</th><th>Sens</th><th>À éviter</th></tr>
+<tr><td>Projet</td><td>Une souscription proposée par l'association</td><td>Campagne, collecte</td></tr>
+<tr><td>Souscripteur</td><td>Une personne qui cotise sur un ou plusieurs projets</td><td>Client, utilisateur, adhérent</td></tr>
+<tr><td>Échéance</td><td>Une cotisation attendue à une date donnée</td><td>Mensualité, facture</td></tr>
+<tr><td>Fonds d'entrée</td><td>Somme versée une fois au démarrage</td><td>Frais d'inscription</td></tr>
+<tr><td>Déclarer un paiement</td><td>Informer l'association d'un virement effectué</td><td>Payer (on ne paie pas dans l'app)</td></tr>
+<tr><td>Valider</td><td>Confirmer la réception d'un paiement</td><td>Approuver, encaisser</td></tr>
+</table>
+<p style="font-size:13px;color:var(--muted)">Devise d'exemple : franc CFA, affiché <code>25 000 F</code> (espace fine comme séparateur de milliers, pas de décimales).</p>
+</div>
+
+<h2 id="tokens">2 · Rappel des tokens</h2>
+<div class="card">
+<div class="two">
+<div>
+<h4>Identité par espace</h4>
+<table>
+<tr><th>Espace</th><th>--brand</th><th>--brand-dark</th><th>--brand-pale</th><th>Fond page</th></tr>
+<tr><td>Super-admin</td><td class="mono">#3B3470</td><td class="mono">#2A2552</td><td class="mono">#E4E3EF</td><td class="mono">#F2F2F8</td></tr>
+<tr><td>Gestionnaire</td><td class="mono">#7F77DD</td><td class="mono">#5B51C4</td><td class="mono">#EFECFB</td><td class="mono">#F4F2ED</td></tr>
+<tr><td>Souscripteur</td><td class="mono">#D85A30</td><td class="mono">#993C1D</td><td class="mono">#F8DDD3</td><td class="mono">#FAECE7</td></tr>
+</table>
+<h4>Statuts (invariants)</h4>
+<table>
+<tr><th>Rôle</th><th>Plein</th><th>Fond</th><th>Texte</th></tr>
+<tr><td>Succès</td><td class="mono">#2E9E5B</td><td class="mono">#DFF3E7</td><td class="mono">#1E6B3E</td></tr>
+<tr><td>Erreur</td><td class="mono">#D93A3A</td><td class="mono">#FBE0E0</td><td class="mono">#96201F</td></tr>
+<tr><td>Alerte</td><td class="mono">#E8963C</td><td class="mono">#FBEEDB</td><td class="mono">#8A5410</td></tr>
+<tr><td>Info</td><td class="mono">#3B82C4</td><td class="mono">#DEEBF7</td><td class="mono">#1E5585</td></tr>
+</table>
+</div>
+<div>
+<h4>Typographie</h4>
+<table>
+<tr><th>Style</th><th>Police</th><th>Taille / graisse</th></tr>
+<tr><td>H1 page</td><td>Poppins</td><td>28 px / 600</td></tr>
+<tr><td>H2 section</td><td>Poppins</td><td>20 px / 600</td></tr>
+<tr><td>H3 carte</td><td>Poppins</td><td>16 px / 600</td></tr>
+<tr><td>Chiffre KPI</td><td>Poppins</td><td>26 px / 600</td></tr>
+<tr><td>Bouton</td><td>Poppins</td><td>14 px / 500</td></tr>
+<tr><td>Corps</td><td>Inter</td><td>14 px / 400</td></tr>
+<tr><td>Tableau</td><td>Inter</td><td>13.5 px / 400</td></tr>
+<tr><td>Légende</td><td>Inter</td><td>12 px / 400</td></tr>
+<tr><td>En-tête tableau</td><td>Poppins</td><td>11.5 px / 600 majuscules</td></tr>
+</table>
+<h4>Formes</h4>
+<table>
+<tr><th>Élément</th><th>Valeur</th></tr>
+<tr><td>Champ, bouton</td><td class="mono">radius 10 · hauteur 42–44</td></tr>
+<tr><td>Carte</td><td class="mono">radius 16 · padding 20–24</td></tr>
+<tr><td>Modale</td><td class="mono">radius 18</td></tr>
+<tr><td>Ombre carte</td><td class="mono">0 2 10 rgba(40,30,80,.07)</td></tr>
+<tr><td>Espacement</td><td class="mono">4 · 8 · 12 · 16 · 24 · 32 · 48</td></tr>
+<tr><td>Icônes</td><td class="mono">trait 1.75 · arrondi · grille 24</td></tr>
+</table>
+</div>
+</div>
+</div>
+
+<h2 id="layouts">3 · Gabarits de page</h2>
+
+<div class="card">
+<h3 style="margin-top:0">3.1 · Gabarit back-office (super-admin et gestionnaire)</h3>
+<p>Barre latérale fixe à gauche (240 px, repliable en 72 px avec icônes seules), barre supérieure (64 px), contenu principal limité à 1280 px de large.</p>
+<div class="demo" style="--demo-bg:#fff;padding:12px">
+<div class="shell" style="--page:#F4F2ED">
+<div class="side">
+<div style="display:flex;align-items:center;gap:8px;padding:4px 8px 14px"><svg width="24" height="24" viewBox="0 0 100 100"><defs><mask id="m2"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#m2)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg><b style="font-family:Poppins">Cotiz</b></div>
+<div class="it on">▣ Tableau de bord</div><div class="it">◧ Projets</div><div class="it">◉ Souscripteurs</div><div class="it">◈ Paiements <span class="badge b-warn" style="padding:0 7px;font-size:11px;margin-left:auto">6</span></div><div class="it">✉ Relances</div><div class="it">▤ Contrats</div>
+</div>
+<div class="main"><div class="top"><div class="searchbar" style="min-width:180px">⌕ Rechercher…</div><span style="margin-left:auto">🔔</span><span class="avatar sm">AK</span></div>
+<div class="ct"><div style="font-family:Poppins;font-weight:600;font-size:18px">Titre de page</div><div class="skel" style="height:70px;margin-top:12px"></div></div></div>
+</div></div>
+<table>
+<tr><th>Zone</th><th>Contenu</th></tr>
+<tr><td>Barre latérale — haut</td><td>Logo Cotiz. Sous le logo, dans l'espace gestionnaire : nom et logo de l'association courante.</td></tr>
+<tr><td>Barre latérale — menu</td><td>Entrées avec icône + libellé. Entrée active : fond <code>--brand-pale</code>, texte <code>--brand-dark</code>, graisse 600. Compteurs d'éléments à traiter en badge orange à droite.</td></tr>
+<tr><td>Barre latérale — bas</td><td>Paramètres, aide, bouton de repli de la barre.</td></tr>
+<tr><td>Barre supérieure</td><td>Fil d'Ariane à gauche, recherche globale au centre, cloche de notifications avec compteur, avatar avec menu (profil, déconnexion).</td></tr>
+<tr><td>En-tête de page</td><td>Titre H1, sous-titre optionnel en gris, actions principales alignées à droite (bouton primaire le plus à droite).</td></tr>
+</table>
+<p style="font-size:13px"><strong>Tablette (&lt; 1024 px)</strong> : barre latérale repliée par défaut. <strong>Mobile (&lt; 768 px)</strong> : barre latérale remplacée par un menu tiroir ouvert par un bouton hamburger.</p>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">3.2 · Gabarit souscripteur (mobile d'abord)</h3>
+<p>Barre supérieure légère, contenu en colonne unique, barre de navigation basse à 4 entrées. Sur desktop, la barre basse devient une barre latérale et le contenu se centre sur 960 px.</p>
+<div class="demo" style="--demo-bg:#fff;justify-content:center">
+<div class="phone">
+<div class="pt"><b style="font-family:Poppins;font-size:14px">Bonjour Awa 👋</b><span>🔔</span></div>
+<div class="pb"><div class="skel" style="height:90px;border-radius:14px;margin-bottom:10px"></div><div class="skel" style="height:90px;border-radius:14px"></div></div>
+<div class="nav"><span class="on">⌂<br>Accueil</span><span>◧<br>Projets</span><span>↻<br>Historique</span><span>◉<br>Profil</span></div>
+</div></div>
+<table>
+<tr><th>Entrée de navigation basse</th><th>Destination</th></tr>
+<tr><td>Accueil</td><td>Tableau de bord en cartes</td></tr>
+<tr><td>Projets</td><td>Liste des projets groupés par association</td></tr>
+<tr><td>Historique</td><td>Historique complet et graphiques</td></tr>
+<tr><td>Profil</td><td>Profil, contrats, associations, paramètres</td></tr>
+</table>
+<p style="font-size:13px">Le bouton <strong>« Déclarer un paiement »</strong> est accessible en permanence via un bouton flottant corail en bas à droite, au-dessus de la barre de navigation.</p>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">3.3 · Gabarit public</h3>
+<p>En-tête avec logo à gauche, liens d'ancre au centre (Fonctionnement, Tarifs, FAQ), deux boutons à droite : « Se connecter » (secondaire, ouvre un menu de choix du profil) et « Créer mon association » (primaire). Pied de page à 4 colonnes. Fond corail pâle <code>#FAECE7</code> alterné avec du blanc par section.</p>
+<h3>3.4 · Gabarit connexion</h3>
+<p>Écran scindé en deux sur desktop : à gauche un panneau illustré aux couleurs du profil (50 %), à droite le formulaire centré sur 400 px. Sur mobile, seul le formulaire, avec le logo au-dessus.</p>
+</div>
+
+<h2 id="c-boutons">4.1 · Boutons</h2>
+<div class="card">
+<div class="demo">
+<button class="btn btn-primary">Créer un projet</button>
+<button class="btn btn-secondary">Exporter</button>
+<button class="btn btn-ghost">Annuler</button>
+<button class="btn btn-success">✓ Valider le paiement</button>
+<button class="btn btn-danger">Supprimer</button>
+<button class="btn btn-danger-ghost">Rejeter</button>
+</div>
+<div class="demo">
+<button class="btn btn-primary btn-lg">Déclarer un paiement</button>
+<button class="btn btn-primary">Moyen</button>
+<button class="btn btn-primary btn-sm">Petit</button>
+<button class="btn btn-primary"><span class="spin"></span> Enregistrement…</button>
+<button class="btn" disabled>Désactivé</button>
+<button class="btn btn-icon">⋯</button>
+<button class="btn btn-icon">✎</button>
+</div>
+<table>
+<tr><th>Variante</th><th>Usage</th><th>Règle</th></tr>
+<tr><td><strong>Primaire</strong></td><td>L'action principale de l'écran</td><td>Un seul par zone visible. Couleur <code>--brand</code>, survol <code>--brand-dark</code>.</td></tr>
+<tr><td><strong>Secondaire</strong></td><td>Actions alternatives importantes</td><td>Contour 1.5 px <code>--brand</code>, fond blanc.</td></tr>
+<tr><td><strong>Fantôme</strong></td><td>Annuler, actions tertiaires</td><td>Texte seul, fond au survol <code>--brand-pale</code>.</td></tr>
+<tr><td><strong>Succès</strong></td><td>Valider un paiement uniquement</td><td>Réservé à la validation financière.</td></tr>
+<tr><td><strong>Danger</strong></td><td>Suppression, retrait, suspension</td><td>Toujours suivi d'une modale de confirmation.</td></tr>
+<tr><td><strong>Danger contour</strong></td><td>Rejeter un paiement, refuser une demande</td><td>Moins agressif que le plein, action réversible par le souscripteur.</td></tr>
+<tr><td><strong>Icône</strong></td><td>Menu d'actions, édition rapide</td><td>40×40, infobulle obligatoire.</td></tr>
+</table>
+<div class="cspec"><dt>Tailles</dt><dd>Petit 34 px · Moyen 42 px · Grand 50 px (mobile souscripteur, CTA de landing)</dd>
+<dt>États</dt><dd>Repos · Survol · Focus (anneau 3 px <code>--brand-pale</code>) · Pressé · Chargement (spinner + libellé au participe présent) · Désactivé</dd>
+<dt>Icône</dt><dd>À gauche du libellé, 18 px, écart 8 px</dd>
+<dt>Mobile</dt><dd>Les boutons d'action principaux passent en pleine largeur en bas d'écran</dd></div>
+</div>
+
+<h2 id="c-badges">4.2 · Badges de statut</h2>
+<div class="card">
+<div class="demo">
+<span class="badge b-ok"><span class="dot"></span>Validé</span>
+<span class="badge b-warn"><span class="dot"></span>Déclaré</span>
+<span class="badge b-err"><span class="dot"></span>En retard</span>
+<span class="badge b-info"><span class="dot"></span>À venir</span>
+<span class="badge b-neutral"><span class="dot"></span>Brouillon</span>
+<span class="badge b-err"><span class="dot"></span>Rejeté</span>
+<span class="badge b-brand">Fonds d'entrée</span>
+</div>
+<h4>Table de correspondance des statuts — à respecter partout</h4>
+<table>
+<tr><th>Objet</th><th>Statut</th><th>Badge</th></tr>
+<tr><td rowspan="5">Échéance (cotisation)</td><td>À venir</td><td><span class="badge b-info">À venir</span></td></tr>
+<tr><td>Déclarée, en attente de validation</td><td><span class="badge b-warn">Déclarée</span></td></tr>
+<tr><td>Payée et validée</td><td><span class="badge b-ok">Payée</span></td></tr>
+<tr><td>Partiellement payée</td><td><span class="badge b-warn">Partielle</span></td></tr>
+<tr><td>Échue non payée</td><td><span class="badge b-err">En retard</span></td></tr>
+<tr><td rowspan="3">Paiement déclaré</td><td>En attente</td><td><span class="badge b-warn">En attente</span></td></tr>
+<tr><td>Validé</td><td><span class="badge b-ok">Validé</span></td></tr>
+<tr><td>Rejeté</td><td><span class="badge b-err">Rejeté</span></td></tr>
+<tr><td rowspan="4">Projet</td><td>Brouillon</td><td><span class="badge b-neutral">Brouillon</span></td></tr>
+<tr><td>Ouvert aux inscriptions</td><td><span class="badge b-info">Inscriptions ouvertes</span></td></tr>
+<tr><td>En cours</td><td><span class="badge b-ok">En cours</span></td></tr>
+<tr><td>Terminé</td><td><span class="badge b-neutral">Terminé</span></td></tr>
+<tr><td rowspan="3">Souscripteur sur projet</td><td>Contrat à signer</td><td><span class="badge b-warn">Signature attendue</span></td></tr>
+<tr><td>À jour</td><td><span class="badge b-ok">À jour</span></td></tr>
+<tr><td>En retard</td><td><span class="badge b-err">En retard</span></td></tr>
+<tr><td rowspan="4">Association</td><td>Active</td><td><span class="badge b-ok">Active</span></td></tr>
+<tr><td>Abonnement impayé</td><td><span class="badge b-warn">Impayé</span></td></tr>
+<tr><td>Suspendue</td><td><span class="badge b-err">Suspendue</span></td></tr>
+<tr><td>En cours d'installation</td><td><span class="badge b-info">Onboarding</span></td></tr>
+<tr><td rowspan="3">Demande de création</td><td>En attente</td><td><span class="badge b-warn">À traiter</span></td></tr>
+<tr><td>Approuvée</td><td><span class="badge b-ok">Approuvée</span></td></tr>
+<tr><td>Refusée</td><td><span class="badge b-err">Refusée</span></td></tr>
+</table>
+<p style="font-size:13px">Un badge contient toujours un <strong>libellé texte</strong> : la couleur seule ne porte jamais l'information (accessibilité daltonisme).</p>
+</div>
+
+<h2 id="c-forms">4.3 · Champs de formulaire</h2>
+<div class="card">
+<div class="demo">
+<div class="field"><label>Nom du projet <span class="req">*</span></label><input class="input" value="Construction du centre communautaire"><span class="help">Visible par les souscripteurs</span></div>
+<div class="field"><label>Téléphone <span class="req">*</span></label><input class="input focus" value="+225 07 08 09"><span class="help">Identifiant de connexion du souscripteur</span></div>
+</div>
+<div class="demo">
+<div class="field"><label>Email</label><input class="input error" value="awa.kone@gmail"><span class="err">⚠ Adresse email incomplète</span></div>
+<div class="field"><label>Association</label><input class="input" disabled value="Entraide Yopougon"><span class="help">Non modifiable</span></div>
+</div>
+<div class="demo">
+<div class="field"><label>Montant par échéance <span class="req">*</span></label><div class="input-group"><input value="25 000"><span>F CFA</span></div></div>
+<div class="field"><label>Fréquence</label><select class="input"><option>Mensuelle</option><option>Trimestrielle</option></select></div>
+<div class="field"><label>Date de début</label><input class="input" value="01/10/2026"><span class="help">Sélecteur de date au clic</span></div>
+</div>
+<div class="demo">
+<div class="dropzone">⇪ Glissez votre preuve ici ou <strong>parcourez vos fichiers</strong><br><span style="font-size:12px">JPG, PNG ou PDF · 5 Mo maximum</span></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div class="checkrow"><span class="cb on" style="color:#fff;font-size:12px">✓</span> Échéance d'octobre — 25 000 F</div>
+<div class="checkrow"><span class="cb"></span> Échéance de novembre — 25 000 F</div>
+<div class="checkrow"><span class="toggle on"></span> Relances automatiques</div>
+<div class="checkrow"><span class="toggle"></span> Notifications par SMS</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div class="seg"><span class="on">Dates fixes</span><span>Cycle roulant</span></div>
+<div class="ctr"><button class="btn btn-icon btn-sm" style="width:32px;border:none">−</button><b>25</b><button class="btn btn-icon btn-sm" style="width:32px;border:none">+</button></div>
+</div>
+</div>
+<table>
+<tr><th>Composant</th><th>Spécification</th></tr>
+<tr><td>Champ texte</td><td>Libellé au-dessus (13 px / 600), astérisque rouge si obligatoire, aide en dessous (12 px gris). Hauteur 44 px. Focus : bordure <code>--brand</code> + halo 3 px.</td></tr>
+<tr><td>Erreur</td><td>Bordure rouge + halo rouge pâle, message sous le champ précédé d'une icône. Validation à la perte de focus, pas à chaque frappe.</td></tr>
+<tr><td>Champ montant</td><td>Suffixe « F CFA » grisé. Formatage automatique des milliers à la saisie. Clavier numérique sur mobile.</td></tr>
+<tr><td>Téléphone</td><td>Préfixe pays sélectionnable (drapeau + indicatif), défaut +225.</td></tr>
+<tr><td>Sélecteur</td><td>Même hauteur que les champs, chevron à droite. Au-delà de 8 options : sélecteur avec recherche.</td></tr>
+<tr><td>Zone de dépôt</td><td>Bordure pointillée, icône, texte, formats acceptés. Après dépôt : vignette + nom du fichier + bouton retirer. Mobile : ouvre directement le choix appareil photo / galerie.</td></tr>
+<tr><td>Case à cocher</td><td>20×20, radius 6. Cochée : fond <code>--brand</code>, coche blanche. Toute la ligne est cliquable.</td></tr>
+<tr><td>Interrupteur</td><td>Pour les réglages à effet immédiat uniquement (notifications, relances).</td></tr>
+<tr><td>Contrôle segmenté</td><td>Pour 2 à 4 choix exclusifs visibles (dates fixes / cycle roulant, vue carte / tableau).</td></tr>
+<tr><td>Compteur</td><td>Pour les petites quantités entières (nombre de souscripteurs requis).</td></tr>
+</table>
+</div>
+
+<h2 id="c-cards">4.4 · Cartes</h2>
+<div class="card">
+<h4>Carte KPI</h4>
+<div class="demo">
+<div class="kpi"><div class="l"><span class="badge b-brand" style="padding:2px 7px">◈</span>Collecté ce mois</div><div class="v">1 240 000 F</div><div class="d" style="color:var(--success-fg)">▲ +12 % vs mois dernier</div></div>
+<div class="kpi"><div class="l"><span class="badge b-warn" style="padding:2px 7px">⏱</span>Paiements à valider</div><div class="v">6</div><div class="d" style="color:var(--warning-fg)">Le plus ancien : il y a 3 jours</div></div>
+<div class="kpi"><div class="l"><span class="badge b-err" style="padding:2px 7px">!</span>Souscripteurs en retard</div><div class="v">14</div><div class="d" style="color:var(--danger-fg)">sur 52 actifs</div></div>
+</div>
+<div class="cspec"><dt>Structure</dt><dd>Icône dans pastille colorée + libellé · valeur en grand · ligne de contexte (tendance, précision)</dd>
+<dt>Cliquable</dt><dd>Oui, mène vers la liste filtrée correspondante. Survol : ombre renforcée.</dd>
+<dt>Grille</dt><dd>3 ou 4 par ligne desktop, 2 tablette, 1 mobile (ou défilement horizontal)</dd></div>
+
+<h4>Carte projet — gestionnaire</h4>
+<div class="demo">
+<div class="pcard">
+<div class="hd"><div><div class="nm">Centre communautaire</div><div class="as">Mensuel · 25 000 F · depuis mars 2026</div></div><span class="badge b-ok">En cours</span></div>
+<div class="bar"><i style="width:68%"></i></div>
+<div class="row"><span>8 500 000 F collectés</span><span>68 %</span></div>
+<div class="ft"><div style="display:flex">
+<span class="avatar sm" style="border:2px solid #fff">AK</span><span class="avatar sm" style="border:2px solid #fff;margin-left:-8px;background:#DFF3E7;color:#1E6B3E">MD</span><span class="avatar sm" style="border:2px solid #fff;margin-left:-8px;background:#FBEEDB;color:#8A5410">+48</span></div>
+<span class="badge b-err">3 en retard</span></div>
+</div>
+<div class="pcard">
+<div class="hd"><div><div class="nm">Tontine solidaire 2027</div><div class="as">Cycle roulant · 10 000 F</div></div><span class="badge b-info">Inscriptions ouvertes</span></div>
+<div class="bar"><i style="width:40%;background:var(--info)"></i></div>
+<div class="row"><span>12 / 30 souscripteurs</span><span>40 %</span></div>
+<div class="ft"><span style="font-size:12.5px;color:var(--muted)">Démarre le 1ᵉʳ janvier</span><button class="btn btn-sm btn-secondary">Inscrire</button></div>
+</div>
+</div>
+<div class="cspec"><dt>Contenu</dt><dd>Nom · fréquence et montant · statut · barre d'avancement (collecte ou remplissage selon statut) · avatars des souscripteurs empilés · alerte de retards</dd>
+<dt>Barre</dt><dd>Projet en cours : montant collecté / attendu total. Inscriptions ouvertes : souscripteurs inscrits / requis, couleur info.</dd>
+<dt>Clic</dt><dd>Ouvre le détail du projet</dd></div>
+
+<h4>Carte projet — souscripteur</h4>
+<div class="demo" style="--demo-bg:#FAECE7;--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="pcard">
+<div class="hd"><div><div class="nm">Centre communautaire</div><div class="as">Entraide Yopougon</div></div><span class="badge b-ok">À jour</span></div>
+<div style="margin-top:14px;font-size:12px;color:var(--muted)">Reste à payer</div>
+<div class="amt" style="font-size:22px;color:var(--text-strong)">150 000 F</div>
+<div class="bar"><i style="width:62%"></i></div>
+<div class="row"><span>250 000 F versés</span><span>sur 400 000 F</span></div>
+<div class="ft"><div style="font-size:12.5px"><div style="color:var(--muted)">Prochaine échéance</div><b>25 000 F · 5 oct.</b></div><button class="btn btn-sm btn-primary">Déclarer</button></div>
+</div>
+<div class="pcard" style="border:2px solid var(--danger)">
+<div class="hd"><div><div class="nm">Mutuelle santé</div><div class="as">Association des ressortissants</div></div><span class="badge b-err">En retard</span></div>
+<div style="margin-top:14px;font-size:12px;color:var(--muted)">Reste à payer</div>
+<div class="amt" style="font-size:22px;color:var(--danger-fg)">45 000 F</div>
+<div class="bar"><i style="width:40%;background:var(--danger)"></i></div>
+<div class="row"><span>2 échéances en retard</span><span>depuis le 5 août</span></div>
+<div class="ft"><div style="font-size:12.5px;color:var(--danger-fg)"><b>Régulariser 30 000 F</b></div><button class="btn btn-sm btn-primary">Déclarer</button></div>
+</div>
+<div class="pcard" style="border:2px dashed var(--warning)">
+<div class="hd"><div><div class="nm">Voyage solidaire</div><div class="as">Entraide Yopougon</div></div><span class="badge b-warn">Signature attendue</span></div>
+<p style="font-size:13px;color:var(--muted);margin:14px 0 4px">Vous avez été ajouté à ce projet. Signez le contrat pour accéder à votre échéancier.</p>
+<div class="ft"><span></span><button class="btn btn-sm btn-primary">Signer le contrat</button></div>
+</div>
+</div>
+<div class="cspec"><dt>Hiérarchie</dt><dd>Le <strong>reste à payer</strong> est l'information dominante (22 px), pas le montant versé.</dd>
+<dt>Variantes</dt><dd>À jour (bordure standard) · En retard (bordure rouge 2 px, montant en rouge) · Signature attendue (bordure orange pointillée, contenu masqué) · Terminé (grisé, badge « Terminé », bouton « Voir le bilan »)</dd>
+<dt>Tri par défaut</dt><dd>En retard, puis signature attendue, puis par date de prochaine échéance</dd></div>
+
+<h4>Carte association</h4>
+<div class="demo">
+<div class="pcard" style="width:320px">
+<div style="display:flex;gap:12px;align-items:center"><span class="avatar" style="width:46px;height:46px;border-radius:12px">EY</span><div><div class="nm">Entraide Yopougon</div><div class="as">Abidjan · membre depuis 2024</div></div></div>
+<div style="display:flex;gap:18px;margin-top:14px;font-size:13px"><div><b style="font-family:Poppins;font-size:17px">3</b><br><span style="color:var(--muted)">projets actifs</span></div><div><b style="font-family:Poppins;font-size:17px">200 000 F</b><br><span style="color:var(--muted)">reste à payer</span></div></div>
+<div class="ft"><span class="badge b-ok">À jour</span><span style="font-size:13px;color:var(--brand-dark);font-weight:600">Voir les projets →</span></div>
+</div>
+<div class="pcard" style="width:320px">
+<div style="display:flex;gap:12px;align-items:center"><span class="avatar" style="width:46px;height:46px;border-radius:12px;background:var(--sa-pale);color:var(--sa)">AR</span><div style="flex:1"><div class="nm">Assoc. des ressortissants</div><div class="as">Plan Essentiel · 142 souscripteurs</div></div><span class="badge b-warn">Impayé</span></div>
+<div style="display:flex;gap:18px;margin-top:14px;font-size:13px"><div><b style="font-family:Poppins;font-size:17px">5</b><br><span style="color:var(--muted)">projets</span></div><div><b style="font-family:Poppins;font-size:17px">il y a 2 j</b><br><span style="color:var(--muted)">dernière activité</span></div></div>
+</div>
+</div>
+<p style="font-size:13px">Même composant, deux usages : vue souscripteur (reste à payer) et vue super-admin (plan, volume, santé).</p>
+</div>
+
+<h2 id="c-tables">4.5 · Tableaux et grille d'échéances</h2>
+<div class="card">
+<h4>Tableau de données standard</h4>
+<div class="demo col" style="--demo-bg:#F4F2ED">
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+<div class="searchbar">⌕ Nom, téléphone…</div>
+<span class="chip on">Tous · 52</span><span class="chip">En retard · 14</span><span class="chip">Signature attendue · 3</span>
+<button class="btn btn-sm btn-secondary" style="margin-left:auto">⇩ Exporter</button>
+</div>
+<table class="mtable">
+<tr><th style="width:30px"><span class="cb"></span></th><th>Souscripteur ↓</th><th>Téléphone</th><th>Versé</th><th>Reste</th><th>Statut</th><th></th></tr>
+<tr><td><span class="cb"></span></td><td><div style="display:flex;gap:9px;align-items:center"><span class="avatar sm">AK</span><div><b>Awa Koné</b><div style="font-size:12px;color:var(--muted)">Inscrite le 12/03/2026</div></div></div></td><td class="mono">+225 07 08 09 10 11</td><td>250 000 F</td><td>150 000 F</td><td><span class="badge b-ok">À jour</span></td><td>⋯</td></tr>
+<tr><td><span class="cb"></span></td><td><div style="display:flex;gap:9px;align-items:center"><span class="avatar sm" style="background:#FBE0E0;color:#96201F">MD</span><div><b>Moussa Diarra</b><div style="font-size:12px;color:var(--muted)">Inscrit le 12/03/2026</div></div></div></td><td class="mono">+225 05 44 21 87 90</td><td>150 000 F</td><td>250 000 F</td><td><span class="badge b-err">En retard · 2</span></td><td>⋯</td></tr>
+<tr><td><span class="cb"></span></td><td><div style="display:flex;gap:9px;align-items:center"><span class="avatar sm" style="background:#FBEEDB;color:#8A5410">FT</span><div><b>Fatou Traoré</b><div style="font-size:12px;color:var(--muted)">Inscrite le 02/09/2026</div></div></div></td><td class="mono">+225 01 22 33 44 55</td><td>0 F</td><td>400 000 F</td><td><span class="badge b-warn">Signature attendue</span></td><td>⋯</td></tr>
+</table>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)"><span>1–20 sur 52</span><div class="pagin"><span>‹</span><span class="on">1</span><span>2</span><span>3</span><span>›</span></div></div>
+</div>
+<table>
+<tr><th>Élément</th><th>Spécification</th></tr>
+<tr><td>Barre d'outils</td><td>Recherche à gauche · filtres rapides en puces avec compteur · actions (export, ajout) à droite</td></tr>
+<tr><td>En-tête</td><td>Poppins 11.5 px majuscules gris, fond <code>#FAF9FC</code>. Colonnes triables : flèche au survol, flèche pleine si active.</td></tr>
+<tr><td>Ligne</td><td>Hauteur 56 px. Survol : fond <code>#FAF9FC</code>. Ligne entière cliquable vers le détail.</td></tr>
+<tr><td>Montants</td><td>Alignés à droite, chiffres tabulaires</td></tr>
+<tr><td>Sélection multiple</td><td>Cocher une ligne fait apparaître une barre d'actions groupées au-dessus du tableau (« 3 sélectionnés · Relancer · Exporter »)</td></tr>
+<tr><td>Actions de ligne</td><td>Bouton ⋯ ouvrant un menu contextuel</td></tr>
+<tr><td>Mobile</td><td>Le tableau devient une liste de cartes empilées : nom + statut en haut, 2 chiffres clés en bas</td></tr>
+</table>
+
+<h4>Grille d'échéances — composant signature du produit</h4>
+<p>C'est l'écran que le gestionnaire regarde le plus. Une ligne par souscripteur, une case par échéance. Lecture d'un coup d'œil de qui est à jour.</p>
+<div class="demo col" style="--demo-bg:#F4F2ED">
+<table class="mtable" style="font-size:13px">
+<tr><th>Souscripteur</th><th style="text-align:center">Entrée</th><th style="text-align:center">Mai</th><th style="text-align:center">Juin</th><th style="text-align:center">Juil.</th><th style="text-align:center">Août</th><th style="text-align:center">Sept.</th><th style="text-align:center">Oct.</th><th style="text-align:right">Reste</th></tr>
+<tr><td><b>Awa Koné</b></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-wait"></span></td><td style="text-align:center"><span class="cell c-fut"></span></td><td style="text-align:right">150 000 F</td></tr>
+<tr><td><b>Moussa Diarra</b></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-late"></span></td><td style="text-align:center"><span class="cell c-late"></span></td><td style="text-align:center"><span class="cell c-late"></span></td><td style="text-align:center"><span class="cell c-fut"></span></td><td style="text-align:right;color:var(--danger-fg);font-weight:600">250 000 F</td></tr>
+<tr><td><b>Jean Kouassi</b></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-ok"></span></td><td style="text-align:center"><span class="cell c-part"></span></td><td style="text-align:center"><span class="cell c-fut"></span></td><td style="text-align:center"><span class="cell c-fut"></span></td><td style="text-align:right">187 500 F</td></tr>
+</table>
+<div style="display:flex;gap:16px;font-size:12.5px;color:var(--muted);flex-wrap:wrap"><span><span class="cell c-ok" style="width:12px;height:12px;vertical-align:middle"></span> Payée</span><span><span class="cell c-wait" style="width:12px;height:12px;vertical-align:middle"></span> Déclarée, à valider</span><span><span class="cell c-part" style="width:12px;height:12px;vertical-align:middle"></span> Partielle</span><span><span class="cell c-late" style="width:12px;height:12px;vertical-align:middle"></span> En retard</span><span><span class="cell c-fut" style="width:12px;height:12px;vertical-align:middle"></span> À venir</span></div>
+</div>
+<table>
+<tr><th>Comportement</th><th>Spécification</th></tr>
+<tr><td>Case</td><td>22×22, radius 6. Survol : infobulle « Juillet 2026 · 25 000 F · En retard depuis 58 jours ».</td></tr>
+<tr><td>Clic sur case</td><td>Panneau latéral avec le détail de l'échéance et les paiements rattachés. Case orange : accès direct à la validation.</td></tr>
+<tr><td>Colonne souscripteur</td><td>Figée à gauche lors du défilement horizontal</td></tr>
+<tr><td>Défilement</td><td>Au-delà de 12 échéances : défilement horizontal, positionné par défaut sur le mois courant</td></tr>
+<tr><td>Mois courant</td><td>Colonne légèrement surlignée <code>--brand-pale</code></td></tr>
+<tr><td>Tri</td><td>Par défaut : plus grand nombre de retards en haut</td></tr>
+<tr><td>Accessibilité</td><td>Chaque case porte un motif en plus de la couleur (✓ payée, ! retard, ◔ partielle) activable en option</td></tr>
+<tr><td>Mobile</td><td>Chaque souscripteur devient une carte avec sa rangée de cases qui passe à la ligne</td></tr>
+</table>
+</div>
+
+<h2 id="c-nav">4.6 · Navigation</h2>
+<div class="card">
+<h4>Onglets de page</h4>
+<div class="demo" style="--demo-bg:#fff"><div class="tabs"><span class="on">Vue d'ensemble</span><span>Souscripteurs <span class="cnt" style="background:#ECE9F2;color:var(--muted)">52</span></span><span>Paiements <span class="cnt">6</span></span><span>Paramètres</span><span>Rapports</span></div></div>
+<p style="font-size:13px">Onglets soulignés, synchronisés avec l'URL (<code>/projets/:id/paiements</code>). Compteur orange quand il y a une action en attente. Mobile : défilement horizontal, onglet actif centré.</p>
+<h4>Indicateur d'étapes (formulaires multi-étapes)</h4>
+<div class="demo" style="--demo-bg:#fff"><div class="stepper"><div class="s done"><b>✓</b>Informations</div><div class="ln done"></div><div class="s done"><b>✓</b>Financement</div><div class="ln done"></div><div class="s cur"><b>3</b>Calendrier</div><div class="ln"></div><div class="s"><b>4</b>Paiement</div><div class="ln"></div><div class="s"><b>5</b>Contrat</div><div class="ln"></div><div class="s"><b>6</b>Récapitulatif</div></div></div>
+<p style="font-size:13px">Étapes terminées cliquables pour revenir en arrière. Mobile : « Étape 3 sur 6 — Calendrier » + barre de progression.</p>
+<h4>Fil d'Ariane, filtres, pagination</h4>
+<div class="demo" style="--demo-bg:#fff">
+<span style="font-size:13px;color:var(--muted)">Projets › <span style="color:var(--text)">Centre communautaire</span> › Paiements</span>
+<span class="chip on">Ce mois ✕</span><span class="chip">+ Filtre</span>
+<div class="pagin"><span>‹</span><span class="on">1</span><span>2</span><span>…</span><span>8</span><span>›</span></div>
+</div>
+</div>
+
+<h2 id="c-feedback">4.7 · Retours et alertes</h2>
+<div class="card">
+<h4>Notifications éphémères (toasts)</h4>
+<div class="demo">
+<div class="toast">✓ <div><b>Paiement validé</b><br><span style="color:var(--muted)">3 échéances de Awa Koné sont à jour</span></div><span style="margin-left:auto;color:var(--brand-dark);font-weight:600;font-size:13px">Annuler</span></div>
+<div class="toast e">✕ <div><b>Envoi impossible</b><br><span style="color:var(--muted)">Vérifiez votre connexion et réessayez</span></div></div>
+</div>
+<p style="font-size:13px">En bas à droite desktop, en haut mobile. 5 secondes, pause au survol. Action « Annuler » proposée après une validation ou un retrait.</p>
+<h4>Bandeaux d'alerte dans la page</h4>
+<div class="demo col">
+<div class="alert" style="background:var(--warning-bg);color:var(--warning-fg)"><b>⚠</b><div><b>6 paiements attendent votre validation</b>, dont 2 depuis plus de 5 jours. <u>Les traiter</u></div></div>
+<div class="alert" style="background:var(--danger-bg);color:var(--danger-fg)"><b>!</b><div><b>Votre abonnement est impayé.</b> L'accès sera suspendu le 10 octobre. <u>Régulariser</u></div></div>
+<div class="alert" style="background:var(--info-bg);color:var(--info-fg)"><b>i</b><div>Ce contrat ne peut plus être modifié : 12 souscripteurs l'ont déjà signé.</div></div>
+<div class="alert" style="background:var(--success-bg);color:var(--success-fg)"><b>✓</b><div><b>Tous vos souscripteurs sont à jour.</b> Aucun retard sur ce projet.</div></div>
+</div>
+</div>
+
+<h2 id="c-overlays">4.8 · Modales, panneaux et menus</h2>
+<div class="card">
+<div class="demo" style="--demo-bg:#DDD9E3;justify-content:center;gap:24px">
+<div class="modal"><div class="mh">Retirer Moussa Diarra du projet ?</div><div class="mb">Son historique de paiement sera conservé, mais il ne recevra plus d'échéances ni de relances. Cette action est réversible.</div><div class="mf"><button class="btn btn-ghost btn-sm">Annuler</button><button class="btn btn-danger btn-sm">Retirer du projet</button></div></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div class="dd"><div class="h">👁 Voir la fiche</div><div>✉ Envoyer une relance</div><div>✎ Modifier</div><hr><div class="dg">✕ Retirer du projet</div></div>
+<span class="tip">En retard depuis 58 jours</span>
+</div>
+</div>
+<table>
+<tr><th>Composant</th><th>Usage</th><th>Spécification</th></tr>
+<tr><td>Modale de confirmation</td><td>Action destructive ou financière</td><td>420 px. Titre = question explicite reprenant le nom de l'objet. Corps = conséquence. Bouton d'action reprend le verbe (jamais « OK »).</td></tr>
+<tr><td>Modale de formulaire</td><td>Ajout rapide (souscripteur, relance)</td><td>560 px, boutons en pied fixe</td></tr>
+<tr><td>Panneau latéral</td><td>Détail sans quitter la liste (paiement, échéance)</td><td>480 px depuis la droite, fond assombri. Mobile : plein écran depuis le bas.</td></tr>
+<tr><td>Menu contextuel</td><td>Actions secondaires d'une ligne ou carte</td><td>220 px, action destructive en dernier, séparée, en rouge</td></tr>
+<tr><td>Infobulle</td><td>Boutons icônes, cases de la grille</td><td>Fond <code>#1B1830</code>, 12 px, délai 300 ms</td></tr>
+<tr><td>Feuille basse (mobile)</td><td>Choix, filtres, actions sur mobile</td><td>Poignée en haut, radius 20 en haut</td></tr>
+</table>
+<div class="warn"><strong>Confirmation renforcée</strong> pour : suspendre une association, supprimer un projet ayant des paiements. L'utilisateur doit taper le nom de l'objet pour activer le bouton.</div>
+</div>
+
+<h2 id="c-empty">4.9 · États vides et chargement</h2>
+<div class="card">
+<div class="demo">
+<div class="empty"><div class="i">◧</div><div class="t">Aucun projet pour l'instant</div><div class="d">Créez votre premier projet pour commencer à inscrire des souscripteurs.</div><button class="btn btn-primary btn-sm">Créer un projet</button></div>
+<div class="empty"><div class="i" style="background:var(--success-bg)">✓</div><div class="t">Rien à valider</div><div class="d">Tous les paiements déclarés ont été traités.</div></div>
+<div class="empty"><div class="i" style="background:#ECEAF0">⌕</div><div class="t">Aucun résultat</div><div class="d">Aucun souscripteur ne correspond à « Kouadio ».</div><button class="btn btn-ghost btn-sm">Effacer la recherche</button></div>
+</div>
+<div class="demo">
+<div class="kpi"><div class="skel" style="height:12px;width:60%"></div><div class="skel" style="height:26px;width:80%;margin-top:10px"></div><div class="skel" style="height:10px;width:40%;margin-top:10px"></div></div>
+<div class="kpi"><div class="skel" style="height:12px;width:60%"></div><div class="skel" style="height:26px;width:80%;margin-top:10px"></div><div class="skel" style="height:10px;width:40%;margin-top:10px"></div></div>
+<div style="flex:2;min-width:300px;background:#fff;border-radius:12px;padding:14px">
+<div class="skel" style="height:14px;margin-bottom:12px"></div><div class="skel" style="height:14px;margin-bottom:12px;width:90%"></div><div class="skel" style="height:14px;width:75%"></div></div>
+</div>
+<table>
+<tr><th>Type</th><th>Règle</th></tr>
+<tr><td>Vide de premier usage</td><td>Illustration + explication + bouton d'action. Ton encourageant.</td></tr>
+<tr><td>Vide positif</td><td>Icône verte. « Rien à valider » est une bonne nouvelle, le montrer.</td></tr>
+<tr><td>Vide de recherche</td><td>Rappel du terme cherché + bouton pour effacer</td></tr>
+<tr><td>Chargement</td><td>Squelettes reprenant la forme du contenu final. Jamais de spinner plein écran.</td></tr>
+<tr><td>Erreur</td><td>Message humain + bouton « Réessayer ». Le reste de la page reste utilisable.</td></tr>
+<tr><td>Fonction à venir (V1+)</td><td>Écran visible avec badge « Bientôt disponible » et courte description de ce que la fonction fera</td></tr>
+</table>
+</div>
+
+<h2 id="c-data">4.10 · Visualisation de données</h2>
+<div class="card">
+<div class="demo" style="--demo-bg:#fff;align-items:flex-end">
+<div style="flex:1;min-width:320px">
+<div style="font-family:Poppins;font-weight:600;font-size:14px;margin-bottom:10px">Collecte mensuelle — attendu vs reçu</div>
+<svg viewBox="0 0 340 150" width="100%"><line x1="30" y1="130" x2="335" y2="130" stroke="#E4E0EA"/><line x1="30" y1="90" x2="335" y2="90" stroke="#F1EEF4"/><line x1="30" y1="50" x2="335" y2="50" stroke="#F1EEF4"/>
+<g font-size="9" fill="#6B6478" font-family="Inter"><text x="4" y="133">0</text><text x="0" y="93">0,5M</text><text x="4" y="53">1M</text></g>
+<g><rect x="42" y="50" width="16" height="80" rx="3" fill="#E4E0EA"/><rect x="60" y="56" width="16" height="74" rx="3" fill="#7F77DD"/>
+<rect x="92" y="50" width="16" height="80" rx="3" fill="#E4E0EA"/><rect x="110" y="52" width="16" height="78" rx="3" fill="#7F77DD"/>
+<rect x="142" y="50" width="16" height="80" rx="3" fill="#E4E0EA"/><rect x="160" y="64" width="16" height="66" rx="3" fill="#7F77DD"/>
+<rect x="192" y="50" width="16" height="80" rx="3" fill="#E4E0EA"/><rect x="210" y="70" width="16" height="60" rx="3" fill="#7F77DD"/>
+<rect x="242" y="50" width="16" height="80" rx="3" fill="#E4E0EA"/><rect x="260" y="58" width="16" height="72" rx="3" fill="#7F77DD"/>
+<rect x="292" y="50" width="16" height="80" rx="3" fill="#E4E0EA"/><rect x="310" y="96" width="16" height="34" rx="3" fill="#7F77DD" opacity=".55"/></g>
+<g font-size="9" fill="#6B6478" font-family="Inter" text-anchor="middle"><text x="59" y="143">Mai</text><text x="109" y="143">Juin</text><text x="159" y="143">Juil.</text><text x="209" y="143">Août</text><text x="259" y="143">Sept.</text><text x="309" y="143">Oct.</text></g></svg>
+<div style="font-size:12px;color:var(--muted);display:flex;gap:14px"><span>▇ <span style="color:#B8B3C4">Attendu</span></span><span>▇ <span style="color:#7F77DD">Reçu</span></span><span>Mois en cours en transparence</span></div>
+</div>
+<div style="width:220px;text-align:center">
+<div style="font-family:Poppins;font-weight:600;font-size:14px;margin-bottom:10px">Taux de recouvrement</div>
+<svg viewBox="0 0 120 120" width="140"><circle cx="60" cy="60" r="46" fill="none" stroke="#ECE9F2" stroke-width="13"/><circle cx="60" cy="60" r="46" fill="none" stroke="#2E9E5B" stroke-width="13" stroke-dasharray="237 289" stroke-linecap="round" transform="rotate(-90 60 60)"/><text x="60" y="58" text-anchor="middle" font-family="Poppins" font-weight="600" font-size="22" fill="#1B1830">82 %</text><text x="60" y="75" text-anchor="middle" font-family="Inter" font-size="9" fill="#6B6478">des échéances échues</text></svg>
+</div>
+<div style="flex:1;min-width:230px">
+<div style="font-family:Poppins;font-weight:600;font-size:14px;margin-bottom:10px">Cumul versé (souscripteur)</div>
+<svg viewBox="0 0 230 110" width="100%"><path d="M10 100 L45 88 L80 74 L115 62 L150 48 L185 40 L220 26" fill="none" stroke="#D85A30" stroke-width="2.5" stroke-linecap="round"/><path d="M10 100 L45 88 L80 74 L115 62 L150 48 L185 40 L220 26 L220 100 Z" fill="#D85A30" opacity=".1"/><path d="M185 40 L220 12" stroke="#D85A30" stroke-width="2" stroke-dasharray="4 4" opacity=".5"/><circle cx="220" cy="26" r="4" fill="#D85A30"/></svg>
+<div style="font-size:12px;color:var(--muted)">Pointillé : objectif restant</div>
+</div>
+</div>
+<table>
+<tr><th>Graphique</th><th>Usage</th><th>Règle</th></tr>
+<tr><td>Barres groupées attendu / reçu</td><td>Collecte par période (gestionnaire, rapports)</td><td>Attendu en gris clair, reçu en <code>--brand</code>. Période en cours en transparence.</td></tr>
+<tr><td>Anneau</td><td>Un seul taux (recouvrement, remplissage)</td><td>Couleur de statut selon seuil : ≥ 80 % vert, 50–80 % orange, &lt; 50 % rouge</td></tr>
+<tr><td>Courbe cumulative</td><td>Progression personnelle du souscripteur</td><td>Aire légère sous la courbe, objectif en pointillé</td></tr>
+<tr><td>Barre de progression</td><td>Dans les cartes</td><td>8 px, radius complet</td></tr>
+</table>
+<p style="font-size:13px">Infobulle au survol de chaque point avec valeur exacte. Pas de légende séparée si les séries sont étiquetées directement. Montants abrégés sur les axes (0,5M, 1M), complets dans les infobulles.</p>
+</div>
+
+<h2 id="c-special">4.11 · Composants métier</h2>
+<div class="card">
+<h4>Sélecteur d'échéances couvertes (déclaration de paiement)</h4>
+<div class="demo col" style="--demo-bg:#FAECE7;--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div style="background:#fff;border-radius:14px;padding:16px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-family:Poppins">Montant déclaré : 75 000 F</b><span class="badge b-ok">Réparti entièrement</span></div>
+<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+<div class="checkrow" style="padding:10px;border-radius:10px;background:var(--danger-bg)"><span class="cb on" style="color:#fff;font-size:12px">✓</span><div style="flex:1"><b>Août 2026</b> <span class="badge b-err" style="font-size:11px;padding:1px 8px">En retard</span></div><b>25 000 F</b></div>
+<div class="checkrow" style="padding:10px;border-radius:10px;background:var(--danger-bg)"><span class="cb on" style="color:#fff;font-size:12px">✓</span><div style="flex:1"><b>Septembre 2026</b> <span class="badge b-err" style="font-size:11px;padding:1px 8px">En retard</span></div><b>25 000 F</b></div>
+<div class="checkrow" style="padding:10px;border-radius:10px;background:#FAF9FC"><span class="cb on" style="color:#fff;font-size:12px">✓</span><div style="flex:1"><b>Octobre 2026</b> <span class="badge b-info" style="font-size:11px;padding:1px 8px">À venir</span></div><b>25 000 F</b></div>
+<div class="checkrow" style="padding:10px;border-radius:10px;opacity:.55"><span class="cb"></span><div style="flex:1"><b>Novembre 2026</b></div><b>25 000 F</b></div>
+</div>
+<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13.5px"><span>3 échéances couvertes</span><b>Reste à répartir : 0 F</b></div>
+</div>
+</div>
+<table>
+<tr><th>Règle</th><th>Comportement</th></tr>
+<tr><td>Pré-sélection</td><td>À la saisie du montant, cochage automatique des échéances de la plus ancienne non payée à la plus récente, jusqu'à épuisement du montant</td></tr>
+<tr><td>Montant insuffisant</td><td>La dernière échéance couverte passe en « partielle » avec le montant affecté affiché (ex. 10 000 / 25 000 F)</td></tr>
+<tr><td>Ajustement</td><td>L'utilisateur peut décocher / cocher. Compteur « Reste à répartir » mis à jour en direct, rouge si négatif</td></tr>
+<tr><td>Validation</td><td>Bouton désactivé tant que « Reste à répartir » ≠ 0 ou que la preuve est absente</td></tr>
+<tr><td>Ordre</td><td>Retards en premier (fond rouge pâle), puis échéance courante, puis futures</td></tr>
+</table>
+
+<h4>Visionneuse de preuve de paiement</h4>
+<div class="demo">
+<div class="proof">capture_virement.jpg</div>
+<div style="font-size:13px;flex:1;min-width:250px">
+<div class="cspec" style="grid-template-columns:130px 1fr"><dt>Miniature</dt><dd>120×150, clic = plein écran avec zoom et rotation</dd><dt>PDF</dt><dd>Aperçu de la première page + bouton ouvrir</dd><dt>Référence seule</dt><dd>Si pas de fichier : encart avec la référence de transaction en police mono, bouton copier</dd><dt>Téléchargement</dt><dd>Bouton discret sous la miniature</dd></div></div>
+</div>
+
+<h4>Élément de notification</h4>
+<div class="demo col">
+<div class="notif unread"><span class="ic" style="background:var(--warning-bg);color:var(--warning-fg)">⏱</span><div><div class="tt">Échéance dans 3 jours</div><div class="ds">Centre communautaire · 25 000 F le 5 octobre</div></div><span class="tm">il y a 2 h</span></div>
+<div class="notif unread"><span class="ic" style="background:var(--success-bg);color:var(--success-fg)">✓</span><div><div class="tt">Paiement validé</div><div class="ds">Entraide Yopougon a confirmé la réception de 75 000 F</div></div><span class="tm">hier</span></div>
+<div class="notif"><span class="ic" style="background:var(--brand-pale);color:var(--brand-dark)">✎</span><div><div class="tt">Nouveau contrat à signer</div><div class="ds">Vous avez été ajouté au projet Voyage solidaire</div></div><span class="tm">3 sept.</span></div>
+</div>
+<p style="font-size:13px">Non lue : fond <code>--brand-pale</code>. Icône colorée selon le type. Clic = marque comme lue et ouvre l'écran d'action. Groupement « Aujourd'hui / Cette semaine / Plus ancien ».</p>
+
+<h4>Frise d'historique</h4>
+<div class="demo" style="--demo-bg:#fff">
+<div class="timeline">
+<div class="it"><b>Paiement validé — 75 000 F</b><div class="m">12 sept. 2026 · couvre août, septembre, octobre · validé par Aminata K.</div></div>
+<div class="it w"><b>Paiement déclaré — 75 000 F</b><div class="m">10 sept. 2026 · preuve jointe</div></div>
+<div class="it l"><b>Échéance de septembre en retard</b><div class="m">5 sept. 2026 · relance automatique envoyée</div></div>
+<div class="it"><b>Contrat signé</b><div class="m">12 mars 2026</div></div>
+</div>
+</div>
+<p style="font-size:13px">Utilisée dans la fiche souscripteur, le détail d'un paiement et le détail d'une demande. Pastille colorée par type d'événement.</p>
+
+<h4>Avatar et identité</h4>
+<div class="demo" style="--demo-bg:#fff">
+<span class="avatar">AK</span><span class="avatar" style="background:#DFF3E7;color:#1E6B3E">MD</span><span class="avatar sm">JK</span>
+<span class="avatar" style="border-radius:12px;width:44px;height:44px">EY</span>
+<span style="font-size:13px;color:var(--muted)">Initiales sur fond pâle · carré arrondi pour une association, rond pour une personne · photo ou logo si disponible</span>
+</div>
+</div>
+<h2 id="s-public">5 · Espace public</h2>
+<div class="card"><p class="lead">Pages accessibles sans connexion. Univers corail et violet mêlés : c&#x27;est la vitrine de la marque, pas un espace de profil.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+<a href="#pub-landing" class="chip" style="text-decoration:none;color:var(--text)">Landing page</a>
+<a href="#pub-demande" class="chip" style="text-decoration:none;color:var(--text)">Formulaire de demande de création</a>
+<a href="#pub-confirm" class="chip" style="text-decoration:none;color:var(--text)">Confirmation de demande</a>
+<a href="#pub-login-mg" class="chip" style="text-decoration:none;color:var(--text)">Connexion gestionnaire</a>
+<a href="#pub-login-mb" class="chip" style="text-decoration:none;color:var(--text)">Connexion souscripteur</a>
+<a href="#pub-login-sa" class="chip" style="text-decoration:none;color:var(--text)">Connexion plateforme</a>
+<a href="#pub-reset" class="chip" style="text-decoration:none;color:var(--text)">Mot de passe oublié</a>
+<a href="#pub-legal" class="chip" style="text-decoration:none;color:var(--text)">Pages légales</a>
+</div></div>
+<div class="screen" id="pub-landing" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Landing page</span><span class="route">/</span><span class="ver">Back-end : —</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Convaincre en 30 secondes un responsable d&#x27;association que Cotiz va lui faire gagner du temps et de la sérénité sur le suivi des cotisations, puis l&#x27;amener à faire une demande.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête fixe</div><ul>
+<li>Logo Cotiz à gauche</li>
+<li>Liens d&#x27;ancre : Fonctionnement, Tarifs, FAQ</li>
+<li>« Se connecter » (bouton secondaire) ouvrant un menu : Je suis gestionnaire / Je suis souscripteur</li>
+<li>« Créer mon association » (bouton primaire)</li>
+<li>Au défilement : fond blanc + ombre légère</li>
+</ul>
+<div class="cmp">Composants : Boutons primaire et secondaire, menu contextuel</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Héros</div><ul>
+<li>Titre H1 44 px : « Les cotisations de votre association, enfin sous contrôle »</li>
+<li>Sous-titre : « Projets, échéances, paiements, relances : tout au même endroit. Vos membres savent ce qu&#x27;ils doivent, vous savez qui a payé. »</li>
+<li>CTA primaire grand « Créer mon association » + lien « Voir comment ça marche ↓ »</li>
+<li>À droite : maquette du tableau de bord gestionnaire inclinée, avec une carte souscripteur mobile superposée en premier plan</li>
+<li>Ligne de réassurance sous les CTA : « Sans engagement · Mise en place en 48 h · Données hébergées en sécurité »</li>
+</ul>
+<div class="cmp">Composants : Bouton grand, visuel produit</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Problème</div><ul>
+<li>3 cartes illustrant la situation actuelle : « Le cahier qui se perd », « Les relances par WhatsApp une par une », « Personne ne sait qui a payé quoi »</li>
+<li>Ton empathique, pas culpabilisant</li>
+</ul>
+<div class="cmp">Composants : Cartes simples icône + titre + texte</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Fonctionnement en 3 étapes</div><ul>
+<li>1. Créez vos projets — montant, fréquence, durée</li>
+<li>2. Inscrivez vos membres — un par un ou par fichier Excel</li>
+<li>3. Suivez et validez — vos membres déclarent, vous confirmez</li>
+<li>Chaque étape illustrée d&#x27;une capture d&#x27;écran réelle du produit</li>
+</ul>
+<div class="cmp">Composants : Stepper horizontal illustré</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Deux publics</div><ul>
+<li>Bloc en deux colonnes : « Pour les gestionnaires » (violet) et « Pour vos membres » (corail)</li>
+<li>Chaque colonne : 4 bénéfices avec icône</li>
+<li>Rappel visuel des couleurs d&#x27;identité des espaces</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">6</span>Tarifs</div><ul>
+<li>3 cartes de plans côte à côte, celle du milieu mise en avant (badge « Le plus choisi », bordure brand)</li>
+<li>Chaque carte : nom, prix mensuel en grand, limites (projets, souscripteurs, gestionnaires), liste de fonctionnalités cochées, bouton</li>
+<li>Mention sous les cartes : « Besoin de plus ? Contactez-nous »</li>
+</ul>
+<div class="cmp">Composants : Carte tarif, badge, bouton</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">7</span>Témoignages</div><ul>
+<li>2 ou 3 citations de responsables d&#x27;associations avec avatar, nom, rôle, association</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">8</span>FAQ</div><ul>
+<li>Accordéon de 6 à 8 questions : L&#x27;argent passe-t-il par Cotiz ? Mes membres doivent-ils installer une application ? Que se passe-t-il si un membre est dans plusieurs associations ? Mes données sont-elles sécurisées ?</li>
+</ul>
+<div class="cmp">Composants : Accordéon</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">9</span>Appel final</div><ul>
+<li>Bandeau pleine largeur fond violet : « Prêt à organiser votre association ? » + bouton blanc</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">10</span>Pied de page</div><ul>
+<li>4 colonnes : Produit, Ressources, Légal, Contact</li>
+<li>Logo + slogan, réseaux sociaux, copyright</li>
+</ul>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Ancres avec défilement doux</li><li>Menu « Se connecter » : redirige vers la page de connexion du profil choisi</li><li>Cartes de tarif : le bouton pré-sélectionne le plan dans le formulaire de demande</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Desktop 1440</span><span>Mobile 390</span><span>En-tête après défilement</span><span>Menu « Se connecter » ouvert</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Menu hamburger. Héros empilé : texte puis visuel mobile seul. Tarifs en carrousel horizontal, plan mis en avant affiché en premier.</p>
+</div></div>
+<div class="screen" id="pub-demande" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Formulaire de demande de création</span><span class="route">/demande</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Permettre à une association de se présenter en moins de 5 minutes, sans friction, avec assez d&#x27;informations pour que le super-admin puisse décider.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête simplifié</div><ul>
+<li>Logo + lien retour vers l&#x27;accueil</li>
+<li>Pas de menu de navigation, pour rester concentré</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Colonne gauche (40 %)</div><ul>
+<li>Titre « Créons l&#x27;espace de votre association »</li>
+<li>Rappel des 3 étapes suivantes : demande → validation sous 48 h → réception des accès</li>
+<li>Encart de réassurance avec icône cadenas</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Formulaire en 3 étapes (60 %)</div><ul>
+<li>Étape 1 — L&#x27;association : nom, type (association, mutuelle, tontine, groupement…), ville, pays, numéro d&#x27;enregistrement (optionnel), description de l&#x27;activité (zone de texte, 500 caractères, compteur)</li>
+<li>Étape 2 — Le responsable : prénom, nom, fonction dans l&#x27;association, email, téléphone</li>
+<li>Étape 3 — Vos besoins : nombre estimé de souscripteurs (sélecteur par tranches), nombre de projets envisagés, plan souhaité (cartes radio des plans), comment avez-vous connu Cotiz, case d&#x27;acceptation des CGU</li>
+<li>Boutons « Retour » et « Continuer » en pied, « Envoyer ma demande » à la dernière étape</li>
+</ul>
+<div class="cmp">Composants : Stepper, champs, carte radio, case à cocher</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Validation par étape avant de passer à la suivante</li><li>Sauvegarde locale du brouillon si l&#x27;utilisateur quitte la page</li><li>Soumission : bouton en chargement puis redirection vers la confirmation</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Étape 1 vide</span><span>Étape 2 avec erreurs</span><span>Étape 3 avec plan sélectionné</span><span>Envoi en cours</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Colonne gauche masquée, remplacée par une ligne de contexte sous le titre. Stepper compact « Étape 2 sur 3 ».</p>
+</div></div>
+<div class="screen" id="pub-confirm" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Confirmation de demande</span><span class="route">/demande/confirmation</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Rassurer : la demande est bien partie, voici ce qui va se passer.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Carte centrale</div><ul>
+<li>Grande icône de succès animée (coche dans un cercle vert)</li>
+<li>Titre « Demande envoyée ! »</li>
+<li>Texte : « Nous examinons votre demande et revenons vers vous sous 48 h ouvrées à l&#x27;adresse awa@entraide.ci »</li>
+<li>Numéro de référence de la demande en police mono</li>
+</ul>
+<div class="cmp">Composants : État vide positif</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Et maintenant ?</div><ul>
+<li>Frise verticale en 3 points : Demande reçue (fait) → Vérification par notre équipe → Réception de vos accès</li>
+</ul>
+<div class="cmp">Composants : Frise d&#x27;historique</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Actions</div><ul>
+<li>« Retour à l&#x27;accueil » (secondaire)</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+</div></div>
+<div class="screen" id="pub-login-mg" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Connexion gestionnaire</span><span class="route">/connexion/association</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Connecter rapidement un gestionnaire à l&#x27;espace de son association.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Panneau gauche (desktop)</div><ul>
+<li>Fond violet #7F77DD avec motif discret de cercles</li>
+<li>Logo blanc, phrase « Votre association, organisée. »</li>
+<li>Illustration : aperçu du tableau de bord</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Formulaire</div><ul>
+<li>Titre « Espace association »</li>
+<li>Champ email</li>
+<li>Champ mot de passe avec bouton afficher/masquer</li>
+<li>Case « Rester connecté »</li>
+<li>Bouton primaire violet pleine largeur « Se connecter »</li>
+<li>Lien « Mot de passe oublié ? »</li>
+<li>Séparateur puis lien « Vous êtes souscripteur ? Accéder à votre espace »</li>
+<li>Lien « Pas encore inscrit ? Créer mon association »</li>
+</ul>
+<div class="cmp">Composants : Champs, bouton, liens</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Erreur d&#x27;identifiants : bandeau rouge au-dessus du formulaire, champs conservés</li><li>Après 5 échecs : message de blocage temporaire 15 min</li><li>Première connexion : redirection vers le changement de mot de passe puis l&#x27;onboarding</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Identifiants incorrects</span><span>Compte suspendu (bandeau rouge avec contact)</span><span>Chargement</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Panneau gauche masqué, logo violet au-dessus du formulaire.</p>
+</div></div>
+<div class="screen" id="pub-login-mb" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Connexion souscripteur</span><span class="route">/connexion</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Permettre à un membre, souvent peu à l&#x27;aise avec le numérique, de se connecter avec son numéro de téléphone.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Panneau gauche (desktop)</div><ul>
+<li>Fond corail #D85A30, logo blanc</li>
+<li>Phrase « Suivez vos cotisations en toute simplicité »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Formulaire</div><ul>
+<li>Titre « Mon espace »</li>
+<li>Champ téléphone avec indicatif pays (drapeau, défaut +225), clavier numérique</li>
+<li>Champ mot de passe avec afficher/masquer</li>
+<li>Bouton primaire corail grand (50 px) « Me connecter »</li>
+<li>Lien « Mot de passe oublié ? »</li>
+<li>Texte d&#x27;aide : « Vos identifiants vous ont été envoyés par votre association par SMS ou email »</li>
+<li>Lien discret « Vous êtes gestionnaire d&#x27;une association ? »</li>
+</ul>
+<div class="cmp">Composants : Champ téléphone, bouton grand</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Première connexion : écran de choix d&#x27;un nouveau mot de passe, avec indicateur de robustesse</li><li>Identifiant inconnu : message « Ce numéro n&#x27;est rattaché à aucun compte. Contactez votre association. »</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Numéro inconnu</span><span>Mot de passe incorrect</span><span>Première connexion — nouveau mot de passe</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Écran prioritaire en mobile. Logo en haut, formulaire centré, bouton pleine largeur.</p>
+</div></div>
+<div class="screen" id="pub-login-sa" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Connexion plateforme</span><span class="route">/connexion/plateforme</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Accès sécurisé à l&#x27;administration de la plateforme.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Formulaire centré</div><ul>
+<li>Fond indigo #F2F2F8 plein écran, carte blanche centrée 420 px</li>
+<li>Logo, titre « Administration Cotiz »</li>
+<li>Email, mot de passe, bouton indigo</li>
+<li>Étape suivante (V2) : code de vérification à 6 chiffres</li>
+</ul>
+<div class="cmp">Composants : Champs, bouton</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Page non référencée, aucun lien depuis le site public</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Erreur</span><span>Code de vérification (V2)</span></div>
+</div></div>
+<div class="screen" id="pub-reset" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Mot de passe oublié</span><span class="route">/mot-de-passe</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Récupérer l&#x27;accès sans contacter l&#x27;association.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Étape 1 — Demande</div><ul>
+<li>Champ email (gestionnaire) ou téléphone (souscripteur) selon le profil d&#x27;origine</li>
+<li>Bouton « Recevoir un code »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Étape 2 — Code</div><ul>
+<li>6 cases de saisie de chiffre, passage automatique à la suivante</li>
+<li>Lien « Renvoyer le code » actif après 60 s avec compte à rebours</li>
+</ul>
+<div class="cmp">Composants : Saisie de code</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Étape 3 — Nouveau mot de passe</div><ul>
+<li>Nouveau mot de passe + confirmation</li>
+<li>Indicateur de robustesse en 4 segments (rouge → vert)</li>
+<li>Règles listées avec coche qui passe au vert quand satisfaite</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Succès</div><ul>
+<li>Message de confirmation et bouton vers la connexion</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Chaque étape</span><span>Code incorrect</span><span>Code expiré</span></div>
+</div></div>
+<div class="screen" id="pub-legal" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-pub">Public</span><span class="t">Pages légales</span><span class="route">/legal/cgu · /legal/confidentialite · /legal/mentions</span><span class="ver">Back-end : —</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Présenter les textes juridiques de façon lisible.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Mise en page</div><ul>
+<li>Colonne de lecture 720 px</li>
+<li>Sommaire latéral collant à gauche avec les titres de section, section active surlignée</li>
+<li>Date de dernière mise à jour en haut</li>
+<li>Bouton « Imprimer » et « Télécharger en PDF »</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Sommaire replié en haut dans un accordéon.</p>
+</div></div>
+<h2 id="s-sa">6 · Espace super-admin</h2>
+<div class="card"><p class="lead">Univers indigo. Dense, sobre, orienté tableaux. Utilisé uniquement sur desktop. Barre latérale : Tableau de bord · Demandes · Associations · Plans · Facturation · Utilisateurs.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+<a href="#sa-dashboard" class="chip" style="text-decoration:none;color:var(--text)">Tableau de bord plateforme</a>
+<a href="#sa-demandes" class="chip" style="text-decoration:none;color:var(--text)">Liste des demandes</a>
+<a href="#sa-demande-detail" class="chip" style="text-decoration:none;color:var(--text)">Traitement d&#x27;une demande</a>
+<a href="#sa-associations" class="chip" style="text-decoration:none;color:var(--text)">Liste des associations</a>
+<a href="#sa-association-detail" class="chip" style="text-decoration:none;color:var(--text)">Détail d&#x27;une association</a>
+<a href="#sa-association-new" class="chip" style="text-decoration:none;color:var(--text)">Création directe d&#x27;association</a>
+<a href="#sa-plans" class="chip" style="text-decoration:none;color:var(--text)">Plans d&#x27;abonnement</a>
+<a href="#sa-plan-edit" class="chip" style="text-decoration:none;color:var(--text)">Édition d&#x27;un plan</a>
+<a href="#sa-facturation" class="chip" style="text-decoration:none;color:var(--text)">Facturation globale</a>
+<a href="#sa-users" class="chip" style="text-decoration:none;color:var(--text)">Utilisateurs plateforme</a>
+<a href="#sa-profil" class="chip" style="text-decoration:none;color:var(--text)">Profil super-admin</a>
+</div></div>
+<div class="screen" id="sa-dashboard" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Tableau de bord plateforme</span><span class="route">/plateforme</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Savoir en un regard ce qui demande une action (demandes à traiter, impayés) et si la plateforme est en bonne santé.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>H1 « Bonjour Richy »</li>
+<li>Date du jour en sous-titre</li>
+<li>Bouton primaire « Créer une association »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>File prioritaire</div><ul>
+<li>Carte large en tête, bordure gauche orange, titre « 4 demandes à traiter »</li>
+<li>Liste des 3 plus anciennes : nom de l&#x27;association, ville, date de la demande (« il y a 2 jours »), plan souhaité, bouton « Examiner »</li>
+<li>Lien « Voir toutes les demandes »</li>
+<li>Si vide : état positif « Aucune demande en attente »</li>
+</ul>
+<div class="cmp">Composants : Carte, liste, bouton petit</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>KPI</div><ul>
+<li>Associations actives (+ variation du mois)</li>
+<li>Souscripteurs sur la plateforme</li>
+<li>Revenu mensuel récurrent</li>
+<li>Abonnements impayés (rouge si &gt; 0)</li>
+</ul>
+<div class="cmp">Composants : 4 cartes KPI</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Graphiques</div><ul>
+<li>Évolution du nombre d&#x27;associations actives sur 12 mois (courbe)</li>
+<li>Répartition des associations par plan (barres horizontales)</li>
+</ul>
+<div class="cmp">Composants : Visualisation de données</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Associations à surveiller</div><ul>
+<li>Tableau court : associations impayées, inactives depuis 30 jours, ou proches de leurs quotas</li>
+<li>Colonnes : association, signal (badge), depuis, action</li>
+</ul>
+<div class="cmp">Composants : Tableau standard</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">6</span>Activité récente</div><ul>
+<li>Frise des 10 derniers événements : nouvelle association, suspension, changement de plan</li>
+</ul>
+<div class="cmp">Composants : Frise</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Clic sur KPI : liste filtrée</li><li>Clic sur une demande : écran de traitement</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Aucune demande</span><span>Première utilisation (plateforme vide)</span><span>Chargement</span></div>
+</div></div>
+<div class="screen" id="sa-demandes" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Liste des demandes</span><span class="route">/plateforme/demandes</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Traiter les demandes dans l&#x27;ordre et retrouver les anciennes.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>H1 « Demandes de création »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Filtres</div><ul>
+<li>Onglets : À traiter (compteur) · Approuvées · Refusées · Toutes</li>
+<li>Recherche par nom ou email</li>
+<li>Filtre par pays, par plan souhaité</li>
+</ul>
+<div class="cmp">Composants : Onglets, recherche, puces</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Tableau</div><ul>
+<li>Colonnes : association (nom + type), responsable (nom + email), ville, souscripteurs estimés, plan souhaité, reçue le, statut</li>
+<li>Tri par défaut : plus ancienne en premier dans « À traiter »</li>
+<li>Ligne cliquable</li>
+</ul>
+<div class="cmp">Composants : Tableau standard, badges</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Vide</span><span>Recherche sans résultat</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Liste de cartes : nom, date, plan, badge.</p>
+</div></div>
+<div class="screen" id="sa-demande-detail" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Traitement d&#x27;une demande</span><span class="route">/plateforme/demandes/:id</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Décider d&#x27;approuver ou refuser une association, et lancer sa mise en place.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>Fil d&#x27;Ariane, nom de l&#x27;association en H1, badge de statut</li>
+<li>Date de réception et référence</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Colonne principale</div><ul>
+<li>Carte « L&#x27;association » : type, ville, pays, numéro d&#x27;enregistrement, description complète</li>
+<li>Carte « Le responsable » : nom, fonction, email (copiable), téléphone (copiable)</li>
+<li>Carte « Besoins exprimés » : souscripteurs estimés, projets envisagés, plan souhaité, source d&#x27;acquisition</li>
+<li>Carte « Historique » : frise (reçue, consultée, décision)</li>
+</ul>
+<div class="cmp">Composants : Cartes, frise</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Colonne latérale — Décision (collante)</div><ul>
+<li>Sélecteur du plan à attribuer (pré-rempli avec le souhait)</li>
+<li>Nombre de comptes gestionnaires autorisés (compteur, défaut selon plan)</li>
+<li>Date de début d&#x27;abonnement</li>
+<li>Note interne (non visible par l&#x27;association)</li>
+<li>Bouton succès pleine largeur « Approuver et créer l&#x27;espace »</li>
+<li>Bouton danger contour « Refuser »</li>
+</ul>
+<div class="cmp">Composants : Carte collante, sélecteur, compteur, boutons</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Approuver : modale récapitulative (« L&#x27;association Entraide Yopougon sera créée avec le plan Essentiel. Awa Koné recevra ses identifiants par email. ») puis confirmation</li><li>Refuser : modale avec motif obligatoire (liste de motifs + texte libre) et aperçu de l&#x27;email envoyé</li><li>Après décision : colonne latérale remplacée par le résumé de la décision</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>À traiter</span><span>Approuvée (avec lien vers l&#x27;association créée)</span><span>Refusée (avec motif)</span><span>Modale d&#x27;approbation</span><span>Modale de refus</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Colonne de décision déplacée en bas, boutons en barre fixe au bas de l&#x27;écran.</p>
+<div class="note">Le mix automatique / manuel à l&#x27;approbation est encore à trancher. La maquette suppose : création automatique de l&#x27;espace et du compte, envoi manuel optionnel d&#x27;un message personnalisé.</div>
+</div></div>
+<div class="screen" id="sa-associations" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Liste des associations</span><span class="route">/plateforme/associations</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Trouver une association et voir d&#x27;un coup d&#x27;œil son état.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>H1 « Associations », compteur total</li>
+<li>Bouton « Créer une association », bouton secondaire « Exporter »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Filtres</div><ul>
+<li>Puces : Toutes · Actives · Impayées · Suspendues · Onboarding</li>
+<li>Filtre plan, filtre pays, recherche</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Vue</div><ul>
+<li>Contrôle segmenté Tableau / Cartes</li>
+<li>Tableau : association (logo + nom + ville), plan, statut, projets, souscripteurs, dernière activité, date d&#x27;entrée</li>
+<li>Cartes : carte association version super-admin</li>
+</ul>
+<div class="cmp">Composants : Tableau, carte association</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Ligne : ouvre le détail</li><li>Menu ⋯ : voir, changer de plan, suspendre</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Filtres actifs</span><span>Vide</span></div>
+</div></div>
+<div class="screen" id="sa-association-detail" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Détail d&#x27;une association</span><span class="route">/plateforme/associations/:id</span><span class="ver">Back-end : V1 (onglets usage et facturation en V2)</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Comprendre la situation complète d&#x27;un client et agir dessus.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>Logo carré, nom H1, ville, badge de statut</li>
+<li>Actions : « Se connecter en tant que » (V3, désactivé), menu ⋯ (changer de plan, suspendre, réactiver)</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Onglets</div><ul>
+<li>Vue d&#x27;ensemble · Projets · Souscripteurs · Abonnement · Usage · Paramètres</li>
+</ul>
+<div class="cmp">Composants : Onglets</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Vue d&#x27;ensemble</div><ul>
+<li>KPI : projets actifs, souscripteurs, montant collecté cumulé, taux de recouvrement</li>
+<li>Carte « Contact principal »</li>
+<li>Carte « Abonnement » : plan, prix, prochaine échéance, quotas utilisés en barres (projets 3/5, souscripteurs 142/200, gestionnaires 2/3)</li>
+<li>Frise des événements du compte</li>
+</ul>
+<div class="cmp">Composants : KPI, barres de progression</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Projets</div><ul>
+<li>Tableau lecture seule : nom, statut, souscripteurs, collecté, créé le</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Souscripteurs</div><ul>
+<li>Tableau lecture seule : nom, téléphone, projets, statut</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">6</span>Abonnement</div><ul>
+<li>Historique de facturation : période, montant, statut, facture PDF</li>
+<li>Bouton « Changer de plan »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">7</span>Usage</div><ul>
+<li>Connexions des 30 derniers jours (barres)</li>
+<li>Paiements traités par mois</li>
+<li>Délai moyen de validation des paiements</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">8</span>Paramètres</div><ul>
+<li>Nombre de comptes gestionnaires autorisés (surcharge du plan)</li>
+<li>Zone de danger : suspendre l&#x27;association (bouton rouge, confirmation renforcée)</li>
+</ul>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Suspendre : modale renforcée avec saisie du nom de l&#x27;association et motif</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Active</span><span>Impayée (bandeau orange)</span><span>Suspendue (bandeau rouge + bouton Réactiver)</span></div>
+</div></div>
+<div class="screen" id="sa-association-new" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Création directe d&#x27;association</span><span class="route">/plateforme/associations/nouvelle</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Créer une association sans passer par une demande (client accompagné, démonstration).</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Formulaire en une page, sections repliables</div><ul>
+<li>Section « Association » : mêmes champs que le formulaire public</li>
+<li>Section « Gestionnaire principal » : prénom, nom, email, téléphone</li>
+<li>Section « Abonnement » : plan, date de début, comptes gestionnaires autorisés, période d&#x27;essai (interrupteur + durée)</li>
+<li>Section « Envoi » : interrupteur « Envoyer les identifiants maintenant »</li>
+<li>Barre d&#x27;actions collante en bas : Annuler · Créer l&#x27;association</li>
+</ul>
+<div class="cmp">Composants : Sections, champs, interrupteurs</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Création : toast de succès et redirection vers le détail</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Vide</span><span>Erreurs</span><span>Envoi en cours</span></div>
+</div></div>
+<div class="screen" id="sa-plans" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Plans d&#x27;abonnement</span><span class="route">/plateforme/plans</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Voir et gérer l&#x27;offre commerciale.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>H1 « Plans d&#x27;abonnement », bouton « Nouveau plan »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Grille de cartes</div><ul>
+<li>Une carte par plan : nom, prix mensuel et annuel, quotas (projets, souscripteurs, gestionnaires), nombre d&#x27;associations abonnées, badge Actif / Archivé</li>
+<li>Plan mis en avant sur la landing signalé par une étoile</li>
+<li>Menu ⋯ : modifier, dupliquer, archiver</li>
+</ul>
+<div class="cmp">Composants : Carte tarif</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Archiver un plan utilisé : message indiquant que les abonnés actuels le conservent</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Aucun plan</span></div>
+</div></div>
+<div class="screen" id="sa-plan-edit" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Édition d&#x27;un plan</span><span class="route">/plateforme/plans/:id</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Créer ou modifier une formule tarifaire.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Formulaire (gauche)</div><ul>
+<li>Nom, description courte</li>
+<li>Prix mensuel, prix annuel (calcul automatique de la remise affichée)</li>
+<li>Quotas : projets actifs, souscripteurs, comptes gestionnaires (compteurs, case « illimité »)</li>
+<li>Fonctionnalités incluses (cases : import Excel, relances automatiques, rapports avancés, signature électronique)</li>
+<li>Mise en avant sur la landing (interrupteur)</li>
+<li>Actif (interrupteur)</li>
+</ul>
+<div class="cmp">Composants : Champs, compteurs, interrupteurs</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Aperçu (droite)</div><ul>
+<li>Rendu en direct de la carte tarif telle qu&#x27;affichée sur la landing</li>
+</ul>
+<div class="cmp">Composants : Carte tarif</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Modification d&#x27;un plan ayant des abonnés : avertissement sur l&#x27;impact</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Création</span><span>Modification</span><span>Avertissement abonnés</span></div>
+</div></div>
+<div class="screen" id="sa-facturation" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Facturation globale</span><span class="route">/plateforme/facturation</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Suivre les encaissements d&#x27;abonnements et les impayés.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>KPI</div><ul>
+<li>Revenu du mois, encaissé, en attente, impayé</li>
+</ul>
+<div class="cmp">Composants : KPI</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Tableau des factures</div><ul>
+<li>Onglets : À venir · En attente · Payées · Impayées</li>
+<li>Colonnes : n° facture, association, période, montant, émise le, échéance, statut, PDF</li>
+<li>Actions groupées : relancer, exporter</li>
+</ul>
+<div class="cmp">Composants : Tableau</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Marquer comme payée : modale avec date et référence</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Bientôt disponible (V1)</span></div>
+</div></div>
+<div class="screen" id="sa-users" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Utilisateurs plateforme</span><span class="route">/plateforme/utilisateurs</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Gérer l&#x27;équipe interne et tracer les actions sensibles.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Onglet Équipe</div><ul>
+<li>Tableau : nom, email, rôle (Propriétaire, Administrateur, Support), dernière connexion, statut</li>
+<li>Bouton « Inviter un membre »</li>
+</ul>
+<div class="cmp">Composants : Tableau</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Onglet Journal d&#x27;audit</div><ul>
+<li>Liste chronologique filtrable : acteur, action, cible, date, adresse IP</li>
+<li>Filtres par acteur, type d&#x27;action, période</li>
+</ul>
+<div class="cmp">Composants : Tableau, filtres</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Bientôt disponible (V1)</span></div>
+</div></div>
+<div class="screen" id="sa-profil" style="--brand:#3B3470;--brand-dark:#2A2552;--brand-pale:#E4E3EF">
+<div class="sh" style="background:#F2F2F8"><span class="pill p-sa">Super-admin</span><span class="t">Profil super-admin</span><span class="route">/plateforme/profil</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Gérer son compte.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Sections</div><ul>
+<li>Informations personnelles</li>
+<li>Mot de passe</li>
+<li>Double authentification (V2)</li>
+<li>Préférences de notification</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+</div></div>
+<h2 id="s-mg">7 · Espace gestionnaire</h2>
+<div class="card"><p class="lead">Univers violet. L&#x27;espace de travail quotidien : beaucoup de données, mais toujours une action principale évidente par écran. Barre latérale : Tableau de bord · Projets · Souscripteurs · Paiements (compteur) · Relances · Contrats — puis en bas : Équipe · Abonnement · Paramètres.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+<a href="#mg-onboarding" class="chip" style="text-decoration:none;color:var(--text)">Onboarding association</a>
+<a href="#mg-dashboard" class="chip" style="text-decoration:none;color:var(--text)">Tableau de bord gestionnaire</a>
+<a href="#mg-projets" class="chip" style="text-decoration:none;color:var(--text)">Liste des projets</a>
+<a href="#mg-projet-new" class="chip" style="text-decoration:none;color:var(--text)">Création de projet</a>
+<a href="#mg-projet-overview" class="chip" style="text-decoration:none;color:var(--text)">Détail projet — Vue d&#x27;ensemble</a>
+<a href="#mg-projet-souscripteurs" class="chip" style="text-decoration:none;color:var(--text)">Détail projet — Souscripteurs</a>
+<a href="#mg-projet-paiements" class="chip" style="text-decoration:none;color:var(--text)">Détail projet — Paiements</a>
+<a href="#mg-projet-contrat" class="chip" style="text-decoration:none;color:var(--text)">Détail projet — Contrat</a>
+<a href="#mg-projet-params" class="chip" style="text-decoration:none;color:var(--text)">Détail projet — Paramètres</a>
+<a href="#mg-projet-rapports" class="chip" style="text-decoration:none;color:var(--text)">Détail projet — Rapports</a>
+<a href="#mg-add-souscripteur" class="chip" style="text-decoration:none;color:var(--text)">Ajout manuel d&#x27;un souscripteur</a>
+<a href="#mg-import" class="chip" style="text-decoration:none;color:var(--text)">Import Excel</a>
+<a href="#mg-paiements-queue" class="chip" style="text-decoration:none;color:var(--text)">File de validation des paiements</a>
+<a href="#mg-paiement-detail" class="chip" style="text-decoration:none;color:var(--text)">Détail d&#x27;un paiement déclaré</a>
+<a href="#mg-annuaire" class="chip" style="text-decoration:none;color:var(--text)">Annuaire des souscripteurs</a>
+<a href="#mg-fiche" class="chip" style="text-decoration:none;color:var(--text)">Fiche souscripteur</a>
+<a href="#mg-relances" class="chip" style="text-decoration:none;color:var(--text)">Relances</a>
+<a href="#mg-contrats" class="chip" style="text-decoration:none;color:var(--text)">Contrats</a>
+<a href="#mg-equipe" class="chip" style="text-decoration:none;color:var(--text)">Comptes gestionnaires</a>
+<a href="#mg-abonnement" class="chip" style="text-decoration:none;color:var(--text)">Abonnement</a>
+<a href="#mg-params" class="chip" style="text-decoration:none;color:var(--text)">Paramètres de l&#x27;association</a>
+<a href="#mg-notifs" class="chip" style="text-decoration:none;color:var(--text)">Notifications gestionnaire</a>
+<a href="#mg-profil" class="chip" style="text-decoration:none;color:var(--text)">Profil gestionnaire</a>
+</div></div>
+<div class="screen" id="mg-onboarding" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Onboarding association</span><span class="route">/asso/bienvenue</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Amener un gestionnaire qui vient de recevoir ses accès à un espace configuré et à son premier projet, sans se perdre.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Plein écran, sans barre latérale</div><ul>
+<li>Logo en haut, barre de progression en 4 étapes, lien « Terminer plus tard »</li>
+</ul>
+<div class="cmp">Composants : Stepper</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Étape 1 — Bienvenue</div><ul>
+<li>Illustration, titre « Bienvenue sur Cotiz, Awa ! »</li>
+<li>Texte : « En 3 minutes, configurons l&#x27;espace d&#x27;Entraide Yopougon. »</li>
+<li>Bouton « Commencer »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Étape 2 — Votre association</div><ul>
+<li>Logo (dépôt d&#x27;image, recadrage carré)</li>
+<li>Nom (pré-rempli), description courte, ville, téléphone et email de contact</li>
+</ul>
+<div class="cmp">Composants : Dépôt de fichier, champs</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Étape 3 — Comment vos membres vous paient</div><ul>
+<li>Modalités de paiement par défaut : liste de moyens avec cases (virement bancaire, mobile money, espèces)</li>
+<li>Pour chaque moyen coché : champs dédiés (IBAN / numéro mobile money + opérateur / instructions)</li>
+<li>Aperçu de ce que verra le souscripteur</li>
+</ul>
+<div class="cmp">Composants : Cases, champs conditionnels, aperçu</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Étape 4 — C&#x27;est prêt</div><ul>
+<li>Récapitulatif</li>
+<li>Deux cartes de choix : « Créer mon premier projet » (primaire) et « Découvrir l&#x27;espace d&#x27;abord »</li>
+</ul>
+<div class="cmp">Composants : Cartes de choix</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Chaque étape est enregistrée à la validation</li><li>« Terminer plus tard » : accès au tableau de bord avec un bandeau « Configuration incomplète »</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Chaque étape</span><span>Logo déposé</span><span>Moyens de paiement multiples</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Une étape par écran, bouton « Continuer » fixe en bas.</p>
+</div></div>
+<div class="screen" id="mg-dashboard" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Tableau de bord gestionnaire</span><span class="route">/asso</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Répondre à « Qu&#x27;est-ce que je dois faire aujourd&#x27;hui ? » puis « Comment se portent mes projets ? ».</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>H1 « Bonjour Awa »</li>
+<li>Sous-titre : nom de l&#x27;association et date</li>
+<li>Bouton primaire « Créer un projet »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>À faire (conditionnel)</div><ul>
+<li>Bandeau orange si des paiements attendent : « 6 paiements à valider » + bouton « Traiter »</li>
+<li>Bandeau si des contrats restent non signés depuis plus de 7 jours</li>
+<li>Masqué si rien à faire, remplacé par un message vert « Tout est à jour »</li>
+</ul>
+<div class="cmp">Composants : Bandeaux d&#x27;alerte</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>KPI</div><ul>
+<li>Collecté ce mois (vs attendu du mois)</li>
+<li>Paiements à valider (+ ancienneté du plus ancien)</li>
+<li>Souscripteurs en retard (sur total actifs)</li>
+<li>Taux de recouvrement global</li>
+</ul>
+<div class="cmp">Composants : 4 cartes KPI</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Mes projets</div><ul>
+<li>Titre de section + lien « Tous les projets »</li>
+<li>Grille de cartes projet (3 par ligne), triées par nombre de retards</li>
+<li>Carte fantôme « + Nouveau projet » en fin de grille</li>
+</ul>
+<div class="cmp">Composants : Carte projet gestionnaire</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Deux colonnes basses</div><ul>
+<li>Gauche : graphique de collecte mensuelle attendu vs reçu, tous projets, 6 mois</li>
+<li>Droite : « Derniers paiements déclarés » — 5 lignes : avatar, nom, projet, montant, ancienneté, bouton « Voir »</li>
+</ul>
+<div class="cmp">Composants : Barres groupées, liste compacte</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>KPI cliquables vers les listes filtrées</li><li>Carte projet : détail du projet</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Premier usage (aucun projet : grand état vide avec bouton de création)</span><span>Tout est à jour</span><span>Chargement</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">KPI en défilement horizontal, projets en liste verticale, graphique sous les projets.</p>
+</div></div>
+<div class="screen" id="mg-projets" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Liste des projets</span><span class="route">/asso/projets</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Accéder à un projet et comparer leur état.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>H1 « Projets », bouton « Créer un projet »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Barre d&#x27;outils</div><ul>
+<li>Puces : Tous · En cours · Inscriptions ouvertes · Brouillons · Terminés</li>
+<li>Recherche</li>
+<li>Contrôle segmenté Cartes / Tableau</li>
+</ul>
+<div class="cmp">Composants : Puces, segmenté</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Vue cartes</div><ul>
+<li>Grille de cartes projet gestionnaire</li>
+</ul>
+<div class="cmp">Composants : Carte projet</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Vue tableau</div><ul>
+<li>Colonnes : projet, statut, fréquence, montant par échéance, souscripteurs (inscrits/requis), collecté, taux de recouvrement, prochaine échéance</li>
+<li>Tri sur chaque colonne</li>
+</ul>
+<div class="cmp">Composants : Tableau standard</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Menu ⋯ : ouvrir, dupliquer, archiver</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Vide</span><span>Filtre sans résultat</span></div>
+</div></div>
+<div class="screen" id="mg-projet-new" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Création de projet</span><span class="route">/asso/projets/nouveau</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Configurer un projet complet sans erreur, en comprenant l&#x27;impact de chaque paramètre sur l&#x27;échéancier.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Mise en page</div><ul>
+<li>Stepper horizontal en haut (6 étapes)</li>
+<li>Formulaire à gauche (60 %), aperçu collant à droite (40 %)</li>
+<li>Barre d&#x27;actions fixe en bas : « Enregistrer le brouillon » (fantôme), « Retour », « Continuer »</li>
+</ul>
+<div class="cmp">Composants : Stepper</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Étape 1 — Informations</div><ul>
+<li>Nom du projet</li>
+<li>Description (éditeur de texte simple : gras, listes)</li>
+<li>Image de couverture (optionnelle)</li>
+<li>Nombre de souscripteurs requis (compteur, case « sans limite »)</li>
+</ul>
+<div class="cmp">Composants : Champs, compteur</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Étape 2 — Financement</div><ul>
+<li>Fonds d&#x27;entrée : interrupteur + montant</li>
+<li>Montant par échéance</li>
+<li>Fréquence : hebdomadaire, mensuelle, trimestrielle, semestrielle, annuelle</li>
+<li>Jour d&#x27;échéance (ex. le 5 du mois)</li>
+</ul>
+<div class="cmp">Composants : Champ montant, sélecteur</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Étape 3 — Calendrier</div><ul>
+<li>Contrôle segmenté : Dates fixes / Cycle roulant</li>
+<li>Dates fixes : date de début, date de fin → calcul affiché « 18 échéances »</li>
+<li>Cycle roulant : date de début + explication « Les échéances se génèrent en continu jusqu&#x27;à clôture »</li>
+<li>Délai de grâce avant passage « en retard » (jours)</li>
+</ul>
+<div class="cmp">Composants : Segmenté, dates</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Étape 4 — Modalités de paiement</div><ul>
+<li>Reprise des moyens par défaut de l&#x27;association, modifiables pour ce projet</li>
+<li>Instructions spécifiques (ex. « Indiquez votre nom en référence »)</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">6</span>Étape 5 — Contrat</div><ul>
+<li>Éditeur du texte du contrat, avec modèle pré-rempli et variables insérables : {nom_souscripteur}, {montant}, {frequence}, {date_debut}</li>
+<li>Nom et fonction du signataire pour l&#x27;association</li>
+<li>Case « Je signe ce contrat au nom de l&#x27;association »</li>
+<li>Avertissement info : « Le contrat ne pourra plus être modifié après création du projet »</li>
+</ul>
+<div class="cmp">Composants : Éditeur, bandeau info</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">7</span>Étape 6 — Récapitulatif</div><ul>
+<li>Toutes les informations groupées par étape, avec lien « Modifier » par bloc</li>
+<li>Aperçu de l&#x27;échéancier complet (tableau des 12 premières échéances)</li>
+<li>Total attendu par souscripteur</li>
+<li>Bouton final « Créer le projet »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">8</span>Aperçu collant (droite)</div><ul>
+<li>Carte projet telle que la verra le souscripteur, mise à jour en direct</li>
+<li>Sous la carte : mini-échéancier « Entrée 50 000 F · puis 25 000 F / mois × 18 · Total 500 000 F »</li>
+</ul>
+<div class="cmp">Composants : Carte projet souscripteur</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Validation par étape</li><li>Quitter avec modifications non enregistrées : modale de confirmation</li><li>Création : écran de succès « Projet créé ! » avec deux actions : « Ajouter des souscripteurs » / « Voir le projet »</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Chaque étape</span><span>Dates fixes vs cycle roulant</span><span>Récapitulatif</span><span>Succès</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Aperçu remplacé par un bouton « Aperçu » ouvrant une feuille basse.</p>
+</div></div>
+<div class="screen" id="mg-projet-overview" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Détail projet — Vue d&#x27;ensemble</span><span class="route">/asso/projets/:id</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Savoir immédiatement si le projet se porte bien et ce qui cloche.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête de projet (commun à tous les onglets)</div><ul>
+<li>Fil d&#x27;Ariane</li>
+<li>Image de couverture en bandeau fin (120 px) si présente</li>
+<li>Nom H1, badge de statut, ligne « Mensuel · 25 000 F · 52 souscripteurs · depuis mars 2026 »</li>
+<li>Actions : « Ajouter un souscripteur » (primaire), menu ⋯ (dupliquer, clôturer, exporter)</li>
+<li>Onglets : Vue d&#x27;ensemble · Souscripteurs (52) · Paiements (6 à valider) · Contrat · Paramètres · Rapports</li>
+</ul>
+<div class="cmp">Composants : Onglets avec compteurs</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>KPI du projet</div><ul>
+<li>Collecté / attendu à date (barre)</li>
+<li>Taux de recouvrement (anneau)</li>
+<li>En retard (nombre + montant cumulé)</li>
+<li>Prochaine échéance (date + montant attendu total)</li>
+</ul>
+<div class="cmp">Composants : KPI, anneau</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Alertes</div><ul>
+<li>Liste des points d&#x27;attention : souscripteurs en retard de plus de 2 échéances, paiements non validés depuis 5 jours, contrats non signés</li>
+</ul>
+<div class="cmp">Composants : Bandeaux</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Graphique</div><ul>
+<li>Collecte par échéance, attendu vs reçu, sur toute la durée</li>
+</ul>
+<div class="cmp">Composants : Barres groupées</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Retardataires</div><ul>
+<li>Top 5 : avatar, nom, échéances en retard, montant dû, bouton « Relancer »</li>
+</ul>
+<div class="cmp">Composants : Liste compacte</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Projet en cours</span><span>Inscriptions ouvertes (KPI de remplissage à la place)</span><span>Projet terminé (bilan final)</span><span>Aucun retard</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Onglets en défilement horizontal.</p>
+</div></div>
+<div class="screen" id="mg-projet-souscripteurs" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Détail projet — Souscripteurs</span><span class="route">/asso/projets/:id/souscripteurs</span><span class="ver">Back-end : V1 (import en V2)</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Gérer qui participe au projet.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Barre d&#x27;outils</div><ul>
+<li>Recherche, puces de statut (Tous · À jour · En retard · Signature attendue · Retirés)</li>
+<li>Bouton secondaire « Importer (Excel) », bouton primaire « Ajouter un souscripteur »</li>
+<li>Indicateur de remplissage : « 52 / 60 souscripteurs requis »</li>
+</ul>
+<div class="cmp">Composants : Barre d&#x27;outils</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Tableau</div><ul>
+<li>Colonnes : souscripteur (avatar, nom, date d&#x27;inscription), téléphone, contrat (signé le / en attente), versé, reste, statut</li>
+<li>Sélection multiple : relancer, exporter, retirer</li>
+<li>Menu ⋯ : voir la fiche, relancer, renvoyer les identifiants, retirer du projet</li>
+</ul>
+<div class="cmp">Composants : Tableau standard</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Retirer : modale de confirmation (historique conservé)</li><li>Renvoyer les identifiants : confirmation + toast</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Aucun souscripteur (état vide avec les deux boutons d&#x27;ajout)</span><span>Sélection multiple active</span></div>
+</div></div>
+<div class="screen" id="mg-projet-paiements" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Détail projet — Paiements</span><span class="route">/asso/projets/:id/paiements</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Voir en un regard qui a payé quoi, et traiter les paiements en attente.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Encart « À valider » (si non vide)</div><ul>
+<li>Liste horizontale de cartes compactes : avatar, nom, montant, échéances couvertes, ancienneté, bouton « Examiner »</li>
+</ul>
+<div class="cmp">Composants : Cartes compactes</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Barre d&#x27;outils</div><ul>
+<li>Recherche, filtre par statut, sélecteur de période</li>
+<li>Contrôle segmenté : Grille / Liste des paiements</li>
+<li>Légende des couleurs de cases</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Vue grille (par défaut)</div><ul>
+<li>Grille d&#x27;échéances : une ligne par souscripteur, une colonne par échéance, colonne « Reste » à droite</li>
+<li>Mois courant surligné, défilement positionné dessus</li>
+</ul>
+<div class="cmp">Composants : Grille d&#x27;échéances</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Vue liste</div><ul>
+<li>Tableau de tous les paiements déclarés : date, souscripteur, montant, échéances couvertes, preuve (miniature), statut, validé par</li>
+</ul>
+<div class="cmp">Composants : Tableau</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Clic sur une case : panneau latéral de l&#x27;échéance</li><li>Clic sur « Examiner » : panneau latéral de validation (voir écran Détail d&#x27;un paiement)</li><li>Validation depuis le panneau sans quitter la grille : la case passe au vert avec une animation</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Grille nominale</span><span>Grille avec beaucoup de retards</span><span>Panneau d&#x27;échéance ouvert</span><span>Vue liste</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Grille remplacée par une liste de cartes souscripteur avec leur rangée de cases.</p>
+</div></div>
+<div class="screen" id="mg-projet-contrat" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Détail projet — Contrat</span><span class="route">/asso/projets/:id/contrat</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Consulter le contrat et suivre les signatures.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Bandeau</div><ul>
+<li>Info : « Contrat verrouillé — signé par 48 souscripteurs sur 52 »</li>
+</ul>
+<div class="cmp">Composants : Bandeau info</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Colonne gauche</div><ul>
+<li>Rendu du contrat en format document, avec signature de l&#x27;association en bas</li>
+<li>Bouton « Télécharger le PDF »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Colonne droite</div><ul>
+<li>Suivi des signatures : barre de progression, liste des non-signataires avec bouton « Relancer », lien « Voir tous »</li>
+</ul>
+<div class="cmp">Composants : Liste compacte</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Tous signés</span></div>
+</div></div>
+<div class="screen" id="mg-projet-params" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Détail projet — Paramètres</span><span class="route">/asso/projets/:id/parametres</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Consulter et ajuster les paramètres qui peuvent encore l&#x27;être.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Sections en cartes</div><ul>
+<li>Informations générales (modifiable) : nom, description, image</li>
+<li>Financement (lecture seule si des paiements existent) : fonds d&#x27;entrée, montant, fréquence — cadenas et infobulle « Non modifiable : des paiements ont été enregistrés »</li>
+<li>Calendrier : dates ou cycle, délai de grâce (modifiable)</li>
+<li>Modalités de paiement (modifiable)</li>
+<li>Relances (V2) : lien vers la configuration</li>
+</ul>
+<div class="cmp">Composants : Cartes, champs verrouillés</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Zone de danger</div><ul>
+<li>Clôturer le projet</li>
+<li>Supprimer le projet (uniquement si aucun paiement) — confirmation renforcée</li>
+</ul>
+<div class="cmp">Composants : Boutons danger</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Champs verrouillés</span></div>
+</div></div>
+<div class="screen" id="mg-projet-rapports" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Détail projet — Rapports</span><span class="route">/asso/projets/:id/rapports</span><span class="ver">Back-end : V1 simple, V2 avancé</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Produire une vue d&#x27;ensemble partageable avec le bureau de l&#x27;association.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Barre d&#x27;outils</div><ul>
+<li>Sélecteur de période</li>
+<li>Boutons « Exporter CSV », « Exporter PDF » (V2)</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Synthèse</div><ul>
+<li>Total attendu, total reçu, reste à percevoir, taux de recouvrement</li>
+</ul>
+<div class="cmp">Composants : KPI</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Graphiques</div><ul>
+<li>Collecte par échéance (barres)</li>
+<li>Évolution du taux de recouvrement (courbe)</li>
+<li>Répartition des souscripteurs par statut (anneau segmenté)</li>
+</ul>
+<div class="cmp">Composants : Visualisation</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Tableau récapitulatif</div><ul>
+<li>Par souscripteur : attendu, versé, reste, nombre de retards, dernier paiement</li>
+</ul>
+<div class="cmp">Composants : Tableau</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Bientôt disponible pour les graphiques avancés</span></div>
+</div></div>
+<div class="screen" id="mg-add-souscripteur" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Ajout manuel d&#x27;un souscripteur</span><span class="route">modale depuis un projet</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Inscrire quelqu&#x27;un en 30 secondes sans créer de doublon.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Étape 1 — Téléphone</div><ul>
+<li>Champ téléphone seul, mis en avant, avec explication « Nous vérifions si cette personne a déjà un compte Cotiz »</li>
+<li>Bouton « Continuer »</li>
+</ul>
+<div class="cmp">Composants : Champ téléphone</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Cas A — Compte existant</div><ul>
+<li>Carte d&#x27;identité trouvée : avatar, nom, nombre d&#x27;associations (sans détail, confidentialité)</li>
+<li>Texte « Cette personne a déjà un compte. Elle sera rattachée à votre projet et recevra une invitation. »</li>
+<li>Bouton « Rattacher au projet »</li>
+</ul>
+<div class="cmp">Composants : Carte identité</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Cas B — Nouveau</div><ul>
+<li>Prénom, nom, email (optionnel), adresse (optionnelle)</li>
+<li>Canal d&#x27;envoi des identifiants : SMS / email</li>
+<li>Date d&#x27;entrée dans le projet (défaut : aujourd&#x27;hui) et échéances à rattraper (cases)</li>
+<li>Bouton « Créer et inscrire »</li>
+</ul>
+<div class="cmp">Composants : Champs, segmenté</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Cas C — Déjà inscrit</div><ul>
+<li>Message info : « Cette personne participe déjà à ce projet »</li>
+</ul>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Succès : toast + ligne ajoutée en haut du tableau avec surbrillance</li><li>Option « Ajouter un autre » pour enchaîner</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Étape téléphone</span><span>Compte existant</span><span>Nouveau compte</span><span>Déjà inscrit</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Modale plein écran depuis le bas.</p>
+</div></div>
+<div class="screen" id="mg-import" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Import Excel</span><span class="route">/asso/projets/:id/import</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Inscrire des dizaines de personnes d&#x27;un coup, en corrigeant les erreurs avant validation.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Stepper 4 étapes</div><ul>
+<li>Fichier · Colonnes · Vérification · Envoi</li>
+</ul>
+<div class="cmp">Composants : Stepper</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Étape 1 — Fichier</div><ul>
+<li>Zone de dépôt grand format (.xlsx, .csv)</li>
+<li>Lien « Télécharger le modèle Excel »</li>
+<li>Aide : colonnes attendues</li>
+</ul>
+<div class="cmp">Composants : Zone de dépôt</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Étape 2 — Correspondance des colonnes</div><ul>
+<li>Pour chaque colonne du fichier : son nom, 3 valeurs d&#x27;exemple, un sélecteur vers le champ Cotiz (prénom, nom, téléphone, email, adresse, ignorer)</li>
+<li>Correspondance automatique pré-remplie quand les noms concordent</li>
+</ul>
+<div class="cmp">Composants : Tableau, sélecteurs</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Étape 3 — Vérification</div><ul>
+<li>Résumé en KPI : 47 lignes prêtes (vert), 3 comptes existants rattachés (bleu), 2 erreurs (rouge), 1 doublon dans le fichier (orange)</li>
+<li>Tableau filtrable par ces catégories, cellules en erreur surlignées en rouge et éditables directement</li>
+<li>Actions par ligne erreur : corriger, ignorer</li>
+</ul>
+<div class="cmp">Composants : KPI, tableau éditable</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Étape 4 — Envoi</div><ul>
+<li>Canal des invitations : SMS / email / les deux</li>
+<li>Aperçu du message</li>
+<li>Bouton « Importer 50 souscripteurs »</li>
+<li>Écran de progression puis bilan</li>
+</ul>
+<div class="cmp">Composants : Aperçu message</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Chaque étape</span><span>Fichier invalide</span><span>Beaucoup d&#x27;erreurs</span><span>Import terminé</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Déconseillé sur mobile : message invitant à utiliser un ordinateur.</p>
+</div></div>
+<div class="screen" id="mg-paiements-queue" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">File de validation des paiements</span><span class="route">/asso/paiements</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Traiter tous les paiements déclarés, tous projets confondus, le plus vite possible.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>H1 « Paiements à valider », compteur</li>
+<li>Onglets : À valider · Validés · Rejetés · Tous</li>
+</ul>
+<div class="cmp">Composants : Onglets</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Mise en page maître-détail (desktop)</div><ul>
+<li>Gauche (40 %) : liste des paiements, le plus ancien en haut. Chaque élément : avatar, nom, projet, montant, ancienneté (rouge au-delà de 5 jours)</li>
+<li>Droite (60 %) : détail du paiement sélectionné (voir écran suivant), navigation clavier ↑ ↓</li>
+</ul>
+<div class="cmp">Composants : Liste, panneau</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Filtres</div><ul>
+<li>Par projet, par ancienneté, par montant</li>
+</ul>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Après validation ou rejet : passage automatique au paiement suivant</li><li>Raccourcis clavier : V valider, R rejeter, ↓ suivant</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>File pleine</span><span>File vide (état positif)</span><span>Validés</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Liste seule, le détail s&#x27;ouvre en plein écran.</p>
+</div></div>
+<div class="screen" id="mg-paiement-detail" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Détail d&#x27;un paiement déclaré</span><span class="route">/asso/paiements/:id (ou panneau)</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Vérifier la preuve et valider en confiance, avec la bonne répartition.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>Avatar, nom du souscripteur (lien fiche), projet</li>
+<li>Montant déclaré en très grand (32 px)</li>
+<li>Date de déclaration, moyen de paiement indiqué, badge « En attente »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Preuve</div><ul>
+<li>Visionneuse : image en grand avec zoom, ou PDF, ou référence de transaction copiable</li>
+<li>Rappel pour le gestionnaire : « Vérifiez sur votre relevé un virement de 75 000 F vers le 10 septembre »</li>
+</ul>
+<div class="cmp">Composants : Visionneuse de preuve</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Répartition</div><ul>
+<li>Liste des échéances couvertes telle que proposée par le souscripteur</li>
+<li>Bouton « Ajuster » : même composant que le sélecteur d&#x27;échéances, éditable par le gestionnaire</li>
+<li>Total réparti / montant</li>
+</ul>
+<div class="cmp">Composants : Sélecteur d&#x27;échéances</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Contexte</div><ul>
+<li>Situation du souscripteur sur ce projet : mini-rangée de cases d&#x27;échéances, reste à payer</li>
+<li>Ses 3 derniers paiements</li>
+</ul>
+<div class="cmp">Composants : Grille (1 ligne), frise</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Actions (pied collant)</div><ul>
+<li>« Rejeter » (danger contour) → modale : motif (liste : preuve illisible, montant non reçu, montant différent, autre) + message au souscripteur</li>
+<li>« Valider le paiement » (succès) → confirmation légère intégrée, puis toast avec « Annuler » pendant 10 s</li>
+<li>Montant reçu différent : lien « Le montant reçu est différent » ouvrant un champ pour saisir le montant réel</li>
+</ul>
+<div class="cmp">Composants : Boutons succès et danger</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Image</span><span>PDF</span><span>Référence seule</span><span>Répartition ajustée</span><span>Modale de rejet</span><span>Validé</span></div>
+</div></div>
+<div class="screen" id="mg-annuaire" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Annuaire des souscripteurs</span><span class="route">/asso/souscripteurs</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Retrouver n&#x27;importe quel membre de l&#x27;association, tous projets confondus.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Barre d&#x27;outils</div><ul>
+<li>Recherche nom / téléphone, filtre par projet, filtre par statut global</li>
+<li>Export</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Tableau</div><ul>
+<li>Colonnes : souscripteur, téléphone, email, projets (pastilles avec nom court), total versé, total restant, statut global (le pire de ses projets)</li>
+</ul>
+<div class="cmp">Composants : Tableau, badges</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Vide</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Liste de cartes.</p>
+</div></div>
+<div class="screen" id="mg-fiche" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Fiche souscripteur</span><span class="route">/asso/souscripteurs/:id</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Tout savoir sur un membre avant de l&#x27;appeler.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Colonne gauche — identité</div><ul>
+<li>Grand avatar, nom, téléphone (bouton appeler, copier), email, adresse, membre depuis</li>
+<li>Actions : Envoyer une relance, Renvoyer les identifiants, Modifier</li>
+</ul>
+<div class="cmp">Composants : Carte, boutons</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Colonne droite</div><ul>
+<li>Onglets : Projets · Historique · Contrats</li>
+<li>Projets : pour chaque projet une carte avec la rangée de cases d&#x27;échéances, versé, reste, statut</li>
+<li>Historique : frise complète (paiements, validations, relances, signatures)</li>
+<li>Contrats : liste avec date de signature et PDF</li>
+</ul>
+<div class="cmp">Composants : Onglets, grille, frise</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>À jour</span><span>En retard</span><span>Contrat non signé</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Identité en haut, onglets en dessous.</p>
+</div></div>
+<div class="screen" id="mg-relances" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Relances</span><span class="route">/asso/relances</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Automatiser les rappels et relancer ponctuellement.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Onglet Automatiques</div><ul>
+<li>Liste de règles sous forme de cartes : « 3 jours avant l&#x27;échéance · SMS », « Le jour de l&#x27;échéance · SMS + email », « 7 jours après · SMS »</li>
+<li>Chaque règle : interrupteur actif, canal, modèle, projets concernés</li>
+<li>Bouton « Nouvelle règle »</li>
+</ul>
+<div class="cmp">Composants : Cartes, interrupteurs</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Éditeur de règle</div><ul>
+<li>Déclencheur (avant / le jour / après, nombre de jours)</li>
+<li>Canal</li>
+<li>Message avec variables insérables et compteur de caractères SMS (160)</li>
+<li>Aperçu téléphone</li>
+</ul>
+<div class="cmp">Composants : Aperçu mobile</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Onglet Manuelle</div><ul>
+<li>Sélection des destinataires : tous les retardataires d&#x27;un projet, sélection libre</li>
+<li>Message, canal, bouton « Envoyer »</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Onglet Historique</div><ul>
+<li>Tableau : date, destinataire, canal, message, statut d&#x27;envoi (envoyé, échoué)</li>
+</ul>
+<div class="cmp">Composants : Tableau</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Bientôt disponible (V1)</span></div>
+</div></div>
+<div class="screen" id="mg-contrats" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Contrats</span><span class="route">/asso/contrats</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Voir l&#x27;état des signatures sur tous les projets.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Tableau par projet</div><ul>
+<li>Projet, date de création du contrat, signés / total (barre), non signés depuis plus de 7 jours, actions (voir, relancer les non-signataires)</li>
+</ul>
+<div class="cmp">Composants : Tableau, barres</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Bientôt disponible (V1)</span></div>
+</div></div>
+<div class="screen" id="mg-equipe" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Comptes gestionnaires</span><span class="route">/asso/equipe</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Partager la gestion avec d&#x27;autres membres du bureau.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Indicateur de quota</div><ul>
+<li>« 2 comptes sur 3 autorisés par votre plan »</li>
+</ul>
+<div class="cmp">Composants : Barre</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Liste</div><ul>
+<li>Cartes : avatar, nom, email, rôle (Administrateur principal, Gestionnaire, Lecture seule), dernière connexion</li>
+<li>Bouton « Inviter » désactivé avec infobulle si quota atteint</li>
+</ul>
+<div class="cmp">Composants : Cartes</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Invitation</div><ul>
+<li>Modale : email, rôle, message optionnel</li>
+</ul>
+<div class="cmp">Composants : Modale</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Quota atteint</span><span>Bientôt disponible (V1)</span></div>
+</div></div>
+<div class="screen" id="mg-abonnement" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Abonnement</span><span class="route">/asso/abonnement</span><span class="ver">Back-end : V1 lecture, V2 factures</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Savoir ce que l&#x27;association paie et où elle en est de ses quotas.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Plan actuel</div><ul>
+<li>Carte : nom du plan, prix, prochaine échéance, bouton « Changer de plan » (contact en V1)</li>
+</ul>
+<div class="cmp">Composants : Carte</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Quotas</div><ul>
+<li>Barres : projets, souscripteurs, gestionnaires — orange au-delà de 80 %, rouge à 100 %</li>
+</ul>
+<div class="cmp">Composants : Barres</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Factures (V2)</div><ul>
+<li>Tableau : période, montant, statut, PDF</li>
+</ul>
+<div class="cmp">Composants : Tableau</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Quota proche</span><span>Abonnement impayé</span></div>
+</div></div>
+<div class="screen" id="mg-params" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Paramètres de l&#x27;association</span><span class="route">/asso/parametres</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Tenir à jour l&#x27;identité et les modalités de paiement.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Sections</div><ul>
+<li>Identité : logo, nom, description, contact</li>
+<li>Modalités de paiement par défaut</li>
+<li>Préférences : délai de grâce par défaut, langue</li>
+</ul>
+<div class="cmp">Composants : Cartes, champs</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+</div></div>
+<div class="screen" id="mg-notifs" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Notifications gestionnaire</span><span class="route">/asso/notifications + panneau depuis la cloche</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Ne rien rater.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Panneau déroulant depuis la cloche</div><ul>
+<li>380 px, 8 dernières notifications, bouton « Tout marquer comme lu », lien « Voir tout »</li>
+</ul>
+<div class="cmp">Composants : Élément de notification</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Page complète</div><ul>
+<li>Filtres par type : Paiements · Signatures · Système</li>
+<li>Groupement par période</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Types</div><ul>
+<li>Nouveau paiement déclaré</li>
+<li>Contrat signé par un souscripteur</li>
+<li>Souscripteur passé en retard</li>
+<li>Quota bientôt atteint</li>
+<li>Facture d&#x27;abonnement disponible</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Avec non lues</span><span>Vide</span></div>
+</div></div>
+<div class="screen" id="mg-profil" style="--brand:#7F77DD;--brand-dark:#5B51C4;--brand-pale:#EFECFB">
+<div class="sh" style="background:#F4F2ED"><span class="pill p-mg">Gestionnaire</span><span class="t">Profil gestionnaire</span><span class="route">/asso/profil</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Gérer son compte personnel.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Sections</div><ul>
+<li>Informations personnelles</li>
+<li>Mot de passe</li>
+<li>Préférences de notification (email pour chaque type d&#x27;événement)</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+</div></div>
+<h2 id="s-mb">8 · Espace souscripteur</h2>
+<div class="card"><p class="lead">Univers corail. Pensé mobile d&#x27;abord pour des personnes pas forcément à l&#x27;aise avec le numérique : gros boutons, peu de tableaux, un montant dominant par écran, un langage simple. Navigation basse : Accueil · Projets · Historique · Profil, plus bouton flottant « Déclarer un paiement ».</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+<a href="#mb-onboarding" class="chip" style="text-decoration:none;color:var(--text)">Onboarding souscripteur</a>
+<a href="#mb-dashboard" class="chip" style="text-decoration:none;color:var(--text)">Tableau de bord souscripteur</a>
+<a href="#mb-projet" class="chip" style="text-decoration:none;color:var(--text)">Détail d&#x27;un projet</a>
+<a href="#mb-contrat" class="chip" style="text-decoration:none;color:var(--text)">Signature de contrat</a>
+<a href="#mb-declarer" class="chip" style="text-decoration:none;color:var(--text)">Déclaration de paiement</a>
+<a href="#mb-declarer-ok" class="chip" style="text-decoration:none;color:var(--text)">Confirmation de déclaration</a>
+<a href="#mb-historique" class="chip" style="text-decoration:none;color:var(--text)">Historique complet</a>
+<a href="#mb-associations" class="chip" style="text-decoration:none;color:var(--text)">Mes associations</a>
+<a href="#mb-association-detail" class="chip" style="text-decoration:none;color:var(--text)">Détail d&#x27;une association</a>
+<a href="#mb-contrats" class="chip" style="text-decoration:none;color:var(--text)">Mes contrats</a>
+<a href="#mb-notifs" class="chip" style="text-decoration:none;color:var(--text)">Notifications</a>
+<a href="#mb-profil" class="chip" style="text-decoration:none;color:var(--text)">Profil et paramètres</a>
+</div></div>
+<div class="screen" id="mb-onboarding" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Onboarding souscripteur</span><span class="route">/bienvenue</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Expliquer en 3 écrans ce qu&#x27;est Cotiz à une personne qui ne l&#x27;a pas choisi : c&#x27;est son association qui l&#x27;y a inscrite.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Carrousel plein écran (3 diapositives)</div><ul>
+<li>1 — « Bienvenue Moussa ! Entraide Yopougon vous a inscrit sur Cotiz. » Illustration d&#x27;une carte projet.</li>
+<li>2 — « Voyez ce que vous devez, quand vous le devez. » Illustration du reste à payer.</li>
+<li>3 — « Après chaque virement, déclarez-le ici. Votre association confirme la réception. » Illustration du bouton de déclaration.</li>
+<li>Points de pagination, bouton « Suivant », lien « Passer »</li>
+<li>Dernière diapositive : bouton « Voir mes projets »</li>
+</ul>
+<div class="cmp">Composants : Carrousel, bouton grand</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Glissement horizontal entre diapositives</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Chaque diapositive</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Écran conçu d&#x27;abord pour mobile. Sur desktop : carte centrée 480 px.</p>
+</div></div>
+<div class="screen" id="mb-dashboard" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Tableau de bord souscripteur</span><span class="route">/</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Répondre à « Combien je dois, pour quoi, et quand ? » dès l&#x27;ouverture.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>« Bonjour Moussa 👋 », cloche avec compteur</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Synthèse</div><ul>
+<li>Carte large fond corail plein, texte blanc : « Total restant à payer » en grand (32 px) — 395 000 F</li>
+<li>Sous le montant : « sur 3 projets · 2 associations »</li>
+<li>Si retards : ligne blanche sur fond rouge pâle intégrée « 30 000 F en retard — Régulariser »</li>
+</ul>
+<div class="cmp">Composants : Carte synthèse</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Actions à faire (conditionnel)</div><ul>
+<li>Cartes d&#x27;action empilées, une par contrat à signer : « Signez le contrat du projet Voyage solidaire »</li>
+</ul>
+<div class="cmp">Composants : Carte d&#x27;action</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Prochaine échéance</div><ul>
+<li>Carte : projet, montant, date, compte à rebours « dans 4 jours », bouton « Déclarer un paiement »</li>
+</ul>
+<div class="cmp">Composants : Carte</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Mes projets</div><ul>
+<li>Titre « Mes projets »</li>
+<li>Cartes projet souscripteur, une par projet, triées : retard, signature, prochaine échéance</li>
+</ul>
+<div class="cmp">Composants : Carte projet souscripteur</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">6</span>Derniers mouvements</div><ul>
+<li>3 dernières lignes : date, projet, montant, badge de statut</li>
+<li>Lien « Tout l&#x27;historique »</li>
+</ul>
+<div class="cmp">Composants : Liste compacte</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">7</span>Bouton flottant</div><ul>
+<li>Bouton rond corail « + » libellé « Déclarer un paiement », en bas à droite</li>
+</ul>
+<div class="cmp">Composants : Bouton flottant</div>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Carte projet : détail du projet</li><li>Bouton flottant : déclaration avec projet à choisir</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>En retard</span><span>Contrat à signer</span><span>Tout est payé (message de félicitations)</span><span>Aucun projet</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Mise en page native mobile. Desktop : synthèse et prochaine échéance côte à côte, projets en grille de 2.</p>
+</div></div>
+<div class="screen" id="mb-projet" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Détail d&#x27;un projet</span><span class="route">/projets/:id</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Voir précisément où j&#x27;en suis sur ce projet et agir.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>Retour, nom du projet, nom de l&#x27;association en petit</li>
+<li>Petit bouton discret « Contrat » (icône document) en haut à droite</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Carte de situation</div><ul>
+<li>Reste à payer en grand</li>
+<li>Barre de progression versé / total</li>
+<li>Trois chiffres : versé · total · échéances restantes</li>
+</ul>
+<div class="cmp">Composants : Carte, barre</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Action</div><ul>
+<li>Bouton grand pleine largeur « Déclarer un paiement »</li>
+</ul>
+<div class="cmp">Composants : Bouton grand</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Échéancier</div><ul>
+<li>Liste verticale de toutes les échéances : mois, montant, badge de statut</li>
+<li>Échéances passées repliées au-delà de 3 (« Voir les 8 échéances précédentes »)</li>
+<li>Échéance courante mise en évidence</li>
+<li>Paiement partiel : « 10 000 / 25 000 F »</li>
+</ul>
+<div class="cmp">Composants : Liste, badges</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Comment payer</div><ul>
+<li>Carte repliable : moyens de paiement de l&#x27;association avec coordonnées copiables (bouton copier sur l&#x27;IBAN ou le numéro mobile money), instructions</li>
+</ul>
+<div class="cmp">Composants : Accordéon, copier</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">6</span>Mes paiements déclarés</div><ul>
+<li>Liste : date, montant, statut (en attente, validé, rejeté avec motif)</li>
+</ul>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Paiement rejeté : ligne avec motif et bouton « Déclarer à nouveau »</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>À jour</span><span>En retard</span><span>Paiement en attente</span><span>Paiement rejeté</span><span>Projet terminé</span></div>
+</div></div>
+<div class="screen" id="mb-contrat" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Signature de contrat</span><span class="route">/projets/:id/contrat</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Faire lire et accepter le contrat, simplement, avec la certitude de ce qu&#x27;on signe.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>« Contrat — Voyage solidaire », association</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Résumé de l&#x27;engagement</div><ul>
+<li>Carte en haut : « Vous vous engagez à verser 50 000 F à l&#x27;entrée, puis 10 000 F par mois pendant 12 mois. Total : 170 000 F. »</li>
+</ul>
+<div class="cmp">Composants : Carte</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Texte du contrat</div><ul>
+<li>Contenu intégral, typographie de lecture (16 px, interligne 1.7)</li>
+<li>Signature de l&#x27;association visible en bas</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Signature (pied collant)</div><ul>
+<li>Case « J&#x27;ai lu et j&#x27;accepte les termes de ce contrat »</li>
+<li>Bouton grand « Signer le contrat » désactivé tant que la case n&#x27;est pas cochée</li>
+<li>Mention « Signature électronique horodatée »</li>
+</ul>
+<div class="cmp">Composants : Case, bouton grand</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">5</span>Après signature</div><ul>
+<li>Écran de succès, bouton « Voir mon échéancier », lien « Télécharger le contrat signé »</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Lecture</span><span>Case cochée</span><span>Signé</span><span>Consultation d&#x27;un contrat déjà signé</span></div>
+</div></div>
+<div class="screen" id="mb-declarer" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Déclaration de paiement</span><span class="route">/paiements/declarer</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Déclarer un virement en moins d&#x27;une minute, sans erreur de répartition.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Étape 1 — Projet</div><ul>
+<li>Si ouvert depuis un projet : étape sautée</li>
+<li>Sinon : liste de cartes radio des projets actifs avec reste à payer</li>
+</ul>
+<div class="cmp">Composants : Cartes radio</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Étape 2 — Montant</div><ul>
+<li>Champ montant très grand, centré, clavier numérique</li>
+<li>Raccourcis en puces : « 1 échéance · 25 000 F », « Tout le retard · 50 000 F », « 3 mois · 75 000 F »</li>
+<li>Sous le champ : sélecteur d&#x27;échéances couvertes, pré-rempli automatiquement</li>
+</ul>
+<div class="cmp">Composants : Champ montant, puces, sélecteur d&#x27;échéances</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Étape 3 — Preuve</div><ul>
+<li>Date du paiement (défaut : aujourd&#x27;hui)</li>
+<li>Moyen utilisé (liste des moyens de l&#x27;association)</li>
+<li>Zone de dépôt : sur mobile, deux gros boutons « Prendre une photo » / « Choisir une image »</li>
+<li>Alternative : champ « Référence de la transaction »</li>
+<li>Commentaire optionnel</li>
+</ul>
+<div class="cmp">Composants : Dépôt, champs</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Récapitulatif</div><ul>
+<li>Projet, montant, échéances couvertes, preuve (miniature)</li>
+<li>Bouton « Envoyer ma déclaration »</li>
+</ul>
+</div>
+</div>
+<h4>Interactions</h4><ul><li>Écran de confirmation après envoi</li></ul>
+<h4>États à maquetter</h4><div class="states"><span>Chaque étape</span><span>Montant partiel</span><span>Montant supérieur au reste (message)</span><span>Envoi</span></div>
+<h4>Mobile</h4><p style="font-size:13.5px">Une étape par écran, bouton « Continuer » fixe en bas.</p>
+</div></div>
+<div class="screen" id="mb-declarer-ok" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Confirmation de déclaration</span><span class="route">/paiements/declarer/ok</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Rassurer et expliquer la suite.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Contenu</div><ul>
+<li>Icône de succès</li>
+<li>« Déclaration envoyée ! »</li>
+<li>« Entraide Yopougon va vérifier la réception de vos 75 000 F. Vous serez notifié dès la validation. »</li>
+<li>Mini-récapitulatif</li>
+<li>Boutons : « Retour au projet » / « Accueil »</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+</div></div>
+<div class="screen" id="mb-historique" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Historique complet</span><span class="route">/historique</span><span class="ver">Back-end : V1 tableau, V2 graphiques</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Comprendre l&#x27;évolution de mes cotisations et retrouver n&#x27;importe quel paiement.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Filtres</div><ul>
+<li>Puces : association, projet, période (3 mois, 6 mois, 1 an, tout)</li>
+<li>Filtres appliqués au graphique et au tableau ensemble</li>
+</ul>
+<div class="cmp">Composants : Puces</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Graphiques</div><ul>
+<li>Courbe cumulative du versé, avec objectif en pointillé</li>
+<li>Barres par mois : versé par projet (couleurs de projet distinctes)</li>
+<li>Infobulles au toucher</li>
+</ul>
+<div class="cmp">Composants : Courbe, barres</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Synthèse de la sélection</div><ul>
+<li>Total versé, nombre de paiements, reste</li>
+</ul>
+<div class="cmp">Composants : KPI</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">4</span>Liste chronologique</div><ul>
+<li>Groupée par mois : date, projet, association, montant, statut</li>
+<li>Clic : détail du paiement avec la preuve envoyée</li>
+</ul>
+<div class="cmp">Composants : Liste</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Filtre actif</span><span>Aucun paiement</span></div>
+</div></div>
+<div class="screen" id="mb-associations" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Mes associations</span><span class="route">/associations</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Voir mes appartenances.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Liste</div><ul>
+<li>Cartes association (version souscripteur) : logo, nom, projets actifs, reste à payer, statut</li>
+</ul>
+<div class="cmp">Composants : Carte association</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>Une seule association</span></div>
+</div></div>
+<div class="screen" id="mb-association-detail" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Détail d&#x27;une association</span><span class="route">/associations/:id</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Retrouver les informations et les projets d&#x27;une association.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>En-tête</div><ul>
+<li>Logo, nom, ville, contacts (appeler, email)</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Projets</div><ul>
+<li>Cartes projet souscripteur de cette association</li>
+</ul>
+<div class="cmp">Composants : Carte projet</div>
+</div>
+<div class="zone"><div class="zn"><span class="k">3</span>Comment payer</div><ul>
+<li>Modalités de paiement de l&#x27;association</li>
+</ul>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+</div></div>
+<div class="screen" id="mb-contrats" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Mes contrats</span><span class="route">/contrats</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Retrouver ses engagements.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Liste</div><ul>
+<li>Pour chaque contrat : projet, association, signé le, bouton télécharger</li>
+<li>Contrats à signer en tête avec badge orange</li>
+</ul>
+<div class="cmp">Composants : Liste</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span><span>À signer</span></div>
+</div></div>
+<div class="screen" id="mb-notifs" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Notifications</span><span class="route">/notifications</span><span class="ver">Back-end : V2</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Savoir ce qui s&#x27;est passé et agir en un geste.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Liste</div><ul>
+<li>Groupée : Aujourd&#x27;hui · Cette semaine · Plus ancien</li>
+<li>Types : échéance proche, échéance en retard, paiement validé, paiement rejeté, nouveau projet / contrat à signer</li>
+<li>Chaque élément ouvre l&#x27;écran d&#x27;action (relance → déclaration de paiement pré-remplie)</li>
+<li>« Tout marquer comme lu » en haut</li>
+</ul>
+<div class="cmp">Composants : Élément de notification</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Avec non lues</span><span>Vide</span></div>
+</div></div>
+<div class="screen" id="mb-profil" style="--brand:#D85A30;--brand-dark:#993C1D;--brand-pale:#F8DDD3">
+<div class="sh" style="background:#FAECE7"><span class="pill p-mb">Souscripteur</span><span class="t">Profil et paramètres</span><span class="route">/profil</span><span class="ver">Back-end : V1</span></div>
+<div class="sb">
+<div class="obj"><strong>Objectif —</strong> Gérer mes informations et mes préférences.</div>
+<h4>Zones</h4><div class="zones">
+<div class="zone"><div class="zn"><span class="k">1</span>Identité</div><ul>
+<li>Avatar, nom, téléphone (non modifiable directement : « Contactez votre association »)</li>
+</ul>
+</div>
+<div class="zone"><div class="zn"><span class="k">2</span>Menu en liste</div><ul>
+<li>Informations personnelles (email, adresse)</li>
+<li>Mes associations · Mes contrats</li>
+<li>Notifications : interrupteurs SMS / email par type (V2)</li>
+<li>Mot de passe</li>
+<li>Aide</li>
+<li>Se déconnecter (rouge, en bas)</li>
+</ul>
+<div class="cmp">Composants : Liste de menu, interrupteurs</div>
+</div>
+</div>
+<h4>États à maquetter</h4><div class="states"><span>Nominal</span></div>
+</div></div>
+<h2 id="mock">9 · Données fictives de référence</h2>
+<div class="card">
+<p class="lead">Utiliser ces données dans toutes les maquettes pour que les écrans soient cohérents entre eux : le même souscripteur doit avoir les mêmes montants partout.</p>
+<h4>Associations</h4>
+<table>
+<tr><th>Association</th><th>Ville</th><th>Plan</th><th>Statut</th><th>Projets</th><th>Souscripteurs</th></tr>
+<tr><td><strong>Entraide Yopougon</strong></td><td>Abidjan</td><td>Essentiel</td><td>Active</td><td>3</td><td>52</td></tr>
+<tr><td>Association des ressortissants de Man</td><td>Abidjan</td><td>Pro</td><td>Impayée</td><td>5</td><td>142</td></tr>
+<tr><td>Jeunesse solidaire de Bouaké</td><td>Bouaké</td><td>Découverte</td><td>Onboarding</td><td>0</td><td>0</td></tr>
+</table>
+<h4>Projets d'Entraide Yopougon</h4>
+<table>
+<tr><th>Projet</th><th>Type</th><th>Entrée</th><th>Échéance</th><th>Fréquence</th><th>Durée</th><th>Statut</th></tr>
+<tr><td><strong>Centre communautaire</strong></td><td>Dates fixes</td><td>50 000 F</td><td>25 000 F</td><td>Mensuelle, le 5</td><td>Mars 2026 → août 2027 (18)</td><td>En cours</td></tr>
+<tr><td>Tontine solidaire 2027</td><td>Cycle roulant</td><td>—</td><td>10 000 F</td><td>Mensuelle</td><td>Dès janvier 2027</td><td>Inscriptions ouvertes (12/30)</td></tr>
+<tr><td>Voyage solidaire</td><td>Dates fixes</td><td>50 000 F</td><td>10 000 F</td><td>Mensuelle</td><td>12 mois</td><td>En cours</td></tr>
+</table>
+<h4>Personnes</h4>
+<table>
+<tr><th>Nom</th><th>Rôle</th><th>Téléphone</th><th>Situation</th></tr>
+<tr><td><strong>Awa Koné</strong></td><td>Gestionnaire principale d'Entraide Yopougon (trésorière)</td><td>+225 07 08 09 10 11</td><td>Utilisatrice des maquettes gestionnaire</td></tr>
+<tr><td><strong>Moussa Diarra</strong></td><td>Souscripteur, membre de 2 associations</td><td>+225 05 44 21 87 90</td><td>Utilisateur des maquettes souscripteur. Centre communautaire : 2 échéances en retard. Contrat Voyage solidaire à signer.</td></tr>
+<tr><td>Fatou Traoré</td><td>Souscriptrice récente</td><td>+225 01 22 33 44 55</td><td>Signature attendue</td></tr>
+<tr><td>Jean Kouassi</td><td>Souscripteur</td><td>+225 07 55 66 77 88</td><td>Paiement partiel en août</td></tr>
+<tr><td>Aminata Konaté</td><td>Gestionnaire secondaire</td><td>—</td><td>Apparaît comme « validé par »</td></tr>
+<tr><td>Richy</td><td>Super-admin</td><td>—</td><td>Utilisateur des maquettes plateforme</td></tr>
+</table>
+<h4>Chiffres du tableau de bord gestionnaire</h4>
+<p style="font-size:14px">Collecté ce mois : <strong>1 240 000 F</strong> sur 1 300 000 F attendus · Paiements à valider : <strong>6</strong> (le plus ancien : 3 jours) · En retard : <strong>14</strong> sur 52 · Taux de recouvrement : <strong>82 %</strong>.</p>
+<h4>Chiffres du tableau de bord souscripteur (Moussa)</h4>
+<p style="font-size:14px">Reste total : <strong>395 000 F</strong> sur 3 projets et 2 associations · En retard : <strong>30 000 F</strong> · Prochaine échéance : <strong>25 000 F le 5 octobre</strong>.</p>
+</div>
+
+<h2 id="prompts">10 · Consignes pour l'outil de design</h2>
+<div class="card">
+<p class="lead">Texte à placer en tête de chaque demande de maquette, avant la fiche de l'écran.</p>
+<pre class="mono" style="background:#F6F4FA;padding:18px;border-radius:12px;white-space:pre-wrap;line-height:1.65;font-size:12.5px">Tu conçois une maquette haute fidélité pour Cotiz, une application SaaS de gestion
+de cotisations pour associations (Afrique de l'Ouest francophone, montants en F CFA).
+
+Style : chaleureux et convivial, mais sobre et rassurant car il s'agit d'argent.
+Jamais de fond blanc pur pour la page : utilise le fond teinté de l'espace.
+Cartes blanches, coins arrondis 16 px, ombres très douces.
+
+Typographie : Poppins (titres, boutons, chiffres clés) + Inter (texte, tableaux).
+
+Espace concerné : [SUPER-ADMIN | GESTIONNAIRE | SOUSCRIPTEUR]
+- Super-admin  : couleur #3B3470, fond de page #F2F2F8
+- Gestionnaire : couleur #7F77DD, fond de page #F4F2ED
+- Souscripteur : couleur #D85A30, fond de page #FAECE7
+
+Couleurs de statut, identiques partout, jamais utilisées pour la décoration :
+vert #2E9E5B (payé/validé), rouge #D93A3A (retard/erreur), orange #E8963C
+(en attente), bleu #3B82C4 (information/à venir). Chaque badge porte un texte.
+
+Icônes : trait fin 1.75 px, extrémités arrondies (style Lucide).
+Données : utilise exactement les données fictives fournies (Awa Koné,
+Moussa Diarra, Entraide Yopougon, 25 000 F…).
+Format : [desktop 1440 px | mobile 390 px].
+
+Voici la fiche de l'écran :
+[coller la fiche]</pre>
+<h4>Conseils d'usage</h4>
+<ul>
+<li><strong>Un écran par demande.</strong> Les fiches sont autonomes ; les combiner dilue la qualité.</li>
+<li><strong>Commencer par les écrans de référence</strong> qui fixent le style du reste : tableau de bord gestionnaire, détail projet — paiements (grille), tableau de bord souscripteur mobile.</li>
+<li><strong>Demander les états</strong> listés dans chaque fiche comme variantes du même écran.</li>
+<li><strong>Joindre la charte graphique</strong> et, si possible, une capture d'un écran déjà validé pour ancrer la cohérence.</li>
+</ul>
+<h4>Ordre de production recommandé</h4>
+<table>
+<tr><th>#</th><th>Écran</th><th>Pourquoi en premier</th></tr>
+<tr><td>1</td><td>Tableau de bord gestionnaire</td><td>Fixe le style des cartes, KPI et de la barre latérale</td></tr>
+<tr><td>2</td><td>Détail projet — Paiements</td><td>Composant signature (grille d'échéances), le plus complexe</td></tr>
+<tr><td>3</td><td>Tableau de bord souscripteur (mobile)</td><td>Fixe l'univers corail et le gabarit mobile</td></tr>
+<tr><td>4</td><td>Déclaration de paiement (mobile)</td><td>Parcours critique côté souscripteur</td></tr>
+<tr><td>5</td><td>Détail d'un paiement déclaré</td><td>Parcours critique côté gestionnaire</td></tr>
+<tr><td>6</td><td>Création de projet</td><td>Formulaire le plus long, fixe le style des formulaires</td></tr>
+<tr><td>7</td><td>Tableau de bord plateforme</td><td>Fixe l'univers indigo</td></tr>
+<tr><td>8</td><td>Landing page</td><td>Vitrine, bénéficie de tous les écrans déjà produits comme visuels</td></tr>
+<tr><td>9+</td><td>Le reste, espace par espace</td><td>Déclinaison</td></tr>
+</table>
+</div>
+
+<h2 id="checklist">11 · Checklist de validation par écran</h2>
+<div class="card">
+<table>
+<tr><th>Point</th><th>Question à se poser</th></tr>
+<tr><td>Objectif</td><td>L'information qui répond à l'objectif de la fiche est-elle la plus visible ?</td></tr>
+<tr><td>Action principale</td><td>Y a-t-il un seul bouton primaire par zone ?</td></tr>
+<tr><td>Couleur d'espace</td><td>La couleur d'identité est-elle la bonne ? Le fond de page est-il teinté ?</td></tr>
+<tr><td>Statuts</td><td>Les couleurs de statut respectent-elles la table de correspondance ? Chaque badge a-t-il un texte ?</td></tr>
+<tr><td>Montants</td><td>Format « 25 000 F », alignés à droite dans les tableaux ?</td></tr>
+<tr><td>Vocabulaire</td><td>« Souscripteur », « échéance », « déclarer » — pas « client », « facture », « payer » ?</td></tr>
+<tr><td>États</td><td>Vide, chargement, erreur maquettés ?</td></tr>
+<tr><td>Mobile</td><td>Cibles tactiles ≥ 44 px ? Action principale accessible au pouce ?</td></tr>
+<tr><td>Accessibilité</td><td>Contraste texte ≥ 4,5:1 ? Information jamais portée par la couleur seule ?</td></tr>
+<tr><td>Cohérence</td><td>Les données fictives sont-elles identiques à celles des autres écrans ?</td></tr>
+</table>
+</div>
+
+<p style="text-align:center;color:var(--muted);font-size:13px;margin:40px 0 10px">Cotiz — votre association organisée · Spécification UI · 25 septembre 2026</p>
+</div></body></html>

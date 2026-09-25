@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>CarteKPI</title></head>
+<body>
+<style>.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}</style>
+<div class="pv pv-stack pv-band" style="border-radius:0">
+ <div>
+  <div class="pv-h">Tons — données de référence du tableau de bord gestionnaire</div>
+  <div class="g4">
+   <div class="cz-kpi is-clickable"><div class="l"><span class="ic"><i data-icon="paiement"></i></span>Collecté ce mois</div><div class="v">1 240 000 F</div><div class="d">sur 1 300 000 F attendus</div></div>
+   <div class="cz-kpi is-clickable"><div class="l"><span class="ic ic--warning"><i data-icon="en-attente"></i></span>Paiements à valider</div><div class="v">6</div><div class="d warn">Le plus ancien : il y a 3 jours</div></div>
+   <div class="cz-kpi is-clickable"><div class="l"><span class="ic ic--danger"><i data-icon="alerte"></i></span>Souscripteurs en retard</div><div class="v">14</div><div class="d bad">sur 52 actifs</div></div>
+   <div class="cz-kpi is-clickable"><div class="l"><span class="ic ic--success"><i data-icon="valide"></i></span>Taux de recouvrement</div><div class="v">82 %</div><div class="d up"><i data-icon="tendance"></i>+12 % vs mois dernier</div></div>
+  </div>
+ </div>
+ <div>
+  <div class="pv-h">États</div>
+  <div class="g4">
+   <div><div class="cz-kpi"><div class="l"><span class="ic"><i data-icon="projet"></i></span>Projets actifs</div><div class="v">3</div><div class="d">Entraide Yopougon</div></div><div class="pv-cap">Repos</div></div>
+   <div><div class="cz-kpi is-hover"><div class="l"><span class="ic"><i data-icon="projet"></i></span>Projets actifs</div><div class="v">3</div><div class="d">Mène vers la liste filtrée</div></div><div class="pv-cap">Survol</div></div>
+   <div><div class="cz-kpi is-focus"><div class="l"><span class="ic"><i data-icon="projet"></i></span>Projets actifs</div><div class="v">3</div><div class="d">Entrée = ouvrir</div></div><div class="pv-cap">Focus</div></div>
+   <div><div class="cz-kpi"><div class="cz-skel" style="height:14px;width:60%"></div><div class="cz-skel" style="height:28px;width:80%;margin-top:10px"></div><div class="cz-skel" style="height:10px;width:45%;margin-top:10px"></div></div><div class="pv-cap">Chargement</div></div>
+  </div>
+ </div>
+ <div class="pv-univ">
+  <div data-theme="superadmin"><div class="cz-kpi"><div class="l"><span class="ic"><i data-icon="association"></i></span>Associations actives</div><div class="v">147</div><div class="d up"><i data-icon="tendance"></i>+6 ce mois</div></div></div>
+  <div data-theme="manager"><div class="cz-kpi"><div class="l"><span class="ic"><i data-icon="souscripteurs"></i></span>Souscripteurs</div><div class="v">52</div><div class="d">sur 3 projets</div></div></div>
+  <div data-theme="member"><div class="cz-kpi"><div class="l"><span class="ic"><i data-icon="echeance"></i></span>Prochaine échéance</div><div class="v">25 000 F</div><div class="d">le 5 octobre</div></div></div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

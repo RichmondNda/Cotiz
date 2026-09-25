@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Plateforme — Facturation</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F2F2F8;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#3B3470;text-decoration:none}a:hover{color:#2A2552}
+input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div data-theme="superadmin" style="width: 1440px; height: 900px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F2F2F8; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="SaSidebar" active="facturation" hint-size="240px,900px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="SaTopbar" current="Facturation" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 18px;">
+<div class="cz-pagehead"><div style="display: flex; align-items: center; gap: 12px;"><h1>Facturation globale</h1><span class="cz-soon">V2</span></div></div>
+<sc-if value="{{soon}}" hint-placeholder-val="{{ false }}">
+<div class="cz-empty" style="padding: 48px;"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3h13v18l-3-2-3.5 2-3.5-2-3 2zM9 8h6M9 12h6"/></svg></div><span class="cz-soon">Bientôt disponible</span><div class="d" style="margin-top: 10px; max-width: 420px;">Vous suivrez ici les encaissements d’abonnements et les impayés : revenu du mois, factures émises, relances et export.</div><a class="cz-btn cz-btn--secondary cz-btn--sm" href="SaAssociations.dc.html">Voir les associations impayées</a></div>
+</sc-if>
+<sc-if value="{{nominal}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 18px;">
+<div class="cz-grid4">
+<div class="cz-kpi"><div class="l">Revenu du mois</div><div class="v">[MONTANT] F</div><div class="d">147 abonnements</div></div>
+<div class="cz-kpi"><div class="l"><span class="ic ic--success"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></span>Encaissé</div><div class="v">[MONTANT] F</div><div class="d up">132 factures payées</div></div>
+<div class="cz-kpi"><div class="l"><span class="ic ic--warning"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>En attente</div><div class="v">[MONTANT] F</div><div class="d warn">échéance à venir</div></div>
+<div class="cz-kpi"><div class="l"><span class="ic ic--danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg></span>Impayé</div><div class="v" style="color: #96201F;">[MONTANT] F</div><div class="d bad">15 associations</div></div>
+</div>
+<div class="cz-tabs" role="tablist">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button type="button" role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+</div>
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ false }}"><div class="cz-bulk" style="background: #E4E3EF; color: #2A2552;">{{selCount}} sélectionnée(s)<div class="end"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm">Relancer</button><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm">Exporter</button></div></div></sc-if>
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th style="width: 44px;"></th><th>N° facture</th><th>Association</th><th>Période</th><th class="num">Montant</th><th>Émise le</th><th>Échéance</th><th>Statut</th><th>PDF</th><th></th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<tr><td><button type="button" onClick="{{r.toggle}}" aria-label="Sélectionner la facture" style="background: transparent; border: none; padding: 8px; cursor: pointer;"><span class="{{r.cbCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button></td>
+<td class="cz-mono">{{r.no}}</td><td><a href="SaAssociation.dc.html" style="font-weight: 600; color: #1B1830;">{{r.asso}}</a></td><td>{{r.period}}</td><td class="num">[PRIX] F</td><td style="color: #6B6478;">{{r.issued}}</td><td style="color: #6B6478;">{{r.due}}</td><td><span class="{{r.cls}}">{{r.status}}</span></td><td><a href="#">PDF</a></td>
+<td class="num"><sc-if value="{{r.canPay}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{r.pay}}">Marquer payée</button></sc-if></td></tr>
+</sc-for>
+</tbody></table></div>
+</div>
+</sc-if>
+</main>
+</div>
+<sc-if value="{{payOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal" role="dialog" aria-modal="true" aria-label="Marquer comme payée">
+<div class="mh">Marquer la facture {{payNo}} comme payée ?</div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 12px;">{{payAsso}}
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Date de paiement</span><input class="cz-input" value="25/09/2026"></label>
+<label class="cz-field"><span class="cz-label" style="color: #2C2A38;">Référence du paiement</span><input class="cz-input" placeholder="Ex. référence du virement"></label></div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{closePay}}">Annuler</button><button type="button" class="cz-btn cz-btn--success cz-btn--sm" onClick="{{confirmPay}}">Marquer comme payée</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","bientot-disponible"],"default":"nominal"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'all', sel: {}, pay: -1, paid: {} }; }
+  renderVals() {
+    const soon = this.props.etat === 'bientot-disponible';
+    const R = [
+      { no: 'F-2026-09-0112', asso: 'Association des ressortissants de Man', period: 'Sept. 2026', issued: '01/09/2026', due: '05/09/2026', k: 'unpaid' },
+      { no: 'F-2026-09-0087', asso: 'Entraide Yopougon', period: 'Sept. 2026', issued: '01/09/2026', due: '05/09/2026', k: 'paid' },
+      { no: 'F-2026-10-0001', asso: 'Jeunesse solidaire de Bouaké', period: 'Oct. 2026', issued: '—', due: '05/10/2026', k: 'upcoming' },
+      { no: 'F-2026-10-0002', asso: 'Entraide Yopougon', period: 'Oct. 2026', issued: '25/09/2026', due: '05/10/2026', k: 'pending' }
+    ];
+    const B = { unpaid: ['cz-badge cz-badge--danger', 'Impayée'], paid: ['cz-badge cz-badge--success', 'Payée'], upcoming: ['cz-badge cz-badge--info', 'À venir'], pending: ['cz-badge cz-badge--warning', 'En attente'] };
+    const tab = this.state.tab;
+    const rows = R.map((r, i) => ({ ...r, i, k: this.state.paid[i] ? 'paid' : r.k })).filter((r) => tab === 'all' || r.k === tab);
+    const selCount = Object.values(this.state.sel).filter(Boolean).length;
+    return {
+      soon, nominal: !soon,
+      hasSel: selCount > 0, selCount,
+      payOpen: this.state.pay >= 0, payNo: this.state.pay >= 0 ? R[this.state.pay].no : '', payAsso: this.state.pay >= 0 ? R[this.state.pay].asso + ' · ' + R[this.state.pay].period : '',
+      closePay: () => this.setState({ pay: -1 }),
+      confirmPay: () => this.setState({ paid: { ...this.state.paid, [this.state.pay]: true }, pay: -1 }),
+      rows: rows.map((r) => ({
+        ...r, cls: B[r.k][0], status: B[r.k][1], canPay: r.k === 'unpaid' || r.k === 'pending',
+        cbCls: 'cz-cb' + (this.state.sel[r.i] ? ' is-on' : ''),
+        toggle: () => this.setState({ sel: { ...this.state.sel, [r.i]: !this.state.sel[r.i] } }),
+        pay: () => this.setState({ pay: r.i })
+      })),
+      tabs: [['all', 'Toutes'], ['upcoming', 'À venir'], ['pending', 'En attente'], ['paid', 'Payées'], ['unpaid', 'Impayées']].map(([k, label]) => ({
+        label, on: k === tab, pick: () => this.setState({ tab: k }),
+        style: `padding: 10px 16px; min-height: 44px; background: transparent; border: none; border-bottom: 2.5px solid ${k === tab ? '#3B3470' : 'transparent'}; margin-bottom: -1px; font-family: Poppins, sans-serif; font-size: 13.5px; color: ${k === tab ? '#2A2552' : '#6B6478'}; cursor: pointer;`
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

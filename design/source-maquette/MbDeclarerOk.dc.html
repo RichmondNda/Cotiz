@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Déclaration envoyée</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#993C1D;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:18px;color:#1B1830}
+.mb-lbl{font-size:12.5px;color:#6B6478}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mb-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.mb-list > *{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box}
+.mb-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+
+<div data-theme="member" style="{{s.root}}">
+<dc-import name="MbNav" device="{{device}}" active="aucun" fab="{{ false }}" hint-size="{{s.navHint}}" style="{{s.nav}}"></dc-import>
+<div style="{{s.col}}">
+<div style="{{s.scroll}}">
+<div style="{{s.inner}}">
+<div style="{{s.card}}">
+<span style="width: 84px; height: 84px; border-radius: 50%; background: #DFF3E7; color: #2E9E5B; display: inline-flex; align-items: center; justify-content: center; align-self: center;"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+<div style="text-align: center;"><h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">Déclaration envoyée !</h1>
+<p style="margin: 10px 0 0; font-size: 15.5px; line-height: 1.6; color: #6B6478;">Entraide Yopougon va vérifier la réception de vos 75 000 F. Vous serez notifié dès la validation.</p></div>
+<div style="background: #FAECE7; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+<div class="mb-row"><span class="mb-lbl" style="font-size: 14px;">Projet</span><b>Centre communautaire</b></div>
+<div class="mb-row"><span class="mb-lbl" style="font-size: 14px;">Montant</span><b>75 000 F</b></div>
+<div class="mb-row"><span class="mb-lbl" style="font-size: 14px;">Échéances</span><b>août, septembre, octobre</b></div>
+<div class="mb-row"><span class="mb-lbl" style="font-size: 14px;">Statut</span><span class="cz-badge cz-badge--warning cz-badge--sm">En attente de validation</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<a class="cz-btn cz-btn--block cz-btn--lg" href="{{links.projet}}" style="color: #FFFFFF;">Retour au projet</a>
+<a class="cz-btn cz-btn--secondary cz-btn--block" href="{{links.home}}">Accueil</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device": {"editor": "enum", "options": ["web", "mobile"], "default": "web"}, "$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = {}; }
+  renderVals() {
+    const m = (this.props.device || 'web') === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const P = this.props, S = this.state;
+    const fmt = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' F';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const v = {
+      links: { projet: L('MbProjet'), home: L('MbAccueil') },
+      s: { card: m ? 'display: flex; flex-direction: column; gap: 22px; padding: 40px 8px 0;' : 'background: #FFFFFF; border-radius: 20px; padding: 36px 40px; box-shadow: 0 1px 3px rgba(40,30,80,0.06); display: flex; flex-direction: column; gap: 22px; margin-top: 60px;' }
+    };
+    const hasNav = true && !(m && false && !v.forceNav);
+    const s = {
+      root: m ? 'width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;'
+              : 'width: 100%; height: 900px; position: relative; display: grid; grid-template-columns: ' + (true ? '240px ' : '') + 'minmax(0, 1fr); background: #FAECE7; overflow: hidden; font-family: Inter, Arial, sans-serif;',
+      nav: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;' : 'height: 100%;',
+      navHint: m ? '100%,80px' : '240px,100%',
+      col: m ? 'flex: 1; min-height: 0; display: flex; flex-direction: column;' : 'min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden;',
+      scroll: m ? 'flex: 1; overflow-y: auto; padding: 14px 12px ' + (hasNav ? '100px' : '24px') + ';' : 'flex: 1; overflow-y: auto; padding: 32px 48px;',
+      inner: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;',
+      bar: m ? 'position: absolute; left: 0; right: 0; bottom: 0; z-index: 25; background: #FFFFFF; border-top: 1px solid #E4E0EA; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 8px;' : 'display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px;',
+      two: m ? 'display: flex; flex-direction: column; gap: 14px;' : 'display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;',
+      three: m ? 'display: flex; flex-direction: column; gap: 12px;' : 'display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;',
+      overlay: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; ' + (m ? 'align-items: flex-end;' : 'align-items: center; justify-content: center;'),
+      sheet: m ? 'background: #FFFFFF; width: 100%; border-radius: 20px 20px 0 0; padding: 10px 18px 26px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; max-height: 88%; overflow-y: auto;' : 'background: #FFFFFF; width: 480px; border-radius: 16px; padding: 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 24px 60px rgba(27,24,48,0.25);'
+    };
+    return Object.assign({ device: m ? 'mobile' : 'web', mobile: m, web: !m, showNav: hasNav }, v, { s: Object.assign(s, v.s || {}), links: Object.assign({ back: L('MbAccueil') }, v.links || {}) });
+  }
+}
+</script>
+</body>
+</html>

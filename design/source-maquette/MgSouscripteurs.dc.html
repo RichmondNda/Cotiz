@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Souscripteurs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+.pp{display:inline-flex;border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:600;background:#EFECFB;color:#5B51C4;margin-right:4px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1000px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="souscripteurs" hint-size="240px,1000px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Souscripteurs" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+<div class="cz-pagehead"><div><h1>Souscripteurs</h1><p>52 membres · tous projets confondus</p></div><div class="end"><button type="button" class="cz-btn cz-btn--secondary"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/></svg>Exporter</button></div></div>
+<div class="cz-toolbar">
+<label class="cz-input cz-search" style="width: 280px;"><span class="lead"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.5-4.5"/></svg></span><input placeholder="Nom ou téléphone" aria-label="Rechercher" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font: inherit;"></label>
+<sc-for list="{{projects}}" as="c" hint-placeholder-count="4"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.on}}">{{c.label}}</button></sc-for>
+<button type="button" class="cz-chip" style="margin-left: auto;">Statut : tous</button>
+</div>
+<sc-if value="{{hasRows}}" hint-placeholder-val="{{ true }}">
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th class="is-sorted">Souscripteur</th><th>Téléphone</th><th>Email</th><th>Projets</th><th class="num">Total versé</th><th class="num">Total restant</th><th>Statut global</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="9"><tr><td><div class="cz-person"><span class="{{r.avCls}}">{{r.ini}}</span><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">{{r.name}}</a></div></td><td class="cz-mono">{{r.tel}}</td><td style="color: #6B6478;">{{r.email}}</td><td><sc-for list="{{r.proj}}" as="p" hint-placeholder-count="1"><span class="pp">{{p}}</span></sc-for></td><td class="num">{{r.paid}}</td><td class="{{r.restCls}}">{{r.rest}}</td><td><span class="{{r.badgeCls}}">{{r.status}}</span></td></tr></sc-for>
+</tbody></table></div>
+<div class="cz-tfoot"><span>1–{{count}} sur 52</span><div class="cz-pagin"><span class="is-disabled">‹</span><span class="is-on">1</span><span>2</span><span>3</span><span>›</span></div></div>
+</sc-if>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-empty" style="padding: 56px;"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 11.5a3 3 0 1 0 0-6M18 20a6 6 0 0 0-2.5-4.9"/></svg></div><div class="t">Aucun souscripteur pour l’instant</div><div class="d">Les membres apparaissent ici dès que vous les inscrivez à un projet.</div><a class="cz-btn cz-btn--sm" href="MgProjets.dc.html">Aller aux projets</a></div></sc-if>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","vide"],"default":"nominal"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { p: 'all' }; }
+  renderVals() {
+    const ok = 'cz-badge cz-badge--success', bad = 'cz-badge cz-badge--danger', warn = 'cz-badge cz-badge--warning';
+    const R = [
+      { ini: 'MD', name: 'Moussa Diarra', tel: '+225 05 44 21 87 90', email: '[email]', proj: ['Centre', 'Voyage'], paid: '175 000 F', rest: '325 000 F', status: 'En retard', badgeCls: bad, av: 'danger', late: true },
+      { ini: 'KB', name: 'Koffi Brou', tel: '+225 07 [XX XX XX XX]', email: '—', proj: ['Centre'], paid: '175 000 F', rest: '325 000 F', status: 'En retard', badgeCls: bad, av: 'danger', late: true },
+      { ini: 'JK', name: 'Jean Kouassi', tel: '+225 07 55 66 77 88', email: '[email]', proj: ['Centre'], paid: '212 500 F', rest: '287 500 F', status: 'En retard', badgeCls: bad, av: '', late: true },
+      { ini: 'FT', name: 'Fatou Traoré', tel: '+225 01 22 33 44 55', email: '—', proj: ['Centre'], paid: '0 F', rest: '500 000 F', status: 'Signature attendue', badgeCls: warn, av: 'warning' },
+      { ini: 'AK', name: 'Awa Koné', tel: '+225 07 08 09 10 11', email: 'awa@entraide.ci', proj: ['Centre'], paid: '200 000 F', rest: '300 000 F', status: 'À jour', badgeCls: ok, av: '' },
+      { ini: 'KS', name: 'Kadiatou Sanogo', tel: '+225 01 [XX XX XX XX]', email: '[email]', proj: ['Centre', 'Tontine'], paid: '200 000 F', rest: '300 000 F', status: 'À jour', badgeCls: ok, av: '' },
+      { ini: 'SG', name: 'Serge Gnagne', tel: '+225 05 [XX XX XX XX]', email: '—', proj: ['Centre'], paid: '200 000 F', rest: '300 000 F', status: 'À jour', badgeCls: ok, av: '' },
+      { ini: 'IT', name: 'Ibrahim Touré', tel: '+225 07 [XX XX XX XX]', email: '[email]', proj: ['Voyage'], paid: '[MONTANT] F', rest: '[MONTANT] F', status: 'À jour', badgeCls: ok, av: '' },
+      { ini: 'AY', name: 'Adjoua Yao', tel: '+225 01 [XX XX XX XX]', email: '—', proj: ['Voyage'], paid: '0 F', rest: '170 000 F', status: 'À jour', badgeCls: ok, av: '' }
+    ];
+    const P = [['all', 'Tous les projets'], ['Centre', 'Centre'], ['Voyage', 'Voyage'], ['Tontine', 'Tontine']];
+    const rows = this.props.etat === 'vide' ? [] : R.filter((r) => this.state.p === 'all' || r.proj.includes(this.state.p));
+    return {
+      projects: P.map(([k, label]) => ({ label, on: k === this.state.p, cls: 'cz-chip' + (k === this.state.p ? ' is-on' : ''), pick: () => this.setState({ p: k }) })),
+      hasRows: rows.length > 0, empty: this.props.etat === 'vide', count: rows.length,
+      rows: rows.map((r) => ({ ...r, avCls: 'cz-avatar cz-avatar--sm' + (r.av ? ' cz-avatar--' + r.av : ''), restCls: r.late ? 'num strong' : 'num' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

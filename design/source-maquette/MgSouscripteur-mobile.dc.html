@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Fiche souscripteur (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="MgSouscripteurs-mobile.dc.html" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{name}}</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Membre depuis mars 2026</div></div></header>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 96px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="cz-card" style="display: flex; align-items: center; gap: 12px;"><span class="{{avCls}}" style="width: 52px; height: 52px; font-size: 18px;">{{ini}}</span><div style="flex-grow: 1; min-width: 0;"><div class="cz-mono" style="font-size: 13.5px;">{{tel}}</div><span class="m-lbl">[email]</span></div><span class="{{badgeCls}}">{{status}}</span></div>
+<div style="display: flex; gap: 8px;"><a class="cz-btn cz-btn--secondary" href="{{telHref}}" style="flex: 1;">Appeler</a><button type="button" class="cz-btn" onClick="{{remind}}" style="flex: 1;">{{remindLabel}}</button></div>
+<div class="cz-seg" style="width: 100%; box-sizing: border-box;"><sc-for list="{{tabs}}" as="t" hint-placeholder-count="2"><span class="{{t.cls}}" onClick="{{t.pick}}" style="flex: 1; text-align: center;">{{t.label}}</span></sc-for></div>
+<sc-if value="{{isProj}}" hint-placeholder-val="{{ true }}"><div style="display: flex; flex-direction: column; gap: 12px;"><sc-for list="{{projects}}" as="p" hint-placeholder-count="2"><a class="cz-card" href="MgProjet-mobile.dc.html" style="{{p.style}}">
+<div class="m-row"><b style="font-family: Poppins, sans-serif; color: #1B1830;">{{p.name}}</b><span class="{{p.badgeCls}}">{{p.status}}</span></div>
+<sc-if value="{{p.hasCells}}" hint-placeholder-val="{{ true }}"><div style="display: flex; gap: 3px; flex-wrap: wrap;"><sc-for list="{{p.cells}}" as="c" hint-placeholder-count="13"><span class="{{c}}" style="width: 20px; height: 20px;"></span></sc-for></div>
+<div class="m-row" style="font-size: 13px;"><span style="color: #6B6478;">Versé {{p.paid}}</span><b style="{{p.restStyle}}">Reste {{p.rest}}</b></div></sc-if>
+<sc-if value="{{p.unsigned}}" hint-placeholder-val="{{ false }}"><span class="m-lbl">Contrat envoyé · en attente de signature</span></sc-if>
+</a></sc-for></div></sc-if>
+<sc-if value="{{isHist}}" hint-placeholder-val="{{ false }}"><div class="cz-timeline" style="background: #FFFFFF; border-radius: 14px; padding: 14px;"><sc-for list="{{history}}" as="h" hint-placeholder-count="4"><div class="{{h.cls}}" style="padding-bottom: 12px;"><b style="display: block; font-size: 14px;">{{h.t}}</b><span class="m-lbl">{{h.d}}</span></div></sc-for></div></sc-if>
+</div>
+</div>
+<dc-import name="MgMobNav" active="membres" hint-size="100%,72px" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;"></dc-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["en-retard", "a-jour", "contrat-non-signe"], "default": "en-retard"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'projets', reminded: false }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const e = P.etat || 'en-retard';
+    const CL = { o: 'cz-cell cz-cell--sm cz-cell--ok', l: 'cz-cell cz-cell--sm cz-cell--late', f: 'cz-cell cz-cell--sm cz-cell--fut' };
+    const cells = (st) => Array.from({ length: 13 }, (_, i) => CL[st[i] || 'f']);
+    const D = {
+      'en-retard': { name: 'Moussa Diarra', ini: 'MD', tel: '+225 05 44 21 87 90', st: ['En retard', bad, 'cz-avatar cz-avatar--danger'],
+        projects: [{ name: 'Centre communautaire', status: 'Retard · 2', badgeCls: bad, hasCells: true, cells: cells('ooooooll'), paid: '175 000 F', rest: '325 000 F', restStyle: 'color: #96201F;', unsigned: false, style: 'color: inherit; display: flex; flex-direction: column; gap: 10px; border: 2px solid #D93A3A;' },
+          { name: 'Voyage solidaire', status: 'À signer', badgeCls: warn, hasCells: false, cells: [], unsigned: true, style: 'color: inherit; display: flex; flex-direction: column; gap: 8px; border: 2px dashed #E8963C;' }],
+        history: [{ cls: 'it l', t: 'Échéance de septembre en retard', d: '10/09/2026 · relance automatique' }, { cls: 'it l', t: 'Échéance d’août en retard', d: '10/08/2026 · relance par Awa Koné' }, { cls: 'it', t: 'Paiement validé · 25 000 F', d: '07/07/2026 · juillet' }, { cls: 'it', t: 'Contrat Centre communautaire signé', d: '12/03/2026' }] },
+      'a-jour': { name: 'Kadiatou Sanogo', ini: 'KS', tel: '+225 01 [XX XX XX XX]', st: ['À jour', ok, 'cz-avatar'],
+        projects: [{ name: 'Centre communautaire', status: 'À jour', badgeCls: ok, hasCells: true, cells: cells('oooooooo'), paid: '200 000 F', rest: '300 000 F', restStyle: '', unsigned: false, style: 'color: inherit; display: flex; flex-direction: column; gap: 10px;' }],
+        history: [{ cls: 'it', t: 'Paiement déclaré · 25 000 F', d: '23/09/2026 · en attente de validation' }, { cls: 'it', t: 'Contrat signé', d: '20/03/2026' }] },
+      'contrat-non-signe': { name: 'Fatou Traoré', ini: 'FT', tel: '+225 01 22 33 44 55', st: ['À signer', warn, 'cz-avatar cz-avatar--warning'],
+        projects: [{ name: 'Centre communautaire', status: 'À signer', badgeCls: warn, hasCells: false, cells: [], unsigned: true, style: 'color: inherit; display: flex; flex-direction: column; gap: 8px; border: 2px dashed #E8963C;' }],
+        history: [{ cls: 'it w', t: 'Contrat envoyé', d: '[DATE] · rappel automatique actif' }] }
+    }[e];
+    const v = {
+      name: D.name, ini: D.ini, tel: D.tel, telHref: 'tel:' + D.tel.replace(/[^\d+]/g, ''), status: D.st[0], badgeCls: 'cz-badge ' + D.st[1].replace('cz-badge ', ''), avCls: D.st[2],
+      remindLabel: S.reminded ? 'Relancé ✓' : (e === 'contrat-non-signe' ? 'Rappeler la signature' : 'Relancer'), remind: () => this.setState({ reminded: true }),
+      tabs: [['projets', 'Projets'], ['hist', 'Historique']].map(([k, l]) => ({ label: l, cls: S.tab === k ? 'is-on' : '', pick: () => this.setState({ tab: k }) })),
+      isProj: S.tab === 'projets', isHist: S.tab === 'hist', projects: D.projects, history: D.history
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

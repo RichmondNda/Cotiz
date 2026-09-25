@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet — Souscripteurs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,select{font:inherit;color:inherit}
+.menubtn{width:100%;border:none;background:transparent;font:inherit;text-align:left}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1250px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,1250px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" parent="Projets" parent-href="MgProjets.dc.html" parent2="Centre communautaire" parent2-href="MgProjet.dc.html" current="Souscripteurs" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px;">
+<dc-import name="MgProjetHeader" tab="souscripteurs" hint-size="100%,230px"></dc-import>
+<div class="cz-toolbar">
+<label class="cz-input cz-search" style="width: 240px;"><span class="lead"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4.5-4.5"/></svg></span><input placeholder="Nom, téléphone…" aria-label="Rechercher un souscripteur" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0;"></label>
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}" aria-pressed="{{c.on}}">{{c.label}}</button></sc-for>
+<div class="end" style="align-items: center;"><span style="font-size: 13px; color: #6B6478; margin-right: 6px;"><b style="color: #1B1830;">52 / 60</b> souscripteurs requis</span><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgImport.dc.html">Importer (Excel)</a><button type="button" class="cz-btn cz-btn--sm" onClick="{{openAdd}}">Ajouter un souscripteur</button></div>
+</div>
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{ false }}"><div class="cz-bulk">{{selCount}} sélectionné(s)<div class="end"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{bulkRemind}}">Relancer</button><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm">Exporter</button><button type="button" class="cz-btn cz-btn--danger-outline cz-btn--sm">Retirer</button></div></div></sc-if>
+
+<sc-if value="{{hasRows}}" hint-placeholder-val="{{ true }}">
+<div class="cz-table-wrap" style="overflow: visible;"><table class="cz-table">
+<thead><tr><th style="width: 44px;"></th><th class="is-sorted">Souscripteur</th><th>Téléphone</th><th>Contrat</th><th class="num">Versé</th><th class="num">Reste</th><th>Statut</th><th style="width: 56px;"></th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<tr style="{{r.rowStyle}}"><td><button type="button" onClick="{{r.toggleSel}}" aria-label="Sélectionner" style="background: transparent; border: none; padding: 8px; cursor: pointer;"><span class="{{r.cbCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button></td>
+<td><div class="cz-person"><span class="{{r.avCls}}">{{r.ini}}</span><div><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">{{r.name}}</a><div class="sub">{{r.since}}</div></div></div></td>
+<td class="cz-mono">{{r.tel}}</td><td style="font-size: 13px; color: #6B6478;">{{r.contract}}</td><td class="num">{{r.paid}}</td><td class="{{r.restCls}}">{{r.rest}}</td><td><span class="{{r.badgeCls}}">{{r.status}}</span></td>
+<td style="position: relative;"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{r.toggleMenu}}" aria-label="Actions" aria-expanded="{{r.menu}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg></button>
+<sc-if value="{{r.menu}}" hint-placeholder-val="{{ false }}"><div class="cz-menu" style="position: absolute; right: 8px; top: 48px; z-index: 5;"><a class="it" href="MgSouscripteur.dc.html" style="color: #2C2A38;">Voir la fiche</a><button type="button" class="it menubtn" onClick="{{r.remind}}">Envoyer une relance</button><button type="button" class="it menubtn" onClick="{{r.resend}}">Renvoyer les identifiants</button><hr><button type="button" class="it danger menubtn" onClick="{{r.askRemove}}">Retirer du projet</button></div></sc-if></td></tr>
+</sc-for>
+</tbody></table></div>
+<div class="cz-tfoot"><span>1–{{rowCount}} sur 52</span><div class="cz-pagin"><span class="is-disabled">‹</span><span class="is-on">1</span><span>2</span><span>3</span><span>›</span></div></div>
+</sc-if>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-empty" style="padding: 48px;"><div class="i"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 11.5a3 3 0 1 0 0-6M18 20a6 6 0 0 0-2.5-4.9"/></svg></div><div class="t">Aucun souscripteur pour l’instant</div><div class="d">Inscrivez vos membres un par un, ou d’un coup avec votre fichier Excel.</div><div style="display: flex; gap: 10px;"><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgImport.dc.html">Importer (Excel)</a><button type="button" class="cz-btn cz-btn--sm" onClick="{{openAdd}}">Ajouter un souscripteur</button></div></div></sc-if>
+</main>
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="cz-toast" role="status" style="position: absolute; right: 32px; bottom: 32px; z-index: 40;"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></span><div><div class="ttl">{{toastTitle}}</div><div class="msg">{{toastMsg}}</div></div><button type="button" class="act" onClick="{{closeToast}}" style="background: transparent; border: none;">Fermer</button></div></sc-if>
+
+<sc-if value="{{removeOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal" role="dialog" aria-modal="true" aria-label="Retirer du projet"><div class="mh">Retirer {{removeName}} du projet ?</div><div class="mb">Son historique de paiement sera conservé, mais il ne recevra plus d’échéances ni de relances. Cette action est réversible.</div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{closeRemove}}">Annuler</button><button type="button" class="cz-btn cz-btn--danger cz-btn--sm" onClick="{{confirmRemove}}">Retirer du projet</button></div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{addOpen}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center; z-index: 30;">
+<div class="cz-modal cz-modal--md" role="dialog" aria-modal="true" aria-label="Ajouter un souscripteur">
+<div class="mh">Ajouter un souscripteur<button type="button" onClick="{{closeAdd}}" aria-label="Fermer" style="background: transparent; border: none; cursor: pointer; color: #6B6478;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 14px; color: #2C2A38;">
+<label class="cz-field"><span class="cz-label">Téléphone</span><div class="cz-input cz-input--prefix" style="height: 52px;"><span class="pfx">+225</span><input value="{{addTel}}" inputmode="numeric" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font-size: 17px;"></div><span class="cz-help">Nous vérifions si cette personne a déjà un compte Cotiz.</span></label>
+<sc-if value="{{stepPhone}}" hint-placeholder-val="{{ true }}"><div style="display: flex; gap: 8px; flex-wrap: wrap;"><span style="font-size: 12px; color: #6B6478; width: 100%;">Simuler le résultat :</span><button type="button" class="cz-chip" onClick="{{caseExisting}}">Compte existant</button><button type="button" class="cz-chip" onClick="{{caseNew}}">Nouveau</button><button type="button" class="cz-chip" onClick="{{caseAlready}}">Déjà inscrit</button></div></sc-if>
+<sc-if value="{{caseA}}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 10px;"><div style="display: flex; align-items: center; gap: 12px; border: 1.5px solid #E4E0EA; border-radius: 12px; padding: 12px 14px;"><span class="cz-avatar">IT</span><div><b>Ibrahim Touré</b><div style="font-size: 12.5px; color: #6B6478;">Membre de 2 associations sur Cotiz</div></div></div><p style="margin: 0; font-size: 13.5px;">Cette personne a déjà un compte. Elle sera rattachée à votre projet et recevra une invitation.</p></div></sc-if>
+<sc-if value="{{caseB}}" hint-placeholder-val="{{ false }}"><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+<label class="cz-field"><span class="cz-label">Prénom *</span><input class="cz-input" value="Aïcha"></label><label class="cz-field"><span class="cz-label">Nom *</span><input class="cz-input" value="Bamba"></label>
+<label class="cz-field"><span class="cz-label">Email</span><input class="cz-input" placeholder="Optionnel"></label><label class="cz-field"><span class="cz-label">Adresse</span><input class="cz-input" placeholder="Optionnelle"></label>
+<div class="cz-field"><span class="cz-label">Envoi des identifiants</span><div class="cz-seg" style="align-self: flex-start;"><span class="is-on">SMS</span><span>Email</span></div></div>
+<label class="cz-field"><span class="cz-label">Date d’entrée</span><input class="cz-input" value="25/09/2026"></label>
+<div class="cz-field" style="grid-column: span 2;"><span class="cz-label">Échéances à rattraper</span><div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 13.5px;"><label class="cz-check"><span class="cz-cb is-on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Fonds d’entrée</label><label class="cz-check"><span class="cz-cb"></span>Mars → août (6)</label><label class="cz-check"><span class="cz-cb is-on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Septembre</label></div></div>
+</div></sc-if>
+<sc-if value="{{caseC}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.7v.2"/></svg><div>Cette personne participe déjà à ce projet (Moussa Diarra).</div></div></sc-if>
+</div>
+<div class="mf">
+<sc-if value="{{stepPhone}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--sm" onClick="{{caseNew}}">Continuer</button></sc-if>
+<sc-if value="{{caseA}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{resetAdd}}">Retour</button><button type="button" class="cz-btn cz-btn--sm" onClick="{{confirmAdd}}">Rattacher au projet</button></sc-if>
+<sc-if value="{{caseB}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{resetAdd}}">Retour</button><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{confirmAddAnother}}">Créer et ajouter un autre</button><button type="button" class="cz-btn cz-btn--sm" onClick="{{confirmAdd}}">Créer et inscrire</button></sc-if>
+<sc-if value="{{caseC}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{resetAdd}}">Saisir un autre numéro</button><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgSouscripteur.dc.html">Voir sa fiche</a></sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["nominal","aucun-souscripteur","selection-multiple"],"default":"nominal"},"modale":{"editor":"enum","options":["fermee","telephone","compte-existant","nouveau","deja-inscrit"],"default":"fermee"},"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const map = { telephone: 'phone', 'compte-existant': 'A', nouveau: 'B', 'deja-inscrit': 'C' };
+    this.state = { filter: 'all', sel: props.etat === 'selection-multiple' ? { 0: true, 1: true, 5: true } : {}, menu: -1, add: map[props.modale] || null, removeIdx: -1, removed: {}, added: false, toast: null };
+  }
+  renderVals() {
+    const s = this.state;
+    const ok = 'cz-badge cz-badge--success', bad = 'cz-badge cz-badge--danger', warn = 'cz-badge cz-badge--warning';
+    let R = [
+      { ini: 'MD', name: 'Moussa Diarra', since: 'Inscrit le 12/03/2026', tel: '+225 05 44 21 87 90', contract: 'Signé le 12/03/2026', paid: '175 000 F', rest: '325 000 F', k: 'late', status: 'En retard · 2', badgeCls: bad, avCls: 'cz-avatar cz-avatar--sm cz-avatar--danger' },
+      { ini: 'KB', name: 'Koffi Brou', since: 'Inscrit le 14/03/2026', tel: '+225 07 [XX XX XX XX]', contract: 'Signé le 14/03/2026', paid: '175 000 F', rest: '325 000 F', k: 'late', status: 'En retard · 2', badgeCls: bad, avCls: 'cz-avatar cz-avatar--sm cz-avatar--danger' },
+      { ini: 'JK', name: 'Jean Kouassi', since: 'Inscrit le 12/03/2026', tel: '+225 07 55 66 77 88', contract: 'Signé le 12/03/2026', paid: '212 500 F', rest: '287 500 F', k: 'late', status: 'En retard · 1', badgeCls: bad, avCls: 'cz-avatar cz-avatar--sm' },
+      { ini: 'AK', name: 'Awa Koné', since: 'Inscrite le 12/03/2026', tel: '+225 07 08 09 10 11', contract: 'Signé le 12/03/2026', paid: '200 000 F', rest: '300 000 F', k: 'ok', status: 'À jour', badgeCls: ok, avCls: 'cz-avatar cz-avatar--sm' },
+      { ini: 'KS', name: 'Kadiatou Sanogo', since: 'Inscrite le 20/03/2026', tel: '+225 01 [XX XX XX XX]', contract: 'Signé le 20/03/2026', paid: '200 000 F', rest: '300 000 F', k: 'ok', status: 'À jour', badgeCls: ok, avCls: 'cz-avatar cz-avatar--sm' },
+      { ini: 'SG', name: 'Serge Gnagne', since: 'Inscrit le 02/04/2026', tel: '+225 05 [XX XX XX XX]', contract: 'Signé le 02/04/2026', paid: '200 000 F', rest: '300 000 F', k: 'ok', status: 'À jour', badgeCls: ok, avCls: 'cz-avatar cz-avatar--sm' },
+      { ini: 'FT', name: 'Fatou Traoré', since: 'Inscrite le 02/09/2026', tel: '+225 01 22 33 44 55', contract: 'En attente', paid: '0 F', rest: '500 000 F', k: 'sign', status: 'Signature attendue', badgeCls: warn, avCls: 'cz-avatar cz-avatar--sm cz-avatar--warning' }
+    ];
+    if (s.added) R = [{ ini: 'AB', name: 'Aïcha Bamba', since: 'Inscrite aujourd’hui', tel: '+225 07 12 34 56 78', contract: 'En attente', paid: '0 F', rest: '500 000 F', k: 'sign', status: 'Signature attendue', badgeCls: warn, avCls: 'cz-avatar cz-avatar--sm cz-avatar--warning', fresh: true }].concat(R);
+    const all = R.map((r, i) => ({ ...r, i })).filter((r) => !s.removed[r.name]);
+    const rows = this.props.etat === 'aucun-souscripteur' ? [] : all.filter((r) => s.filter === 'all' || r.k === s.filter);
+    const selCount = Object.values(s.sel).filter(Boolean).length;
+    const toast = (t, m) => this.setState({ toast: [t, m], menu: -1 });
+    const rm = s.removeIdx >= 0 ? R[s.removeIdx] : null;
+    return {
+      chips: [['all', 'Tous · 52'], ['ok', 'À jour · 37'], ['late', 'En retard · 14'], ['sign', 'Signature attendue · 1'], ['out', 'Retirés · 0']].map(([k, label]) => ({ label, on: k === s.filter, cls: 'cz-chip' + (k === s.filter ? ' is-on' : ''), pick: () => this.setState({ filter: k }) })),
+      hasRows: rows.length > 0, empty: this.props.etat === 'aucun-souscripteur', rowCount: rows.length,
+      hasSel: selCount > 0, selCount, bulkRemind: () => toast('Relances envoyées', selCount + ' souscripteurs relancés par SMS'),
+      rows: rows.map((r) => ({
+        ...r, restCls: r.k === 'late' ? 'num strong' : 'num',
+        rowStyle: r.fresh ? 'background: #EFECFB;' : '',
+        cbCls: 'cz-cb' + (s.sel[r.i] ? ' is-on' : ''), toggleSel: () => this.setState({ sel: { ...s.sel, [r.i]: !s.sel[r.i] } }),
+        menu: s.menu === r.i, toggleMenu: () => this.setState({ menu: s.menu === r.i ? -1 : r.i }),
+        remind: () => toast('Relance envoyée', r.name + ' a reçu un rappel par SMS'),
+        resend: () => toast('Identifiants renvoyés', r.name + ' va les recevoir par SMS'),
+        askRemove: () => this.setState({ removeIdx: r.i, menu: -1 })
+      })),
+      toast: !!s.toast, toastTitle: s.toast ? s.toast[0] : '', toastMsg: s.toast ? s.toast[1] : '', closeToast: () => this.setState({ toast: null }),
+      removeOpen: !!rm, removeName: rm ? rm.name : '', closeRemove: () => this.setState({ removeIdx: -1 }),
+      confirmRemove: () => this.setState({ removed: { ...s.removed, [rm.name]: true }, removeIdx: -1, toast: ['Souscripteur retiré', rm.name + ' ne recevra plus d’échéances. Historique conservé.'] }),
+      addOpen: !!s.add, openAdd: () => this.setState({ add: 'phone' }), closeAdd: () => this.setState({ add: null }),
+      stepPhone: s.add === 'phone', caseA: s.add === 'A', caseB: s.add === 'B', caseC: s.add === 'C',
+      addTel: s.add === 'C' ? '05 44 21 87 90' : s.add === 'A' ? '01 [XX XX XX XX]' : '07 12 34 56 78',
+      caseExisting: () => this.setState({ add: 'A' }), caseNew: () => this.setState({ add: 'B' }), caseAlready: () => this.setState({ add: 'C' }), resetAdd: () => this.setState({ add: 'phone' }),
+      confirmAdd: () => this.setState({ add: null, added: true, filter: 'all', toast: ['Souscripteur inscrit', 'Aïcha Bamba a reçu ses identifiants par SMS'] }),
+      confirmAddAnother: () => this.setState({ add: 'phone', added: true, toast: ['Souscripteur inscrit', 'Vous pouvez ajouter la personne suivante'] })
+    };
+  }
+}
+</script>
+</body>
+</html>

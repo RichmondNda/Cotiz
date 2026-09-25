@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cotiz — Mot de passe oublié</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FAECE7;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div data-theme="{{theme}}" style="{{s.root}}">
+<header style="{{s.header}}">
+<a href="{{links.home}}" style="display: flex; align-items: center; gap: 8px; font-family: Poppins, sans-serif; font-weight: 600; font-size: 19px; color: #26215C;">
+<svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="mp-m"><rect width="100" height="100" fill="#fff"/><path d="M 61.9 29.3 A 23.9 23.9 0 1 0 61.9 70.7" fill="none" stroke="#000" stroke-width="9" stroke-linecap="round"/></mask></defs><circle cx="50" cy="50" r="40" fill="#7F77DD" mask="url(#mp-m)"/><circle cx="75.5" cy="50" r="5" fill="#D85A30"/></svg>Cotiz</a>
+<a href="{{links.login}}" style="display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--brand-dark);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg>Retour à la connexion</a>
+</header>
+<main style="{{s.main}}">
+<div class="cz-card cz-card--lg" style="{{s.card}}">
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;" aria-label="Progression">
+<span style="{{bars.b1}}"></span><span style="{{bars.b2}}"></span><span style="{{bars.b3}}"></span><span style="{{bars.b4}}"></span>
+</div>
+
+<sc-if value="{{is1}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">Mot de passe oublié</h1>
+<p style="margin: 0; font-size: 14.5px; color: #6B6478;">Recevez un code pour choisir un nouveau mot de passe, sans passer par votre association.</p>
+<div class="cz-seg" role="radiogroup" aria-label="Profil" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));"><button type="button" role="radio" aria-checked="{{isMember}}" onClick="{{pickMember}}" style="{{segMember}}">Je suis souscripteur</button><button type="button" role="radio" aria-checked="{{isManager}}" onClick="{{pickManager}}" style="{{segManager}}">Je suis gestionnaire</button></div>
+<sc-if value="{{isMember}}" hint-placeholder-val="{{ true }}">
+<label class="cz-field"><span class="cz-label">Téléphone</span><div class="cz-input cz-input--prefix" style="height: 50px;"><span class="pfx">+225</span><input type="tel" inputmode="numeric" value="05 44 21 87 90" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0; font-size: 16px;"></div><span class="cz-help">Le code vous sera envoyé par SMS.</span></label>
+</sc-if>
+<sc-if value="{{isManager}}" hint-placeholder-val="{{ false }}">
+<label class="cz-field"><span class="cz-label">Email</span><input class="cz-input" type="email" value="awa@entraide.ci" style="height: 50px;"><span class="cz-help">Le code vous sera envoyé par email.</span></label>
+</sc-if>
+<button type="button" class="cz-btn cz-btn--lg cz-btn--block" onClick="{{go2}}">Recevoir un code</button>
+</div>
+</sc-if>
+
+<sc-if value="{{is2}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">Saisissez le code</h1>
+<p style="margin: 0; font-size: 14.5px; color: #6B6478;">Code à 6 chiffres envoyé au <b>{{destination}}</b>.</p>
+<sc-if value="{{codeWrong}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--danger"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg><div><b>Code incorrect.</b> Vérifiez les chiffres et réessayez.</div></div></sc-if>
+<sc-if value="{{codeExpired}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--warning"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><div><b>Ce code a expiré.</b> Demandez-en un nouveau.</div></div></sc-if>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px;">
+<sc-for list="{{digits}}" as="d" hint-placeholder-count="6">
+<input aria-label="{{d.label}}" class="{{d.cls}}" value="{{d.v}}" maxlength="1" inputmode="numeric" style="height: 56px; text-align: center; font-family: Poppins, sans-serif; font-size: 22px; padding: 0;">
+</sc-for>
+</div>
+<sc-if value="{{canResend}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--ghost" style="align-self: flex-start;">Renvoyer le code</button></sc-if>
+<sc-if value="{{waitResend}}" hint-placeholder-val="{{ true }}"><span style="font-size: 13.5px; color: #6B6478;">Renvoyer le code dans <b>0:42</b></span></sc-if>
+<button type="button" class="cz-btn cz-btn--lg cz-btn--block" onClick="{{go3}}">Vérifier le code</button>
+</div>
+</sc-if>
+
+<sc-if value="{{is3}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">Nouveau mot de passe</h1>
+<label class="cz-field"><span class="cz-label">Nouveau mot de passe</span><input class="cz-input" type="password" value="Cotiz2026" style="height: 50px;"></label>
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;"><span style="height: 6px; border-radius: 999px; background: #2E9E5B;"></span><span style="height: 6px; border-radius: 999px; background: #2E9E5B;"></span><span style="height: 6px; border-radius: 999px; background: #2E9E5B;"></span><span style="height: 6px; border-radius: 999px; background: #ECE9F2;"></span></div>
+<span style="font-size: 12.5px; color: #1E6B3E; font-weight: 600;">Robustesse : bonne</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13.5px;">
+<div style="display: flex; gap: 8px; align-items: center; color: #1E6B3E;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>8 caractères minimum</div>
+<div style="display: flex; gap: 8px; align-items: center; color: #1E6B3E;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Une majuscule</div>
+<div style="display: flex; gap: 8px; align-items: center; color: #1E6B3E;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Un chiffre</div>
+<div style="display: flex; gap: 8px; align-items: center; color: #6B6478;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>Un caractère spécial</div>
+</div>
+<label class="cz-field"><span class="cz-label">Confirmer le mot de passe</span><input class="cz-input" type="password" value="Cotiz2026" style="height: 50px;"></label>
+<button type="button" class="cz-btn cz-btn--lg cz-btn--block" onClick="{{go4}}">Enregistrer</button>
+</div>
+</sc-if>
+
+<sc-if value="{{is4}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px; align-items: center; text-align: center;">
+<span style="width: 72px; height: 72px; border-radius: 50%; background: #DFF3E7; color: #2E9E5B; display: inline-flex; align-items: center; justify-content: center;"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12.5l4 4L18 8.5"/></svg></span>
+<h1 style="margin: 0; font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">Mot de passe modifié</h1>
+<p style="margin: 0; font-size: 14.5px; color: #6B6478;">Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>
+<a class="cz-btn cz-btn--lg cz-btn--block" href="{{links.login}}">Aller à la connexion</a>
+</div>
+</sc-if>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"device":{"editor":"enum","options":["web","mobile"],"default":"web"},"etat":{"editor":"enum","options":["navigable","code-incorrect","code-expire","nouveau-mot-de-passe","succes"],"default":"navigable"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: null, profile: 'member' }; }
+  renderVals() {
+    const m = this.props.device === 'mobile';
+    const L = (n) => n + (m ? '-mobile' : '') + '.dc.html';
+    const etat = this.props.etat || 'navigable';
+    const preset = { 'code-incorrect': 2, 'code-expire': 2, 'nouveau-mot-de-passe': 3, 'succes': 4 }[etat];
+    const step = this.state.step || preset || 1;
+    const member = this.state.profile === 'member';
+    const wrong = etat === 'code-incorrect' && step === 2;
+    const expired = etat === 'code-expire' && step === 2;
+    const vals = wrong ? ['4', '8', '1', '9', '0', '2'] : expired ? ['', '', '', '', '', ''] : ['4', '8', '1', '', '', ''];
+    const segBase = 'min-height: 40px; padding: 8px 12px; border: none; border-radius: 8px; font-family: Poppins, sans-serif; font-size: 13px; cursor: pointer;';
+    const segOn = segBase + ' background: #FFFFFF; color: var(--brand-dark); box-shadow: 0 1px 3px rgba(0,0,0,0.08);';
+    const segOff = segBase + ' background: transparent; color: #6B6478;';
+    const bar = (i) => `height: 6px; border-radius: 999px; background: ${i <= step ? 'var(--brand)' : '#ECE9F2'};`;
+    return {
+      theme: member ? 'member' : 'manager',
+      is1: step === 1, is2: step === 2, is3: step === 3, is4: step === 4,
+      isMember: member, isManager: !member,
+      segMember: member ? segOn : segOff, segManager: member ? segOff : segOn,
+      pickMember: () => this.setState({ profile: 'member' }),
+      pickManager: () => this.setState({ profile: 'manager' }),
+      destination: member ? '+225 05 44 21 87 90' : 'awa@entraide.ci',
+      codeWrong: wrong, codeExpired: expired, canResend: expired, waitResend: !expired,
+      digits: vals.map((v, i) => ({ v, label: 'Chiffre ' + (i + 1), cls: 'cz-input' + (wrong ? ' is-error' : (!wrong && !expired && i === 3) ? ' is-focus' : '') })),
+      bars: { b1: bar(1), b2: bar(2), b3: bar(3), b4: bar(4) },
+      go2: () => this.setState({ step: 2 }), go3: () => this.setState({ step: 3 }), go4: () => this.setState({ step: 4 }),
+      links: { home: L('Main'), login: member ? L('Connexion') : L('ConnexionAssociation') },
+      s: {
+        root: `width: 100%; height: ${m ? 900 : 900}px; display: flex; flex-direction: column; background: var(--page); font-family: Inter, Arial, sans-serif;`,
+        header: m ? 'height: 64px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background: #FFFFFF; box-sizing: border-box;'
+                  : 'height: 72px; padding: 0 48px; display: flex; align-items: center; justify-content: space-between; background: #FFFFFF; box-sizing: border-box;',
+        main: m ? 'padding: 24px 16px; display: flex; justify-content: center;' : 'padding: 56px 48px; display: flex; justify-content: center;',
+        card: `width: ${m ? '100%' : '460px'}; box-sizing: border-box; padding: ${m ? '22px 18px' : '32px 36px'}; display: flex; flex-direction: column; gap: 22px;`
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

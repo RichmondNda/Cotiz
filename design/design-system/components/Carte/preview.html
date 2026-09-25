@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"><link rel="stylesheet" href="../../../css/cotiz-tokens.css"><link rel="stylesheet" href="../../../css/bundle.css"><script src="../../bundle.js"></script><script>addEventListener("DOMContentLoaded",()=>window.Cotiz&&Cotiz.hydrate&&Cotiz.hydrate())</script><title>Carte</title></head>
+<body>
+<style>.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}.g5 .cz-card{min-height:130px;padding:18px}</style>
+<div class="pv pv-stack pv-band" style="border-radius:0">
+ <div>
+  <div class="pv-h">Variantes</div>
+  <div class="g5">
+   <div><div class="cz-card"><p class="cz-card-t">Standard</p><p class="cz-card-s">Blanc, r-card 16, ombre douce, padding 24 (16–18 sur mobile).</p></div><div class="pv-cap">cz-card</div></div>
+   <div><div class="cz-card cz-card--flat"><p class="cz-card-t">Contour</p><p class="cz-card-s">Bordure border, sans ombre — dans une carte ou un panneau.</p></div><div class="pv-cap">--flat</div></div>
+   <div><div class="cz-card cz-card--tinted"><p class="cz-card-t" style="color:var(--brand-dark)">Teintée</p><p class="cz-card-s">Fond brand-pale — tuile d'identité, encart.</p></div><div class="pv-cap">--tinted</div></div>
+   <div data-theme="member"><div class="cz-card cz-card--lg"><p class="cz-card-t">Grande</p><p class="cz-card-s">r-card-lg 18 — espace souscripteur, beaucoup d'air.</p></div><div class="pv-cap">--lg</div></div>
+   <div><div class="cz-card cz-card--ghost"><i data-icon="ajouter" data-size="24"></i>Nouveau projet</div><div class="pv-cap">--ghost (fin de grille)</div></div>
+  </div>
+ </div>
+ <div>
+  <div class="pv-h">États d'une carte cliquable</div>
+  <div class="g5">
+   <div><div class="cz-card is-clickable"><p class="cz-card-t">Repos</p><p class="cz-card-s">shadow</p></div><div class="pv-cap">Repos</div></div>
+   <div><div class="cz-card is-clickable is-hover"><p class="cz-card-t">Survol</p><p class="cz-card-s">shadow-hover</p></div><div class="pv-cap">Survol</div></div>
+   <div><div class="cz-card is-clickable is-focus"><p class="cz-card-t">Focus</p><p class="cz-card-s">anneau 3 px brand</p></div><div class="pv-cap">Focus clavier</div></div>
+   <div><div class="cz-card is-selected"><p class="cz-card-t">Sélectionnée</p><p class="cz-card-s">contour 2 px brand (carte de choix)</p></div><div class="pv-cap">Sélectionnée</div></div>
+   <div><div class="cz-card is-disabled"><p class="cz-card-t">Désactivée</p><p class="cz-card-s">opacité 55 %</p></div><div class="pv-cap">Désactivée</div></div>
+  </div>
+ </div>
+ <div>
+  <div class="pv-h">Tuiles de chiffre (charte)</div>
+  <div class="g5" style="grid-template-columns:repeat(4,1fr)">
+   <div class="cz-tile" style="background:var(--violet-pale)"><div class="t" style="color:var(--violet-dark)">Cotisations reçues</div><div class="v cz-num" style="color:var(--ink-title)">1 240 000 F</div></div>
+   <div class="cz-tile" style="background:var(--success-bg)"><div class="t" style="color:var(--success-fg)">Souscripteurs à jour</div><div class="v" style="color:var(--success-fg)">38 / 52</div></div>
+   <div class="cz-tile" style="background:var(--danger-bg)"><div class="t" style="color:var(--danger-fg)">Retards</div><div class="v" style="color:var(--danger-fg)">14</div></div>
+   <div class="cz-tile" style="background:var(--warning-bg)"><div class="t" style="color:var(--warning-fg)">En attente</div><div class="v" style="color:var(--warning-fg)">1 paiement</div></div>
+  </div>
+ </div>
+</div>
+<script>window.Cotiz && window.Cotiz.hydrate();</script>
+</body>
+</html>

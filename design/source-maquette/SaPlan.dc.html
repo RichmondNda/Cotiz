@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Plateforme — Édition d’un plan</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F2F2F8;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#3B3470;text-decoration:none}a:hover{color:#2A2552}
+input,textarea{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+</style>
+</helmet>
+<div data-theme="superadmin" style="width: 1440px; height: 1250px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F2F2F8; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="SaSidebar" active="plans" hint-size="240px,1250px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="SaTopbar" parent="Plans" parent-href="SaPlans.dc.html" current="{{crumb}}" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 18px;">
+<div class="cz-pagehead"><div><h1>{{title}}</h1><p>{{subtitle}}</p></div><div class="end"><a class="cz-btn cz-btn--ghost" href="SaPlans.dc.html">Annuler</a><a class="cz-btn" href="SaPlans.dc.html">Enregistrer le plan</a></div></div>
+<sc-if value="{{warn}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--warning"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg><div><b>Ce plan compte 78 associations abonnées.</b> Une baisse de quota ou une hausse de prix s’appliquera à leur prochaine échéance. Prévenez-les avant d’enregistrer.</div></div></sc-if>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start;">
+<div style="display: flex; flex-direction: column; gap: 16px;">
+<section class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;"><h2 class="t">Présentation</h2>
+<label class="cz-field"><span class="cz-label">Nom du plan <span class="req">*</span></span><input class="cz-input" value="{{name}}" onChange="{{onName}}" placeholder="Ex. Essentiel"></label>
+<label class="cz-field"><span class="cz-label">Description courte</span><input class="cz-input" value="{{desc}}" onChange="{{onDesc}}" placeholder="Une phrase affichée sous le nom"></label>
+</section>
+<section class="cz-card" style="padding: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;"><h2 class="t" style="grid-column: span 2;">Prix</h2>
+<label class="cz-field"><span class="cz-label">Prix mensuel</span><div class="cz-input cz-input--suffix"><input value="{{monthly}}" onChange="{{onMonthly}}" inputmode="numeric" placeholder="0" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0;"><span class="sfx">F CFA</span></div></label>
+<label class="cz-field"><span class="cz-label">Prix annuel</span><div class="cz-input cz-input--suffix"><input value="{{yearly}}" onChange="{{onYearly}}" inputmode="numeric" placeholder="0" style="border: none; outline: none; background: transparent; flex-grow: 1; min-width: 0;"><span class="sfx">F CFA</span></div><span class="cz-help">{{discount}}</span></label>
+</section>
+<section class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 14px;"><h2 class="t">Quotas</h2>
+<sc-for list="{{quotas}}" as="q" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 16px; min-height: 44px;"><span style="flex-grow: 1; font-size: 14px;">{{q.label}}</span>
+<div class="cz-counter" style="{{q.counterStyle}}"><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{q.dec}}" disabled="{{q.unlimited}}" aria-label="Diminuer">−</button><b>{{q.value}}</b><button type="button" class="cz-btn cz-btn--icon cz-btn--sm" onClick="{{q.inc}}" disabled="{{q.unlimited}}" aria-label="Augmenter">+</button></div>
+<button type="button" class="cz-check" onClick="{{q.toggle}}" style="background: transparent; border: none; min-height: 44px; font-size: 14px;"><span class="{{q.cbCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Illimité</button></div>
+</sc-for>
+</section>
+<section class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 6px;"><h2 class="t" style="margin-bottom: 6px;">Fonctionnalités incluses</h2>
+<sc-for list="{{features}}" as="f" hint-placeholder-count="4">
+<button type="button" class="cz-check" onClick="{{f.toggle}}" style="background: transparent; border: none; min-height: 40px; font-size: 14px; text-align: left;"><span class="{{f.cbCls}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>{{f.label}}</button>
+</sc-for>
+</section>
+<section class="cz-card" style="padding: 22px; display: flex; flex-direction: column; gap: 12px;"><h2 class="t">Publication</h2>
+<div style="display: flex; align-items: center; gap: 12px;"><button type="button" role="switch" aria-checked="{{featured}}" aria-label="Mettre en avant sur la landing" onClick="{{toggleFeatured}}" class="{{featuredCls}}" style="border: none; cursor: pointer;"></button><span style="font-size: 14px;">Mettre en avant sur la landing (badge « Le plus choisi »)</span></div>
+<div style="display: flex; align-items: center; gap: 12px;"><button type="button" role="switch" aria-checked="{{active}}" aria-label="Plan actif" onClick="{{toggleActive}}" class="{{activeCls}}" style="border: none; cursor: pointer;"></button><span style="font-size: 14px;">Actif — proposé aux nouvelles associations</span></div>
+</section>
+</div>
+<aside style="position: sticky; top: 16px; display: flex; flex-direction: column; gap: 10px;">
+<div style="font-family: Poppins, sans-serif; font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #6B6478;">APERÇU SUR LA LANDING</div>
+<div data-theme="manager" style="background: #FAECE7; border-radius: 16px; padding: 20px;">
+<div style="{{previewStyle}}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;"><b style="font-family: Poppins, sans-serif; font-size: 17px; color: #1B1830;">{{previewName}}</b><sc-if value="{{featured}}" hint-placeholder-val="{{ true }}"><span class="cz-badge cz-badge--brand">Le plus choisi</span></sc-if></div>
+<div style="font-size: 13px; color: #6B6478;">{{desc}}</div>
+<div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 26px; color: #1B1830;">{{previewPrice}} F <span style="font-family: Inter, sans-serif; font-weight: 400; font-size: 13px; color: #6B6478;">/ mois</span></div>
+<div style="font-size: 13px; color: #6B6478;">{{limits}}</div>
+<sc-for list="{{onFeatures}}" as="f" hint-placeholder-count="3"><div style="display: flex; gap: 8px; align-items: center; font-size: 14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E9E5B" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>{{f}}</div></sc-for>
+<span class="{{previewBtn}}">Choisir {{previewName}}</span>
+</div>
+</div>
+<sc-if value="{{inactive}}" hint-placeholder-val="{{ false }}"><div style="font-size: 12.5px; color: #6B6478;">Plan inactif : il n’apparaîtra pas sur la landing.</div></sc-if>
+</aside>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["modification","creation","avertissement-abonnes"],"default":"modification"},"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const create = props.mode === 'creation';
+    this.state = {
+      name: create ? '' : 'Essentiel', desc: create ? '' : 'Pour les associations qui gèrent plusieurs projets.',
+      monthly: create ? '' : '', yearly: '',
+      q: { proj: 5, subs: 100, mgr: 3 }, unl: { proj: false, subs: false, mgr: false },
+      feat: create ? {} : { sign: true, relance: true },
+      featured: !create, active: true
+    };
+  }
+  renderVals() {
+    const mode = this.props.mode || 'modification';
+    const s = this.state;
+    const num = (v) => parseInt(String(v).replace(/\D/g, ''), 10);
+    const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    const m = num(s.monthly), y = num(s.yearly);
+    const discount = m > 0 && y > 0 ? `Remise affichée : ${Math.round((1 - y / (m * 12)) * 100)} % par rapport au mensuel` : 'La remise annuelle est calculée automatiquement.';
+    const QL = [['proj', 'Projets actifs', 1], ['subs', 'Souscripteurs', 10], ['mgr', 'Comptes gestionnaires', 1]];
+    const FL = [['excel', 'Import de membres par Excel'], ['relance', 'Relances automatiques'], ['rapports', 'Rapports avancés'], ['sign', 'Signature électronique des contrats']];
+    const lim = (k, word) => s.unl[k] ? `${word} illimités` : `${s.q[k]} ${word}`;
+    return {
+      title: mode === 'creation' ? 'Nouveau plan' : 'Modifier le plan Essentiel',
+      subtitle: mode === 'creation' ? 'Créez une formule tarifaire.' : '78 associations abonnées',
+      crumb: mode === 'creation' ? 'Nouveau plan' : 'Essentiel',
+      warn: mode === 'avertissement-abonnes',
+      name: s.name, desc: s.desc, monthly: s.monthly, yearly: s.yearly, discount,
+      onName: (e) => this.setState({ name: e.target.value }),
+      onDesc: (e) => this.setState({ desc: e.target.value }),
+      onMonthly: (e) => this.setState({ monthly: e.target.value }),
+      onYearly: (e) => this.setState({ yearly: e.target.value }),
+      quotas: QL.map(([k, label, step]) => ({
+        label, value: s.unl[k] ? '∞' : s.q[k], unlimited: s.unl[k],
+        counterStyle: s.unl[k] ? 'opacity: 0.5;' : '',
+        cbCls: 'cz-cb' + (s.unl[k] ? ' is-on' : ''),
+        toggle: () => this.setState({ unl: { ...s.unl, [k]: !s.unl[k] } }),
+        inc: () => this.setState({ q: { ...s.q, [k]: s.q[k] + step } }),
+        dec: () => this.setState({ q: { ...s.q, [k]: Math.max(step, s.q[k] - step) } })
+      })),
+      features: FL.map(([k, label]) => ({ label, cbCls: 'cz-cb' + (s.feat[k] ? ' is-on' : ''), toggle: () => this.setState({ feat: { ...s.feat, [k]: !s.feat[k] } }) })),
+      onFeatures: FL.filter(([k]) => s.feat[k]).map(([, l]) => l),
+      featured: s.featured, featuredCls: 'cz-toggle' + (s.featured ? ' is-on' : ''), toggleFeatured: () => this.setState({ featured: !s.featured }),
+      active: s.active, inactive: !s.active, activeCls: 'cz-toggle' + (s.active ? ' is-on' : ''), toggleActive: () => this.setState({ active: !s.active }),
+      previewName: s.name || 'Nom du plan',
+      previewPrice: m > 0 ? fmt(m) : '[PRIX]',
+      limits: `${lim('proj', 'projets')} · ${lim('subs', 'souscripteurs')} · ${lim('mgr', 'gestionnaires')}`,
+      previewBtn: s.featured ? 'cz-btn cz-btn--block' : 'cz-btn cz-btn--secondary cz-btn--block',
+      previewStyle: `background: #FFFFFF; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px; border: 2px solid ${s.featured ? '#7F77DD' : '#E4E0EA'};${s.active ? '' : ' opacity: 0.5;'}`
+    };
+  }
+}
+</script>
+</body>
+</html>

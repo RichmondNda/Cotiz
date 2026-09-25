@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet · Rapports (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="MgProjets-mobile.dc.html" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Centre communautaire</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Rapports</div></div></header>
+<nav aria-label="Sections du projet" class="m-hscroll" style="background: #FFFFFF; border-bottom: 1px solid #E4E0EA; padding: 0 6px; flex-shrink: 0; gap: 0;"><a href="MgProjet-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Vue d’ensemble</a><a href="MgProjetSouscripteurs-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Souscripteurs</a><a href="MgProjetPaiements-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Paiements</a><a href="MgProjetContrat-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Contrat</a><a href="MgProjetParametres-mobile.dc.html" aria-current="false" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid transparent; color: #6B6478;">Paramètres</a><a href="MgProjetRapports-mobile.dc.html" aria-current="page" style="padding: 12px 12px 10px; font-family: Poppins, sans-serif; font-size: 13.5px; border-bottom: 2px solid #7F77DD; color: #5B51C4; font-weight: 600;">Rapports</a></nav>
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 96px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="m-hscroll"><button type="button" class="cz-chip is-on">Depuis le début</button><button type="button" class="cz-chip">Ce mois</button><button type="button" class="cz-chip">3 derniers mois</button></div>
+<div class="m-kpis">
+<div class="cz-kpi"><div class="l">Collecté</div><div class="v">9 594 000 F</div><div class="d">sur 11 700 000 F à date</div></div>
+<div class="cz-kpi"><div class="l">Recouvrement</div><div class="v">82 %</div><div class="d up">échéances échues</div></div>
+</div>
+<sc-if value="{{advanced}}" hint-placeholder-val="{{ true }}"><div class="cz-card"><h2 class="t" style="font-size: 15px; margin-bottom: 10px;">Collecté par mois (F)</h2>
+<div style="display: flex; align-items: flex-end; gap: 6px; height: 120px;"><sc-for list="{{bars}}" as="b" hint-placeholder-count="7"><div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end;"><span style="{{b.s}}"></span><span style="font-size: 10.5px; color: #6B6478;">{{b.l}}</span></div></sc-for></div>
+<div class="m-lbl" style="margin-top: 6px;">Montants mensuels : [MONTANT] F</div></div></sc-if>
+<sc-if value="{{soon}}" hint-placeholder-val="{{ false }}"><div class="cz-card" style="display: flex; align-items: center; gap: 10px;"><span class="cz-soon">V2</span><span style="font-size: 14px;">Graphiques détaillés bientôt disponibles.</span></div></sc-if>
+<h2 class="t">Exporter</h2>
+<div class="m-list"><sc-for list="{{exports}}" as="e" hint-placeholder-count="3"><button type="button" onClick="{{e.go}}" style="cursor: pointer;"><span style="flex-grow: 1;"><b style="display: block; font-size: 14px; color: #1B1830;">{{e.t}}</b><span class="m-lbl">{{e.d}}</span></span><span style="font-size: 13px; font-weight: 600; color: #5B51C4;">{{e.lbl}}</span></button></sc-for></div>
+</div>
+</div>
+<dc-import name="MgMobNav" active="projets" hint-size="100%,72px" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;"></dc-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "graphiques-bientot-disponibles"], "default": "nominal"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { exp: '' }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const soon = P.etat === 'graphiques-bientot-disponibles';
+    const R = [0.99, 0.97, 0.9, 0.86, 0.83, 0.8, 0.55];
+    const E = [['etat', 'État des cotisations', 'Qui a payé, qui est en retard · Excel'], ['retards', 'Liste des retardataires', '14 souscripteurs · Excel'], ['releve', 'Relevé du projet', 'Synthèse imprimable · PDF']];
+    const v = {
+      soon, advanced: !soon,
+      bars: ['Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.'].map((l, i) => ({ l, s: `width: 100%; max-width: 30px; height: ${Math.round(R[i] * 90)}px; border-radius: 4px 4px 0 0; background: #7F77DD;` })),
+      exports: E.map(([k, t, d]) => ({ t, d, lbl: S.exp === k ? 'Prêt ✓' : 'Exporter', go: () => this.setState({ exp: k }) }))
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

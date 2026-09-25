@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Association — Équipe</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:17px;color:#1B1830}
+.mg-lbl{font-size:12.5px;color:#6B6478}
+.mg-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.mg-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid #F0EDF3}
+.mg-list > *:last-child{border-bottom:none}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 950px; position: relative; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="equipe" hint-size="240px,950px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" current="Équipe" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+<div class="cz-pagehead"><div><h1>Équipe</h1><p>Les gestionnaires qui administrent Entraide Yopougon avec vous</p></div><div class="end"><button type="button" class="{{inviteCls}}" onClick="{{openModal}}" aria-disabled="{{full}}">Inviter un gestionnaire</button></div></div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="cz-table-wrap"><table class="cz-table">
+<thead><tr><th>Membre</th><th>Rôle</th><th>Téléphone</th><th>Dernière connexion</th><th>Statut</th><th></th></tr></thead>
+<tbody><sc-for list="{{members}}" as="u" hint-placeholder-count="3"><tr>
+<td><div class="cz-person"><span class="cz-avatar cz-avatar--sm">{{u.ini}}</span><div><b>{{u.name}}</b><div class="sub">{{u.email}}</div></div></div></td>
+<td><span class="{{u.roleCls}}">{{u.role}}</span></td><td class="cz-mono">{{u.tel}}</td><td style="color: #6B6478;">{{u.last}}</td><td><span class="{{u.stCls}}">{{u.st}}</span></td>
+<td style="position: relative;"><sc-if value="{{u.canEdit}}" hint-placeholder-val="{{ false }}"><button type="button" class="cz-btn cz-btn--ghost cz-btn--icon cz-btn--sm" onClick="{{u.toggleMenu}}" aria-label="Actions"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5.5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="18.5" r="1.6"/></svg></button></sc-if>
+<sc-if value="{{u.menuOpen}}" hint-placeholder-val="{{ false }}"><div class="cz-menu" style="position: absolute; right: 12px; top: 44px; z-index: 5; width: 200px;"><div class="it">{{u.act1}}</div><hr><div class="it danger">Retirer l’accès</div></div></sc-if></td>
+</tr></sc-for></tbody></table></div>
+<sc-if value="{{invited}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><div><b>Invitation envoyée.</b> Le gestionnaire recevra ses identifiants par email et pourra se connecter à l’espace association.</div></div></sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 10px;">
+<h2 class="t" style="font-size: 15px;">Comptes gestionnaires</h2>
+<div class="mg-row" style="font-size: 14px;"><span>{{used}} sur 3 comptes secondaires</span><b>{{usedPct}}</b></div>
+<div class="{{quotaBar}}"><i style="{{quotaW}}"></i></div>
+<sc-if value="{{full}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 13px; color: #8A5410;">Limite atteinte. Le nombre de comptes est fixé par la plateforme Cotiz.</p></sc-if>
+<sc-if value="{{notFull}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 13px; color: #6B6478;">Limite fixée par la plateforme Cotiz pour votre association.</p></sc-if>
+</div>
+<div class="cz-card" style="display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; line-height: 1.5;">
+<h2 class="t" style="font-size: 15px;">Qui peut faire quoi ?</h2>
+<div><b>Gestionnaire principal</b><div class="mg-lbl" style="font-size: 13px;">Tout, y compris l’équipe, l’abonnement et les paramètres de l’association.</div></div>
+<div><b>Gestionnaire secondaire</b><div class="mg-lbl" style="font-size: 13px;">Projets, souscripteurs, validation des paiements et relances.</div></div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<sc-if value="{{modalOpen}}" hint-placeholder-val="{{ false }}"><div style="{{overlayStyle}}" onClick="{{closeModal}}"><div class="cz-modal cz-modal--md" role="dialog" aria-modal="true" aria-label="Inviter un gestionnaire" onClick="{{stop}}" style="width: 520px;">
+<div class="mh">Inviter un gestionnaire</div>
+<div class="mb" style="display: flex; flex-direction: column; gap: 12px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;"><label class="cz-field"><span class="cz-label">Prénom</span><input class="cz-input" placeholder="Prénom"></label><label class="cz-field"><span class="cz-label">Nom</span><input class="cz-input" placeholder="Nom"></label></div>
+<label class="cz-field"><span class="cz-label">Email</span><input class="cz-input" type="email" placeholder="nom@exemple.com"><span class="cz-help">Les identifiants de connexion seront envoyés à cette adresse.</span></label>
+<label class="cz-field"><span class="cz-label">Téléphone</span><input class="cz-input" placeholder="+225"></label>
+<div class="cz-field"><span class="cz-label">Rôle</span><div class="cz-seg"><span class="is-on">Gestionnaire secondaire</span></div></div>
+</div>
+<div class="mf"><button type="button" class="cz-btn cz-btn--ghost" onClick="{{closeModal}}">Annuler</button><button type="button" class="cz-btn" onClick="{{invite}}">Envoyer l’invitation</button></div>
+</div></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "modale-invitation", "quota-atteint"], "default": "nominal"}, "$preview": {"width": 1440, "height": 950}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { modal: null, invited: false, menu: -1 }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const full = etat === 'quota-atteint';
+    const M = [
+      { name: 'Awa Koné', ini: 'AK', email: 'awa@entraide.ci', role: 'Principale · vous', roleCls: 'cz-badge cz-badge--brand cz-badge--sm', tel: '+225 07 08 09 10 11', last: 'Aujourd’hui, 09:02', st: 'Actif', stCls: ok, canEdit: false },
+      { name: 'Serge Gnagne', ini: 'SG', email: '[email]', role: 'Secondaire', roleCls: 'cz-badge cz-badge--sm', tel: '+225 05 [XX XX XX XX]', last: 'Hier, 18:40', st: 'Actif', stCls: ok, canEdit: true, act1: 'Renvoyer les identifiants' },
+      { name: '[Gestionnaire invité]', ini: '··', email: '[email]', role: 'Secondaire', roleCls: 'cz-badge cz-badge--sm', tel: '—', last: 'Jamais', st: 'Invitation envoyée', stCls: warn, canEdit: true, act1: 'Renvoyer l’invitation' }
+    ];
+    if (full || S.invited) M.push({ name: '[Nouveau gestionnaire]', ini: '··', email: '[email]', role: 'Secondaire', roleCls: 'cz-badge cz-badge--sm', tel: '—', last: 'Jamais', st: 'Invitation envoyée', stCls: warn, canEdit: true, act1: 'Renvoyer l’invitation' });
+    const used = M.length - 1;
+    const isFull = used >= 3;
+    const modal = S.modal !== null ? S.modal : etat === 'modale-invitation';
+    const v = {
+      members: M.map((u, i) => ({ ...u, act1: u.act1 || '', menuOpen: S.menu === i, toggleMenu: () => this.setState({ menu: S.menu === i ? -1 : i }) })),
+      used: String(used), usedPct: Math.round(used / 3 * 100) + ' %', quotaBar: 'cz-bar' + (isFull ? ' cz-bar--danger' : ''), quotaW: `width: ${Math.min(100, Math.round(used / 3 * 100))}%;`,
+      full: isFull, notFull: !isFull, inviteCls: 'cz-btn' + (isFull ? ' is-disabled' : ''),
+      modalOpen: modal && !isFull, openModal: () => { if (!isFull) this.setState({ modal: true }); }, closeModal: () => this.setState({ modal: false }),
+      invited: S.invited, invite: () => this.setState({ modal: false, invited: true })
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: center; justify-content: center;' }, v);
+  }
+}
+</script>
+</body>
+</html>

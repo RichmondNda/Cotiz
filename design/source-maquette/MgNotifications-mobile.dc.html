@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Notifications (mobile)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+input,textarea,select,button{font:inherit;color:inherit}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+.m-lbl{font-size:12.5px;color:#6B6478}
+.m-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.m-list{background:#FFFFFF;border-radius:14px;box-shadow:0 1px 3px rgba(40,30,80,0.06)}
+.m-list > *{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border-bottom:1px solid #F0EDF3;color:#2C2A38;box-sizing:border-box;width:100%;background:transparent;border-left:none;border-right:none;border-top:none;text-align:left}
+.m-list > *:last-child{border-bottom:none}
+.m-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m-kpis .cz-kpi{padding:12px 14px}.m-kpis .cz-kpi .v{font-size:20px}
+.m-hscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.m-hscroll > *{flex-shrink:0;white-space:nowrap}
+.m-sheet{background:#FFFFFF;width:100%;border-radius:20px 20px 0 0;padding:10px 18px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;max-height:90%;overflow-y:auto}
+.m-grip{width:40px;height:4px;border-radius:999px;background:#E4E0EA;align-self:center}
+.m-bar{position:absolute;left:0;right:0;bottom:0;z-index:25;background:#FFFFFF;border-top:1px solid #E4E0EA;padding:12px 16px 20px;display:flex;gap:8px}
+.m-bar > *{flex:1;height:48px}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 100%; height: 844px; position: relative; display: flex; flex-direction: column; background: #F4F2ED; overflow: hidden; font-family: Inter, Arial, sans-serif;">
+<header style="background: #FFFFFF; padding: 8px 6px; display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #E4E0EA; min-height: 60px; box-sizing: border-box; flex-shrink: 0;"><a href="MgDashboard-mobile.dc.html" aria-label="Retour" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #2C2A38; flex-shrink: 0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg></a><div style="flex-grow: 1; min-width: 0; "><div style="font-family: Poppins, sans-serif; font-weight: 600; font-size: 18px; color: #1B1830; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Notifications</div><div style="font-size: 12.5px; color: #6B6478; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{sub}}</div></div><sc-if value="{{hasUnread}}" hint-placeholder-val="{{ true }}"><button type="button" class="cz-btn cz-btn--ghost cz-btn--sm" onClick="{{markAll}}">Tout lire</button></sc-if></header>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px 96px;">
+<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="m-hscroll"><sc-for list="{{filters}}" as="c" hint-placeholder-count="5"><button type="button" class="{{c.cls}}" onClick="{{c.pick}}" style="min-height: 38px;">{{c.label}}</button></sc-for></div>
+<sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><div class="cz-card cz-card--lg"><div class="cz-empty"><div class="t">Aucune notification</div><div class="d">Déclarations, signatures et retards s’afficheront ici.</div></div></div></sc-if>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3"><div style="display: flex; flex-direction: column; gap: 6px;"><div class="cz-notif-group">{{g.t}}</div>
+<sc-for list="{{g.items}}" as="n" hint-placeholder-count="2"><a class="{{n.cls}}" href="{{n.href}}" style="color: inherit;"><span class="ic" style="{{n.icStyle}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.icon}}"/></svg></span><span style="flex-grow: 1; min-width: 0;"><span class="tt" style="display: block;">{{n.tt}}</span><span class="ds" style="display: block;">{{n.ds}}</span></span><span class="tm">{{n.tm}}</span><sc-if value="{{n.unread}}" hint-placeholder-val="{{ false }}"><span class="unread-dot" aria-label="Non lue"></span></sc-if></a></sc-for></div></sc-for>
+</div>
+</div>
+<dc-import name="MgMobNav" active="plus" hint-size="100%,72px" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;"></dc-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat": {"editor": "enum", "options": ["nominal", "tout-lu", "vide"], "default": "nominal"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { read: null, f: 'all' }; }
+  renderVals() {
+    const P = this.props, S = this.state;
+    const M = (n) => n + '-mobile.dc.html';
+    const ok = 'cz-badge cz-badge--success cz-badge--sm', bad = 'cz-badge cz-badge--danger cz-badge--sm', warn = 'cz-badge cz-badge--warning cz-badge--sm', info = 'cz-badge cz-badge--info cz-badge--sm';
+    const stop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    const etat = P.etat || 'nominal';
+    const read = S.read !== null ? S.read : etat === 'tout-lu';
+    const empty = etat === 'vide';
+    const T = {
+      pay: ['background: #FBEEDB; color: #8A5410;', 'M5.5 5.5h13a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3zM2.5 10h19M6 15h4'],
+      late: ['background: #FBE0E0; color: #96201F;', 'M12 3.5l9 16H3zM12 10v4.5M12 17.3v.2'],
+      sign: ['background: #DFF3E7; color: #1E6B3E;', 'M14 3v5h5M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8zM9 14l2 2 4-4'],
+      info: ['background: #DEEBF7; color: #1E5585;', 'M5.5 3h13v18l-3-2-3.5 2-3.5-2-3 2zM9 8h6M9 12h6']
+    };
+    const G = [
+      { t: 'Aujourd’hui', items: [
+        { k: 'pay', c: 'paiements', tt: 'Nouvelle déclaration', ds: 'Moussa Diarra a déclaré 75 000 F · Centre communautaire.', tm: '10:41', href: M('MgPaiement'), u: true },
+        { k: 'pay', c: 'paiements', tt: '6 paiements à valider', ds: 'Dont 4 sur Centre communautaire.', tm: '08:00', href: M('MgPaiements'), u: true },
+        { k: 'late', c: 'retards', tt: 'Relance automatique envoyée', ds: '14 souscripteurs relancés (15 jours de retard).', tm: '07:30', href: M('MgRelances'), u: true }] },
+      { t: 'Cette semaine', items: [
+        { k: 'sign', c: 'contrats', tt: 'Contrat signé', ds: '[Souscripteur] a signé Voyage solidaire.', tm: 'mar.', href: M('MgContrats') },
+        { k: 'late', c: 'retards', tt: 'Contrat non signé', ds: 'Fatou Traoré n’a pas signé Centre communautaire.', tm: 'lun.', href: M('MgSouscripteur') }] },
+      { t: 'Plus ancien', items: [
+        { k: 'info', c: 'abonnement', tt: 'Facture disponible', ds: 'Facture [N° FACTURE] · formule Essentiel.', tm: '[DATE]', href: M('MgAbonnement') }] }
+    ];
+    const f = S.f;
+    const v = {
+      empty, hasUnread: !read && !empty, markAll: () => this.setState({ read: true }),
+      sub: empty ? 'Rien de nouveau' : read ? 'Tout est lu' : '3 non lues',
+      filters: [['all', 'Toutes'], ['paiements', 'Paiements'], ['retards', 'Retards'], ['contrats', 'Contrats'], ['abonnement', 'Abonnement']].map(([k, l]) => ({ label: l, cls: 'cz-chip' + (f === k ? ' is-on' : ''), pick: () => this.setState({ f: k }) })),
+      groups: empty ? [] : G.map((g) => ({ t: g.t, items: g.items.filter((n) => f === 'all' || n.c === f).map((n) => { const u = !!n.u && !read; return { ...n, unread: u, cls: 'cz-notif' + (u ? ' is-unread' : ''), icStyle: T[n.k][0], icon: T[n.k][1] }; }) })).filter((g) => g.items.length)
+    };
+    return Object.assign({ stop, overlayStyle: 'position: absolute; inset: 0; z-index: 40; background: rgba(27,24,48,0.4); display: flex; align-items: flex-end;' }, v);
+  }
+}
+</script>
+</body>
+</html>

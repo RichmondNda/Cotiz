@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projet — Vue d’ensemble</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cotiz-tokens.css">
+<link rel="stylesheet" href="ds/cotiz/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F4F2ED;font-family:Inter,Arial,sans-serif;color:#2C2A38}
+a{color:#5B51C4;text-decoration:none}a:hover{color:#26215C}
+h2.t{margin:0;font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:#1B1830}
+</style>
+</helmet>
+<div data-theme="manager" style="width: 1440px; height: 1300px; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #F4F2ED; font-family: Inter, Arial, sans-serif; overflow: hidden;">
+<dc-import name="MgSidebar" active="projets" hint-size="240px,1300px" style="height: 100%;"></dc-import>
+<div style="display: flex; flex-direction: column; min-width: 0;">
+<dc-import name="MgTopbar" parent="Projets" parent-href="MgProjets.dc.html" current="Centre communautaire" hint-size="100%,64px"></dc-import>
+<main style="padding: 24px 32px; display: flex; flex-direction: column; gap: 20px;">
+<dc-import name="MgProjetHeader" tab="apercu" hint-size="100%,230px"></dc-import>
+
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--info"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.7v.2"/></svg><div><b>Projet terminé le 5 août 2027.</b> Voici le bilan final de la collecte.</div></div></sc-if>
+
+<div class="cz-grid4">
+<sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+<div class="cz-kpi"><div class="l">{{k.l}}</div><div class="v" style="{{k.vStyle}}">{{k.v}}</div><sc-if value="{{k.bar}}" hint-placeholder-val="{{ false }}"><div class="cz-bar" style="margin-top: 8px;"><i style="{{k.barW}}"></i></div></sc-if><div class="{{k.dCls}}">{{k.d}}</div></div>
+</sc-for>
+</div>
+
+<sc-if value="{{hasAlerts}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 10px;">
+<div class="cz-alert cz-alert--danger" style="align-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.3v.2"/></svg><div><b>Moussa Diarra</b> a 2 échéances en retard (août et septembre).</div><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgSouscripteur.dc.html" style="margin-left: auto;">Voir la fiche</a></div>
+<div class="cz-alert cz-alert--warning" style="align-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><div><b>4 paiements à valider</b> sur ce projet, le plus ancien depuis 3 jours.</div><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgProjetPaiements.dc.html" style="margin-left: auto;">Traiter</a></div>
+<div class="cz-alert cz-alert--warning" style="align-items: center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v5h5M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8z"/></svg><div><b>1 contrat non signé</b> — Fatou Traoré, inscrite le 02/09/2026.</div><a class="cz-btn cz-btn--secondary cz-btn--sm" href="MgProjetContrat.dc.html" style="margin-left: auto;">Voir</a></div>
+</div>
+</sc-if>
+<sc-if value="{{noLate}}" hint-placeholder-val="{{ false }}"><div class="cz-alert cz-alert--success"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg><div><b>Tous vos souscripteurs sont à jour.</b> Aucun retard sur ce projet.</div></div></sc-if>
+
+<div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px;">
+<div class="cz-card" style="padding: 20px;"><div style="display: flex; justify-content: space-between; align-items: baseline;"><h2 class="t">Collecte par échéance</h2><span style="font-size: 12px; color: #6B6478;">attendu vs reçu · mars 2026 → août 2027</span></div>
+<svg viewBox="0 0 640 190" width="100%" role="img" aria-label="Collecte par échéance : 7 échéances échues, 11 à venir">
+<line x1="36" y1="160" x2="636" y2="160" stroke="#E4E0EA"/><line x1="36" y1="60" x2="636" y2="60" stroke="#F1EEF4"/>
+<g font-size="10" fill="#6B6478"><text x="4" y="163">0</text><text x="0" y="63">1,3M</text></g>
+<rect x="44" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="58" y="61" width="13" height="99" rx="3" fill="#7F77DD"/><rect x="77" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="91" y="63" width="13" height="97" rx="3" fill="#7F77DD"/><rect x="110" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="124" y="70" width="13" height="90" rx="3" fill="#7F77DD"/><rect x="143" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="157" y="74" width="13" height="86" rx="3" fill="#7F77DD"/><rect x="176" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="190" y="77" width="13" height="83" rx="3" fill="#7F77DD"/><rect x="209" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="223" y="80" width="13" height="80" rx="3" fill="#7F77DD"/><rect x="242" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="256" y="65" width="13" height="95" rx="3" fill="#7F77DD" opacity="0.55"/><rect x="275" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="308" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="341" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="374" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="407" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="440" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="473" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="506" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="539" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="572" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/><rect x="605" y="60" width="13" height="100" rx="3" fill="#E4E0EA"/>
+<g font-size="10" fill="#6B6478" text-anchor="middle"><text x="50" y="176">Mars 26</text><text x="215" y="176">Sept.</text><text x="380" y="176">Mars 27</text><text x="610" y="176">Août 27</text></g>
+</svg>
+<div style="font-size: 12px; color: #6B6478; display: flex; gap: 14px;"><span>■ Attendu</span><span style="color: #5B51C4;">■ Reçu</span><span>Septembre en cours en transparence</span></div></div>
+<div class="cz-card" style="padding: 20px;"><h2 class="t" style="margin-bottom: 6px;">Retardataires</h2>
+<sc-if value="{{hasLate}}" hint-placeholder-val="{{ true }}">
+<table class="cz-table"><tbody>
+<sc-for list="{{late}}" as="r" hint-placeholder-count="5"><tr><td style="height: 48px;"><div class="cz-person"><span class="cz-avatar cz-avatar--sm cz-avatar--danger">{{r.ini}}</span><div><a href="MgSouscripteur.dc.html" style="font-weight: 600; color: #1B1830;">{{r.name}}</a><div class="sub">{{r.n}} en retard</div></div></div></td><td class="num strong" style="height: 48px;">{{r.due}}</td><td class="num" style="height: 48px;"><button type="button" class="cz-btn cz-btn--secondary cz-btn--sm" onClick="{{r.remind}}">{{r.btn}}</button></td></tr></sc-for>
+</tbody></table>
+<a href="MgProjetSouscripteurs.dc.html" style="font-size: 13px; font-weight: 600; display: inline-block; margin-top: 8px;">Voir les 14 souscripteurs en retard →</a>
+</sc-if>
+<sc-if value="{{noLate}}" hint-placeholder-val="{{ false }}"><div class="cz-empty" style="box-shadow: none; padding: 20px;"><div class="i i--success"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg></div><div class="t">Aucun retard</div></div></sc-if>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"etat":{"editor":"enum","options":["en-cours","inscriptions-ouvertes","termine","aucun-retard"],"default":"en-cours"},"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { reminded: {} }; }
+  renderVals() {
+    const etat = this.props.etat || 'en-cours';
+    const noLate = etat === 'aucun-retard' || etat === 'termine' || etat === 'inscriptions-ouvertes';
+    const K = {
+      'en-cours': [
+        { l: 'Collecté / attendu à date', v: '9 594 000 F', d: 'sur 11 700 000 F attendus à date', bar: true, barW: 'width: 82%;' },
+        { l: 'Taux de recouvrement', v: '82 %', d: 'des échéances échues', dCls: 'd up' },
+        { l: 'En retard', v: '14', d: 'souscripteurs · [MONTANT] F dus', dCls: 'd bad', vStyle: 'color: #96201F;' },
+        { l: 'Prochaine échéance', v: '5 oct.', d: '1 300 000 F attendus' }],
+      'aucun-retard': [
+        { l: 'Collecté / attendu à date', v: '11 700 000 F', d: 'sur 11 700 000 F attendus à date', bar: true, barW: 'width: 100%;' },
+        { l: 'Taux de recouvrement', v: '100 %', d: 'des échéances échues', dCls: 'd up' },
+        { l: 'En retard', v: '0', d: 'aucun souscripteur' },
+        { l: 'Prochaine échéance', v: '5 oct.', d: '1 300 000 F attendus' }],
+      'inscriptions-ouvertes': [
+        { l: 'Remplissage', v: '12 / 30', d: 'souscripteurs inscrits', bar: true, barW: 'width: 40%; background: #3B82C4;' },
+        { l: 'Contrats signés', v: '12', d: 'sur 12 inscrits' },
+        { l: 'Places restantes', v: '18', d: 'avant démarrage' },
+        { l: 'Démarrage', v: 'Janv. 2027', d: 'première échéance le 5' }],
+      'termine': [
+        { l: 'Total collecté', v: '26 000 000 F', d: 'sur 26 000 000 F attendus', bar: true, barW: 'width: 100%;' },
+        { l: 'Taux de recouvrement final', v: '100 %', d: '18 échéances', dCls: 'd up' },
+        { l: 'Souscripteurs', v: '52', d: 'tous soldés' },
+        { l: 'Durée', v: '18 mois', d: 'mars 2026 → août 2027' }]
+    };
+    const late = [
+      { ini: 'MD', name: 'Moussa Diarra', n: '2 échéances', due: '50 000 F' },
+      { ini: 'KB', name: 'Koffi Brou', n: '2 échéances', due: '50 000 F' },
+      { ini: 'MA', name: 'Mariam Diallo', n: '1 échéance', due: '25 000 F' },
+      { ini: 'YA', name: 'Yves Ahoussou', n: '1 échéance', due: '25 000 F' },
+      { ini: 'CA', name: 'Clarisse Aka', n: '1 échéance', due: '25 000 F' }];
+    const bars = Array.from({ length: 18 }, (_, i) => {
+      const past = i < 7, cur = i === 6;
+      const ratio = etat === 'termine' || etat === 'aucun-retard' ? 1 : [0.99, 0.97, 0.9, 0.86, 0.83, 0.8, 0.95][i] || 0;
+      const h = etat === 'termine' ? 100 : past ? Math.round(100 * ratio) : 0;
+      return { x: 44 + i * 33, x2: 58 + i * 33, h, y: 160 - h, op: cur && etat === 'en-cours' ? 0.55 : 1 };
+    });
+    return {
+      done: etat === 'termine', noLate, hasLate: !noLate, hasAlerts: !noLate,
+      kpis: K[etat].map((k) => ({ vStyle: '', dCls: 'd', bar: false, barW: '', ...k })),
+      bars,
+      late: late.map((r, i) => ({ ...r, btn: this.state.reminded[i] ? 'Relancé ✓' : 'Relancer', remind: () => this.setState({ reminded: { ...this.state.reminded, [i]: true } }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>
