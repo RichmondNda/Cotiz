@@ -20,11 +20,13 @@ export interface ActionCarte {
 
 const props = withDefaults(defineProps<{
   vue?: 'gestionnaire' | 'souscripteur'
-  nom: string
+  /** Squelette de chargement à la forme de la carte. */
+  chargement?: boolean
+  nom?: string
   /** Gestionnaire : « Mensuel · 25 000 F · depuis mars 2026 ». Souscripteur : nom de l'association. */
   sousTitre?: string
   /** Statut du projet (gestionnaire) ou de la souscription (souscripteur) ; `termine` dans les deux vues. */
-  statut: StatutProjet | StatutSouscription | 'termine'
+  statut?: StatutProjet | StatutSouscription | 'termine'
   // Avancement
   progression?: number
   progressionGauche?: string
@@ -47,6 +49,9 @@ const props = withDefaults(defineProps<{
   to?: RouteLocationRaw
 }>(), {
   vue: 'gestionnaire',
+  chargement: false,
+  nom: '',
+  statut: 'en_cours',
   sousTitre: undefined,
   progression: undefined,
   progressionGauche: undefined,
@@ -90,10 +95,38 @@ function ouvrir(e: MouseEvent | KeyboardEvent) {
 </script>
 
 <template>
+  <div
+    v-if="chargement"
+    class="cz-pcard carte-projet__squelette"
+    :class="{ 'cz-pcard--member': estMembre }"
+    aria-busy="true"
+  >
+    <CzSkeleton
+      :hauteur="14"
+      largeur="70%"
+    />
+    <CzSkeleton
+      :hauteur="10"
+      largeur="45%"
+      class="carte-projet__skel"
+    />
+    <CzSkeleton
+      :hauteur="8"
+      forme="pilule"
+      class="carte-projet__skel carte-projet__skel--barre"
+    />
+    <CzSkeleton
+      :hauteur="10"
+      largeur="55%"
+      class="carte-projet__skel"
+    />
+  </div>
   <article
+    v-else
     class="cz-pcard"
     :class="[estMembre && 'cz-pcard--member', variante && `cz-pcard--${variante}`]"
     :tabindex="to ? 0 : undefined"
+    :role="to ? 'link' : undefined"
     :aria-label="nom"
     @click="ouvrir"
     @keydown.enter.self="ouvrir"
@@ -183,6 +216,18 @@ function ouvrir(e: MouseEvent | KeyboardEvent) {
 <style scoped>
 .cz-pcard {
   width: auto;
+}
+
+.carte-projet__squelette {
+  cursor: default;
+}
+
+.carte-projet__skel {
+  margin-top: var(--space-2);
+}
+
+.carte-projet__skel--barre {
+  margin-top: var(--space-4);
 }
 
 .cz-pcard:not([tabindex]) {

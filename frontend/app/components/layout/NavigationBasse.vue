@@ -58,7 +58,7 @@ function compteur(e: EntreeNavigation) {
 .nav-basse {
   display: flex;
   justify-content: space-around;
-  padding: 6px 0 calc(var(--space-3) + env(safe-area-inset-bottom));
+  padding: var(--space-2) 0 calc(var(--space-3) + env(safe-area-inset-bottom));
   background: var(--surface);
   border-top: 1px solid var(--border);
   font-family: var(--font-text);
@@ -69,7 +69,7 @@ function compteur(e: EntreeNavigation) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 64px;
   min-height: 48px;
   font-size: 10.5px;
@@ -85,7 +85,7 @@ function compteur(e: EntreeNavigation) {
 .nav-basse__pastille {
   position: relative;
   display: inline-flex;
-  padding: 3px 14px;
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--r-pill);
 }
 

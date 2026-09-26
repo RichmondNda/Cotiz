@@ -4,6 +4,7 @@
   Clic : événement `ouvrir` (la page marque comme lue) puis navigation vers l'écran d'action (`to`).
 -->
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 import type { RouteLocationRaw } from 'vue-router'
 import type { TypeNotification } from '~~/types'
 import type { NomIcone } from '~/utils/icons'
@@ -38,7 +39,7 @@ const apparence = computed(() => APPARENCE[props.type])
 
 <template>
   <component
-    :is="to ? resolveComponent('NuxtLink') : 'button'"
+    :is="to ? NuxtLink : 'button'"
     :to="to"
     :type="to ? undefined : 'button'"
     class="cz-notif"

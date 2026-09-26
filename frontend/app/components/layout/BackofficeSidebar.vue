@@ -181,7 +181,7 @@ function compteur(e: EntreeNavigation) {
 .sidebar.is-replie .sidebar__it {
   position: relative;
   justify-content: center;
-  padding: 10px 0;
+  padding: var(--space-3) 0;
 }
 
 .sidebar.is-replie .sidebar__it .cz-count {

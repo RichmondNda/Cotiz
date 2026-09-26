@@ -171,7 +171,7 @@ const attributsCommuns = computed(() => ({
     <button
       v-if="type === 'password'"
       type="button"
-      class="trail cz-input__action"
+      class="trail cz-input__action cz-tap"
       :aria-label="visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
       :aria-pressed="visible"
       @click="visible = !visible"
@@ -181,7 +181,7 @@ const attributsCommuns = computed(() => ({
     <button
       v-if="copiable"
       type="button"
-      class="trail cz-input__action"
+      class="trail cz-input__action cz-tap"
       :aria-label="copie ? 'Copié' : 'Copier'"
       :title="copie ? 'Copié' : 'Copier'"
       @click="copier"

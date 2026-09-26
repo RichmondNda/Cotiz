@@ -22,10 +22,7 @@ watch(() => route.fullPath, () => (tiroir.value = false))
     :class="`gabarit-bo--${espace}`"
     :data-theme="theme"
   >
-    <a
-      href="#contenu"
-      class="gabarit-bo__evitement"
-    >Aller au contenu</a>
+    <LienEvitement />
     <BackofficeSidebar
       :espace="espace"
       class="gabarit-bo__side gabarit-bo__side--large"
@@ -109,21 +106,6 @@ watch(() => route.fullPath, () => (tiroir.value = false))
   width: var(--sidebar);
   max-width: 85vw;
   height: 100%;
-}
-
-.gabarit-bo__evitement {
-  position: absolute;
-  left: var(--space-2);
-  top: -100px;
-  z-index: 300;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--r-field);
-  background: var(--surface);
-  color: var(--brand-dark);
-}
-
-.gabarit-bo__evitement:focus {
-  top: var(--space-2);
 }
 
 @media (max-width: 1023px) {

@@ -16,6 +16,8 @@ export interface ElementMenu {
   disabled?: boolean
   /** Trait de séparation avant l'élément. */
   separe?: boolean
+  /** Classe de l'icône (couleur propre, ex. menu de connexion du site public). */
+  classeIcone?: string
 }
 
 const props = withDefaults(defineProps<{
@@ -131,6 +133,7 @@ defineExpose({ ouvrir, fermer })
           <CzIcon
             v-if="el.icone"
             :nom="el.icone"
+            :class="el.classeIcone"
           />{{ el.label }}
         </NuxtLink>
         <div
@@ -146,6 +149,7 @@ defineExpose({ ouvrir, fermer })
           <CzIcon
             v-if="el.icone"
             :nom="el.icone"
+            :class="el.classeIcone"
           />{{ el.label }}
         </div>
       </template>

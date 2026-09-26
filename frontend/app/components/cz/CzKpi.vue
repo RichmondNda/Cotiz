@@ -4,6 +4,7 @@
   Cliquable (`to`) : mène vers la liste filtrée correspondante. `chargement` : squelette de même forme.
 -->
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 import type { RouteLocationRaw } from 'vue-router'
 import type { NomIcone } from '~/utils/icons'
 
@@ -30,7 +31,7 @@ const props = withDefaults(defineProps<{
   chargement: false,
 })
 
-const racine = computed(() => (props.to && !props.chargement ? resolveComponent('NuxtLink') : 'div'))
+const racine = computed(() => (props.to && !props.chargement ? NuxtLink : 'div'))
 </script>
 
 <template>

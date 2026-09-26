@@ -1,5 +1,7 @@
 <!-- Anneau de taux (recouvrement) : couleur de statut selon seuil — ≥ 80 % success, 50–80 % warning, < 50 % danger. -->
 <script setup lang="ts">
+import { formatPourcent } from '~/utils/format'
+
 const props = withDefaults(defineProps<{
   taux: number
   taille?: number
@@ -17,7 +19,7 @@ const arc = computed(() => (Math.max(0, Math.min(100, props.taux)) / 100) * CIRC
     viewBox="0 0 120 120"
     :width="taille"
     role="img"
-    :aria-label="`${label} : ${taux} %`"
+    :aria-label="`${label} : ${formatPourcent(taux)}`"
   >
     <circle
       class="trk"
@@ -43,7 +45,7 @@ const arc = computed(() => (Math.max(0, Math.min(100, props.taux)) / 100) * CIRC
       x="60"
       y="66"
       text-anchor="middle"
-    >{{ taux }}&#8239;%</text>
+    >{{ formatPourcent(taux) }}</text>
   </svg>
 </template>
 

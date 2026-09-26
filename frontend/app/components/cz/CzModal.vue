@@ -57,7 +57,7 @@ const enFeuille = computed(() => estMobile.value && !props.sansFeuille)
         <button
           v-if="fermable"
           type="button"
-          class="cz-modal__fermer"
+          class="cz-modal__fermer cz-tap"
           aria-label="Fermer"
           @click="ouvert = false"
         >

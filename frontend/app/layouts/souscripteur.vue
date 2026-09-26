@@ -18,10 +18,7 @@ const ALIAS = { projets: ['/projets', '/contrats'] }
     class="gabarit-mb"
     data-theme="member"
   >
-    <a
-      href="#contenu"
-      class="gabarit-mb__evitement"
-    >Aller au contenu</a>
+    <LienEvitement />
     <MemberSidebar
       :alias="ALIAS"
       class="gabarit-mb__side"
@@ -95,21 +92,6 @@ const ALIAS = { projets: ['/projets', '/contrats'] }
 
 .gabarit-mb__nav :deep(.nav-basse__pastille) {
   padding-inline: var(--space-4);
-}
-
-.gabarit-mb__evitement {
-  position: absolute;
-  left: var(--space-2);
-  top: -100px;
-  z-index: 300;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--r-field);
-  background: var(--surface);
-  color: var(--brand-dark);
-}
-
-.gabarit-mb__evitement:focus {
-  top: var(--space-2);
 }
 
 @media (max-width: 767px) {

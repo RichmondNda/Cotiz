@@ -51,7 +51,10 @@ const props = withDefaults(defineProps<{
   trierParRetards?: boolean
   legende?: boolean
   label?: string
-}>(), { selection: null, trierParRetards: true, legende: true, label: 'Grille des échéances' })
+  /** Squelettes de chargement (lignes et cases). */
+  chargement?: boolean
+  lignesSquelette?: number
+}>(), { chargement: false, lignesSquelette: 4, selection: null, trierParRetards: true, legende: true, label: 'Grille des échéances' })
 
 const emit = defineEmits<{ cellule: [ligne: LigneGrille, cellule: CelluleGrille] }>()
 const motifs = defineModel<boolean>('motifs', { default: false })
@@ -133,7 +136,48 @@ const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody
+          v-if="chargement"
+          aria-busy="true"
+        >
+          <tr
+            v-for="n in lignesSquelette"
+            :key="n"
+          >
+            <td>
+              <div class="cz-person">
+                <CzSkeleton
+                  :largeur="30"
+                  :hauteur="30"
+                  forme="rond"
+                />
+                <CzSkeleton
+                  :largeur="90 + (n % 3) * 15"
+                  :hauteur="12"
+                />
+              </div>
+            </td>
+            <td
+              v-for="col in colonnes"
+              :key="col.id"
+              :class="{ cur: col.courante }"
+            >
+              <CzSkeleton
+                :largeur="22"
+                :hauteur="22"
+                class="grille__skel-case"
+              />
+            </td>
+            <td class="rest">
+              <CzSkeleton
+                :largeur="70"
+                :hauteur="12"
+                droite
+              />
+            </td>
+          </tr>
+        </tbody>
+        <tbody v-else>
           <tr
             v-for="l in lignesTriees"
             :key="l.id"
@@ -196,8 +240,25 @@ const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
 
     <!-- Mobile : une carte par souscripteur -->
     <div class="grille__cartes">
+      <template v-if="chargement">
+        <div
+          v-for="n in lignesSquelette"
+          :key="n"
+          class="cz-gridcard"
+          aria-busy="true"
+        >
+          <CzSkeleton
+            :hauteur="14"
+            largeur="60%"
+          />
+          <CzSkeleton
+            :hauteur="22"
+            class="grille__skel-ligne"
+          />
+        </div>
+      </template>
       <div
-        v-for="l in lignesTriees"
+        v-for="l in chargement ? [] : lignesTriees"
         :key="l.id"
         class="cz-gridcard"
       >
@@ -291,6 +352,15 @@ const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
   box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text-strong);
 }
 
+.grille__skel-case {
+  display: inline-block;
+  border-radius: var(--r-xs);
+}
+
+.grille__skel-ligne {
+  margin-top: var(--space-3);
+}
+
 .grille__cartes {
   display: none;
   flex-direction: column;
@@ -326,7 +396,16 @@ const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
     display: none;
   }
 
-  .grille__cartes {
+  .grille__skel-case {
+  display: inline-block;
+  border-radius: var(--r-xs);
+}
+
+.grille__skel-ligne {
+  margin-top: var(--space-3);
+}
+
+.grille__cartes {
     display: flex;
   }
 }

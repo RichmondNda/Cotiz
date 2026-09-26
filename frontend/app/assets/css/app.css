@@ -52,3 +52,33 @@ a {
   white-space: nowrap;
   border: 0;
 }
+
+/* Mobile : cibles tactiles ≥ 44 px sans changer l'apparence des petites commandes du design system.
+   Un pseudo-élément invisible, centré, agrandit la zone cliquable (::before : .cz-toggle utilise déjà ::after). */
+@media (max-width: 767px) {
+  .cz-btn--sm,
+  .cz-btn--icon,
+  .cz-chip,
+  .cz-pagin [role="button"],
+  .cz-check,
+  .cz-cell,
+  .cz-tap {
+    position: relative;
+  }
+
+  .cz-btn--sm::before,
+  .cz-btn--icon::before,
+  .cz-chip::before,
+  .cz-pagin [role="button"]::before,
+  .cz-check::before,
+  .cz-cell::before,
+  .cz-tap::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}

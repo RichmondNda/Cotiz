@@ -11,15 +11,15 @@ const props = withDefaults(defineProps<{
   variante?: 'complet' | 'symbole' | 'marque'
   taille?: number
   inverse?: boolean
-  /** Taille du mot « Cotiz » (variante `marque`). */
+  /** Taille du mot « Cotiz » (variante `marque`) ; surchargeable en CSS par `--cz-logo-texte`. */
   tailleTexte?: number
 }>(), { variante: 'marque', taille: 28, inverse: false, tailleTexte: 18 })
 
 const idMasque = `cz-mark-${useId()}`
-// Couleurs du logo (charte) : violet et corail pour le symbole, blanc en version inverse.
+// Couleurs du logo (charte) : violet et corail, fixes quel que soit l'espace ; blanc en version inverse.
 const couleurs = computed(() => props.inverse
-  ? { anneau: '#FFFFFF', point: '#FFFFFF' }
-  : { anneau: '#7F77DD', point: '#D85A30' })
+  ? { anneau: 'var(--on-brand)', point: 'var(--on-brand)' }
+  : { anneau: 'var(--violet)', point: 'var(--corail)' })
 </script>
 
 <template>
@@ -34,7 +34,7 @@ const couleurs = computed(() => props.inverse
     v-else
     class="cz-logo"
     :class="{ 'is-inverse': inverse }"
-    :style="{ fontSize: `${tailleTexte}px` }"
+    :style="{ fontSize: `var(--cz-logo-texte, ${tailleTexte}px)` }"
   >
     <svg
       :width="taille"
@@ -64,14 +64,14 @@ const couleurs = computed(() => props.inverse
         cx="50"
         cy="50"
         r="40"
-        :fill="couleurs.anneau"
+        :style="{ fill: couleurs.anneau }"
         :mask="`url(#${idMasque})`"
       />
       <circle
         cx="75.5"
         cy="50"
         r="5"
-        :fill="couleurs.point"
+        :style="{ fill: couleurs.point }"
       />
     </svg>
     <span v-if="variante === 'marque'">Cotiz</span>

@@ -73,7 +73,6 @@ const inactif = computed(() => props.disabled || props.chargement)
     :to="to"
     :class="classes"
     :aria-label="label"
-    :title="estIcone ? label : undefined"
   >
     <CzIcon
       v-if="icone"
@@ -84,13 +83,17 @@ const inactif = computed(() => props.disabled || props.chargement)
       v-if="iconeDroite"
       :nom="iconeDroite"
     />
+    <span
+      v-if="estIcone && label"
+      class="cz-tip cz-btn__tip"
+      aria-hidden="true"
+    >{{ label }}</span>
   </NuxtLink>
   <a
     v-else-if="href && !inactif"
     :href="href"
     :class="classes"
     :aria-label="label"
-    :title="estIcone ? label : undefined"
   >
     <CzIcon
       v-if="icone"
@@ -101,6 +104,11 @@ const inactif = computed(() => props.disabled || props.chargement)
       v-if="iconeDroite"
       :nom="iconeDroite"
     />
+    <span
+      v-if="estIcone && label"
+      class="cz-tip cz-btn__tip"
+      aria-hidden="true"
+    >{{ label }}</span>
   </a>
   <button
     v-else
@@ -110,8 +118,12 @@ const inactif = computed(() => props.disabled || props.chargement)
     :aria-disabled="chargement || undefined"
     :aria-busy="chargement || undefined"
     :aria-label="label"
-    :title="estIcone ? label : undefined"
   >
+    <span
+      v-if="estIcone && label && !disabled"
+      class="cz-tip cz-btn__tip"
+      aria-hidden="true"
+    >{{ label }}</span>
     <template v-if="chargement">
       <CzSpinner />
       <template v-if="!estIcone">
@@ -133,6 +145,33 @@ const inactif = computed(() => props.disabled || props.chargement)
 </template>
 
 <style scoped>
+/* Infobulle obligatoire des boutons icône (cz-tip), délai 300 ms au survol et au focus. */
+.cz-btn--icon {
+  position: relative;
+}
+
+.cz-btn__tip {
+  position: absolute;
+  bottom: calc(100% + var(--space-2));
+  left: 50%;
+  z-index: 50;
+  width: max-content;
+  font-family: var(--font-text);
+  font-weight: 400;
+  transform: translateX(-50%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .1s, visibility .1s;
+}
+
+.cz-btn--icon:hover .cz-btn__tip,
+.cz-btn--icon:focus-visible .cz-btn__tip {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: .3s;
+}
+
 .cz-btn--icon.is-nu {
   --_bg: transparent;
   --_bd: transparent;

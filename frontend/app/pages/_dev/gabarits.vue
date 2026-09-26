@@ -9,6 +9,7 @@ const GABARITS = [
   { to: '/_dev/gabarit-gestionnaire', label: 'Back-office gestionnaire (MgSidebar, MgTopbar, MgMobNav)', role: 'gestionnaire' },
   { to: '/_dev/gabarit-plateforme', label: 'Back-office super-admin (SaSidebar, SaTopbar, tiroir mobile)', role: 'superadmin' },
   { to: '/_dev/gabarit-souscripteur', label: 'Souscripteur (MbNav, bouton flottant, barre latérale desktop)', role: 'souscripteur' },
+  { to: '/_dev/donnees', label: 'Données mockées (composables/api, ?scenario=)', role: 'gestionnaire' },
 ] as const
 
 const { connecter } = useSession()

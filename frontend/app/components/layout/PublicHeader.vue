@@ -3,12 +3,15 @@
   et « Créer mon association ». Ombre douce. Mobile (< 768 px) : menu hamburger qui déplie les liens et les accès.
 -->
 <script setup lang="ts">
-import { useClicExterieur } from '~/composables/useClicExterieur'
+import type { ElementMenu } from '~/components/cz/CzMenu.vue'
 
 const menuOuvert = ref(false)
-const connexionOuverte = ref(false)
-const zoneConnexion = ref<HTMLElement | null>(null)
 const route = useRoute()
+
+const CONNEXION: ElementMenu[] = [
+  { label: 'Je suis gestionnaire', to: '/connexion/association', icone: 'souscripteurs', classeIcone: 'pub-entete__ic-gestionnaire' },
+  { label: 'Je suis souscripteur', to: '/connexion', icone: 'mon-espace', classeIcone: 'pub-entete__ic-souscripteur' },
+]
 
 const LIENS = [
   { label: 'Fonctionnement', to: '/#fonctionnement' },
@@ -16,11 +19,7 @@ const LIENS = [
   { label: 'FAQ', to: '/#faq' },
 ]
 
-watch(() => route.fullPath, () => {
-  menuOuvert.value = false
-  connexionOuverte.value = false
-})
-useClicExterieur([zoneConnexion], connexionOuverte, () => (connexionOuverte.value = false))
+watch(() => route.fullPath, () => (menuOuvert.value = false))
 </script>
 
 <template>
@@ -48,48 +47,28 @@ useClicExterieur([zoneConnexion], connexionOuverte, () => (connexionOuverte.valu
           {{ l.label }}
         </NuxtLink>
       </nav>
-      <div
-        ref="zoneConnexion"
-        class="pub-entete__actions"
-      >
-        <CzButton
-          variante="secondaire"
-          icone-droite="chevron-bas"
-          :aria-expanded="connexionOuverte"
-          aria-haspopup="menu"
-          @click="connexionOuverte = !connexionOuverte"
+      <div class="pub-entete__actions">
+        <CzMenu
+          :elements="CONNEXION"
+          alignement="gauche"
+          largeur="250px"
+          label="Se connecter"
+          class="pub-entete__connexion"
         >
-          Se connecter
-        </CzButton>
+          <template #declencheur="{ basculer, attrs }">
+            <CzButton
+              variante="secondaire"
+              icone-droite="chevron-bas"
+              v-bind="attrs"
+              @click="basculer"
+            >
+              Se connecter
+            </CzButton>
+          </template>
+        </CzMenu>
         <CzButton to="/demande">
           Créer mon association
         </CzButton>
-        <div
-          v-if="connexionOuverte"
-          class="cz-menu pub-entete__menu"
-          role="menu"
-        >
-          <NuxtLink
-            to="/connexion/association"
-            class="it"
-            role="menuitem"
-          >
-            <CzIcon
-              nom="souscripteurs"
-              class="pub-entete__ic-gestionnaire"
-            />Je suis gestionnaire
-          </NuxtLink>
-          <NuxtLink
-            to="/connexion"
-            class="it"
-            role="menuitem"
-          >
-            <CzIcon
-              nom="mon-espace"
-              class="pub-entete__ic-souscripteur"
-            />Je suis souscripteur
-          </NuxtLink>
-        </div>
       </div>
       <CzButton
         variante="icone"
@@ -187,24 +166,12 @@ useClicExterieur([zoneConnexion], connexionOuverte, () => (connexionOuverte.valu
   align-items: center;
 }
 
-.pub-entete__menu {
-  position: absolute;
-  top: 52px;
-  left: 0;
-  width: 250px;
-}
-
-.pub-entete__menu .it {
-  color: var(--text);
-  text-decoration: none;
-}
-
 /* Site public : violet et corail se mêlent (identités gestionnaire et souscripteur). */
-.pub-entete__menu .it .pub-entete__ic-gestionnaire {
+.pub-entete__connexion :deep(.it .pub-entete__ic-gestionnaire) {
   color: var(--violet-dark);
 }
 
-.pub-entete__menu .it .pub-entete__ic-souscripteur {
+.pub-entete__connexion :deep(.it .pub-entete__ic-souscripteur) {
   color: var(--corail);
 }
 
@@ -268,8 +235,8 @@ useClicExterieur([zoneConnexion], connexionOuverte, () => (connexionOuverte.valu
     height: 44px;
   }
 
-  .pub-entete__logo :deep(.cz-logo) {
-    font-size: 19px !important;
+  .pub-entete__logo {
+    --cz-logo-texte: 19px;
   }
 }
 </style>

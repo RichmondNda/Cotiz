@@ -158,7 +158,7 @@ const infobulle = ref<{ x: number, y: number, texte: string } | null>(null)
   display: inline-block;
   width: 10px;
   height: 10px;
-  margin-right: 5px;
+  margin-right: var(--space-1);
   border-radius: 3px;
   vertical-align: -1px;
 }
