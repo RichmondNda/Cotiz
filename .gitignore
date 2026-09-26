@@ -1,0 +1,21 @@
+# Graphe de connaissances généré (graphify update .)
+graphify-out/
+
+# Réglages locaux de Claude Code (les commandes partagées de .claude/commands restent suivies)
+.claude/settings.local.json
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.fleet/
+*.swp
+
+# Environnement local
+.env
+.env.*
+!.env.example
+
+# Journaux
+*.log

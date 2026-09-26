@@ -11,7 +11,8 @@
     "typecheck": "nuxt typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "capture": "node scripts/capture-ecran.mjs"
+    "capture": "node scripts/capture-ecran.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "nuxt": "^4.5.2",
@@ -23,6 +24,7 @@
     "eslint": "^10.11.0",
     "playwright": "^1.63.0",
     "typescript": "^6.0.3",
+    "vitest": "^5.0.2",
     "vue-tsc": "^3.3.11"
   }
 }
