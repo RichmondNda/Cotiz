@@ -8,7 +8,7 @@ const MOIS = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', '
 
 export function nomGestionnaire(id?: string): string | undefined {
   const g = id ? store.gestionnaires.find(x => x.id === id) : undefined
-  return g ? `${g.prenom} ${g.nom}` : undefined
+  return g ? `${g.prenom} ${g.nom}`.trim() : undefined
 }
 
 /**

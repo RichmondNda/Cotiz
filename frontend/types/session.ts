@@ -17,6 +17,8 @@ export interface UtilisateurSession {
 export interface CompteursNavigation {
   paiementsAValider: number
   notificationsNonLues: number
+  /** Gestionnaire : souscripteurs en retard, tous projets (entrée « Relances » du menu Plus). */
+  souscripteursEnRetard: number
   demandesATraiter: number
 }
 

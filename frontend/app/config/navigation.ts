@@ -2,7 +2,7 @@
 // `compteur` : clé des compteurs de navigation servis par l'API (`/api/navigation/compteurs`).
 import type { NomIcone } from '~/utils/icons'
 
-export type CleCompteur = 'paiementsAValider' | 'notificationsNonLues' | 'demandesATraiter'
+export type CleCompteur = 'paiementsAValider' | 'notificationsNonLues' | 'demandesATraiter' | 'souscripteursEnRetard'
 
 export interface EntreeNavigation {
   cle: string
@@ -45,6 +45,27 @@ export const NAV_GESTIONNAIRE_MOBILE: EntreeNavigation[] = [
   {
     cle: 'plus', label: 'Plus', to: '/asso/plus', icone: 'menu',
     aussi: ['/asso/relances', '/asso/contrats', '/asso/equipe', '/asso/abonnement', '/asso/parametres', '/asso/notifications', '/asso/profil'],
+  },
+]
+
+/** Menu « Plus » du gestionnaire (mobile) : ce que la navigation basse ne porte pas. */
+export const NAV_GESTIONNAIRE_PLUS: { titre: string, entrees: EntreeNavigation[] }[] = [
+  {
+    titre: 'Suivi',
+    entrees: [
+      { cle: 'relances', label: 'Relances', to: '/asso/relances', icone: 'relance', compteur: 'souscripteursEnRetard', tonCompteur: 'danger' },
+      { cle: 'contrats', label: 'Contrats', to: '/asso/contrats', icone: 'contrat' },
+      { cle: 'notifications', label: 'Notifications', to: '/asso/notifications', icone: 'notification', compteur: 'notificationsNonLues', tonCompteur: 'danger' },
+    ],
+  },
+  {
+    titre: 'Association',
+    entrees: [
+      { cle: 'equipe', label: 'Équipe', to: '/asso/equipe', icone: 'profil' },
+      { cle: 'abonnement', label: 'Abonnement', to: '/asso/abonnement', icone: 'facturation' },
+      { cle: 'parametres', label: 'Paramètres de l’association', to: '/asso/parametres', icone: 'parametres' },
+      { cle: 'onboarding', label: 'Revoir l’accueil (onboarding)', to: '/asso/bienvenue', icone: 'information' },
+    ],
   },
 ]
 

@@ -32,10 +32,14 @@ export interface Association {
   /** Prochaine échéance d'abonnement (carte « Abonnement »). */
   abonnementProchaineEcheance?: DateISO
   modalitesPaiement: ModalitePaiement[]
+  /** Consignes libres montrées aux souscripteurs (MgParametres, « Instructions complémentaires »). */
+  instructionsPaiement?: string
   // Compteurs dénormalisés, affichés dans les listes (super-admin, souscripteur).
   nbProjets: number
   nbSouscripteurs: number
   nbGestionnaires: number
+  /** Comptes gestionnaires secondaires autorisés, fixés par la plateforme (MgEquipe : « 2 sur 3 »). */
+  limiteComptesSecondaires?: number
   creeeLe: DateISO
 }
 
@@ -51,5 +55,8 @@ export interface Gestionnaire {
   email: string
   telephone?: string
   role: RoleGestionnaire
-  statut: 'actif' | 'invite' | 'suspendu' // incertain : états exacts à confirmer sur MgEquipe
+  /** MgEquipe : « Actif » ou « Invitation envoyée » (jamais connecté). */
+  statut: 'actif' | 'invite'
+  /** `null` : jamais connecté. */
+  derniereConnexion?: DateISO | null
 }

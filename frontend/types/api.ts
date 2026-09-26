@@ -1,6 +1,6 @@
 // Formes des réponses de l'API (mocks Nitro en V0, NestJS ensuite) quand elles joignent plusieurs ressources.
-import type { DateISO, Identifiant, MontantFCFA, MoyenPaiement } from './commun'
-import type { Association } from './association'
+import type { DateISO, Identifiant, MontantFCFA, MoyenPaiement, Quota } from './commun'
+import type { Association, Gestionnaire, RoleGestionnaire } from './association'
 import type { Contrat } from './contrat'
 import type { Echeance, RepartitionEcheance } from './echeance'
 import type { MotifRejet, Paiement, Preuve } from './paiement'
@@ -179,7 +179,7 @@ export type NouveauProjet = Pick<Projet,
 
 /** Corps de `PATCH /api/associations/:id` (onboarding étapes 2 et 3, paramètres). */
 export type ModificationAssociation = Partial<Pick<Association,
-  'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement'
+  'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement' | 'instructionsPaiement'
 >>
 
 // ---------------------------------------------------------------- Détail d'un projet (gestionnaire)
@@ -355,3 +355,82 @@ export interface SyntheseContratProjet {
   statut: 'actif' | 'signatures_en_cours' | 'inscriptions_ouvertes'
   nonSignataires: { souscripteurId: Identifiant, nom: string, inviteLe: DateISO }[]
 }
+
+// ---------------------------------------------------------------- Équipe, abonnement, profil (gestionnaire)
+
+/** Équipe de l'association (`GET /api/gestionnaire/equipe`). */
+export interface EquipeAssociation {
+  membres: Gestionnaire[]
+  /** Comptes secondaires (hors gestionnaire principal) : utilisés / limite fixée par la plateforme. */
+  comptesSecondaires: { utilises: number, limite: number }
+}
+
+/** Corps de `POST /api/gestionnaire/equipe` : le rôle est toujours « secondaire » (MgEquipe). */
+export interface InvitationGestionnaire {
+  prenom: string
+  nom: string
+  email: string
+  telephone?: string
+}
+
+export type StatutAbonnement = 'actif' | 'echeance_proche' | 'suspendu'
+export type StatutFactureAbonnement = 'payee' | 'a_payer' | 'impayee'
+
+/** Facture de l'abonnement Cotiz (réglée par l'association à la plateforme). */
+export interface FactureAbonnement {
+  id: Identifiant
+  numero: string // `[N° FACTURE]`
+  periode: string // `[PÉRIODE EN COURS]`
+  emiseLe: DateISO
+  montant: MontantFCFA | '[MONTANT]'
+  statut: StatutFactureAbonnement
+}
+
+/** Jauge d'utilisation d'un quota. `pourcentage` : remplissage de la barre (la limite peut être un placeholder). */
+export interface UtilisationQuota {
+  utilise: number
+  /** `null` : illimité. */
+  limite: Quota
+  pourcentage: number
+}
+
+/** Abonnement de l'association (`GET /api/gestionnaire/abonnement`). */
+export interface AbonnementAssociation {
+  planId: Identifiant
+  nomPlan: string
+  prixAnnuel: MontantFCFA | '[PRIX]'
+  statut: StatutAbonnement
+  clientDepuis: DateISO
+  prochaineFacture: DateISO
+  /** « Virement ou mobile money à Cotiz ». */
+  moyenPaiement: string
+  utilisation: { projets: UtilisationQuota, souscripteurs: UtilisationQuota, gestionnaires: UtilisationQuota }
+  factures: FactureAbonnement[]
+  /** Échéance proche / suspendu : facture à régler et date limite. */
+  factureDue?: { numero: string, echeance: DateISO }
+  emailContactCotiz: string
+  /** « Demander un changement » déjà envoyé. */
+  changementDemande: boolean
+}
+
+/** Préférences de notification du gestionnaire (MgProfil). Le résumé quotidien par email arrive en V2. */
+export interface PreferencesGestionnaire {
+  paiementDeclare: boolean
+  contratSigne: boolean
+  resumeQuotidien: boolean
+}
+
+/** Profil du gestionnaire connecté (`GET /api/gestionnaire/profil`). */
+export interface ProfilGestionnaire {
+  id: Identifiant
+  prenom: string
+  nom: string
+  email: string
+  telephone?: string
+  role: RoleGestionnaire
+  associationNom: string
+  motDePasseModifieLe: DateISO
+  preferences: PreferencesGestionnaire
+}
+
+export type ModificationProfilGestionnaire = Partial<Pick<ProfilGestionnaire, 'prenom' | 'nom' | 'email' | 'telephone' | 'preferences'>>

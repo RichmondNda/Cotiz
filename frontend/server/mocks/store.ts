@@ -23,6 +23,10 @@ export interface StoreMocks {
   dernieresRelances: typeof ref.DERNIERES_RELANCES
   reglesRelance: RegleRelance[]
   envoisRelance: EnvoiRelance[]
+  /** Demandes de changement de formule envoyées (par association). */
+  changementsFormuleDemandes: string[]
+  /** Profil des gestionnaires (dernier changement de mot de passe, préférences), par id. */
+  profilsGestionnaires: Record<string, typeof ref.PROFIL_GESTIONNAIRE>
 }
 
 function construire(): StoreMocks {
@@ -64,6 +68,8 @@ function construire(): StoreMocks {
     dernieresRelances: ref.DERNIERES_RELANCES,
     reglesRelance: ref.REGLES_RELANCE,
     envoisRelance: ref.ENVOIS_RELANCE,
+    changementsFormuleDemandes: [],
+    profilsGestionnaires: {},
   })
 }
 

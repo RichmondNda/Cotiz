@@ -31,15 +31,16 @@ provide(CLE_CHAMP, {
 <template>
   <div class="cz-field">
     <label
-      v-if="label"
+      v-if="label || $slots.label"
       class="cz-label"
       :class="{ 'sr-only': libelleMasque }"
       :for="id"
-    >{{ label }}{{ requis ? ' ' : '' }}<span
-      v-if="requis"
-      class="req"
-      aria-hidden="true"
-    >*</span></label>
+    >
+      <slot name="label">{{ label }}</slot>{{ requis ? ' ' : '' }}<span
+        v-if="requis"
+        class="req"
+        aria-hidden="true"
+      >*</span></label>
     <slot :id="id" />
     <span
       v-if="erreur"

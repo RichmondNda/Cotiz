@@ -5,67 +5,13 @@
   Scénarios : `tout-lu`, `vide`.
 -->
 <script setup lang="ts">
-import type { Notification } from '~~/types'
-import { formatDate, formatJourSemaine, joursDepuis, lireDate } from '~/utils/format'
-
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
 useHead({ title: 'Notifications · Cotiz' })
 
 const { data: notifications, pending, error, refresh } = useNotifications()
-const { refresh: rafraichirCompteurs } = useCompteursNavigation()
-const appeler = useAppelApi()
+const { ouvrir, toutLire, envoi } = useLectureNotifications(refresh)
 
 const nonLues = computed(() => (notifications.value ?? []).filter(n => !n.lue).length)
-
-const estDatee = (n: Notification) => /^\d{4}-/.test(n.creeeLe)
-const groupes = computed(() => {
-  const liste = [...(notifications.value ?? [])].sort((a, b) => b.creeeLe.localeCompare(a.creeeLe))
-  const g = [
-    { titre: 'Aujourd’hui', notifications: [] as Notification[] },
-    { titre: 'Cette semaine', notifications: [] as Notification[] },
-    { titre: 'Plus ancien', notifications: [] as Notification[] },
-  ]
-  for (const n of liste) {
-    const jours = estDatee(n) ? joursDepuis(n.creeeLe) : Number.POSITIVE_INFINITY
-    g[jours <= 0 ? 0 : jours <= 6 ? 1 : 2]!.notifications.push(n)
-  }
-  return g.filter(x => x.notifications.length)
-})
-
-/** Heure (aujourd'hui), jour de la semaine (cette semaine), sinon JJ/MM. */
-function moment(n: Notification): string {
-  if (!estDatee(n)) return n.creeeLe
-  const jours = joursDepuis(n.creeeLe)
-  if (jours <= 0) {
-    const d = lireDate(n.creeeLe)
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  }
-  if (jours <= 6) return formatJourSemaine(n.creeeLe)
-  return formatDate(n.creeeLe, 'numerique').slice(0, 5)
-}
-
-async function ouvrir(n: Notification) {
-  if (n.lue) return
-  n.lue = true
-  try {
-    await appeler(`/notifications/${n.id}`, { method: 'PATCH' })
-  }
-  finally {
-    rafraichirCompteurs()
-  }
-}
-
-const envoi = ref(false)
-async function toutLire() {
-  envoi.value = true
-  try {
-    await appeler('/notifications/tout-lu')
-    await Promise.all([refresh(), rafraichirCompteurs()])
-  }
-  finally {
-    envoi.value = false
-  }
-}
 </script>
 
 <template>
@@ -91,13 +37,10 @@ async function toutLire() {
         v-if="nonLues"
         #actions-mobile
       >
-        <button
-          type="button"
-          class="notifications__tout-lire"
+        <BoutonToutLire
+          :envoi="envoi"
           @click="toutLire"
-        >
-          Tout lire
-        </button>
+        />
       </template>
     </EnTeteSouscripteur>
 
@@ -138,33 +81,10 @@ async function toutLire() {
       />
 
       <template v-else>
-        <section
-          v-for="g in groupes"
-          :key="g.titre"
-          class="notifications__groupe"
-          :aria-label="g.titre"
-        >
-          <h2 class="cz-notif-group">
-            {{ g.titre }}
-          </h2>
-          <ul class="notifications__liste">
-            <li
-              v-for="n in g.notifications"
-              :key="n.id"
-            >
-              <NotificationItem
-                :type="n.type"
-                :titre="n.titre"
-                :message="n.message"
-                :moment="moment(n)"
-                :lue="n.lue"
-                :to="n.lien"
-                :action="n.libelleAction"
-                @ouvrir="ouvrir(n)"
-              />
-            </li>
-          </ul>
-        </section>
+        <ListeNotificationsGroupees
+          :notifications="notifications ?? []"
+          @ouvrir="ouvrir"
+        />
       </template>
     </div>
   </div>
@@ -198,48 +118,6 @@ async function toutLire() {
   padding: var(--space-12) var(--space-6);
   border-radius: var(--r-card-lg);
   box-shadow: var(--shadow);
-}
-
-.notifications__groupe {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.notifications__groupe .cz-notif-group {
-  margin: 0;
-}
-
-.notifications__liste {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.notifications__liste :deep(.cz-notif) {
-  padding: var(--space-4);
-  box-shadow: var(--shadow);
-}
-
-.notifications__tout-lire {
-  min-height: 44px;
-  padding: 0 var(--space-1);
-  border: 0;
-  background: transparent;
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--brand-dark);
-  cursor: pointer;
-}
-
-.notifications__tout-lire:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-radius: var(--r-sm);
 }
 
 @media (max-width: 767px) {

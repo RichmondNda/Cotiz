@@ -2,7 +2,7 @@
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
   valeur: number
-  ton?: 'brand' | 'info' | 'danger' | 'success' | 'muted'
+  ton?: 'brand' | 'info' | 'danger' | 'success' | 'warning' | 'muted'
   label?: string
 }>(), { ton: 'brand', label: undefined })
 
@@ -22,3 +22,10 @@ const borne = computed(() => Math.max(0, Math.min(100, props.valeur)))
     <i :style="{ width: `${borne}%` }" />
   </div>
 </template>
+
+<style scoped>
+/* Quota proche de la limite (abonnement : au-delà de 80 %). Pas de variante warning dans le DS. */
+.cz-bar--warning i {
+  background: var(--warning);
+}
+</style>

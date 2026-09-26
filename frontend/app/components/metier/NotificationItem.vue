@@ -19,7 +19,10 @@ const props = withDefaults(defineProps<{
   lue?: boolean
   to?: RouteLocationRaw
   action?: string
-}>(), { message: undefined, moment: undefined, lue: false, to: undefined, action: undefined })
+  /** Apparence imposée (l'espace gestionnaire classe « contrat non signé » et les relances en retards). */
+  icone?: NomIcone
+  ton?: 'warning' | 'success' | 'danger' | 'info' | 'brand'
+}>(), { message: undefined, moment: undefined, lue: false, to: undefined, action: undefined, icone: undefined, ton: undefined })
 
 const emit = defineEmits<{ ouvrir: [] }>()
 
@@ -36,7 +39,10 @@ const APPARENCE: Record<TypeNotification, { icone: NomIcone, ton: Ton }> = {
   abonnement: { icone: 'facturation', ton: 'info' },
   inscriptions: { icone: 'souscripteurs', ton: 'info' },
 }
-const apparence = computed(() => APPARENCE[props.type])
+const apparence = computed(() => ({
+  icone: props.icone ?? APPARENCE[props.type].icone,
+  ton: props.ton ?? APPARENCE[props.type].ton,
+}))
 </script>
 
 <template>

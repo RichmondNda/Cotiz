@@ -1,8 +1,8 @@
-// PATCH /api/associations/:id — profil et moyens de paiement de l'association (onboarding étapes 2 et 3).
+// PATCH /api/associations/:id — profil et moyens de paiement de l'association (onboarding étapes 2 et 3, paramètres).
 import type { ModificationAssociation } from '~~/types'
 import { store } from '../../mocks/store'
 
-const CHAMPS = ['nom', 'description', 'ville', 'telephoneContact', 'emailContact', 'logoUrl', 'modalitesPaiement'] as const
+const CHAMPS = ['nom', 'description', 'ville', 'telephoneContact', 'emailContact', 'logoUrl', 'modalitesPaiement', 'instructionsPaiement'] as const
 
 export default defineMockHandler(async (event) => {
   const association = store.associations.find(a => a.id === parametre(event, 'id')) ?? introuvable('Association')
