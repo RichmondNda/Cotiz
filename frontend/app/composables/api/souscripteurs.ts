@@ -2,6 +2,7 @@ import type {
   AssociationMembre,
   DetailSouscriptionMembre,
   FicheSouscripteur,
+  ModificationSouscripteur,
   Souscripteur,
   SouscripteurAnnuaire,
   SouscriptionMembre,
@@ -13,6 +14,17 @@ export const useSouscripteurs = (filtres: MaybeRefOrGetter<{ associationId?: str
 
 export const useSouscripteur = (id: MaybeRefOrGetter<string>) =>
   useApi<FicheSouscripteur>(() => `/souscripteurs/${toValue(id)}`)
+
+/** Actions du gestionnaire sur la fiche d'un souscripteur. */
+export function useActionsSouscripteur() {
+  const appel = useAppelApi()
+  return {
+    modifier: (id: string, modification: ModificationSouscripteur) =>
+      appel<FicheSouscripteur>(`/souscripteurs/${id}`, { method: 'PATCH', body: modification }),
+    renvoyerIdentifiants: (id: string) =>
+      appel<{ envoye: boolean, canal: 'sms', telephone: string }>(`/souscripteurs/${id}/identifiants`),
+  }
+}
 
 // ---------------------------------------------------------------- Espace souscripteur (utilisateur connecté)
 

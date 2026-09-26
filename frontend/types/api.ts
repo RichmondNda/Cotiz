@@ -1,11 +1,11 @@
 // Formes des réponses de l'API (mocks Nitro en V0, NestJS ensuite) quand elles joignent plusieurs ressources.
-import type { DateISO, Identifiant, MontantFCFA, MoyenPaiement } from './commun'
-import type { Association } from './association'
+import type { DateISO, Identifiant, MontantFCFA, MoyenPaiement, Quota } from './commun'
+import type { Association, Gestionnaire, RoleGestionnaire } from './association'
 import type { Contrat } from './contrat'
 import type { Echeance, RepartitionEcheance } from './echeance'
-import type { Paiement, Preuve } from './paiement'
+import type { MotifRejet, Paiement, Preuve } from './paiement'
 import type { Projet } from './projet'
-import type { Souscripteur, Souscription } from './souscripteur'
+import type { Souscripteur, Souscription, StatutSouscription } from './souscripteur'
 
 export type SouscriptionAvecSouscripteur = Souscription & { souscripteur: Souscripteur }
 export type SouscriptionAvecProjet = Souscription & { projet: Projet }
@@ -17,13 +17,74 @@ export interface LigneGrilleProjet {
   echeances: Echeance[]
 }
 
-export interface FicheSouscripteur {
-  souscripteur: Souscripteur
-  souscriptions: SouscriptionAvecProjet[]
+/** Événement de la frise d'historique d'un souscripteur (fiche gestionnaire). */
+export interface EvenementSouscripteur {
+  id: Identifiant
+  /** Date ISO, ou placeholder `[DATE]` de la maquette. */
+  date: DateISO
+  titre: string
+  detail?: string
+  ton: 'success' | 'warning' | 'danger' | 'info' | 'brand'
 }
 
-export type PaiementListe = Paiement & { souscripteur: Souscripteur, projet: Projet, /** « Validé par » : nom du gestionnaire. */ traiteParNom?: string }
-export type PaiementDetail = PaiementListe & { echeances: Echeance[], association: Association }
+/** Fiche d'un souscripteur vue par le gestionnaire (`GET /api/souscripteurs/:id`), limitée à son association. */
+export interface FicheSouscripteur {
+  /** Coordonnées vues par l'association (placeholders `[email]` de la maquette compris). */
+  souscripteur: Souscripteur
+  souscriptions: (SouscriptionAvecProjet & { echeances: Echeance[] })[]
+  /** Statut global : le pire de ses projets engagés. */
+  statutGlobal: StatutSouscription
+  /** Première inscription à un projet de l'association. */
+  membreDepuis: DateISO
+  /** Frise complète, plus récent d'abord : paiements, validations, retards et relances, contrats. */
+  historique: EvenementSouscripteur[]
+}
+
+/** Corps de `PATCH /api/souscripteurs/:id` (« Modifier » de la fiche). */
+export type ModificationSouscripteur = Partial<Pick<Souscripteur, 'email' | 'adresse'>>
+
+export type PaiementListe = Paiement & {
+  souscripteur: Souscripteur
+  projet: Projet
+  /** « Validé par » : nom du gestionnaire. */
+  traiteParNom?: string
+  /** Échéances de la répartition (libellés « Couvre : sept., oct., nov. 2026 »). */
+  echeancesCouvertes: Echeance[]
+}
+
+/** Versement validé affiché dans la frise du détail d'un paiement (« 25 000 F validé · 05/08/2026 · août »). */
+export interface VersementValide {
+  echeanceId: Identifiant
+  date: DateISO
+  montant: MontantFCFA
+  /** Gestionnaire qui a validé le paiement correspondant, s'il est connu. */
+  traiteParNom?: string
+}
+
+export type PaiementDetail = PaiementListe & {
+  /** Échéances couvertes (identique à `echeancesCouvertes`). */
+  echeances: Echeance[]
+  association: Association
+  souscription?: Souscription
+  /** Toutes les échéances du souscripteur sur le projet, dans l'ordre (situation, ajustement de la répartition). */
+  echeancier: Echeance[]
+  /** 3 derniers versements validés, hors ce paiement, du plus récent au plus ancien. */
+  derniersVersements: VersementValide[]
+}
+
+/** Corps de `POST /api/paiements/:id/validation`. */
+export interface ValidationPaiement {
+  /** Répartition ajustée par le gestionnaire (sinon celle du souscripteur). */
+  repartition?: RepartitionEcheance[]
+  /** « Le montant reçu est différent ». */
+  montantRecu?: MontantFCFA
+}
+
+/** Corps de `POST /api/paiements/:id/rejet`. */
+export interface RejetPaiement {
+  motif: MotifRejet
+  message?: string
+}
 
 export type ContratDetaille = Contrat & { projet: Projet, souscripteur: Souscripteur, association: Association }
 
@@ -118,7 +179,7 @@ export type NouveauProjet = Pick<Projet,
 
 /** Corps de `PATCH /api/associations/:id` (onboarding étapes 2 et 3, paramètres). */
 export type ModificationAssociation = Partial<Pick<Association,
-  'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement'
+  'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement' | 'instructionsPaiement'
 >>
 
 // ---------------------------------------------------------------- Détail d'un projet (gestionnaire)
@@ -225,3 +286,151 @@ export interface AnalyseImport {
 export type ModificationProjet = Partial<Pick<Projet,
   'nom' | 'description' | 'imageCouvertureNom' | 'souscripteursRequis' | 'modalitesPaiement' | 'instructionsPaiement' | 'delaiGraceJours'
 >>
+
+// ---------------------------------------------------------------- Relances (gestionnaire)
+
+/** Souscripteur en retard sur un projet (onglet Retardataires de MgRelances). */
+export interface LigneRetard {
+  souscripteurId: Identifiant
+  nom: string
+  telephone: string
+  projetId: Identifiant
+  nomProjet: string
+  /** Échéances en retard, de la plus ancienne à la plus récente (partielles comprises). */
+  echeances: { date: DateISO, partielle: boolean }[]
+  montant: MontantFCFA
+  retardDepuis: DateISO
+  derniereRelance?: { type: 'auto' | 'manuelle', date: DateISO }
+}
+
+/** Règle de relance automatique (onglet Relances automatiques). */
+export interface RegleRelance {
+  id: Identifiant
+  titre: string
+  description: string
+  ton: 'info' | 'warning' | 'danger'
+  active: boolean
+}
+
+/** Envoi de relances (onglet Historique des envois). */
+export interface EnvoiRelance {
+  id: Identifiant
+  date: DateISO
+  type: 'automatique' | 'manuelle'
+  projet: string
+  destinataires: number | '[N]'
+  /** « Cotiz · règle « 15 jours » », « Awa Koné ». */
+  par: string
+}
+
+/** `GET /api/relances` — relances de l'association du gestionnaire. */
+export interface Relances {
+  retardataires: LigneRetard[]
+  /** Souscripteurs en retard / actifs (KPI « 14 sur 52 »). */
+  nbEnRetard: number
+  nbActifs: number
+  /** Cumul des échéances non payées (placeholder de la maquette). */
+  montantEnRetard: MontantFCFA | '[MONTANT]'
+  derniereAuto?: { date: DateISO, regle: string, envois: number }
+  regles: RegleRelance[]
+  historique: EnvoiRelance[]
+}
+
+// ---------------------------------------------------------------- Contrats (gestionnaire)
+
+/** Contrat d'un projet vu depuis la page Contrats (`GET /api/gestionnaire/contrats`) : conditions et suivi des signatures. */
+export interface SyntheseContratProjet {
+  projetId: Identifiant
+  nomProjet: string
+  /** « 50 000 F à l'entrée, puis 25 000 F par mois pendant 18 mois. Total : 500 000 F. » */
+  conditions: string
+  /** Signature de l'association : signataire et date (ou `[DATE]`). */
+  signeParAssociation: { nom: string, le: DateISO }
+  signes: number | '[N]'
+  total: number | '[N]'
+  /** Cycle roulant aux inscriptions ouvertes : places du cycle (« 12 / 30 places »). */
+  places?: number
+  /** Contre-signatures attendues ; null quand le projet n'en attend pas (inscriptions ouvertes). */
+  enAttente: number | '[N]' | null
+  statut: 'actif' | 'signatures_en_cours' | 'inscriptions_ouvertes'
+  nonSignataires: { souscripteurId: Identifiant, nom: string, inviteLe: DateISO }[]
+}
+
+// ---------------------------------------------------------------- Équipe, abonnement, profil (gestionnaire)
+
+/** Équipe de l'association (`GET /api/gestionnaire/equipe`). */
+export interface EquipeAssociation {
+  membres: Gestionnaire[]
+  /** Comptes secondaires (hors gestionnaire principal) : utilisés / limite fixée par la plateforme. */
+  comptesSecondaires: { utilises: number, limite: number }
+}
+
+/** Corps de `POST /api/gestionnaire/equipe` : le rôle est toujours « secondaire » (MgEquipe). */
+export interface InvitationGestionnaire {
+  prenom: string
+  nom: string
+  email: string
+  telephone?: string
+}
+
+export type StatutAbonnement = 'actif' | 'echeance_proche' | 'suspendu'
+export type StatutFactureAbonnement = 'payee' | 'a_payer' | 'impayee'
+
+/** Facture de l'abonnement Cotiz (réglée par l'association à la plateforme). */
+export interface FactureAbonnement {
+  id: Identifiant
+  numero: string // `[N° FACTURE]`
+  periode: string // `[PÉRIODE EN COURS]`
+  emiseLe: DateISO
+  montant: MontantFCFA | '[MONTANT]'
+  statut: StatutFactureAbonnement
+}
+
+/** Jauge d'utilisation d'un quota. `pourcentage` : remplissage de la barre (la limite peut être un placeholder). */
+export interface UtilisationQuota {
+  utilise: number
+  /** `null` : illimité. */
+  limite: Quota
+  pourcentage: number
+}
+
+/** Abonnement de l'association (`GET /api/gestionnaire/abonnement`). */
+export interface AbonnementAssociation {
+  planId: Identifiant
+  nomPlan: string
+  prixAnnuel: MontantFCFA | '[PRIX]'
+  statut: StatutAbonnement
+  clientDepuis: DateISO
+  prochaineFacture: DateISO
+  /** « Virement ou mobile money à Cotiz ». */
+  moyenPaiement: string
+  utilisation: { projets: UtilisationQuota, souscripteurs: UtilisationQuota, gestionnaires: UtilisationQuota }
+  factures: FactureAbonnement[]
+  /** Échéance proche / suspendu : facture à régler et date limite. */
+  factureDue?: { numero: string, echeance: DateISO }
+  emailContactCotiz: string
+  /** « Demander un changement » déjà envoyé. */
+  changementDemande: boolean
+}
+
+/** Préférences de notification du gestionnaire (MgProfil). Le résumé quotidien par email arrive en V2. */
+export interface PreferencesGestionnaire {
+  paiementDeclare: boolean
+  contratSigne: boolean
+  resumeQuotidien: boolean
+}
+
+/** Profil du gestionnaire connecté (`GET /api/gestionnaire/profil`). */
+export interface ProfilGestionnaire {
+  id: Identifiant
+  prenom: string
+  nom: string
+  email: string
+  telephone?: string
+  role: RoleGestionnaire
+  associationNom: string
+  motDePasseModifieLe: DateISO
+  preferences: PreferencesGestionnaire
+}
+
+export type ModificationProfilGestionnaire = Partial<Pick<ProfilGestionnaire, 'prenom' | 'nom' | 'email' | 'telephone' | 'preferences'>>

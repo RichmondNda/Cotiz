@@ -2,7 +2,7 @@
 // `compteur` : clé des compteurs de navigation servis par l'API (`/api/navigation/compteurs`).
 import type { NomIcone } from '~/utils/icons'
 
-export type CleCompteur = 'paiementsAValider' | 'notificationsNonLues' | 'demandesATraiter'
+export type CleCompteur = 'paiementsAValider' | 'notificationsNonLues' | 'demandesATraiter' | 'souscripteursEnRetard'
 
 export interface EntreeNavigation {
   cle: string
@@ -14,6 +14,8 @@ export interface EntreeNavigation {
   tonCompteur?: 'warning' | 'danger'
   /** Actif aussi sur les sous-routes (défaut) ; `exact` pour les accueils. */
   exact?: boolean
+  /** Autres chemins (et leurs sous-routes) qui rendent l'entrée active (« Plus » de la navigation basse). */
+  aussi?: string[]
   /** Entrée d'action (déconnexion) plutôt qu'un lien. */
   action?: 'deconnexion'
 }
@@ -40,7 +42,31 @@ export const NAV_GESTIONNAIRE_MOBILE: EntreeNavigation[] = [
   { cle: 'projets', label: 'Projets', to: '/asso/projets', icone: 'projet' },
   { cle: 'paiements', label: 'Paiements', to: '/asso/paiements', icone: 'paiement', compteur: 'paiementsAValider', tonCompteur: 'danger' },
   { cle: 'membres', label: 'Membres', to: '/asso/souscripteurs', icone: 'souscripteurs' },
-  { cle: 'plus', label: 'Plus', to: '/asso/plus', icone: 'menu' },
+  {
+    cle: 'plus', label: 'Plus', to: '/asso/plus', icone: 'menu',
+    aussi: ['/asso/relances', '/asso/contrats', '/asso/equipe', '/asso/abonnement', '/asso/parametres', '/asso/notifications', '/asso/profil'],
+  },
+]
+
+/** Menu « Plus » du gestionnaire (mobile) : ce que la navigation basse ne porte pas. */
+export const NAV_GESTIONNAIRE_PLUS: { titre: string, entrees: EntreeNavigation[] }[] = [
+  {
+    titre: 'Suivi',
+    entrees: [
+      { cle: 'relances', label: 'Relances', to: '/asso/relances', icone: 'relance', compteur: 'souscripteursEnRetard', tonCompteur: 'danger' },
+      { cle: 'contrats', label: 'Contrats', to: '/asso/contrats', icone: 'contrat' },
+      { cle: 'notifications', label: 'Notifications', to: '/asso/notifications', icone: 'notification', compteur: 'notificationsNonLues', tonCompteur: 'danger' },
+    ],
+  },
+  {
+    titre: 'Association',
+    entrees: [
+      { cle: 'equipe', label: 'Équipe', to: '/asso/equipe', icone: 'profil' },
+      { cle: 'abonnement', label: 'Abonnement', to: '/asso/abonnement', icone: 'facturation' },
+      { cle: 'parametres', label: 'Paramètres de l’association', to: '/asso/parametres', icone: 'parametres' },
+      { cle: 'onboarding', label: 'Revoir l’accueil (onboarding)', to: '/asso/bienvenue', icone: 'information' },
+    ],
+  },
 ]
 
 export const NAV_PLATEFORME: { principal: EntreeNavigation[], bas: EntreeNavigation[] } = {
@@ -75,5 +101,5 @@ export const NAV_SOUSCRIPTEUR_NOTIFICATIONS: EntreeNavigation = {
 export function estEntreeActive(e: EntreeNavigation, chemin: string): boolean {
   const c = chemin.replace(/\/$/, '') || '/'
   if (e.exact) return c === e.to
-  return c === e.to || c.startsWith(`${e.to}/`)
+  return [e.to, ...(e.aussi ?? [])].some(to => c === to || c.startsWith(`${to}/`))
 }

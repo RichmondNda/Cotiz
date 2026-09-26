@@ -3,6 +3,9 @@
   - image : miniature 120×150, clic = plein écran avec zoom et rotation ; « Télécharger » discret dessous ;
   - pdf : aperçu de la page 1 + « Ouvrir le PDF » ;
   - référence seule : encart avec la référence de transaction en mono et bouton copier.
+  `compact` : miniature seule (file de validation).
+  `grand` (détail d'un paiement, gestionnaire) : l'image occupe la largeur de la carte (300 px, 200 px en mobile)
+  avec ses outils (agrandir, pivoter, télécharger) ; PDF en 160×200 ; la référence seule est expliquée dessous.
 -->
 <script setup lang="ts">
 import type { Preuve } from '~~/types'
@@ -11,7 +14,10 @@ const props = withDefaults(defineProps<{
   preuve: Preuve
   /** Ligne d'aide sous la référence (« Mobile money · Orange · 10 sept. 2026 »). */
   detail?: string
-}>(), { detail: undefined })
+  grand?: boolean
+  /** Miniature seule, sans « Télécharger » (aperçu de la file de validation). */
+  compact?: boolean
+}>(), { detail: undefined, grand: false, compact: false })
 
 const pleinEcran = ref(false)
 const zoom = ref(1)
@@ -37,8 +43,55 @@ const reference = computed(() => props.preuve.reference)
 </script>
 
 <template>
-  <div class="preuve">
-    <template v-if="preuve.type === 'image'">
+  <div
+    class="preuve"
+    :class="{ 'preuve--grand': grand }"
+  >
+    <template v-if="preuve.type === 'image' && grand">
+      <div class="preuve__zone">
+        <button
+          type="button"
+          class="preuve__apercu"
+          :aria-label="`Agrandir la preuve ${preuve.nomFichier}`"
+          @click="ouvrir"
+        >
+          <CzIcon
+            nom="image"
+            class="preuve__glyphe"
+          />
+          <span class="preuve__nom cz-desktop">{{ preuve.nomFichier }}</span>
+        </button>
+        <div class="preuve__barre cz-desktop">
+          <CzButton
+            variante="icone"
+            taille="sm"
+            label="Agrandir"
+            @click="ouvrir"
+          >
+            +
+          </CzButton>
+          <CzButton
+            variante="icone"
+            taille="sm"
+            label="Pivoter"
+            @click="rotation = (rotation + 90) % 360; pleinEcran = true"
+          >
+            ↻
+          </CzButton>
+          <CzButton
+            variante="icone"
+            taille="sm"
+            icone="telecharger"
+            label="Télécharger"
+            :href="preuve.url"
+            download
+          />
+        </div>
+      </div>
+      <span class="preuve__legende cz-mobile">{{ preuve.nomFichier }} · toucher pour agrandir</span>
+    </template>
+
+    <template v-else-if="preuve.type === 'image'">
       <button
         type="button"
         class="cz-proof"
@@ -50,6 +103,7 @@ const reference = computed(() => props.preuve.reference)
         <span class="preuve__nom">{{ preuve.nomFichier }}</span>
       </button>
       <CzButton
+        v-if="!compact"
         variante="fantome"
         taille="sm"
         icone="telecharger"
@@ -63,6 +117,7 @@ const reference = computed(() => props.preuve.reference)
     <template v-else-if="preuve.type === 'pdf'">
       <a
         class="cz-proof cz-proof--pdf"
+        :class="{ preuve__pdf: grand }"
         :href="preuve.url"
         target="_blank"
         rel="noopener"
@@ -83,7 +138,7 @@ const reference = computed(() => props.preuve.reference)
     </template>
 
     <div
-      v-if="reference"
+      v-if="reference && !(grand && preuve.type !== 'reference')"
       class="preuve__ref"
       :class="{ 'is-seule': preuve.type === 'reference' }"
     >
@@ -104,6 +159,13 @@ const reference = computed(() => props.preuve.reference)
       >
         {{ detail }}
       </div>
+      <p
+        v-if="grand && preuve.type === 'reference'"
+        class="preuve__sans-fichier"
+      >
+        <span class="cz-desktop">Aucun fichier joint : le souscripteur a indiqué une référence de transaction.</span>
+        <span class="cz-mobile">Aucune image jointe : vérifiez la référence dans vos relevés.</span>
+      </p>
     </div>
 
     <CzOverlay
@@ -216,6 +278,96 @@ const reference = computed(() => props.preuve.reference)
 
 .preuve__ref-libelle {
   font-size: 12px;
+}
+
+.preuve--grand {
+  display: flex;
+  width: 100%;
+}
+
+.preuve--grand:has(.preuve__pdf) {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+.preuve--grand .preuve__ref {
+  max-width: none;
+}
+
+.preuve__zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 300px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: linear-gradient(160deg, var(--info-bg), var(--surface-subtle));
+}
+
+.preuve__apercu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--r-field);
+  background: none;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: zoom-in;
+}
+
+.preuve__apercu:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.preuve__glyphe {
+  width: 44px;
+  height: 44px;
+  color: var(--info);
+}
+
+.preuve__barre {
+  display: flex;
+  gap: 6px;
+}
+
+.preuve__legende {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.preuve__pdf {
+  width: 160px;
+  height: 200px;
+}
+
+.preuve__sans-fichier {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 767px) {
+  .preuve__zone {
+    height: 200px;
+  }
+
+  .preuve__apercu {
+    width: 100%;
+    height: 100%;
+  }
+
+  .preuve--grand .preuve__ref-libelle,
+  .preuve--grand .preuve__ref .cz-btn {
+    display: none;
+  }
 }
 
 .preuve__plein {
