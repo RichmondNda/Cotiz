@@ -15,7 +15,9 @@ export interface MoisCollecte {
 const props = withDefaults(defineProps<{
   mois: MoisCollecte[]
   label?: string
-}>(), { label: 'Collecte mensuelle, attendu et reçu' })
+  /** Légende de la série « attendu » (« Attendu 1 300 000 F / mois »). */
+  libelleAttendu?: string
+}>(), { label: 'Collecte mensuelle, attendu et reçu', libelleAttendu: 'Attendu' })
 
 const L = 340
 const H = 150
@@ -24,7 +26,7 @@ const HAUT = 20
 const GAUCHE = 30
 
 function abreger(n: number): string {
-  if (n >= 1_000_000) return `${String(n / 1_000_000).replace('.', ',')}M`
+  if (n >= 100_000) return `${String(n / 1_000_000).replace('.', ',')}M`
   if (n >= 1_000) return `${String(n / 1_000).replace('.', ',')}k`
   return String(n)
 }
@@ -111,7 +113,7 @@ const infobulle = ref<{ x: number, y: number, texte: string } | null>(null)
       :style="{ left: `${(infobulle.x / L) * 100}%`, top: `${(infobulle.y / H) * 100}%` }"
     >{{ infobulle.texte }}</span>
     <figcaption class="graph__legende">
-      <span><i class="graph__carre graph__carre--exp" />Attendu</span>
+      <span><i class="graph__carre graph__carre--exp" />{{ libelleAttendu }}</span>
       <span><i class="graph__carre graph__carre--rec" />Reçu</span>
       <slot name="legende">
         <span>Mois en cours en transparence</span>

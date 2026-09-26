@@ -1,7 +1,8 @@
 <!--
   Back-office (gestionnaire : thème manager, violet ; super-admin : thème superadmin, indigo — déduit du chemin).
   Barre latérale 240 px (72 px repliée en tablette), barre supérieure 64 px, contenu limité à 1280 px sur fond `page`.
-  Mobile (< 768 px) : gestionnaire → navigation basse 5 entrées, pas de barre supérieure (en-têtes de page mobiles) ;
+  Mobile (< 768 px) : gestionnaire → navigation basse 5 entrées (masquée par `definePageMeta({ navBasse: false })`,
+  parcours avec barre d'action collante), pas de barre supérieure (en-têtes de page mobiles) ;
   super-admin → barre supérieure avec menu tiroir.
 -->
 <script setup lang="ts">
@@ -46,7 +47,7 @@ watch(() => route.fullPath, () => (tiroir.value = false))
       </main>
     </div>
     <NavigationBasse
-      v-if="espace === 'gestionnaire'"
+      v-if="espace === 'gestionnaire' && route.meta.navBasse !== false"
       :entrees="NAV_GESTIONNAIRE_MOBILE"
       class="gabarit-bo__nav-basse"
     />

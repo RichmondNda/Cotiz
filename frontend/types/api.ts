@@ -66,3 +66,57 @@ export interface NouvelleDeclaration {
   preuve: Preuve
   commentaire?: string
 }
+
+// ---------------------------------------------------------------- Espace gestionnaire
+
+/** Mois du graphique « Collecte mensuelle — attendu vs reçu » (tous projets). */
+export interface CollecteMois {
+  /** Premier jour du mois (`2026-09-01`). */
+  mois: DateISO
+  attendu: MontantFCFA
+  recu: MontantFCFA
+  enCours?: boolean
+}
+
+/** Contrat envoyé et toujours pas signé (bandeau « À faire » du tableau de bord). */
+export interface ContratEnSouffrance {
+  contratId: Identifiant
+  souscripteurId: Identifiant
+  nomSouscripteur: string
+  projetId: Identifiant
+  nomProjet: string
+}
+
+/** Tableau de bord gestionnaire (`GET /api/gestionnaire/tableau-de-bord`). */
+export interface TableauDeBordGestionnaire {
+  association: { id: Identifiant, nom: string }
+  /** Mois en cours, tous projets. */
+  collecteMois: { collecte: MontantFCFA, attendu: MontantFCFA }
+  paiementsAValider: { nombre: number, plusAncienLe?: DateISO }
+  enRetard: { nombre: number, actifs: number }
+  tauxRecouvrement: number
+  nbSouscripteurs: number
+  nbProjets: number
+  /** Contrats non signés depuis plus de 7 jours. */
+  contratsNonSignes: ContratEnSouffrance[]
+  /** 6 derniers mois, le dernier est le mois en cours. */
+  collecteMensuelle: CollecteMois[]
+}
+
+/** Corps de `POST /api/projets` (création en 6 étapes). */
+export type NouveauProjet = Pick<Projet,
+  'nom' | 'description' | 'fondsEntree' | 'montantEcheance' | 'frequence' | 'jourEcheance'
+  | 'typeCalendrier' | 'dateDebut' | 'dateFin' | 'delaiGraceJours' | 'souscripteursRequis'
+  | 'modalitesPaiement' | 'instructionsPaiement' | 'contratModele'
+> & {
+  signataire: { nom: string, fonction: string }
+  /** Case « Je signe ce contrat au nom de l'association ». */
+  contratSigne: boolean
+  /** Enregistrement comme brouillon (« Enregistrer le brouillon »). */
+  brouillon?: boolean
+}
+
+/** Corps de `PATCH /api/associations/:id` (onboarding étapes 2 et 3, paramètres). */
+export type ModificationAssociation = Partial<Pick<Association,
+  'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement'
+>>

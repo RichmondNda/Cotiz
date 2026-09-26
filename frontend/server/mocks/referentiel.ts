@@ -39,6 +39,7 @@ export const associations: Association[] = [
   {
     id: 'entraide-yopougon', nom: 'Entraide Yopougon', sigle: 'EY', type: 'association', ville: 'Abidjan', pays: 'Côte d’Ivoire',
     telephoneContact: '+225 07 08 09 10 11', emailContact: 'awa@entraide.ci',
+    description: 'Entraide entre familles du quartier de Yopougon.',
     statut: 'active', planId: 'essentiel', abonnementProchaineEcheance: '[DATE]',
     // Coordonnées affichées dans « Comment payer » (MbAssociation, MbProjet).
     modalitesPaiement: [
@@ -88,6 +89,8 @@ export const projets: Projet[] = [
     souscripteursRequis: 60, modalitesPaiement: [{ moyen: 'mobile_money' }, { moyen: 'virement' }], contratModele: CONTRAT_MODELE,
     nbSouscripteurs: 52, montantCollecte: 9594000, montantAttenduADate: 11700000, tauxRecouvrement: 82, avancement: 37,
     nbEnRetard: 14, nbPaiementsAValider: 4, nbSignaturesAttendues: 1, prochaineEcheance: '2026-10-05', engagementParSouscripteur: 500000,
+    // Pile d'avatars de la carte (MgDashboard) : AK, MD en retard, +50.
+    apercuSouscripteurs: [{ nom: 'Awa Koné' }, { nom: 'Moussa Diarra', ton: 'danger' }],
   },
   {
     id: 'tontine-solidaire-2027', associationId: 'entraide-yopougon', nom: 'Tontine solidaire 2027', statut: 'inscriptions_ouvertes',
@@ -104,6 +107,7 @@ export const projets: Projet[] = [
     souscripteursRequis: null, modalitesPaiement: [{ moyen: 'mobile_money' }, { moyen: 'virement' }], contratModele: CONTRAT_MODELE,
     nbSouscripteurs: '[N]', montantCollecte: '[MONTANT]', montantAttenduADate: '[MONTANT]', tauxRecouvrement: '[N]', avancement: '[N]',
     nbEnRetard: 0, nbPaiementsAValider: 2, nbSignaturesAttendues: 1, prochaineEcheance: '2026-10-05', engagementParSouscripteur: 170000,
+    apercuSouscripteurs: [{ nom: 'Moussa Diarra', ton: 'danger' }],
   },
   {
     // Projet de Moussa Diarra dans l'Association des ressortissants de Man (accueil souscripteur, historique).

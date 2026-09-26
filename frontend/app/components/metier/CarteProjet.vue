@@ -48,6 +48,8 @@ const props = withDefaults(defineProps<{
   pied?: { libelle?: string, valeur: string }
   action?: ActionCarte
   to?: RouteLocationRaw
+  /** Badge imposé à la place du statut (aperçu de création : « À venir »). */
+  badge?: { texte: string, ton: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }
 }>(), {
   vue: 'gestionnaire',
   chargement: false,
@@ -68,6 +70,7 @@ const props = withDefaults(defineProps<{
   pied: undefined,
   action: undefined,
   to: undefined,
+  badge: undefined,
 })
 
 const estMembre = computed(() => props.vue === 'souscripteur')
@@ -144,7 +147,14 @@ function ouvrir(e: MouseEvent | KeyboardEvent) {
           {{ sousTitre }}
         </div>
       </div>
+      <CzBadge
+        v-if="badge"
+        :ton="badge.ton"
+      >
+        {{ badge.texte }}
+      </CzBadge>
       <BadgeStatut
+        v-else
         :type="typeStatut"
         :statut="statut"
       />

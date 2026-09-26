@@ -5,7 +5,7 @@ declare module '#app' {
     titre?: string
     /** Souscripteur mobile : masque le bouton flottant « Déclarer un paiement » (parcours de déclaration). */
     fab?: boolean
-    /** Souscripteur mobile : masque la navigation basse (parcours de déclaration, barre d'action collante). */
+    /** Masque la navigation basse mobile (souscripteur : déclaration ; gestionnaire : création de projet, onboarding). */
     navBasse?: boolean
     /** Thème des écrans de connexion (panneau à la couleur du profil). */
     theme?: 'member' | 'manager' | 'superadmin'

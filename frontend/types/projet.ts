@@ -48,4 +48,9 @@ export interface Projet {
   prochaineEcheance?: DateISO
   /** Engagement total par souscripteur (dates fixes) : fonds d'entrée + n × échéance. */
   engagementParSouscripteur?: MontantFCFA
+  /** Premiers souscripteurs montrés en pile d'avatars sur la carte gestionnaire (ton = situation). */
+  apercuSouscripteurs?: { nom: string, ton?: 'brand' | 'danger' | 'warning' | 'success' }[]
+  /** Contrat : signataire pour l'association (étape 5 de la création). */
+  signataire?: { nom: string, fonction: string }
+  creeLe?: DateISO
 }

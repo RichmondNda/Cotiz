@@ -47,8 +47,9 @@ async function soumettre() {
   envoi.value = true
   erreurApi.value = null
   try {
-    await seConnecter({ espace: 'gestionnaire', identifiant: email.value.trim(), motDePasse: motDePasse.value })
-    await connecter('gestionnaire', destination('gestionnaire'))
+    const resultat = await seConnecter({ espace: 'gestionnaire', identifiant: email.value.trim(), motDePasse: motDePasse.value })
+    // Premier accès : configuration de l'espace (onboarding) avant le tableau de bord.
+    await connecter('gestionnaire', resultat.etape === 'premiere-connexion' ? '/asso/bienvenue' : destination('gestionnaire'))
   }
   catch (e) {
     erreurApi.value = codeErreur<CodeErreurAuth>(e) ?? 'reseau'

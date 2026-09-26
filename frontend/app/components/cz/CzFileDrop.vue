@@ -5,6 +5,8 @@
   Mobile : le toucher ouvre directement le choix appareil photo / galerie (input natif).
 -->
 <script setup lang="ts">
+import type { NomIcone } from '~/utils/icons'
+
 export interface FichierDepose {
   nom: string
   /** Taille en octets. */
@@ -30,6 +32,8 @@ const props = withDefaults(defineProps<{
   texteDesactive?: string
   aideDesactive?: string
   label?: string
+  /** Icône au repos (dépôt de preuve : importer ; image de couverture : image). */
+  icone?: NomIcone
 }>(), {
   accept: 'image/jpeg,image/png,application/pdf',
   formats: 'JPG, PNG ou PDF · 5 Mo maximum',
@@ -41,6 +45,7 @@ const props = withDefaults(defineProps<{
   texteDesactive: 'Dépôt indisponible',
   aideDesactive: undefined,
   label: 'Déposer un fichier',
+  icone: 'importer',
 })
 
 const modele = defineModel<FichierDepose | null>({ default: null })
@@ -196,7 +201,7 @@ const estImage = computed(() => !modele.value?.type || modele.value.type.startsW
         <span class="fmt">{{ formats }}</span>
       </template>
       <template v-else>
-        <CzIcon nom="importer" />
+        <CzIcon :nom="icone" />
         <div><slot>Glissez votre preuve ici ou <strong>parcourez vos fichiers</strong></slot></div>
         <span class="fmt">{{ formats }}</span>
       </template>

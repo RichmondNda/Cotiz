@@ -20,6 +20,7 @@ Les autres souscripteurs des mocks ayant un téléphone (Fatou Traoré, Jean Kou
 | Email | Mot de passe | Résultat |
 |---|---|---|
 | awa@entraide.ci | `motdepasse` | connexion → `/asso` |
+| awa@entraide.ci | `provisoire` | premier accès → onboarding `/asso/bienvenue` |
 | awa@entraide.ci | `suspendu` | « L’espace de votre association est suspendu » |
 | awa@entraide.ci (ou email inconnu) | autre | « Email ou mot de passe incorrect » |
 | même email, 5ᵉ échec consécutif | — | « Trop de tentatives » : blocage 15 min (mémoire du serveur ; redémarrer `npm run dev` pour l’effacer) |
