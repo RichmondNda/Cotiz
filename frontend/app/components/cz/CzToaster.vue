@@ -35,29 +35,32 @@ onBeforeUnmount(() => minuteurs.forEach(m => clearTimeout(m.id)))
 </script>
 
 <template>
-  <Teleport to="#teleports">
-    <TransitionGroup
-      tag="div"
-      name="cz-toast"
-      class="cz-toaster"
-      aria-live="polite"
-    >
-      <CzToast
-        v-for="t in toasts"
-        :key="t.id"
-        :ton="t.ton"
-        :titre="t.titre"
-        :message="t.message"
-        :action="t.action?.label"
-        :icone="t.icone"
-        @action="agir(t)"
-        @mouseenter="pause(t)"
-        @mouseleave="demarrer(t)"
-        @focusin="pause(t)"
-        @focusout="demarrer(t)"
-      />
-    </TransitionGroup>
-  </Teleport>
+  <!-- Rendu client uniquement : plusieurs Teleport vers #teleports provoquent un décalage d'hydratation. -->
+  <ClientOnly>
+    <Teleport to="#teleports">
+      <TransitionGroup
+        tag="div"
+        name="cz-toast"
+        class="cz-toaster"
+        aria-live="polite"
+      >
+        <CzToast
+          v-for="t in toasts"
+          :key="t.id"
+          :ton="t.ton"
+          :titre="t.titre"
+          :message="t.message"
+          :action="t.action?.label"
+          :icone="t.icone"
+          @action="agir(t)"
+          @mouseenter="pause(t)"
+          @mouseleave="demarrer(t)"
+          @focusin="pause(t)"
+          @focusout="demarrer(t)"
+        />
+      </TransitionGroup>
+    </Teleport>
+  </ClientOnly>
 </template>
 
 <style scoped>

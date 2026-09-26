@@ -5,6 +5,7 @@
 import type { H3Event } from 'h3'
 import type { Role, UtilisateurSession } from '~~/types'
 import { superadmin } from '../mocks/referentiel'
+import { store } from '../mocks/store'
 
 export function lireScenario(event: H3Event): string | undefined {
   const s = getQuery(event).scenario
@@ -44,14 +45,24 @@ export function filtre(event: H3Event, nom: string): string | undefined {
   return typeof v === 'string' && v ? v : undefined
 }
 
-/** Utilisateur de la session mockée, d'après le cookie `cotiz_role`. */
+/** Utilisateurs de chaque rôle de la session mockée (DONNEES-REFERENCE : Moussa Diarra, Awa Koné, Richy). */
+const SOUSCRIPTEUR_SESSION = 'moussa-diarra'
+const GESTIONNAIRE_SESSION = 'awa-kone'
+
+const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+
+/** Utilisateur de la session mockée, d'après le cookie `cotiz_role` ; lu dans le store en mémoire. */
 export function utilisateurSession(event: H3Event): UtilisateurSession | null {
   const role = getCookie(event, 'cotiz_role') as Role | undefined
   switch (role) {
-    case 'souscripteur':
-      return { id: 'moussa-diarra', role, prenom: 'Moussa', nom: 'Diarra', fonction: 'Souscripteur' }
-    case 'gestionnaire':
-      return { id: 'awa-kone', role, prenom: 'Awa', nom: 'Koné', fonction: 'Trésorière', associationId: 'entraide-yopougon' }
+    case 'souscripteur': {
+      const s = store.souscripteurs.find(x => x.id === SOUSCRIPTEUR_SESSION)
+      return s ? { id: s.id, role, prenom: s.prenom, nom: s.nom, fonction: 'Souscripteur' } : null
+    }
+    case 'gestionnaire': {
+      const g = store.gestionnaires.find(x => x.id === GESTIONNAIRE_SESSION)
+      return g ? { id: g.id, role, prenom: g.prenom, nom: g.nom, fonction: g.fonction ? majuscule(g.fonction) : undefined, associationId: g.associationId } : null
+    }
     case 'superadmin':
       return { id: superadmin.id, role, prenom: superadmin.prenom }
     default:

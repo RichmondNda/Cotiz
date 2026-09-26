@@ -12,7 +12,11 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <section class="cz-card cz-card--lg mouvements">
+  <CzCard
+    variante="lg"
+    tag="section"
+    class="mouvements"
+  >
     <div class="mouvements__entete">
       <h2 class="mouvements__titre">
         {{ titre }}
@@ -43,7 +47,7 @@ withDefaults(defineProps<{
         />
       </li>
     </ul>
-  </section>
+  </CzCard>
 </template>
 
 <style scoped>

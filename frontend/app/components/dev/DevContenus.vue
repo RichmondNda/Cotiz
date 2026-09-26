@@ -20,14 +20,16 @@ interface LigneDemo extends Record<string, unknown> {
   telephone: string
   verse: number
   reste: number
-  statut: 'a_jour' | 'en_retard' | 'signature_attendue' | 'partielle'
+  statut: 'a_jour' | 'en_retard' | 'signature_attendue'
+  /** Nombre d'échéances en retard (badge « En retard · 2 »), quand il est connu. */
+  retards?: number
   ton: 'brand' | 'danger' | 'warning'
 }
 const LIGNES: LigneDemo[] = [
   { id: 'awa', nom: 'Awa Koné', inscrit: 'Inscrite le 12/03/2026', telephone: '+225 07 08 09 10 11', verse: 200000, reste: 300000, statut: 'a_jour', ton: 'brand' },
-  { id: 'moussa', nom: 'Moussa Diarra', inscrit: 'Inscrit le 12/03/2026', telephone: '+225 05 44 21 87 90', verse: 175000, reste: 325000, statut: 'en_retard', ton: 'danger' },
+  { id: 'moussa', nom: 'Moussa Diarra', inscrit: 'Inscrit le 12/03/2026', telephone: '+225 05 44 21 87 90', verse: 175000, reste: 325000, statut: 'en_retard', retards: 2, ton: 'danger' },
   { id: 'fatou', nom: 'Fatou Traoré', inscrit: 'Inscrite le 02/09/2026', telephone: '+225 01 22 33 44 55', verse: 0, reste: 500000, statut: 'signature_attendue', ton: 'warning' },
-  { id: 'jean', nom: 'Jean Kouassi', inscrit: 'Inscrit le 12/03/2026', telephone: '+225 07 55 66 77 88', verse: 212500, reste: 287500, statut: 'partielle', ton: 'brand' },
+  { id: 'jean', nom: 'Jean Kouassi', inscrit: 'Inscrit le 12/03/2026', telephone: '+225 07 55 66 77 88', verse: 212500, reste: 287500, statut: 'en_retard', ton: 'danger' },
 ]
 const COLONNES: ColonneTable[] = [
   { cle: 'nom', label: 'Souscripteur', triable: true, squelette: 'personne' },
@@ -756,15 +758,9 @@ function toastValidation() {
           </template>
           <template #cell-statut="{ ligne }">
             <BadgeStatut
-              v-if="ligne.statut === 'partielle'"
-              type="echeance"
-              statut="partielle"
-            />
-            <BadgeStatut
-              v-else
               type="souscription"
               :statut="ligne.statut"
-              :complement="ligne.statut === 'en_retard' ? 2 : undefined"
+              :complement="ligne.retards"
             />
           </template>
           <template #cell-actions>
@@ -791,7 +787,8 @@ function toastValidation() {
               </div>
               <BadgeStatut
                 type="souscription"
-                :statut="ligne.statut === 'partielle' ? 'a_jour' : ligne.statut"
+                :statut="ligne.statut"
+                :complement="ligne.retards"
                 petit
               />
             </div>

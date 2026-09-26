@@ -27,20 +27,23 @@ useScrollLock(ouvert)
 </script>
 
 <template>
-  <Teleport to="#teleports">
-    <Transition :name="`cz-overlay-${position}`">
-      <div
-        v-if="ouvert"
-        ref="conteneur"
-        class="cz-overlay"
-        :class="`cz-overlay--${position}`"
-        tabindex="-1"
-        @click.self="fermer"
-      >
-        <slot />
-      </div>
-    </Transition>
-  </Teleport>
+  <!-- Rendu client uniquement : plusieurs Teleport vers #teleports provoquent un décalage d'hydratation. -->
+  <ClientOnly>
+    <Teleport to="#teleports">
+      <Transition :name="`cz-overlay-${position}`">
+        <div
+          v-if="ouvert"
+          ref="conteneur"
+          class="cz-overlay"
+          :class="`cz-overlay--${position}`"
+          tabindex="-1"
+          @click.self="fermer"
+        >
+          <slot />
+        </div>
+      </Transition>
+    </Teleport>
+  </ClientOnly>
 </template>
 
 <style scoped>

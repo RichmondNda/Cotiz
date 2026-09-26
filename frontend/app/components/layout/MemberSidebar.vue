@@ -3,26 +3,17 @@
   « Déclarer un paiement » en bas, puis l'utilisateur.
 -->
 <script setup lang="ts">
-import { estEntreeActive, NAV_SOUSCRIPTEUR, NAV_SOUSCRIPTEUR_NOTIFICATIONS, type EntreeNavigation } from '~/config/navigation'
+import { NAV_SOUSCRIPTEUR, NAV_SOUSCRIPTEUR_NOTIFICATIONS } from '~/config/navigation'
 
 const props = withDefaults(defineProps<{
   alias?: Record<string, string[]>
 }>(), { alias: () => ({}) })
 
-const route = useRoute()
 const { data: moi } = useMoi()
-const { data: compteurs } = useCompteursNavigation()
+const { actif, compteur } = useEntreesNavigation(() => props.alias)
 
 const entrees = [...NAV_SOUSCRIPTEUR, NAV_SOUSCRIPTEUR_NOTIFICATIONS]
 const nom = computed(() => [moi.value?.prenom, moi.value?.nom].filter(Boolean).join(' '))
-
-function actif(e: EntreeNavigation) {
-  return estEntreeActive(e, route.path)
-    || (props.alias[e.cle] ?? []).some(p => route.path === p || route.path.startsWith(`${p}/`))
-}
-function compteur(e: EntreeNavigation) {
-  return e.compteur ? compteurs.value?.[e.compteur] || undefined : undefined
-}
 </script>
 
 <template>

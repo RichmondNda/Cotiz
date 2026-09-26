@@ -13,6 +13,7 @@ definePageMeta({ middleware: ['dev-uniquement', 'espace-gestionnaire'], layout: 
     <EnTetePage
       titre="Bonjour Awa"
       sous-titre="Entraide Yopougon · vendredi 25 septembre 2026"
+      class="dev-desktop"
     >
       <template #actions>
         <CzButton
@@ -46,6 +47,11 @@ definePageMeta({ middleware: ['dev-uniquement', 'espace-gestionnaire'], layout: 
   .dev-mobile {
     display: flex;
     margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-3)) 0;
+  }
+
+  /* En mobile, l'en-tête mobile remplace l'en-tête de page (un seul H1, comme MgDashboard mobile). */
+  .dev-desktop {
+    display: none;
   }
 }
 </style>

@@ -5,7 +5,7 @@
   Menus : app/config/navigation.ts ; compteurs : API mockée.
 -->
 <script setup lang="ts">
-import { estEntreeActive, NAV_GESTIONNAIRE, NAV_PLATEFORME, type EntreeNavigation } from '~/config/navigation'
+import { NAV_GESTIONNAIRE, NAV_PLATEFORME } from '~/config/navigation'
 
 const props = withDefaults(defineProps<{
   espace: 'gestionnaire' | 'superadmin'
@@ -14,18 +14,12 @@ const props = withDefaults(defineProps<{
 
 defineEmits<{ naviguer: [] }>()
 
-const route = useRoute()
 const { deconnecter } = useSession()
 const { data: moi } = useMoi()
-const { data: compteurs } = useCompteursNavigation()
+const { actif, compteur } = useEntreesNavigation()
 
 const nav = computed(() => (props.espace === 'superadmin' ? NAV_PLATEFORME : NAV_GESTIONNAIRE))
 const accueil = computed(() => (props.espace === 'superadmin' ? '/plateforme' : '/asso'))
-
-function compteur(e: EntreeNavigation) {
-  const v = e.compteur ? compteurs.value?.[e.compteur] : undefined
-  return v ? v : undefined
-}
 </script>
 
 <template>
@@ -97,8 +91,8 @@ function compteur(e: EntreeNavigation) {
           v-else
           :to="e.to"
           class="it sidebar__it"
-          :class="{ 'is-on': estEntreeActive(e, route.path) }"
-          :aria-current="estEntreeActive(e, route.path) ? 'page' : undefined"
+          :class="{ 'is-on': actif(e) }"
+          :aria-current="actif(e) ? 'page' : undefined"
           :title="replie ? e.label : undefined"
           @click="$emit('naviguer')"
         >
