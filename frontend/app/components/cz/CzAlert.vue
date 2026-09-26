@@ -9,9 +9,11 @@ import type { NomIcone } from '~/utils/icons'
 const props = withDefaults(defineProps<{
   ton?: 'warning' | 'danger' | 'info' | 'success'
   icone?: NomIcone
+  /** Sans icône (bandeaux de l'espace souscripteur, texte seul). */
+  sansIcone?: boolean
   lien?: string
   to?: RouteLocationRaw
-}>(), { ton: 'info', icone: undefined, lien: undefined, to: undefined })
+}>(), { ton: 'info', icone: undefined, sansIcone: false, lien: undefined, to: undefined })
 
 defineEmits<{ lien: [] }>()
 
@@ -30,7 +32,10 @@ const iconeAffichee = computed(() => props.icone ?? ICONES_PAR_TON[props.ton]!)
     :class="[`cz-alert--${ton}`, { 'has-action': $slots.action }]"
     :role="ton === 'danger' ? 'alert' : 'status'"
   >
-    <CzIcon :nom="iconeAffichee" />
+    <CzIcon
+      v-if="!sansIcone"
+      :nom="iconeAffichee"
+    />
     <div class="cz-alert__texte">
       <slot />
       <template v-if="lien">

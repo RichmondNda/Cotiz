@@ -1,4 +1,7 @@
-<!-- Derniers mouvements (accueil souscripteur) : liste compacte montant + date · projet + badge de statut. -->
+<!--
+  Derniers mouvements (accueil souscripteur) : titre de section et lien « Tout l’historique »,
+  puis carte avec une liste compacte montant + date · projet + badge de statut.
+-->
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
 import type { StatutPaiement } from '~~/types'
@@ -12,69 +15,46 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <CzCard
-    variante="lg"
-    tag="section"
-    class="mouvements"
-  >
-    <div class="mouvements__entete">
-      <h2 class="mouvements__titre">
-        {{ titre }}
-      </h2>
-      <NuxtLink
-        v-if="lienTout"
-        :to="lienTout"
-        class="mouvements__tout"
-      >
-        Tout l'historique
-      </NuxtLink>
-    </div>
-    <ul class="mouvements__liste">
-      <li
-        v-for="m in mouvements"
-        :key="m.id"
-      >
-        <div>
-          <b>{{ formatFCFA(m.montant) }}</b>
-          <div class="cz-help">
-            {{ formatDate(m.date, 'jour-mois') }} · {{ m.projet }}
+  <section class="mouvements">
+    <TitreSection
+      :titre="titre"
+      :lien="lienTout ? { label: 'Tout l’historique', to: lienTout } : undefined"
+    />
+    <CzCard
+      variante="lg"
+      class="mouvements__carte"
+    >
+      <ul class="mouvements__liste">
+        <li
+          v-for="m in mouvements"
+          :key="m.id"
+        >
+          <div>
+            <b>{{ formatFCFA(m.montant) }}</b>
+            <div class="cz-help">
+              {{ formatDate(m.date, 'numerique') }} · {{ m.projet }}
+            </div>
           </div>
-        </div>
-        <BadgeStatut
-          type="paiement"
-          :statut="m.statut"
-          petit
-        />
-      </li>
-    </ul>
-  </CzCard>
+          <BadgeStatut
+            type="paiement"
+            :statut="m.statut"
+            petit
+          />
+        </li>
+      </ul>
+    </CzCard>
+  </section>
 </template>
 
 <style scoped>
 .mouvements {
-  padding: var(--space-4);
-}
-
-.mouvements__entete {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-1);
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.mouvements__titre {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-strong);
-}
-
-.mouvements__tout {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand-dark);
-  text-decoration: none;
+.mouvements__carte {
+  padding: var(--space-2) var(--space-4);
 }
 
 .mouvements__liste {
@@ -88,6 +68,7 @@ withDefaults(defineProps<{
   justify-content: space-between;
   align-items: center;
   gap: var(--space-2);
+  min-height: 56px;
   padding: var(--space-2) 0;
   font-size: 13px;
   border-bottom: 1px solid var(--divider-row);

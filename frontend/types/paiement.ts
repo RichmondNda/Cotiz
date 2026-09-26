@@ -26,6 +26,8 @@ export interface Paiement {
   dateVirement?: DateISO // incertain : date indiquée par le souscripteur (« vers le 10 septembre »)
   declareLe: DateISO
   preuve: Preuve
+  /** Commentaire libre du souscripteur (« versement fait par mon frère »). */
+  commentaire?: string
   repartition: RepartitionEcheance[]
   /** true si le gestionnaire a modifié la répartition proposée. */
   repartitionAjustee: boolean

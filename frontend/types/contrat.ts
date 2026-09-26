@@ -16,5 +16,7 @@ export interface Contrat {
   signeLe?: DateISO
   /** Signature de l'association à la création du projet (« Je signe ce contrat au nom de l'association »). */
   signeParAssociationLe?: DateISO
+  /** Signataire pour l'association (« Awa Koné, trésorière »). */
+  signataireAssociation?: string
   pdfUrl?: string
 }

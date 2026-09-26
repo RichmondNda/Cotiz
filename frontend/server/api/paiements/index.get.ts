@@ -1,11 +1,14 @@
-// GET /api/paiements?statut=&souscripteurId=&projetId=&associationId= — paiements déclarés, plus récents d'abord.
+// GET /api/paiements?statut=&souscripteurId=&projetId=&associationId= — paiements déclarés, plus récents d'abord
+// (souscripteur connecté : les siens).
 // Scénarios : `file-vide` (aucun en attente), `aucun-paiement`.
 import { store } from '../../mocks/store'
 
 export default defineMockHandler((event, scenario) => {
   if (scenario === 'aucun-paiement') return []
   const statut = filtre(event, 'statut')
-  const souscripteurId = filtre(event, 'souscripteurId')
+  const session = utilisateurSession(event)
+  // Souscripteur : uniquement ses propres paiements.
+  const souscripteurId = session?.role === 'souscripteur' ? session.id : filtre(event, 'souscripteurId')
   const projetId = filtre(event, 'projetId')
   const associationId = filtre(event, 'associationId')
   return store.paiements

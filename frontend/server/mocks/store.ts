@@ -2,7 +2,7 @@
 // Les mutations (valider un paiement, signer un contrat…) viendront avec les lots qui en ont besoin.
 import type { Association, Contrat, Demande, Echeance, Gestionnaire, Notification, Paiement, Plan, Projet, Souscripteur, Souscription } from '~~/types'
 import * as ref from './referentiel'
-import { genererEcheances, paiementsEnAttente, paiementsMoussa } from './generation'
+import { genererEcheances, paiementsEnAttente, paiementsMoussa, rendreContrat } from './generation'
 
 export interface StoreMocks {
   plans: Plan[]
@@ -33,7 +33,16 @@ function construire(): StoreMocks {
     souscriptions: ref.souscriptions,
     echeances,
     paiements: [...paiementsEnAttente(), ...paiementsMoussa()],
-    contrats: ref.contrats,
+    contrats: ref.contrats.map((c) => {
+      const association = ref.associations.find(a => a.id === c.associationId)!
+      const principal = ref.gestionnaires.find(g => g.associationId === c.associationId && g.role === 'principal')
+      return {
+        ...c,
+        texte: rendreContrat(projet(c.projetId), association, ref.souscripteurs.find(s => s.id === c.souscripteurId)!),
+        signataireAssociation: principal ? [`${principal.prenom} ${principal.nom}`, principal.fonction].filter(Boolean).join(', ') : '[SIGNATAIRE]',
+        signeParAssociationLe: c.signeParAssociationLe ?? '[DATE]',
+      }
+    }),
     notifications: ref.notifications,
     demandes: ref.demandes,
   })

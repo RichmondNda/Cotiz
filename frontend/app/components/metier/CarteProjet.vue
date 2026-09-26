@@ -6,6 +6,7 @@
   - souscripteur : le reste à payer domine. À jour : bordure standard ; en retard : bordure danger 2 px,
     montant en danger-fg ; signature attendue : pointillé warning, contenu masqué ; terminé : grisé.
   Toute la carte mène au détail (`to`) ; le bouton d'action a sa propre destination.
+  Slot `pied` : remplace le contenu du pied (deux textes, fiche association).
 -->
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
@@ -178,37 +179,39 @@ function ouvrir(e: MouseEvent | KeyboardEvent) {
     </template>
 
     <div class="ft">
-      <CzAvatarPile
-        v-if="avatars.length && !contenuMasque"
-        :personnes="avatars"
-        :total="avatarsTotal"
-        :reste="avatarsReste"
-      />
-      <div
-        v-else-if="pied && !contenuMasque"
-        class="next"
-      >
-        <span v-if="pied.libelle">{{ pied.libelle }}</span><b>{{ pied.valeur }}</b>
-      </div>
-      <span
-        v-else-if="aidePied"
-        class="cz-help"
-      >{{ aidePied }}</span>
-      <span v-else />
-      <CzBadge
-        v-if="alerte && !contenuMasque"
-        :ton="alerte.ton"
-      >
-        {{ alerte.texte }}
-      </CzBadge>
-      <CzButton
-        v-else-if="action"
-        taille="sm"
-        :variante="action.variante ?? 'primaire'"
-        :to="action.to"
-      >
-        {{ action.label }}
-      </CzButton>
+      <slot name="pied">
+        <CzAvatarPile
+          v-if="avatars.length && !contenuMasque"
+          :personnes="avatars"
+          :total="avatarsTotal"
+          :reste="avatarsReste"
+        />
+        <div
+          v-else-if="pied && !contenuMasque"
+          class="next"
+        >
+          <span v-if="pied.libelle">{{ pied.libelle }}</span><b>{{ pied.valeur }}</b>
+        </div>
+        <span
+          v-else-if="aidePied"
+          class="cz-help"
+        >{{ aidePied }}</span>
+        <span v-else />
+        <CzBadge
+          v-if="alerte && !contenuMasque"
+          :ton="alerte.ton"
+        >
+          {{ alerte.texte }}
+        </CzBadge>
+        <CzButton
+          v-else-if="action"
+          taille="sm"
+          :variante="action.variante ?? 'primaire'"
+          :to="action.to"
+        >
+          {{ action.label }}
+        </CzButton>
+      </slot>
     </div>
   </article>
 </template>

@@ -40,12 +40,17 @@ export const associations: Association[] = [
     id: 'entraide-yopougon', nom: 'Entraide Yopougon', sigle: 'EY', type: 'association', ville: 'Abidjan', pays: 'Côte d’Ivoire',
     telephoneContact: '+225 07 08 09 10 11', emailContact: 'awa@entraide.ci',
     statut: 'active', planId: 'essentiel', abonnementProchaineEcheance: '[DATE]',
-    modalitesPaiement: [{ moyen: 'mobile_money' }, { moyen: 'virement' }],
+    // Coordonnées affichées dans « Comment payer » (MbAssociation, MbProjet).
+    modalitesPaiement: [
+      { moyen: 'mobile_money', numeroMobileMoney: '+225 07 08 09 10 11', operateur: '[Opérateur]' },
+      { moyen: 'virement', iban: '[IBAN DE L’ASSOCIATION]' },
+    ],
     nbProjets: 3, nbSouscripteurs: 52, nbGestionnaires: 2, creeeLe: '2024-02-03',
   },
   {
-    id: 'ressortissants-man', nom: 'Association des ressortissants de Man', sigle: 'AR', type: 'association', ville: 'Abidjan', pays: 'Côte d’Ivoire',
-    statut: 'impayee', planId: 'pro', modalitesPaiement: [{ moyen: 'mobile_money' }],
+    id: 'ressortissants-man', nom: 'Association des ressortissants de Man', sigle: 'RM', type: 'association', ville: 'Abidjan', pays: 'Côte d’Ivoire',
+    statut: 'impayee', planId: 'pro',
+    modalitesPaiement: [{ moyen: 'mobile_money', numeroMobileMoney: '+225 [XX XX XX XX]', operateur: '[Opérateur]' }],
     nbProjets: 5, nbSouscripteurs: 142, nbGestionnaires: 1, creeeLe: '2025-01-14',
   },
   {
@@ -64,7 +69,16 @@ export const gestionnaires: Gestionnaire[] = [
 export const superadmin = { id: 'richy', prenom: 'Richy' }
 
 // ---------------------------------------------------------------- Projets
-const CONTRAT_MODELE = '[TEXTE DU CONTRAT] — {nom_souscripteur}, {montant}, {frequence}, {date_debut}'
+// Texte du contrat de la maquette (MbContrat). `**…**` : passage en gras ; paragraphes séparés par une ligne vide.
+// Variables remplacées à la génération du contrat de chaque souscripteur (mocks/store.ts).
+export const CONTRAT_MODELE = [
+  '**Entre** l’association {association}, et **{nom_souscripteur}**, souscripteur, joignable au {telephone}.',
+  '**Article 1 — Objet.** Le souscripteur s’engage à participer au financement du projet {projet}.',
+  '**Article 2 — Montant.** La participation totale est de {montant} CFA : un fonds d’entrée de {fonds_entree}, puis {nb_echeances} échéances {frequence} de {montant_echeance}, payables le {jour} de chaque mois.',
+  '**Article 3 — Paiement.** Les versements sont effectués par mobile money ou virement, puis déclarés sur Cotiz. Un paiement n’est acquis qu’après validation par l’association.',
+  '**Article 4 — Retard.** [CONDITIONS EN CAS DE RETARD DÉFINIES PAR L’ASSOCIATION]',
+  '**Article 5 — Résiliation.** [CONDITIONS DE RÉSILIATION DÉFINIES PAR L’ASSOCIATION]',
+].join('\n\n')
 
 export const projets: Projet[] = [
   {
@@ -171,7 +185,7 @@ export const ANNUAIRE_PLACEHOLDERS: Record<string, { totalVerse: '[MONTANT]', to
 export const contrats: Contrat[] = [
   { id: 'ct-moussa-centre', projetId: 'centre-communautaire', souscripteurId: 'moussa-diarra', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 500000, statut: 'signe', envoyeLe: '2026-03-12', signeLe: '2026-03-12' },
   { id: 'ct-moussa-mutuelle', projetId: 'mutuelle-sante', souscripteurId: 'moussa-diarra', associationId: 'ressortissants-man', texte: '[TEXTE DU CONTRAT]', engagement: 120000, statut: 'signe', envoyeLe: '2026-07-01', signeLe: '2026-07-01' },
-  { id: 'ct-moussa-voyage', projetId: 'voyage-solidaire', souscripteurId: 'moussa-diarra', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 170000, statut: 'a_signer', envoyeLe: '2026-09-18' },
+  { id: 'ct-moussa-voyage', projetId: 'voyage-solidaire', souscripteurId: 'moussa-diarra', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 170000, statut: 'a_signer', envoyeLe: '2026-09-18', signeParAssociationLe: '2026-09-18' },
   { id: 'ct-adjoua-voyage', projetId: 'voyage-solidaire', souscripteurId: 'adjoua-yao', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 170000, statut: 'a_signer', envoyeLe: '[DATE]' },
   { id: 'ct-fatou-centre', projetId: 'centre-communautaire', souscripteurId: 'fatou-traore', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 500000, statut: 'a_signer', envoyeLe: '[DATE]' },
 ]
@@ -180,7 +194,7 @@ export const contrats: Contrat[] = [
 export const notifications: Notification[] = [
   // Moussa Diarra (MbNotifications) — 2 non lues
   { id: 'nt-mb-1', destinataireId: 'moussa-diarra', type: 'contrat_a_signer', titre: 'Contrat à signer', message: 'Entraide Yopougon vous invite à signer le contrat du projet Voyage solidaire.', creeeLe: '2026-09-25T09:12:00', lue: false, lien: '/projets/voyage-solidaire/contrat', libelleAction: 'Signer le contrat' },
-  { id: 'nt-mb-2', destinataireId: 'moussa-diarra', type: 'echeance_en_retard', titre: 'Échéances en retard', message: 'Centre communautaire : 50 000 F en retard (août et septembre).', creeeLe: '2026-09-25T08:00:00', lue: false, lien: '/paiements/declarer', libelleAction: 'Régulariser' },
+  { id: 'nt-mb-2', destinataireId: 'moussa-diarra', type: 'echeance_en_retard', titre: 'Échéances en retard', message: 'Centre communautaire : 50 000 F en retard (août et septembre).', creeeLe: '2026-09-25T08:00:00', lue: false, lien: '/paiements/declarer?projet=centre-communautaire', libelleAction: 'Régulariser' },
   { id: 'nt-mb-3', destinataireId: 'moussa-diarra', type: 'echeance_proche', titre: 'Rappel d’échéance', message: 'Prochaine échéance le 5 octobre : 25 000 F pour Centre communautaire.', creeeLe: '2026-09-21T09:00:00', lue: true, lien: '/projets/centre-communautaire', libelleAction: 'Voir le projet' },
   { id: 'nt-mb-4', destinataireId: 'moussa-diarra', type: 'paiement_valide', titre: 'Paiement validé', message: 'Vos 10 000 F pour Mutuelle santé ont été validés.', creeeLe: '2026-09-06T09:00:00', lue: true, lien: '/historique', libelleAction: 'Voir l’historique' },
   { id: 'nt-mb-5', destinataireId: 'moussa-diarra', type: 'paiement_valide', titre: 'Paiement validé', message: 'Vos 10 000 F pour Mutuelle santé ont été validés.', creeeLe: '2026-08-06T09:00:00', lue: true, lien: '/historique', libelleAction: 'Voir l’historique' },

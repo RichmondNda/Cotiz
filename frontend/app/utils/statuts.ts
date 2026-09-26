@@ -2,6 +2,7 @@
 // À respecter partout : échéance à venir = info, déclarée ou partielle = warning, payée = success,
 // en retard = danger ; projet brouillon / terminé = neutre ; association suspendue = danger ; demande à traiter = warning.
 import type {
+  MotifRejet,
   StatutAssociation,
   StatutContrat,
   StatutDemande,
@@ -99,3 +100,18 @@ const FREQUENCES = {
 export function libelleFrequence(f: keyof typeof FREQUENCES): string {
   return FREQUENCES[f]
 }
+
+/** Motifs de rejet d'un paiement, tels qu'affichés au souscripteur (« Motif : preuve illisible »). */
+export const MOTIFS_REJET: Record<MotifRejet, string> = {
+  preuve_illisible: 'preuve illisible',
+  montant_non_recu: 'montant non reçu',
+  montant_different: 'montant différent',
+  autre: 'autre',
+}
+
+/** Libellés des moyens de paiement. */
+export const MOYENS_PAIEMENT = {
+  mobile_money: 'Mobile money',
+  virement: 'Virement bancaire',
+  especes: 'Espèces',
+} as const

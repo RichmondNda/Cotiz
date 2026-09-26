@@ -1,5 +1,6 @@
 // Données dérivées des séquences de la maquette : échéances (grilles) et paiements.
-import type { Echeance, Paiement, Projet, StatutEcheance } from '~~/types'
+import type { Association, Echeance, Paiement, Projet, Souscripteur, StatutEcheance } from '~~/types'
+import { formatFCFA } from '../../app/utils/format'
 
 const CODES: Record<string, StatutEcheance> = { o: 'payee', l: 'en_retard', W: 'declaree', P: 'partielle', f: 'a_venir' }
 
@@ -13,6 +14,27 @@ export function idEcheance(projetId: string, souscripteurId: string, rang: numbe
   return `${projetId}:${souscripteurId}:${rang}`
 }
 
+/** Contrat final : variables du modèle du projet remplacées (texte affiché dans MbContrat). */
+export function rendreContrat(projet: Projet, association: Association, souscripteur: Souscripteur): string {
+  const FREQUENCES: Record<Projet['frequence'], string> = {
+    hebdomadaire: 'hebdomadaires', mensuelle: 'mensuelles', trimestrielle: 'trimestrielles', semestrielle: 'semestrielles', annuelle: 'annuelles',
+  }
+  const engagement = projet.engagementParSouscripteur ?? (projet.fondsEntree ?? 0) + (projet.nbEcheances ?? 0) * projet.montantEcheance
+  const valeurs: Record<string, string> = {
+    association: association.nom,
+    nom_souscripteur: `${souscripteur.prenom} ${souscripteur.nom}`,
+    telephone: souscripteur.telephone,
+    projet: projet.nom,
+    montant: formatFCFA(engagement),
+    fonds_entree: formatFCFA(projet.fondsEntree ?? 0),
+    nb_echeances: String(projet.nbEcheances ?? '[N]'),
+    frequence: FREQUENCES[projet.frequence],
+    montant_echeance: formatFCFA(projet.montantEcheance),
+    jour: String(projet.jourEcheance ?? '[N]'),
+  }
+  return projet.contratModele.replace(/\{(\w+)\}/g, (tout, cle: string) => valeurs[cle] ?? tout)
+}
+
 /**
  * Échéances d'un souscripteur sur un projet à dates fixes : rang 0 = fonds d'entrée (à la date de début),
  * puis une échéance par mois à partir de la date de début. Au-delà de la séquence : à venir.
@@ -20,7 +42,8 @@ export function idEcheance(projetId: string, souscripteurId: string, rang: numbe
 export function genererEcheances(projet: Projet, souscripteurId: string, sequence: string): Echeance[] {
   const nb = projet.nbEcheances ?? 0
   const debut = projet.dateDebut
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(debut)) return []
+  // Date de début non fournie (placeholder `[DATE]`, Voyage solidaire) : échéances sans date précise.
+  const datee = /^\d{4}-\d{2}-\d{2}$/.test(debut)
   const lignes: Echeance[] = []
   const total = (projet.fondsEntree ? 1 : 0) + nb
   for (let i = 0; i < total; i++) {
@@ -34,7 +57,7 @@ export function genererEcheances(projet: Projet, souscripteurId: string, sequenc
       souscripteurId,
       rang: i,
       estFondsEntree,
-      date: ajouterMois(debut, mois),
+      date: datee ? ajouterMois(debut, mois) : debut,
       montant,
       montantPaye: statut === 'payee' ? montant : statut === 'partielle' ? montant / 2 : 0,
       statut,
