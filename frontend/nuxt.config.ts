@@ -1,6 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: ['@nuxt/eslint'],
+
+  // Composants auto-importés par leur nom de fichier (CzButton, GrilleEcheances, PublicHeader…),
+  // sans préfixe de dossier.
+  components: [{ path: '~/components', pathPrefix: false }],
+  // Composables d'accès aux données (useProjets, usePaiement…) : un fichier par ressource.
+  imports: { dirs: ['composables/api'] },
   devtools: { enabled: true },
 
   app: {
@@ -21,6 +27,13 @@ export default defineNuxtConfig({
 
   // Design system Cotiz : fichiers copiés tels quels depuis design/css, puis surcouche applicative.
   css: ['~/assets/css/cotiz-tokens.css', '~/assets/css/bundle.css', '~/assets/css/app.css'],
+  runtimeConfig: {
+    public: {
+      // Base des appels d'API. V0 : handlers Nitro locaux (mocks). Brancher NestJS = changer cette valeur
+      // (NUXT_PUBLIC_API_BASE).
+      apiBase: '/api',
+    },
+  },
   compatibilityDate: '2025-07-15',
 
   typescript: {

@@ -11,6 +11,7 @@ export type TypeNotification
     | 'contrat_signe'
     | 'relance'
     | 'abonnement'
+    | 'inscriptions' // « 12 / 30 inscrits » (gestionnaire)
 
 export interface Notification {
   id: Identifiant
@@ -22,4 +23,6 @@ export interface Notification {
   lue: boolean
   /** Route de l'écran d'action ouvert au clic. */
   lien?: string
+  /** Libellé du bouton d'action (« Signer le contrat », « Vérifier et valider »). */
+  libelleAction?: string
 }

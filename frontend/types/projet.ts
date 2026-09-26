@@ -34,12 +34,16 @@ export interface Projet {
   instructionsPaiement?: string
   contratModele: string // texte avec variables {nom_souscripteur}, {montant}, {frequence}, {date_debut}
 
-  // Indicateurs (calculés côté back, dénormalisés pour les listes et tableaux de bord)
-  nbSouscripteurs: number
-  montantCollecte: MontantFCFA
-  montantAttenduADate: MontantFCFA
-  tauxRecouvrement: number // en % entier (82)
+  // Indicateurs (calculés côté back, dénormalisés pour les listes et tableaux de bord).
+  // Les placeholders de la maquette (`[N]`, `[MONTANT]`) sont conservés tels quels (Voyage solidaire).
+  nbSouscripteurs: number | '[N]'
+  montantCollecte: MontantFCFA | '[MONTANT]'
+  montantAttenduADate: MontantFCFA | '[MONTANT]'
+  tauxRecouvrement: number | '[N]' // en % entier (82)
+  /** Part de l'engagement total déjà collectée, en % (barre des cartes projet : 37 %). */
+  avancement: number | '[N]'
   nbEnRetard: number
+  nbSignaturesAttendues: number
   nbPaiementsAValider: number
   prochaineEcheance?: DateISO
   /** Engagement total par souscripteur (dates fixes) : fonds d'entrée + n × échéance. */

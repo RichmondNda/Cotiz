@@ -33,7 +33,7 @@ export interface Demande {
   // Étape 3 — Vos besoins
   besoins: {
     souscripteursEstimes: string // sélecteur par tranches ; libellés des tranches à reprendre de la maquette
-    projetsEnvisages: number
+    projetsEnvisages: number | '[N]'
     planSouhaiteId: Identifiant
     source: string // « Comment avez-vous connu Cotiz ? »
   }
