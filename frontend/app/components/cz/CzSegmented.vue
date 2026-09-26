@@ -1,10 +1,14 @@
-<!-- Contrôle segmenté : 2 à 4 choix exclusifs visibles (dates fixes / cycle roulant, cartes / tableau). -->
+<!--
+  Contrôle segmenté : 2 à 4 choix exclusifs visibles (dates fixes / cycle roulant, cartes / tableau).
+  `pleineLargeur` : occupe toute la largeur, segments de même taille (onglets des écrans mobiles).
+-->
 <script setup lang="ts" generic="V extends string | number">
 const props = withDefaults(defineProps<{
   options: { valeur: V, label: string }[]
   disabled?: boolean
   label?: string
-}>(), { disabled: false, label: undefined })
+  pleineLargeur?: boolean
+}>(), { disabled: false, label: undefined, pleineLargeur: false })
 
 const modele = defineModel<V>({ required: true })
 const racine = ref<HTMLElement | null>(null)
@@ -33,7 +37,7 @@ function surTouche(e: KeyboardEvent, i: number) {
   <div
     ref="racine"
     class="cz-seg"
-    :class="{ 'is-disabled': disabled }"
+    :class="{ 'is-disabled': disabled, 'is-plein': pleineLargeur }"
     role="radiogroup"
     :aria-label="label"
     :aria-disabled="disabled || undefined"
@@ -55,6 +59,15 @@ function surTouche(e: KeyboardEvent, i: number) {
 [role="radio"]:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+.cz-seg.is-plein {
+  display: flex;
+}
+
+.cz-seg.is-plein [role="radio"] {
+  flex: 1;
+  text-align: center;
 }
 
 .cz-seg.is-disabled span {

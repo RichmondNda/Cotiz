@@ -14,6 +14,8 @@ export interface EntreeNavigation {
   tonCompteur?: 'warning' | 'danger'
   /** Actif aussi sur les sous-routes (défaut) ; `exact` pour les accueils. */
   exact?: boolean
+  /** Autres chemins (et leurs sous-routes) qui rendent l'entrée active (« Plus » de la navigation basse). */
+  aussi?: string[]
   /** Entrée d'action (déconnexion) plutôt qu'un lien. */
   action?: 'deconnexion'
 }
@@ -40,7 +42,10 @@ export const NAV_GESTIONNAIRE_MOBILE: EntreeNavigation[] = [
   { cle: 'projets', label: 'Projets', to: '/asso/projets', icone: 'projet' },
   { cle: 'paiements', label: 'Paiements', to: '/asso/paiements', icone: 'paiement', compteur: 'paiementsAValider', tonCompteur: 'danger' },
   { cle: 'membres', label: 'Membres', to: '/asso/souscripteurs', icone: 'souscripteurs' },
-  { cle: 'plus', label: 'Plus', to: '/asso/plus', icone: 'menu' },
+  {
+    cle: 'plus', label: 'Plus', to: '/asso/plus', icone: 'menu',
+    aussi: ['/asso/relances', '/asso/contrats', '/asso/equipe', '/asso/abonnement', '/asso/parametres', '/asso/notifications', '/asso/profil'],
+  },
 ]
 
 export const NAV_PLATEFORME: { principal: EntreeNavigation[], bas: EntreeNavigation[] } = {
@@ -75,5 +80,5 @@ export const NAV_SOUSCRIPTEUR_NOTIFICATIONS: EntreeNavigation = {
 export function estEntreeActive(e: EntreeNavigation, chemin: string): boolean {
   const c = chemin.replace(/\/$/, '') || '/'
   if (e.exact) return c === e.to
-  return c === e.to || c.startsWith(`${e.to}/`)
+  return [e.to, ...(e.aussi ?? [])].some(to => c === to || c.startsWith(`${to}/`))
 }

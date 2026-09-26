@@ -13,7 +13,9 @@ const props = withDefaults(defineProps<{
   erreur?: string
   requis?: boolean
   id?: string
-}>(), { label: undefined, aide: undefined, erreur: undefined, requis: false, id: undefined })
+  /** Libellé lu par les lecteurs d'écran mais non affiché (champ dont la maquette ne montre que le placeholder). */
+  libelleMasque?: boolean
+}>(), { label: undefined, aide: undefined, erreur: undefined, requis: false, id: undefined, libelleMasque: false })
 
 const id = props.id ?? `cz-${useId()}`
 const idAide = `${id}-aide`
@@ -31,6 +33,7 @@ provide(CLE_CHAMP, {
     <label
       v-if="label"
       class="cz-label"
+      :class="{ 'sr-only': libelleMasque }"
       :for="id"
     >{{ label }}{{ requis ? ' ' : '' }}<span
       v-if="requis"

@@ -67,3 +67,23 @@ export function couverturePaiement(
   }
   return cap(morceaux.join(' + '))
 }
+
+/**
+ * Couverture d'un paiement dans la file de validation, en minuscules :
+ * « sept., oct., nov. » · « solde d’août » · « fonds d’entrée » ; `annee` ajoute l'année de la dernière échéance
+ * datée (« sept., oct., nov. 2026 »).
+ */
+export function couvertureFile(
+  paiement: { statut: string, repartition: { echeanceId: string, montantAffecte: number }[] },
+  echeances: Pick<Echeance, 'id' | 'date' | 'rang' | 'estFondsEntree' | 'montant' | 'statut'>[],
+  formatMontant: (n: number) => string,
+  options: { annee?: boolean } = {},
+): string {
+  if (echeances.length && echeances.every(e => e.estFondsEntree)) return 'fonds d’entrée'
+  const texte = couverturePaiement(paiement, new Map(echeances.map(e => [e.id, e])), formatMontant)
+  if (texte === '—') return texte
+  const minuscule = texte.charAt(0).toLowerCase() + texte.slice(1)
+  const datees = echeances.filter(estDatee).sort((a, b) => a.rang - b.rang)
+  const derniere = datees.at(-1)
+  return options.annee && derniere ? `${minuscule} ${lireDate(derniere.date).getFullYear()}` : minuscule
+}

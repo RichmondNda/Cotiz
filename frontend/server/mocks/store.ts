@@ -1,6 +1,6 @@
 // Store en mémoire des mocks : copie modifiable des données de référence, partagée par les handlers.
 // Les mutations (valider un paiement, signer un contrat…) viendront avec les lots qui en ont besoin.
-import type { Association, Contrat, Demande, Echeance, Gestionnaire, Notification, Paiement, Plan, Projet, Souscripteur, Souscription } from '~~/types'
+import type { Association, Contrat, Demande, Echeance, EnvoiRelance, Gestionnaire, Notification, Paiement, Plan, Projet, RegleRelance, Souscripteur, Souscription } from '~~/types'
 import * as ref from './referentiel'
 import { genererEcheances, paiementsEnAttente, paiementsMoussa, paiementsValidesCentre, rendreContrat } from './generation'
 
@@ -16,6 +16,13 @@ export interface StoreMocks {
   contrats: Contrat[]
   notifications: Notification[]
   demandes: Demande[]
+  /** Coordonnées vues par l'association (placeholders de la maquette), modifiables depuis la fiche. */
+  coordonneesAssociation: Record<string, { email?: string, adresse?: string }>
+  /** Relances envoyées par échéance en retard (frise de la fiche souscripteur). */
+  relancesEcheances: typeof ref.RELANCES_ECHEANCES
+  dernieresRelances: typeof ref.DERNIERES_RELANCES
+  reglesRelance: RegleRelance[]
+  envoisRelance: EnvoiRelance[]
 }
 
 function construire(): StoreMocks {
@@ -52,6 +59,11 @@ function construire(): StoreMocks {
     }),
     notifications: ref.notifications,
     demandes: ref.demandes,
+    coordonneesAssociation: ref.COORDONNEES_ASSOCIATION,
+    relancesEcheances: ref.RELANCES_ECHEANCES,
+    dernieresRelances: ref.DERNIERES_RELANCES,
+    reglesRelance: ref.REGLES_RELANCE,
+    envoisRelance: ref.ENVOIS_RELANCE,
   })
 }
 

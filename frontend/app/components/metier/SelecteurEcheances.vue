@@ -9,15 +9,20 @@
   badges « En retard » / « Partiel » seulement ; `lignesMin` limite l'affichage aux lignes couvertes, complétées
   jusqu'à ce minimum (la répartition porte toujours sur toutes les échéances fournies).
   v-model:repartition expose le résultat ; `valide` = reste nul et montant saisi.
+  Détail d'un paiement (gestionnaire) : `selectionInitiale` part de la répartition déclarée (au lieu de la
+  pré-sélection automatique), `badge` impose le badge de chaque ligne, `sansEntete` retire l'en-tête.
   Slots `entete` et `pied` (reçoivent { repartition, montant }) pour les variantes d'écran.
 -->
 <script setup lang="ts">
 import { allocate, repartitionManuelle, type EcheanceARepartir, type Repartition } from '~/utils/allocate'
 import { formatFCFA } from '~/utils/format'
+import type { LibelleStatut } from '~/utils/statuts'
 
 export interface EcheanceSelecteur extends EcheanceARepartir {
   label: string
   enRetard?: boolean
+  /** Badge imposé, affiché que la ligne soit cochée ou non (vue gestionnaire). */
+  badge?: LibelleStatut
 }
 
 const props = withDefaults(defineProps<{
@@ -28,14 +33,22 @@ const props = withDefaults(defineProps<{
   lectureSeule?: boolean
   vue?: 'gestionnaire' | 'souscripteur'
   lignesMin?: number
-}>(), { lectureSeule: false, vue: 'gestionnaire', lignesMin: undefined })
+  /** Échéances cochées au départ (répartition déclarée) ; la répartition est alors manuelle. */
+  selectionInitiale?: string[]
+  sansEntete?: boolean
+}>(), { lectureSeule: false, vue: 'gestionnaire', lignesMin: undefined, selectionInitiale: undefined, sansEntete: false })
 
 const repartition = defineModel<Repartition | null>('repartition', { default: null })
 const cochees = ref<Set<string>>(new Set())
 const manuel = ref(false)
 
 // Nouvelle saisie du montant : on repart de la pré-sélection automatique.
-watch(() => [props.montant, props.echeances] as const, ([m]) => {
+watch(() => [props.montant, props.echeances, props.selectionInitiale] as const, ([m]) => {
+  if (props.selectionInitiale) {
+    manuel.value = true
+    cochees.value = new Set(props.selectionInitiale)
+    return
+  }
   manuel.value = false
   cochees.value = new Set(m ? allocate(m, props.echeances).lignes.filter(l => l.affecte > 0).map(l => l.id) : [])
 }, { immediate: true, deep: true })
@@ -100,7 +113,10 @@ function classeLigne(e: EcheanceSelecteur) {
 
 <template>
   <div class="cz-alloc">
-    <div class="hd">
+    <div
+      v-if="!sansEntete"
+      class="hd"
+    >
       <slot
         name="entete"
         :repartition="resultat"
@@ -143,7 +159,14 @@ function classeLigne(e: EcheanceSelecteur) {
         /></span>
         <div class="lbl">
           <b>{{ e.label }}</b>
-          <template v-if="estMembre">
+          <CzBadge
+            v-if="e.badge && !estMembre"
+            :ton="e.badge.ton"
+            petit
+          >
+            {{ e.badge.libelle }}
+          </CzBadge>
+          <template v-else-if="estMembre">
             <CzBadge
               v-if="ligne(e)?.etat === 'partial'"
               ton="warning"

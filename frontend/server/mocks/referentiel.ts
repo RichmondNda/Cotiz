@@ -4,10 +4,12 @@ import type {
   Association,
   Contrat,
   Demande,
+  EnvoiRelance,
   Gestionnaire,
   Notification,
   Plan,
   Projet,
+  RegleRelance,
   Souscripteur,
   Souscription,
 } from '~~/types'
@@ -200,6 +202,50 @@ export const souscriptions: Souscription[] = [
 export const ANNUAIRE_PLACEHOLDERS: Record<string, { totalVerse: '[MONTANT]', totalReste: '[MONTANT]' }> = {
   'ibrahim-toure': { totalVerse: '[MONTANT]', totalReste: '[MONTANT]' },
 }
+
+/**
+ * Coordonnées affichées côté association (annuaire, fiche), placeholders de la maquette compris :
+ * elles ne modifient pas le profil vu par le souscripteur lui-même.
+ */
+export const COORDONNEES_ASSOCIATION: Record<string, { email?: string, adresse?: string }> = {
+  'moussa-diarra': { email: '[email]', adresse: 'Yopougon, Abidjan' },
+  'jean-kouassi': { email: '[email]' },
+  'kadiatou-sanogo': { email: '[email]' },
+  'ibrahim-toure': { email: '[email]' },
+  'awa-kone': { adresse: 'Yopougon, Abidjan' },
+  'fatou-traore': { adresse: 'Yopougon, Abidjan' },
+}
+
+/** Relances envoyées pour une échéance en retard (frise de la fiche souscripteur, MgSouscripteur). */
+export const RELANCES_ECHEANCES: { souscripteurId: string, projetId: string, rang: number, date: string, detail: string }[] = [
+  { souscripteurId: 'moussa-diarra', projetId: 'centre-communautaire', rang: 7, date: '2026-09-10', detail: 'relance automatique envoyée' },
+  { souscripteurId: 'moussa-diarra', projetId: 'centre-communautaire', rang: 6, date: '2026-08-10', detail: 'relance envoyée par Awa Koné' },
+]
+
+/** Dernière relance reçue par chaque retardataire (MgRelances). */
+export const DERNIERES_RELANCES: Record<string, { type: 'auto' | 'manuelle', date: string }> = {
+  'moussa-diarra': { type: 'auto', date: '2026-09-20' },
+  'koffi-brou': { type: 'auto', date: '2026-09-20' },
+  'jean-kouassi': { type: 'manuelle', date: '2026-09-12' },
+  'mariam-diallo': { type: 'auto', date: '2026-09-20' },
+}
+
+/** Règles de relance automatique (MgRelances, onglet « Relances automatiques »). */
+export const REGLES_RELANCE: RegleRelance[] = [
+  { id: 'avant-3j', titre: '3 jours avant l’échéance', description: 'Rappel doux : montant et date de la prochaine échéance', ton: 'info', active: true },
+  { id: 'jour-j', titre: 'Le jour de l’échéance', description: 'Si aucun paiement n’a été déclaré', ton: 'info', active: true },
+  { id: 'retard-7j', titre: '7 jours de retard', description: 'Signale le retard et le montant dû', ton: 'warning', active: true },
+  { id: 'retard-15j', titre: '15 jours de retard', description: 'Relance ferme, copie au gestionnaire', ton: 'danger', active: true },
+]
+
+/** Historique des envois (MgRelances, onglet « Historique des envois »). */
+export const ENVOIS_RELANCE: EnvoiRelance[] = [
+  { id: 'env-5', date: '2026-09-20', type: 'automatique', projet: 'Centre communautaire', destinataires: 14, par: 'Cotiz · règle « 15 jours »' },
+  { id: 'env-4', date: '2026-09-12', type: 'manuelle', projet: 'Centre communautaire', destinataires: 3, par: 'Awa Koné' },
+  { id: 'env-3', date: '2026-09-12', type: 'automatique', projet: 'Centre communautaire', destinataires: '[N]', par: 'Cotiz · règle « 7 jours »' },
+  { id: 'env-2', date: '2026-09-05', type: 'automatique', projet: 'Tous les projets', destinataires: '[N]', par: 'Cotiz · jour d’échéance' },
+  { id: 'env-1', date: '2026-09-02', type: 'automatique', projet: 'Tous les projets', destinataires: '[N]', par: 'Cotiz · 3 jours avant' },
+]
 
 // ---------------------------------------------------------------- Contrats
 export const contrats: Contrat[] = [

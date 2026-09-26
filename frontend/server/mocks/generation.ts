@@ -73,7 +73,7 @@ export function paiementsEnAttente(): Paiement[] {
     {
       id: 'pm-awa-kone', souscripteurId: 'awa-kone', projetId: 'centre-communautaire', associationId: 'entraide-yopougon',
       montant: 75000, moyen: 'mobile_money', declareLe: '2026-09-22',
-      preuve: { type: 'image', nomFichier: 'capture_virement.jpg', url: '[URL]', reference: 'OM-20260912-4471' },
+      preuve: { type: 'image', nomFichier: 'capture_mobile_money.jpg', url: '[URL]' },
       repartition: [7, 8, 9].map(r => ({ echeanceId: centre('awa-kone', r), montantAffecte: 25000 })),
       repartitionAjustee: false, statut: 'en_attente',
     },
