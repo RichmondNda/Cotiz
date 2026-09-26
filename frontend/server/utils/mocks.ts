@@ -69,3 +69,8 @@ export function utilisateurSession(event: H3Event): UtilisateurSession | null {
       return null
   }
 }
+
+/** Erreur métier (statusMessage en ASCII : il sert de texte de statut HTTP) : `data.code` est lu par le front (`codeErreur()`) pour choisir le message affiché. */
+export function erreurMetier(statusCode: number, code: string, statusMessage: string): never {
+  throw createError({ statusCode, statusMessage, data: { code } })
+}

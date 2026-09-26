@@ -7,6 +7,8 @@ declare module '#app' {
     fab?: boolean
     /** Thème des écrans de connexion (panneau à la couleur du profil). */
     theme?: 'member' | 'manager' | 'superadmin'
+    /** Gabarit `formulaire` : lien de retour en haut à droite (absent si non défini). */
+    retour?: { label: string, to: string }
     /** Back-office : espace imposé (sinon déduit du chemin, /plateforme → super-admin). */
     espace?: 'gestionnaire' | 'superadmin'
   }

@@ -1,6 +1,6 @@
 <!--
-  En-tête du site public : logo, ancres (Fonctionnement, Tarifs, FAQ), « Se connecter » (menu de choix du profil)
-  et « Créer mon association ». Ombre douce. Mobile (< 768 px) : menu hamburger qui déplie les liens et les accès.
+  En-tête du site public, collant : logo, ancres (Fonctionnement, Tarifs, FAQ), « Se connecter » (menu de choix
+  du profil) et « Créer mon association ». Fond blanc et ombre douce ; ombre renforcée après défilement. Mobile (< 768 px) : menu hamburger qui déplie les liens et les accès.
 -->
 <script setup lang="ts">
 import type { ElementMenu } from '~/components/cz/CzMenu.vue'
@@ -20,10 +20,23 @@ const LIENS = [
 ]
 
 watch(() => route.fullPath, () => (menuOuvert.value = false))
+
+const defile = ref(false)
+function surDefilement() {
+  defile.value = window.scrollY > 8
+}
+onMounted(() => {
+  surDefilement()
+  window.addEventListener('scroll', surDefilement, { passive: true })
+})
+onBeforeUnmount(() => window.removeEventListener('scroll', surDefilement))
 </script>
 
 <template>
-  <div class="pub-entete">
+  <div
+    class="pub-entete"
+    :class="{ 'is-scrolled': defile }"
+  >
     <header class="pub-entete__barre">
       <NuxtLink
         to="/"
@@ -124,7 +137,8 @@ watch(() => route.fullPath, () => (menuOuvert.value = false))
 
 <style scoped>
 .pub-entete {
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 20;
 }
 
@@ -136,6 +150,11 @@ watch(() => route.fullPath, () => (menuOuvert.value = false))
   padding: 0 var(--space-12);
   background: var(--surface);
   box-shadow: var(--shadow);
+  transition: box-shadow .2s;
+}
+
+.is-scrolled .pub-entete__barre {
+  box-shadow: var(--shadow-hover);
 }
 
 .pub-entete__logo {

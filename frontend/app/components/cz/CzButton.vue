@@ -172,6 +172,13 @@ const inactif = computed(() => props.disabled || props.chargement)
   transition-delay: .3s;
 }
 
+/* Écrans tactiles : pas de survol ; l'infobulle masquée ne doit pas élargir la page (bouton en bord d'écran). */
+@media (hover: none) {
+  .cz-btn__tip {
+    display: none;
+  }
+}
+
 .cz-btn--icon.is-nu {
   --_bg: transparent;
   --_bd: transparent;

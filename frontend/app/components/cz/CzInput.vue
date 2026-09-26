@@ -2,12 +2,14 @@
   Champ de saisie `cz-input` (44 px).
   Types : texte, email, password (bouton afficher), search (icône loupe, 40 px), date, tel,
   montant (suffixe « F CFA », milliers formatés à la saisie, clavier numérique, v-model numérique),
-  telephone (préfixe indicatif +225), textarea.
+  telephone (préfixe indicatif +225 — slot `prefixe` pour le personnaliser —, chiffres groupés par deux à la saisie),
+  textarea.
   États : erreur, désactivé, lecture seule (`copiable` ajoute un bouton copier), chargement (spinner à droite).
 -->
 <script setup lang="ts">
 import type { NomIcone } from '~/utils/icons'
 import { formatSaisieMontant, lireMontant } from '~/utils/format'
+import { formatSaisieTelephone } from '~/utils/validation'
 import { useChamp } from '~/composables/useChamp'
 
 type TypeChamp = 'text' | 'email' | 'password' | 'search' | 'date' | 'tel' | 'montant' | 'telephone' | 'textarea'
@@ -91,6 +93,11 @@ function saisir(e: Event) {
     const formate = formatSaisieMontant(cible.value)
     cible.value = formate
     modele.value = lireMontant(formate)
+  }
+  else if (props.type === 'telephone') {
+    const formate = formatSaisieTelephone(cible.value)
+    cible.value = formate
+    modele.value = formate
   }
   else {
     modele.value = cible.value

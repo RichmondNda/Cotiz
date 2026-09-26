@@ -80,7 +80,10 @@ const COLONNES = [
           {{ l.label }}
         </NuxtLink>
       </nav>
-      <div class="pub-pied__colonne">
+      <div
+        id="contact"
+        class="pub-pied__colonne"
+      >
         <div class="pub-pied__titre">
           Contact
         </div>

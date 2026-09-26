@@ -46,6 +46,9 @@ export const ICONES = {
   'image': '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
   'telephone': '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/>',
   'plans': '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
+  // Reprises du HTML de référence (design/html/public) : icônes hors du jeu de 44, utilisées par l'espace public.
+  'cadenas': '<rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+  'imprimer': '<path d="M7 9V3.5h10V9M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="6.5" rx="1"/>',
   'facturation': '<path d="M5.5 3h13v18l-3-2-3.5 2-3.5-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
 } as const
 

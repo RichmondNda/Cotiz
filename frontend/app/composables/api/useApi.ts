@@ -31,3 +31,28 @@ export function useApi<T>(
 
   return { data, pending, error, refresh, status }
 }
+
+/**
+ * Mutations (POST, PATCH…) : à appeler dans `setup`, renvoie une fonction `$fetch` sur la même base que `useApi`,
+ * avec propagation du `?scenario=` de la page (ex. `chargement` pour observer l'état d'envoi).
+ * L'erreur de l'API est levée telle quelle : lire son code métier avec `codeErreur()`.
+ */
+export function useAppelApi() {
+  const config = useRuntimeConfig()
+  const route = useRoute()
+  return <T>(chemin: string, options: { method?: 'POST' | 'PATCH' | 'PUT' | 'DELETE', body?: object } = {}) => {
+    const scenario = route.query.scenario
+    return $fetch<T>(chemin, {
+      baseURL: config.public.apiBase,
+      method: options.method ?? 'POST',
+      body: options.body,
+      query: typeof scenario === 'string' && scenario ? { scenario } : undefined,
+    })
+  }
+}
+
+/** Code d'erreur métier (`data.code`) d'une erreur levée par une mutation, sinon `undefined`. */
+export function codeErreur<C extends string = string>(e: unknown): C | undefined {
+  const code = (e as { data?: { data?: { code?: unknown } } })?.data?.data?.code
+  return typeof code === 'string' ? (code as C) : undefined
+}
