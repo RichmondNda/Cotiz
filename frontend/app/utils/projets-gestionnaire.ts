@@ -1,15 +1,13 @@
 // Présentation des projets dans l'espace gestionnaire (tableau de bord, liste des projets) :
 // sous-titre, avancement, alerte et pied de la carte projet. Les placeholders (`[N]`, `[MONTANT]`) passent tels quels.
-import type { Projet } from '~~/types'
-import { formatDate, formatFCFA, formatMois, formatPourcent, pluriel } from './format'
+import type { Association, Projet } from '~~/types'
+import { estDate, formatDate, formatFCFA, formatMois, formatPourcent, pluriel } from './format'
 import { libelleFrequence } from './statuts'
 
 export type TonAlerte = 'danger' | 'warning' | 'info'
 
 /** Barre d'un projet dont l'avancement est un placeholder `[N]` : largeur de la maquette (30 %). */
 const AVANCEMENT_PLACEHOLDER = 30
-
-const estDate = (d?: string): d is string => Boolean(d && /^\d{4}-\d{2}-\d{2}/.test(d))
 
 export const lienProjetGestionnaire = (p: Projet) => `/asso/projets/${p.id}`
 
@@ -94,4 +92,35 @@ export function proprietesCarteProjet(p: Projet) {
     progressionDroite: a.droite,
     to: lienProjetGestionnaire(p),
   }
+}
+
+/** En-tête du détail : « Mensuel · 25 000 F · 52 souscripteurs · depuis mars 2026 ». */
+export function sousTitreDetailProjet(p: Projet): string {
+  const [frequence, ...reste] = sousTitreProjet(p).split(' · ')
+  const [montant, ...fin] = reste
+  return [frequence, montant, `${p.nbSouscripteurs} souscripteurs`, ...fin].filter(Boolean).join(' · ')
+}
+
+const FREQUENCES_PLURIEL: Record<Projet['frequence'], string> = {
+  hebdomadaire: 'hebdomadaires', mensuelle: 'mensuelles', trimestrielle: 'trimestrielles', semestrielle: 'semestrielles', annuelle: 'annuelles',
+}
+
+/**
+ * Modèle de contrat tel que le signe chaque souscripteur : variables du projet remplacées,
+ * `{nom_souscripteur}` et `{telephone}` conservées telles quelles (propres à chaque souscripteur).
+ */
+export function apercuContrat(p: Projet, association?: Pick<Association, 'nom'> | null): string {
+  const engagement = p.engagementParSouscripteur
+  const valeurs: Record<string, string> = {
+    association: association?.nom ?? '[ASSOCIATION]',
+    projet: p.nom,
+    montant: engagement ? formatFCFA(engagement) : '[MONTANT]',
+    fonds_entree: formatFCFA(p.fondsEntree ?? 0),
+    nb_echeances: String(p.nbEcheances ?? '[N]'),
+    frequence: FREQUENCES_PLURIEL[p.frequence],
+    montant_echeance: formatFCFA(p.montantEcheance),
+    jour: String(p.jourEcheance ?? '[N]'),
+    date_debut: /^\d{4}-/.test(p.dateDebut) ? formatDate(p.dateDebut, 'long') : p.dateDebut,
+  }
+  return p.contratModele.replace(/\{(\w+)\}/g, (tout, cle: string) => valeurs[cle] ?? tout)
 }

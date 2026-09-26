@@ -34,6 +34,11 @@ export function lireMontant(saisie: string): number | null {
   return chiffres ? Number(chiffres) : null
 }
 
+/** Date ISO réelle (`2026-03-05…`), par opposition aux placeholders de la maquette (`[DATE]`). */
+export function estDate(d?: string | null): d is string {
+  return Boolean(d && /^\d{4}-\d{2}-\d{2}/.test(d))
+}
+
 /** Pourcentage entier : 82 → `82 %` (espace insécable). */
 export function formatPourcent(n: number | string): string {
   return `${n}${ESPACE_INSECABLE}%`

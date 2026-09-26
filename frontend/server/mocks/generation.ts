@@ -116,6 +116,25 @@ export function paiementsEnAttente(): Paiement[] {
   ]
 }
 
+/**
+ * Paiements validés de Centre communautaire visibles dans la maquette (MgProjetPaiements, vue liste ;
+ * MgProjetRapports, « dernier paiement »), validés par Aminata Konaté.
+ */
+export function paiementsValidesCentre(): Paiement[] {
+  const centre = (s: string, rang: number) => idEcheance('centre-communautaire', s, rang)
+  const V = (id: string, souscripteurId: string, montant: number, declareLe: string, traiteLe: string, rangs: [number, number][]): Paiement => ({
+    id, souscripteurId, projetId: 'centre-communautaire', associationId: 'entraide-yopougon', montant, moyen: 'mobile_money',
+    declareLe, traiteLe, traitePar: 'aminata-konate', preuve: { type: 'reference', reference: '[RÉFÉRENCE]' },
+    repartition: rangs.map(([rang, m]) => ({ echeanceId: centre(souscripteurId, rang), montantAffecte: m })),
+    repartitionAjustee: false, statut: 'valide',
+  })
+  return [
+    V('pm-jk-09', 'jean-kouassi', 37500, '2026-09-06', '2026-09-06', [[7, 25000], [6, 12500]]),
+    V('pm-ak-08', 'awa-kone', 25000, '2026-08-05', '2026-08-05', [[6, 25000]]),
+    V('pm-kb-07', 'koffi-brou', 25000, '2026-07-04', '2026-07-05', [[5, 25000]]),
+  ]
+}
+
 /** Paiements validés de Moussa Diarra (MbHistorique). */
 export function paiementsMoussa(): Paiement[] {
   const P = (id: string, projetId: string, associationId: string, montant: number, declareLe: string, traiteLe: string, rangs: [number, number][]): Paiement => ({

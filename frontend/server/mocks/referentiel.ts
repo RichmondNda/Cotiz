@@ -86,9 +86,18 @@ export const projets: Projet[] = [
     id: 'centre-communautaire', associationId: 'entraide-yopougon', nom: 'Centre communautaire', statut: 'en_cours',
     fondsEntree: 50000, montantEcheance: 25000, frequence: 'mensuelle', jourEcheance: 5,
     typeCalendrier: 'dates_fixes', dateDebut: '2026-03-05', dateFin: '2027-08-05', nbEcheances: 18, delaiGraceJours: 5,
-    souscripteursRequis: 60, modalitesPaiement: [{ moyen: 'mobile_money' }, { moyen: 'virement' }], contratModele: CONTRAT_MODELE,
+    // Paramètres (MgProjetParametres) : description et instructions de la capture web, coordonnées de la capture mobile.
+    description: 'Construction d’un centre communautaire pour les familles du quartier.', imageCouvertureNom: 'couverture_centre.jpg',
+    souscripteursRequis: 60, contratModele: CONTRAT_MODELE,
+    modalitesPaiement: [
+      { moyen: 'virement', iban: 'CI[XX] [XXXX XXXX XXXX XXXX XXXX]' },
+      { moyen: 'mobile_money', numeroMobileMoney: '+225 07 08 09 10 11', operateur: '[Opérateur]' },
+    ],
+    instructionsPaiement: 'Indiquez votre nom et « Centre » en référence du virement.',
     nbSouscripteurs: 52, montantCollecte: 9594000, montantAttenduADate: 11700000, tauxRecouvrement: 82, avancement: 37,
     nbEnRetard: 14, nbPaiementsAValider: 4, nbSignaturesAttendues: 1, prochaineEcheance: '2026-10-05', engagementParSouscripteur: 500000,
+    // Contrat signé pour l'association à la création (MgProjetContrat : « Signé le 01/03/2026 »).
+    signataire: { nom: 'Awa Koné', fonction: 'trésorière' }, creeLe: '2026-03-01',
     // Pile d'avatars de la carte (MgDashboard) : AK, MD en retard, +50.
     apercuSouscripteurs: [{ nom: 'Awa Koné' }, { nom: 'Moussa Diarra', ton: 'danger' }],
   },
@@ -126,12 +135,12 @@ const TEL_INCONNU = '+225 [XX XX XX XX]'
 
 export const souscripteurs: Souscripteur[] = [
   { id: 'moussa-diarra', prenom: 'Moussa', nom: 'Diarra', telephone: '+225 05 44 21 87 90', associationIds: ['entraide-yopougon', 'ressortissants-man'], membreDepuis: '2024-02-03' },
-  { id: 'koffi-brou', prenom: 'Koffi', nom: 'Brou', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
+  { id: 'koffi-brou', prenom: 'Koffi', nom: 'Brou', telephone: '+225 07 [XX XX XX XX]', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'jean-kouassi', prenom: 'Jean', nom: 'Kouassi', telephone: '+225 07 55 66 77 88', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'fatou-traore', prenom: 'Fatou', nom: 'Traoré', telephone: '+225 01 22 33 44 55', associationIds: ['entraide-yopougon'], membreDepuis: '2026-09-02' },
   { id: 'awa-kone', prenom: 'Awa', nom: 'Koné', telephone: '+225 07 08 09 10 11', email: 'awa@entraide.ci', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
-  { id: 'kadiatou-sanogo', prenom: 'Kadiatou', nom: 'Sanogo', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
-  { id: 'serge-gnagne', prenom: 'Serge', nom: 'Gnagne', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
+  { id: 'kadiatou-sanogo', prenom: 'Kadiatou', nom: 'Sanogo', telephone: '+225 01 [XX XX XX XX]', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
+  { id: 'serge-gnagne', prenom: 'Serge', nom: 'Gnagne', telephone: '+225 05 [XX XX XX XX]', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'ibrahim-toure', prenom: 'Ibrahim', nom: 'Touré', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'adjoua-yao', prenom: 'Adjoua', nom: 'Yao', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   // Présents dans les listes de la maquette, sans autre donnée.
@@ -154,6 +163,10 @@ export const SEQUENCES_CENTRE: Record<string, string> = {
   'kadiatou-sanogo': 'oooooooW',
   'serge-gnagne': 'oooooooW',
   'fatou-traore': 'f',
+  // Retardataires de la vue d'ensemble (MgProjet) : une échéance en retard (septembre).
+  'mariam-diallo': 'oooooool',
+  'yves-ahoussou': 'oooooool',
+  'clarisse-aka': 'oooooool',
 }
 
 /** Mutuelle santé de Moussa Diarra : fonds d'entrée + juillet, août, septembre payés. */
@@ -164,12 +177,15 @@ export const SEQUENCES_MUTUELLE: Record<string, string> = {
 export const souscriptions: Souscription[] = [
   // Centre communautaire (annuaire, extrait)
   { id: 'sc-moussa-centre', souscripteurId: 'moussa-diarra', projetId: 'centre-communautaire', inscritLe: '2026-03-12', contratId: 'ct-moussa-centre', contratSigneLe: '2026-03-12', verse: 175000, reste: 325000, engagement: 500000, statut: 'en_retard', montantEnRetard: 50000 },
-  { id: 'sc-koffi-centre', souscripteurId: 'koffi-brou', projetId: 'centre-communautaire', inscritLe: '[DATE]', verse: 175000, reste: 325000, engagement: 500000, statut: 'en_retard', montantEnRetard: 50000 },
-  { id: 'sc-jean-centre', souscripteurId: 'jean-kouassi', projetId: 'centre-communautaire', inscritLe: '2026-03-12', verse: 212500, reste: 287500, engagement: 500000, statut: 'en_retard', montantEnRetard: 12500 },
+  { id: 'sc-koffi-centre', souscripteurId: 'koffi-brou', projetId: 'centre-communautaire', inscritLe: '2026-03-14', contratSigneLe: '2026-03-14', verse: 175000, reste: 325000, engagement: 500000, statut: 'en_retard', montantEnRetard: 50000 },
+  { id: 'sc-jean-centre', souscripteurId: 'jean-kouassi', projetId: 'centre-communautaire', inscritLe: '2026-03-12', contratSigneLe: '2026-03-12', verse: 212500, reste: 287500, engagement: 500000, statut: 'en_retard', montantEnRetard: 12500 },
   { id: 'sc-fatou-centre', souscripteurId: 'fatou-traore', projetId: 'centre-communautaire', inscritLe: '2026-09-02', contratId: 'ct-fatou-centre', verse: 0, reste: 500000, engagement: 500000, statut: 'signature_attendue', montantEnRetard: 0 },
-  { id: 'sc-awa-centre', souscripteurId: 'awa-kone', projetId: 'centre-communautaire', inscritLe: '2026-03-12', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
-  { id: 'sc-kadiatou-centre', souscripteurId: 'kadiatou-sanogo', projetId: 'centre-communautaire', inscritLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
-  { id: 'sc-serge-centre', souscripteurId: 'serge-gnagne', projetId: 'centre-communautaire', inscritLe: '2026-04-02', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-awa-centre', souscripteurId: 'awa-kone', projetId: 'centre-communautaire', inscritLe: '2026-03-12', contratSigneLe: '2026-03-12', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-kadiatou-centre', souscripteurId: 'kadiatou-sanogo', projetId: 'centre-communautaire', inscritLe: '2026-03-20', contratSigneLe: '2026-03-20', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-serge-centre', souscripteurId: 'serge-gnagne', projetId: 'centre-communautaire', inscritLe: '2026-04-02', contratSigneLe: '2026-04-02', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-mariam-centre', souscripteurId: 'mariam-diallo', projetId: 'centre-communautaire', inscritLe: '[DATE]', contratSigneLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'en_retard', montantEnRetard: 25000 },
+  { id: 'sc-yves-centre', souscripteurId: 'yves-ahoussou', projetId: 'centre-communautaire', inscritLe: '[DATE]', contratSigneLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'en_retard', montantEnRetard: 25000 },
+  { id: 'sc-clarisse-centre', souscripteurId: 'clarisse-aka', projetId: 'centre-communautaire', inscritLe: '[DATE]', contratSigneLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'en_retard', montantEnRetard: 25000 },
   // Tontine solidaire 2027
   { id: 'sc-kadiatou-tontine', souscripteurId: 'kadiatou-sanogo', projetId: 'tontine-solidaire-2027', inscritLe: '[DATE]', verse: 0, reste: 0, engagement: 0, statut: 'a_jour', montantEnRetard: 0 },
   // Voyage solidaire

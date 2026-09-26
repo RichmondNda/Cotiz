@@ -17,9 +17,13 @@ const props = withDefaults(defineProps<{
   label?: string
   /** Légende de la série « attendu » (« Attendu 1 300 000 F / mois »). */
   libelleAttendu?: string
-}>(), { label: 'Collecte mensuelle, attendu et reçu', libelleAttendu: 'Attendu' })
+  /** Indices des mois dont l'étiquette s'affiche sous l'axe (défaut : tous). Pour les séries longues (18 échéances). */
+  etiquettes?: number[]
+  /** Largeur du repère SVG : plus grande pour une carte large (texte des axes à taille constante). */
+  largeurVue?: number
+}>(), { label: 'Collecte mensuelle, attendu et reçu', libelleAttendu: 'Attendu', etiquettes: undefined, largeurVue: 340 })
 
-const L = 340
+const L = computed(() => props.largeurVue)
 const H = 150
 const BASE = 130
 const HAUT = 20
@@ -41,7 +45,7 @@ const echelle = computed(() => {
 })
 
 const y = (v: number) => BASE - (v / echelle.value.top) * (BASE - HAUT)
-const largeurGroupe = computed(() => (L - GAUCHE - 5) / Math.max(1, props.mois.length))
+const largeurGroupe = computed(() => (L.value - GAUCHE - 5) / Math.max(1, props.mois.length))
 const barre = computed(() => Math.min(16, largeurGroupe.value / 3))
 
 const infobulle = ref<{ x: number, y: number, texte: string } | null>(null)
@@ -100,6 +104,7 @@ const infobulle = ref<{ x: number, y: number, texte: string } | null>(null)
           rx="3"
         />
         <text
+          v-if="!etiquettes || etiquettes.includes(i)"
           class="ax"
           text-anchor="middle"
           :x="GAUCHE + largeurGroupe * i + largeurGroupe / 2"

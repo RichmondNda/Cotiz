@@ -13,6 +13,8 @@ export interface Projet {
   nom: string
   description?: string
   imageCouvertureUrl?: string
+  /** Nom du fichier de couverture (« couverture_centre.jpg »). V0 : pas d'image réelle, le bandeau garde son motif. */
+  imageCouvertureNom?: string
   statut: StatutProjet
 
   // Financement

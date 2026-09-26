@@ -3,6 +3,8 @@
   Le texte vient de l'API : paragraphes séparés par une ligne vide, `**…**` pour le gras (jamais de HTML brut).
 -->
 <script setup lang="ts">
+import { paragraphesContrat } from '~/utils/contrat'
+
 export interface Signature {
   role: string
   nom: string
@@ -16,11 +18,7 @@ const props = defineProps<{
   signatures: Signature[]
 }>()
 
-const paragraphes = computed(() => props.texte.split(/\n{2,}/).map(p =>
-  p.split(/(\*\*[^*]+\*\*)/).filter(Boolean).map(morceau => (morceau.startsWith('**')
-    ? { gras: true, texte: morceau.slice(2, -2) }
-    : { gras: false, texte: morceau })),
-))
+const paragraphes = computed(() => paragraphesContrat(props.texte))
 </script>
 
 <template>

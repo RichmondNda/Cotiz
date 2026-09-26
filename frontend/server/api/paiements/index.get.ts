@@ -3,6 +3,11 @@
 // Scénarios : `file-vide` (aucun en attente), `aucun-paiement`.
 import { store } from '../../mocks/store'
 
+function nomGestionnaire(id?: string): string | undefined {
+  const g = id ? store.gestionnaires.find(x => x.id === id) : undefined
+  return g ? `${g.prenom} ${g.nom}` : undefined
+}
+
 export default defineMockHandler((event, scenario) => {
   if (scenario === 'aucun-paiement') return []
   const statut = filtre(event, 'statut')
@@ -22,5 +27,6 @@ export default defineMockHandler((event, scenario) => {
       ...p,
       souscripteur: store.souscripteurs.find(s => s.id === p.souscripteurId)!,
       projet: store.projets.find(x => x.id === p.projetId)!,
+      traiteParNom: nomGestionnaire(p.traitePar),
     }))
 })

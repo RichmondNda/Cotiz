@@ -163,10 +163,15 @@ const inactif = computed(() => props.disabled || props.chargement)
   visibility: hidden;
   pointer-events: none;
   transition: opacity .1s, visibility .1s;
+  /* Masquée : largeur nulle, pour ne jamais élargir la page (bouton en bord d'écran). */
+  max-width: 0;
+  overflow: hidden;
 }
 
 .cz-btn--icon:hover .cz-btn__tip,
 .cz-btn--icon:focus-visible .cz-btn__tip {
+  max-width: none;
+  overflow: visible;
   opacity: 1;
   visibility: visible;
   transition-delay: .3s;

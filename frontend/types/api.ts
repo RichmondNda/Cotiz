@@ -22,7 +22,7 @@ export interface FicheSouscripteur {
   souscriptions: SouscriptionAvecProjet[]
 }
 
-export type PaiementListe = Paiement & { souscripteur: Souscripteur, projet: Projet }
+export type PaiementListe = Paiement & { souscripteur: Souscripteur, projet: Projet, /** « Validé par » : nom du gestionnaire. */ traiteParNom?: string }
 export type PaiementDetail = PaiementListe & { echeances: Echeance[], association: Association }
 
 export type ContratDetaille = Contrat & { projet: Projet, souscripteur: Souscripteur, association: Association }
@@ -119,4 +119,109 @@ export type NouveauProjet = Pick<Projet,
 /** Corps de `PATCH /api/associations/:id` (onboarding étapes 2 et 3, paramètres). */
 export type ModificationAssociation = Partial<Pick<Association,
   'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement'
+>>
+
+// ---------------------------------------------------------------- Détail d'un projet (gestionnaire)
+
+/** Souscripteur en retard (vue d'ensemble : « Retardataires »). */
+export interface Retardataire {
+  souscripteurId: Identifiant
+  nom: string
+  nbEcheances: number
+  montant: MontantFCFA
+  /** Mois des échéances en retard (« août », « septembre »). */
+  mois: string[]
+}
+
+/** Vue d'ensemble d'un projet (`GET /api/projets/:id/synthese`). */
+export interface SyntheseProjet {
+  /** Tous les retardataires, du plus gros montant au plus petit (la page en montre 5). */
+  retardataires: Retardataire[]
+  paiementsAValider: { nombre: number, plusAncienLe?: DateISO }
+  contratsNonSignes: { souscripteurId: Identifiant, nom: string, inscritLe: DateISO }[]
+  /** Une entrée par échéance du calendrier (hors fonds d'entrée) : attendu et reçu, tous souscripteurs. */
+  collecte: CollecteMois[]
+}
+
+/** Recherche d'un téléphone avant l'ajout d'un souscripteur. */
+export type ResultatRechercheSouscripteur
+  = | { cas: 'nouveau' }
+    | { cas: 'compte_existant', souscripteur: Souscripteur, nbAssociations: number, projets: string[] }
+    | { cas: 'deja_inscrit', souscripteur: Souscripteur }
+
+/** Corps de `POST /api/projets/:id/souscripteurs`. */
+export interface NouvelleInscription {
+  telephone: string
+  /** Compte existant retrouvé : pas de nouveau compte. */
+  souscripteurId?: Identifiant
+  prenom?: string
+  nom?: string
+  email?: string
+  adresse?: string
+  canal?: 'sms' | 'email'
+  /** Date d'entrée dans le projet (inscription en cours de route). */
+  dateEntree?: DateISO
+  /** Rangs des échéances passées à rattraper (0 = fonds d'entrée). */
+  rattrapage?: number[]
+}
+
+/** Ligne du tableau des rapports (`GET /api/projets/:id/rapport`). */
+export interface LigneRapport {
+  souscripteurId: Identifiant
+  nom: string
+  attenduADate: MontantFCFA | null
+  verse: MontantFCFA
+  reste: MontantFCFA | null
+  retards: number
+  dernierPaiement?: DateISO
+}
+
+export interface RapportProjet {
+  lignes: LigneRapport[]
+  /** Taux de recouvrement cumulé après chaque échéance échue, en %. */
+  tauxParEcheance: { mois: DateISO, taux: number }[]
+  statuts: { aJour: number, enRetard: number, signature: number }
+  /** V1 : graphiques avancés pas encore disponibles (état « Bientôt disponible »). */
+  graphiquesDisponibles: boolean
+}
+
+/** Contrat d'un projet vu par le gestionnaire (`GET /api/projets/:id/contrat`) : modèle commun et suivi des signatures. */
+export interface ContratProjet {
+  association: { nom: string, ville?: string }
+  /** Texte du modèle, variables du projet remplacées ; `{nom_souscripteur}` reste tel quel. `**…**` = gras. */
+  texte: string
+  /** Signature de l'association à la création du projet. */
+  signataire?: { nom: string, fonction?: string, signeLe: DateISO }
+  /** `[N]` tant que le nombre de souscripteurs est un placeholder (Voyage solidaire). */
+  signes: number | '[N]'
+  total: number | '[N]'
+  nonSignataires: { souscripteurId: Identifiant, nom: string, inscritLe: DateISO }[]
+}
+
+/** Ligne d'un fichier d'import analysé. */
+export interface LigneImport {
+  ligne: number
+  prenom: string
+  nom: string
+  telephone: string
+  email?: string
+  adresse?: string
+  statut: 'prete' | 'compte_existant' | 'telephone_incomplet' | 'prenom_manquant' | 'doublon'
+  /** Doublon : ligne d'origine. */
+  doublonDe?: number
+}
+
+/** Résultat de `POST /api/projets/:id/import/analyse` (fichier simulé en V0). */
+export interface AnalyseImport {
+  fichier: string
+  nbLignes: number
+  colonnes: { colonne: string, exemples: string[], champ: 'prenom' | 'nom' | 'telephone' | 'email' | 'adresse' | null }[]
+  compteurs: { pretes: number, comptesExistants: number, erreurs: number, doublons: number }
+  /** Lignes à examiner (erreurs, doublons) et exemples de lignes prêtes. */
+  lignes: LigneImport[]
+}
+
+/** Corps de `PATCH /api/projets/:id` (paramètres modifiables après création). */
+export type ModificationProjet = Partial<Pick<Projet,
+  'nom' | 'description' | 'imageCouvertureNom' | 'souscripteursRequis' | 'modalitesPaiement' | 'instructionsPaiement' | 'delaiGraceJours'
 >>

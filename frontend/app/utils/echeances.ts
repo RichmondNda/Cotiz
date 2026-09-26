@@ -29,3 +29,41 @@ export function libelleCouverture(echeances: Pick<Echeance, 'date' | 'rang' | 'e
   if (tri.some(e => e.estFondsEntree)) return liste ? `entrée + ${liste}` : 'fonds d’entrée'
   return liste
 }
+
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+const moisCourt = (e: Pick<Echeance, 'date' | 'rang' | 'estFondsEntree'>) => {
+  if (e.estFondsEntree) return 'entrée'
+  return estDatee(e) ? MOIS_COURTS[lireDate(e.date).getMonth()]! : `échéance ${e.rang}`
+}
+const deMois = (e: Pick<Echeance, 'date' | 'rang' | 'estFondsEntree'>) => {
+  if (e.estFondsEntree) return 'du fonds d’entrée'
+  const nom = estDatee(e) ? formatMois(e.date, 'seul').toLowerCase() : `l’échéance ${e.rang}`
+  return /^[aeiouéè]/i.test(nom) ? `d’${nom}` : `de ${nom}`
+}
+
+/**
+ * Couverture d'un paiement vue par le gestionnaire (cartes « À valider », liste des paiements) :
+ * « Sept., oct., nov. » · « Solde d’août » (complète une échéance partielle) · « Sept. + 12 500 F août ».
+ */
+export function couverturePaiement(
+  paiement: { statut: string, repartition: { echeanceId: string, montantAffecte: number }[] },
+  echeances: Map<string, Pick<Echeance, 'date' | 'rang' | 'estFondsEntree' | 'montant' | 'statut'>>,
+  formatMontant: (n: number) => string,
+): string {
+  const parts = paiement.repartition
+    .map(r => ({ r, e: echeances.get(r.echeanceId) }))
+    .filter((x): x is { r: typeof x.r, e: NonNullable<typeof x.e> } => Boolean(x.e))
+    .sort((a, b) => b.e.rang - a.e.rang)
+  if (!parts.length) return '—'
+  const completes = parts.filter(x => x.r.montantAffecte >= x.e.montant).sort((a, b) => a.e.rang - b.e.rang)
+  const partielles = parts.filter(x => x.r.montantAffecte < x.e.montant)
+  const morceaux: string[] = []
+  if (completes.length) morceaux.push(completes.map(x => moisCourt(x.e)).join(', '))
+  for (const x of partielles) {
+    // Paiement en attente sur une échéance déjà partiellement payée : il en solde le reste.
+    morceaux.push(paiement.statut === 'en_attente' && x.e.statut === 'partielle'
+      ? `solde ${deMois(x.e)}`
+      : `${formatMontant(x.r.montantAffecte)} ${moisCourt(x.e)}`)
+  }
+  return cap(morceaux.join(' + '))
+}

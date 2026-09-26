@@ -11,6 +11,10 @@ declare module '#app' {
     theme?: 'member' | 'manager' | 'superadmin'
     /** Gabarit `formulaire` : lien de retour en haut à droite (absent si non défini). */
     retour?: { label: string, to: string }
+    /** Détail d'un projet (gestionnaire) : onglet de la page (fil d'Ariane, sous-titre mobile). */
+    ongletProjet?: 'apercu' | 'souscripteurs' | 'paiements' | 'contrat' | 'parametres' | 'rapports' | 'import'
+    /** Détail d'un projet : `false` masque l'en-tête et les onglets (import, page plein écran). */
+    enTeteProjet?: boolean
     /** Back-office : espace imposé (sinon déduit du chemin, /plateforme → super-admin). */
     espace?: 'gestionnaire' | 'superadmin'
   }

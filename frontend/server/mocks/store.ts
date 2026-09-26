@@ -2,7 +2,7 @@
 // Les mutations (valider un paiement, signer un contrat…) viendront avec les lots qui en ont besoin.
 import type { Association, Contrat, Demande, Echeance, Gestionnaire, Notification, Paiement, Plan, Projet, Souscripteur, Souscription } from '~~/types'
 import * as ref from './referentiel'
-import { genererEcheances, paiementsEnAttente, paiementsMoussa, rendreContrat } from './generation'
+import { genererEcheances, paiementsEnAttente, paiementsMoussa, paiementsValidesCentre, rendreContrat } from './generation'
 
 export interface StoreMocks {
   plans: Plan[]
@@ -20,8 +20,15 @@ export interface StoreMocks {
 
 function construire(): StoreMocks {
   const projet = (id: string) => ref.projets.find(p => p.id === id)!
+  // Souscription en attente de signature (Fatou Traoré, inscrite en septembre) : pas d'échéance avant le mois
+  // d'inscription (hors fonds d'entrée), comme dans la grille de la maquette.
+  const attente = (s: string) => ref.souscriptions.find(x => x.projetId === 'centre-communautaire' && x.souscripteurId === s && x.statut === 'signature_attendue')
+  const dues = (s: string) => (e: Echeance) => {
+    const sc = attente(s)
+    return !sc || e.estFondsEntree || e.date.slice(0, 7) >= sc.inscritLe.slice(0, 7)
+  }
   const echeances = [
-    ...Object.entries(ref.SEQUENCES_CENTRE).flatMap(([s, seq]) => genererEcheances(projet('centre-communautaire'), s, seq)),
+    ...Object.entries(ref.SEQUENCES_CENTRE).flatMap(([s, seq]) => genererEcheances(projet('centre-communautaire'), s, seq).filter(dues(s))),
     ...Object.entries(ref.SEQUENCES_MUTUELLE).flatMap(([s, seq]) => genererEcheances(projet('mutuelle-sante'), s, seq)),
   ]
   return structuredClone({
@@ -32,7 +39,7 @@ function construire(): StoreMocks {
     souscripteurs: ref.souscripteurs,
     souscriptions: ref.souscriptions,
     echeances,
-    paiements: [...paiementsEnAttente(), ...paiementsMoussa()],
+    paiements: [...paiementsEnAttente(), ...paiementsValidesCentre(), ...paiementsMoussa()],
     contrats: ref.contrats.map((c) => {
       const association = ref.associations.find(a => a.id === c.associationId)!
       const principal = ref.gestionnaires.find(g => g.associationId === c.associationId && g.role === 'principal')
