@@ -1,6 +1,7 @@
 <!--
-  Élément de notification. Non lue : fond brand-pale. Icône sur pastille colorée selon le type
-  (échéance = warning, validé = success, rejeté = danger, contrat = identité).
+  Élément de notification. Non lue : fond brand-pale et pastille à droite. Icône sur pastille colorée selon le type
+  (rappel d'échéance = info, retard = danger, validé = success, rejeté = danger, contrat à signer = warning).
+  `action` : libellé de l'écran d'action (« Signer le contrat → »).
   Clic : événement `ouvrir` (la page marque comme lue) puis navigation vers l'écran d'action (`to`).
 -->
 <script setup lang="ts">
@@ -17,18 +18,19 @@ const props = withDefaults(defineProps<{
   moment?: string
   lue?: boolean
   to?: RouteLocationRaw
-}>(), { message: undefined, moment: undefined, lue: false, to: undefined })
+  action?: string
+}>(), { message: undefined, moment: undefined, lue: false, to: undefined, action: undefined })
 
 const emit = defineEmits<{ ouvrir: [] }>()
 
 type Ton = 'warning' | 'success' | 'danger' | 'info' | 'brand'
 const APPARENCE: Record<TypeNotification, { icone: NomIcone, ton: Ton }> = {
-  echeance_proche: { icone: 'en-attente', ton: 'warning' },
+  echeance_proche: { icone: 'notification', ton: 'info' },
   echeance_en_retard: { icone: 'alerte', ton: 'danger' },
   paiement_declare: { icone: 'paiement', ton: 'warning' },
-  paiement_valide: { icone: 'valide', ton: 'success' },
+  paiement_valide: { icone: 'coche', ton: 'success' },
   paiement_rejete: { icone: 'rejete', ton: 'danger' },
-  contrat_a_signer: { icone: 'contrat', ton: 'brand' },
+  contrat_a_signer: { icone: 'contrat', ton: 'warning' },
   contrat_signe: { icone: 'contrat', ton: 'success' },
   relance: { icone: 'relance', ton: 'warning' },
   abonnement: { icone: 'facturation', ton: 'info' },
@@ -63,11 +65,22 @@ const apparence = computed(() => APPARENCE[props.type])
       >
         {{ message }}
       </div>
+      <div
+        v-if="action"
+        class="notif__action"
+      >
+        {{ action }} →
+      </div>
     </div>
     <span
       v-if="moment"
       class="tm"
     >{{ moment }}</span>
+    <span
+      v-if="!lue"
+      class="unread-dot"
+      aria-hidden="true"
+    />
   </component>
 </template>
 
@@ -87,7 +100,15 @@ const apparence = computed(() => APPARENCE[props.type])
 }
 
 .notif__texte {
+  flex: 1;
   min-width: 0;
+}
+
+.notif__action {
+  margin-top: var(--space-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand-dark);
 }
 
 .ic--warning { background: var(--warning-bg); color: var(--warning-fg); }

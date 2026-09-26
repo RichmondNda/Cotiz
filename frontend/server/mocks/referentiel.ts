@@ -39,13 +39,19 @@ export const associations: Association[] = [
   {
     id: 'entraide-yopougon', nom: 'Entraide Yopougon', sigle: 'EY', type: 'association', ville: 'Abidjan', pays: 'Côte d’Ivoire',
     telephoneContact: '+225 07 08 09 10 11', emailContact: 'awa@entraide.ci',
+    description: 'Entraide entre familles du quartier de Yopougon.',
     statut: 'active', planId: 'essentiel', abonnementProchaineEcheance: '[DATE]',
-    modalitesPaiement: [{ moyen: 'mobile_money' }, { moyen: 'virement' }],
+    // Coordonnées affichées dans « Comment payer » (MbAssociation, MbProjet).
+    modalitesPaiement: [
+      { moyen: 'mobile_money', numeroMobileMoney: '+225 07 08 09 10 11', operateur: '[Opérateur]' },
+      { moyen: 'virement', iban: '[IBAN DE L’ASSOCIATION]' },
+    ],
     nbProjets: 3, nbSouscripteurs: 52, nbGestionnaires: 2, creeeLe: '2024-02-03',
   },
   {
-    id: 'ressortissants-man', nom: 'Association des ressortissants de Man', sigle: 'AR', type: 'association', ville: 'Abidjan', pays: 'Côte d’Ivoire',
-    statut: 'impayee', planId: 'pro', modalitesPaiement: [{ moyen: 'mobile_money' }],
+    id: 'ressortissants-man', nom: 'Association des ressortissants de Man', sigle: 'RM', type: 'association', ville: 'Abidjan', pays: 'Côte d’Ivoire',
+    statut: 'impayee', planId: 'pro',
+    modalitesPaiement: [{ moyen: 'mobile_money', numeroMobileMoney: '+225 [XX XX XX XX]', operateur: '[Opérateur]' }],
     nbProjets: 5, nbSouscripteurs: 142, nbGestionnaires: 1, creeeLe: '2025-01-14',
   },
   {
@@ -64,16 +70,36 @@ export const gestionnaires: Gestionnaire[] = [
 export const superadmin = { id: 'richy', prenom: 'Richy' }
 
 // ---------------------------------------------------------------- Projets
-const CONTRAT_MODELE = '[TEXTE DU CONTRAT] — {nom_souscripteur}, {montant}, {frequence}, {date_debut}'
+// Texte du contrat de la maquette (MbContrat). `**…**` : passage en gras ; paragraphes séparés par une ligne vide.
+// Variables remplacées à la génération du contrat de chaque souscripteur (mocks/store.ts).
+export const CONTRAT_MODELE = [
+  '**Entre** l’association {association}, et **{nom_souscripteur}**, souscripteur, joignable au {telephone}.',
+  '**Article 1 — Objet.** Le souscripteur s’engage à participer au financement du projet {projet}.',
+  '**Article 2 — Montant.** La participation totale est de {montant} CFA : un fonds d’entrée de {fonds_entree}, puis {nb_echeances} échéances {frequence} de {montant_echeance}, payables le {jour} de chaque mois.',
+  '**Article 3 — Paiement.** Les versements sont effectués par mobile money ou virement, puis déclarés sur Cotiz. Un paiement n’est acquis qu’après validation par l’association.',
+  '**Article 4 — Retard.** [CONDITIONS EN CAS DE RETARD DÉFINIES PAR L’ASSOCIATION]',
+  '**Article 5 — Résiliation.** [CONDITIONS DE RÉSILIATION DÉFINIES PAR L’ASSOCIATION]',
+].join('\n\n')
 
 export const projets: Projet[] = [
   {
     id: 'centre-communautaire', associationId: 'entraide-yopougon', nom: 'Centre communautaire', statut: 'en_cours',
     fondsEntree: 50000, montantEcheance: 25000, frequence: 'mensuelle', jourEcheance: 5,
     typeCalendrier: 'dates_fixes', dateDebut: '2026-03-05', dateFin: '2027-08-05', nbEcheances: 18, delaiGraceJours: 5,
-    souscripteursRequis: 60, modalitesPaiement: [{ moyen: 'mobile_money' }, { moyen: 'virement' }], contratModele: CONTRAT_MODELE,
+    // Paramètres (MgProjetParametres) : description et instructions de la capture web, coordonnées de la capture mobile.
+    description: 'Construction d’un centre communautaire pour les familles du quartier.', imageCouvertureNom: 'couverture_centre.jpg',
+    souscripteursRequis: 60, contratModele: CONTRAT_MODELE,
+    modalitesPaiement: [
+      { moyen: 'virement', iban: 'CI[XX] [XXXX XXXX XXXX XXXX XXXX]' },
+      { moyen: 'mobile_money', numeroMobileMoney: '+225 07 08 09 10 11', operateur: '[Opérateur]' },
+    ],
+    instructionsPaiement: 'Indiquez votre nom et « Centre » en référence du virement.',
     nbSouscripteurs: 52, montantCollecte: 9594000, montantAttenduADate: 11700000, tauxRecouvrement: 82, avancement: 37,
     nbEnRetard: 14, nbPaiementsAValider: 4, nbSignaturesAttendues: 1, prochaineEcheance: '2026-10-05', engagementParSouscripteur: 500000,
+    // Contrat signé pour l'association à la création (MgProjetContrat : « Signé le 01/03/2026 »).
+    signataire: { nom: 'Awa Koné', fonction: 'trésorière' }, creeLe: '2026-03-01',
+    // Pile d'avatars de la carte (MgDashboard) : AK, MD en retard, +50.
+    apercuSouscripteurs: [{ nom: 'Awa Koné' }, { nom: 'Moussa Diarra', ton: 'danger' }],
   },
   {
     id: 'tontine-solidaire-2027', associationId: 'entraide-yopougon', nom: 'Tontine solidaire 2027', statut: 'inscriptions_ouvertes',
@@ -90,6 +116,7 @@ export const projets: Projet[] = [
     souscripteursRequis: null, modalitesPaiement: [{ moyen: 'mobile_money' }, { moyen: 'virement' }], contratModele: CONTRAT_MODELE,
     nbSouscripteurs: '[N]', montantCollecte: '[MONTANT]', montantAttenduADate: '[MONTANT]', tauxRecouvrement: '[N]', avancement: '[N]',
     nbEnRetard: 0, nbPaiementsAValider: 2, nbSignaturesAttendues: 1, prochaineEcheance: '2026-10-05', engagementParSouscripteur: 170000,
+    apercuSouscripteurs: [{ nom: 'Moussa Diarra', ton: 'danger' }],
   },
   {
     // Projet de Moussa Diarra dans l'Association des ressortissants de Man (accueil souscripteur, historique).
@@ -108,12 +135,12 @@ const TEL_INCONNU = '+225 [XX XX XX XX]'
 
 export const souscripteurs: Souscripteur[] = [
   { id: 'moussa-diarra', prenom: 'Moussa', nom: 'Diarra', telephone: '+225 05 44 21 87 90', associationIds: ['entraide-yopougon', 'ressortissants-man'], membreDepuis: '2024-02-03' },
-  { id: 'koffi-brou', prenom: 'Koffi', nom: 'Brou', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
+  { id: 'koffi-brou', prenom: 'Koffi', nom: 'Brou', telephone: '+225 07 [XX XX XX XX]', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'jean-kouassi', prenom: 'Jean', nom: 'Kouassi', telephone: '+225 07 55 66 77 88', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'fatou-traore', prenom: 'Fatou', nom: 'Traoré', telephone: '+225 01 22 33 44 55', associationIds: ['entraide-yopougon'], membreDepuis: '2026-09-02' },
   { id: 'awa-kone', prenom: 'Awa', nom: 'Koné', telephone: '+225 07 08 09 10 11', email: 'awa@entraide.ci', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
-  { id: 'kadiatou-sanogo', prenom: 'Kadiatou', nom: 'Sanogo', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
-  { id: 'serge-gnagne', prenom: 'Serge', nom: 'Gnagne', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
+  { id: 'kadiatou-sanogo', prenom: 'Kadiatou', nom: 'Sanogo', telephone: '+225 01 [XX XX XX XX]', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
+  { id: 'serge-gnagne', prenom: 'Serge', nom: 'Gnagne', telephone: '+225 05 [XX XX XX XX]', associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'ibrahim-toure', prenom: 'Ibrahim', nom: 'Touré', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   { id: 'adjoua-yao', prenom: 'Adjoua', nom: 'Yao', telephone: TEL_INCONNU, associationIds: ['entraide-yopougon'], membreDepuis: '[DATE]' },
   // Présents dans les listes de la maquette, sans autre donnée.
@@ -136,6 +163,10 @@ export const SEQUENCES_CENTRE: Record<string, string> = {
   'kadiatou-sanogo': 'oooooooW',
   'serge-gnagne': 'oooooooW',
   'fatou-traore': 'f',
+  // Retardataires de la vue d'ensemble (MgProjet) : une échéance en retard (septembre).
+  'mariam-diallo': 'oooooool',
+  'yves-ahoussou': 'oooooool',
+  'clarisse-aka': 'oooooool',
 }
 
 /** Mutuelle santé de Moussa Diarra : fonds d'entrée + juillet, août, septembre payés. */
@@ -146,12 +177,15 @@ export const SEQUENCES_MUTUELLE: Record<string, string> = {
 export const souscriptions: Souscription[] = [
   // Centre communautaire (annuaire, extrait)
   { id: 'sc-moussa-centre', souscripteurId: 'moussa-diarra', projetId: 'centre-communautaire', inscritLe: '2026-03-12', contratId: 'ct-moussa-centre', contratSigneLe: '2026-03-12', verse: 175000, reste: 325000, engagement: 500000, statut: 'en_retard', montantEnRetard: 50000 },
-  { id: 'sc-koffi-centre', souscripteurId: 'koffi-brou', projetId: 'centre-communautaire', inscritLe: '[DATE]', verse: 175000, reste: 325000, engagement: 500000, statut: 'en_retard', montantEnRetard: 50000 },
-  { id: 'sc-jean-centre', souscripteurId: 'jean-kouassi', projetId: 'centre-communautaire', inscritLe: '2026-03-12', verse: 212500, reste: 287500, engagement: 500000, statut: 'en_retard', montantEnRetard: 12500 },
+  { id: 'sc-koffi-centre', souscripteurId: 'koffi-brou', projetId: 'centre-communautaire', inscritLe: '2026-03-14', contratSigneLe: '2026-03-14', verse: 175000, reste: 325000, engagement: 500000, statut: 'en_retard', montantEnRetard: 50000 },
+  { id: 'sc-jean-centre', souscripteurId: 'jean-kouassi', projetId: 'centre-communautaire', inscritLe: '2026-03-12', contratSigneLe: '2026-03-12', verse: 212500, reste: 287500, engagement: 500000, statut: 'en_retard', montantEnRetard: 12500 },
   { id: 'sc-fatou-centre', souscripteurId: 'fatou-traore', projetId: 'centre-communautaire', inscritLe: '2026-09-02', contratId: 'ct-fatou-centre', verse: 0, reste: 500000, engagement: 500000, statut: 'signature_attendue', montantEnRetard: 0 },
-  { id: 'sc-awa-centre', souscripteurId: 'awa-kone', projetId: 'centre-communautaire', inscritLe: '2026-03-12', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
-  { id: 'sc-kadiatou-centre', souscripteurId: 'kadiatou-sanogo', projetId: 'centre-communautaire', inscritLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
-  { id: 'sc-serge-centre', souscripteurId: 'serge-gnagne', projetId: 'centre-communautaire', inscritLe: '2026-04-02', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-awa-centre', souscripteurId: 'awa-kone', projetId: 'centre-communautaire', inscritLe: '2026-03-12', contratSigneLe: '2026-03-12', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-kadiatou-centre', souscripteurId: 'kadiatou-sanogo', projetId: 'centre-communautaire', inscritLe: '2026-03-20', contratSigneLe: '2026-03-20', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-serge-centre', souscripteurId: 'serge-gnagne', projetId: 'centre-communautaire', inscritLe: '2026-04-02', contratSigneLe: '2026-04-02', verse: 200000, reste: 300000, engagement: 500000, statut: 'a_jour', montantEnRetard: 0 },
+  { id: 'sc-mariam-centre', souscripteurId: 'mariam-diallo', projetId: 'centre-communautaire', inscritLe: '[DATE]', contratSigneLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'en_retard', montantEnRetard: 25000 },
+  { id: 'sc-yves-centre', souscripteurId: 'yves-ahoussou', projetId: 'centre-communautaire', inscritLe: '[DATE]', contratSigneLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'en_retard', montantEnRetard: 25000 },
+  { id: 'sc-clarisse-centre', souscripteurId: 'clarisse-aka', projetId: 'centre-communautaire', inscritLe: '[DATE]', contratSigneLe: '[DATE]', verse: 200000, reste: 300000, engagement: 500000, statut: 'en_retard', montantEnRetard: 25000 },
   // Tontine solidaire 2027
   { id: 'sc-kadiatou-tontine', souscripteurId: 'kadiatou-sanogo', projetId: 'tontine-solidaire-2027', inscritLe: '[DATE]', verse: 0, reste: 0, engagement: 0, statut: 'a_jour', montantEnRetard: 0 },
   // Voyage solidaire
@@ -171,7 +205,7 @@ export const ANNUAIRE_PLACEHOLDERS: Record<string, { totalVerse: '[MONTANT]', to
 export const contrats: Contrat[] = [
   { id: 'ct-moussa-centre', projetId: 'centre-communautaire', souscripteurId: 'moussa-diarra', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 500000, statut: 'signe', envoyeLe: '2026-03-12', signeLe: '2026-03-12' },
   { id: 'ct-moussa-mutuelle', projetId: 'mutuelle-sante', souscripteurId: 'moussa-diarra', associationId: 'ressortissants-man', texte: '[TEXTE DU CONTRAT]', engagement: 120000, statut: 'signe', envoyeLe: '2026-07-01', signeLe: '2026-07-01' },
-  { id: 'ct-moussa-voyage', projetId: 'voyage-solidaire', souscripteurId: 'moussa-diarra', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 170000, statut: 'a_signer', envoyeLe: '2026-09-18' },
+  { id: 'ct-moussa-voyage', projetId: 'voyage-solidaire', souscripteurId: 'moussa-diarra', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 170000, statut: 'a_signer', envoyeLe: '2026-09-18', signeParAssociationLe: '2026-09-18' },
   { id: 'ct-adjoua-voyage', projetId: 'voyage-solidaire', souscripteurId: 'adjoua-yao', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 170000, statut: 'a_signer', envoyeLe: '[DATE]' },
   { id: 'ct-fatou-centre', projetId: 'centre-communautaire', souscripteurId: 'fatou-traore', associationId: 'entraide-yopougon', texte: '[TEXTE DU CONTRAT]', engagement: 500000, statut: 'a_signer', envoyeLe: '[DATE]' },
 ]
@@ -180,7 +214,7 @@ export const contrats: Contrat[] = [
 export const notifications: Notification[] = [
   // Moussa Diarra (MbNotifications) — 2 non lues
   { id: 'nt-mb-1', destinataireId: 'moussa-diarra', type: 'contrat_a_signer', titre: 'Contrat à signer', message: 'Entraide Yopougon vous invite à signer le contrat du projet Voyage solidaire.', creeeLe: '2026-09-25T09:12:00', lue: false, lien: '/projets/voyage-solidaire/contrat', libelleAction: 'Signer le contrat' },
-  { id: 'nt-mb-2', destinataireId: 'moussa-diarra', type: 'echeance_en_retard', titre: 'Échéances en retard', message: 'Centre communautaire : 50 000 F en retard (août et septembre).', creeeLe: '2026-09-25T08:00:00', lue: false, lien: '/paiements/declarer', libelleAction: 'Régulariser' },
+  { id: 'nt-mb-2', destinataireId: 'moussa-diarra', type: 'echeance_en_retard', titre: 'Échéances en retard', message: 'Centre communautaire : 50 000 F en retard (août et septembre).', creeeLe: '2026-09-25T08:00:00', lue: false, lien: '/paiements/declarer?projet=centre-communautaire', libelleAction: 'Régulariser' },
   { id: 'nt-mb-3', destinataireId: 'moussa-diarra', type: 'echeance_proche', titre: 'Rappel d’échéance', message: 'Prochaine échéance le 5 octobre : 25 000 F pour Centre communautaire.', creeeLe: '2026-09-21T09:00:00', lue: true, lien: '/projets/centre-communautaire', libelleAction: 'Voir le projet' },
   { id: 'nt-mb-4', destinataireId: 'moussa-diarra', type: 'paiement_valide', titre: 'Paiement validé', message: 'Vos 10 000 F pour Mutuelle santé ont été validés.', creeeLe: '2026-09-06T09:00:00', lue: true, lien: '/historique', libelleAction: 'Voir l’historique' },
   { id: 'nt-mb-5', destinataireId: 'moussa-diarra', type: 'paiement_valide', titre: 'Paiement validé', message: 'Vos 10 000 F pour Mutuelle santé ont été validés.', creeeLe: '2026-08-06T09:00:00', lue: true, lien: '/historique', libelleAction: 'Voir l’historique' },

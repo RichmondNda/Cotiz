@@ -1,5 +1,5 @@
 // GET /api/contrats?projetId=&souscripteurId=&statut= — souscripteur : défaut = ses contrats.
-// Scénarios : `tout-signe`, `tous-signes`, `aucun-contrat`.
+// Scénarios : `tout-signe`, `tous-signes`, `aucun-contrat`, `consultation` (MbContrat : Voyage solidaire déjà signé).
 import { store } from '../../mocks/store'
 
 export default defineMockHandler((event, scenario) => {
@@ -8,9 +8,9 @@ export default defineMockHandler((event, scenario) => {
   const projetId = filtre(event, 'projetId')
   const souscripteurId = filtre(event, 'souscripteurId') ?? (session?.role === 'souscripteur' ? session.id : undefined)
   const statut = filtre(event, 'statut')
-  const toutSigne = scenario === 'tout-signe' || scenario === 'tous-signes'
+  const toutSigne = scenario === 'tout-signe' || scenario === 'tous-signes' || scenario === 'consultation'
   return store.contrats
-    .map(c => (toutSigne && c.statut === 'a_signer' ? { ...c, statut: 'signe' as const, signeLe: '2026-09-25' } : c))
+    .map(c => (toutSigne && c.statut === 'a_signer' ? { ...c, statut: 'signe' as const, signeLe: '2026-09-25T10:42:00' } : c))
     .filter(c => (!projetId || c.projetId === projetId)
       && (!souscripteurId || c.souscripteurId === souscripteurId)
       && (!statut || c.statut === statut))

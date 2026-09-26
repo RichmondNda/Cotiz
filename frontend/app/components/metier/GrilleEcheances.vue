@@ -54,7 +54,11 @@ const props = withDefaults(defineProps<{
   /** Squelettes de chargement (lignes et cases). */
   chargement?: boolean
   lignesSquelette?: number
-}>(), { chargement: false, lignesSquelette: 4, selection: null, trierParRetards: true, legende: true, label: 'Grille des échéances' })
+  /** Rendu mobile : une carte par souscripteur (défaut) ou grille compacte défilante (onglet Paiements d'un projet). */
+  mobile?: 'cartes' | 'grille'
+  /** Cases qui viennent de changer (validation) : animation « flash ». */
+  flash?: string[]
+}>(), { chargement: false, lignesSquelette: 4, selection: null, trierParRetards: true, legende: true, label: 'Grille des échéances', mobile: 'cartes', flash: () => [] })
 
 const emit = defineEmits<{ cellule: [ligne: LigneGrille, cellule: CelluleGrille] }>()
 const motifs = defineModel<boolean>('motifs', { default: false })
@@ -94,18 +98,13 @@ onMounted(() => {
     el.scrollLeft = Math.max(0, cur.offsetLeft - premiere.offsetWidth - el.clientWidth / 3)
   }
 })
-
-const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
-  { statut: 'payee', texte: 'Payée' },
-  { statut: 'declaree', texte: 'Déclarée, à valider' },
-  { statut: 'partielle', texte: 'Partielle' },
-  { statut: 'en_retard', texte: 'En retard' },
-  { statut: 'a_venir', texte: 'À venir' },
-]
 </script>
 
 <template>
-  <div class="grille">
+  <div
+    class="grille"
+    :class="`grille--mobile-${mobile}`"
+  >
     <!-- Desktop / tablette -->
     <div
       ref="wrap"
@@ -215,7 +214,7 @@ const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
                 <button
                   type="button"
                   class="cz-cell"
-                  :class="[CLASSES[c.statut], { 'is-selected': selection === c.id }]"
+                  :class="[CLASSES[c.statut], { 'is-selected': selection === c.id, 'is-flash': flash.includes(c.id) }]"
                   :aria-label="`${l.nom} — ${infobulle(c)}`"
                   :aria-pressed="selection === c.id"
                   @click="emit('cellule', l, c)"
@@ -311,18 +310,7 @@ const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
       v-if="legende"
       class="grille__pied"
     >
-      <div
-        class="cz-grid-legend"
-        aria-label="Légende"
-      >
-        <span
-          v-for="e in LEGENDE"
-          :key="e.statut"
-        ><span
-          class="cz-cell cz-cell--sm"
-          :class="CLASSES[e.statut]"
-        />{{ e.texte }}<template v-if="motifs && MOTIFS[e.statut]"> ({{ MOTIFS[e.statut] }})</template></span>
-      </div>
+      <LegendeGrille :motifs="motifs ? MOTIFS : undefined" />
       <CzToggle
         v-model="motifs"
         class="grille__motifs"
@@ -391,22 +379,90 @@ const LEGENDE: { statut: StatutEcheance, texte: string }[] = [
   font-size: 13px;
 }
 
+@keyframes grille-flash {
+  0% { transform: scale(1.5); box-shadow: 0 0 0 6px var(--success-bg); }
+  100% { transform: scale(1); box-shadow: none; }
+}
+
+.cz-cell.is-flash {
+  animation: grille-flash 0.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cz-cell.is-flash {
+    animation: none;
+  }
+}
+
 @media (max-width: 767px) {
-  .grille__tableau {
+  .grille--mobile-cartes .grille__tableau {
     display: none;
   }
 
-  .grille__skel-case {
-  display: inline-block;
-  border-radius: var(--r-xs);
-}
-
-.grille__skel-ligne {
-  margin-top: var(--space-3);
-}
-
-.grille__cartes {
+  .grille--mobile-cartes .grille__cartes {
     display: flex;
+  }
+
+  /* Grille compacte : noms seuls (sans avatar), cases 26 px, en-têtes courts ; défilement horizontal. */
+  .grille--mobile-grille .grille__tableau :deep(.cz-avatar) {
+    display: none;
+  }
+
+  .grille--mobile-grille .grille__tableau th {
+    padding: var(--space-2) 2px;
+    font-family: var(--font-text);
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    background: transparent;
+    border-bottom: 0;
+  }
+
+  .grille--mobile-grille .grille__tableau td {
+    height: 40px;
+    padding: 2px;
+    border-bottom: 0;
+  }
+
+  .grille--mobile-grille .grille__tableau td:first-child,
+  .grille--mobile-grille .grille__tableau th:first-child {
+    padding-left: var(--space-3);
+    box-shadow: none;
+  }
+
+  .grille--mobile-grille .grille__tableau .cz-cell {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--r-xs);
+  }
+
+  .grille--mobile-grille .grille__tableau .cur {
+    background: transparent;
+  }
+
+  .grille--mobile-grille .grille__tableau {
+    box-shadow: none;
+  }
+
+  .grille--mobile-grille .grille__tableau .cz-grid {
+    width: max-content;
+  }
+
+  /* Au-dessus des cases (position relative en mobile pour leur zone tactile) quand la grille défile. */
+  .grille--mobile-grille .grille__tableau td:first-child {
+    z-index: 2;
+    min-width: 120px;
+    max-width: 132px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* En-tête de la colonne des noms : présent pour les lecteurs d'écran, pas affiché (maquette). */
+  .grille--mobile-grille .grille__tableau th:first-child {
+    z-index: 2;
+    color: transparent;
+    background: var(--surface);
   }
 }
 </style>

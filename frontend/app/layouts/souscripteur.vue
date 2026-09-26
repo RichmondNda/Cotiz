@@ -1,16 +1,21 @@
 <!--
   Espace souscripteur (thème member, corail), mobile d'abord.
   Mobile : colonne unique, navigation basse 4 entrées, bouton flottant « Déclarer un paiement » au-dessus
-  (masqué avec `definePageMeta({ fab: false })`). Desktop : barre latérale 240 px, contenu centré sur 960 px.
+  (masqué avec `definePageMeta({ fab: false })`). La navigation basse se masque avec `navBasse: false`
+  ou, selon l'état de la page, `useGabaritSouscripteur().masquerNavBasse()`.
+  Desktop : barre latérale 240 px, contenu centré sur 960 px (les pages resserrent leur colonne si besoin).
 -->
 <script setup lang="ts">
 import { NAV_SOUSCRIPTEUR } from '~/config/navigation'
 
 useHead({ bodyAttrs: { 'data-theme': 'member' } })
 const route = useRoute()
-const avecFab = computed(() => route.meta.fab !== false)
-// « Projets » (liste des associations) reste actif sur le détail d'un projet et ses sous-pages.
-const ALIAS = { projets: ['/projets', '/contrats'] }
+const { navMasquee } = useGabaritSouscripteur()
+const avecNav = computed(() => route.meta.navBasse !== false && !navMasquee.value)
+const avecFab = computed(() => avecNav.value && route.meta.fab !== false)
+// « Projets » (liste des associations) reste actif sur le détail d'un projet et ses sous-pages ;
+// « Mes contrats » s'ouvre depuis le profil.
+const ALIAS = { projets: ['/projets'], profil: ['/contrats'] }
 </script>
 
 <template>
@@ -26,13 +31,16 @@ const ALIAS = { projets: ['/projets', '/contrats'] }
     <main
       id="contenu"
       class="gabarit-mb__contenu"
-      :class="{ 'avec-fab': avecFab }"
+      :class="{ 'avec-fab': avecFab, 'sans-nav': !avecNav }"
     >
       <div class="gabarit-mb__colonne">
         <slot />
       </div>
     </main>
-    <div class="gabarit-mb__bas">
+    <div
+      v-if="avecNav"
+      class="gabarit-mb__bas"
+    >
       <NuxtLink
         v-if="avecFab"
         to="/paiements/declarer"
@@ -109,6 +117,10 @@ const ALIAS = { projets: ['/projets', '/contrats'] }
 
   .gabarit-mb__contenu.avec-fab {
     padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+
+  .gabarit-mb__contenu.sans-nav {
+    padding-bottom: var(--space-4);
   }
 
   .gabarit-mb__bas {

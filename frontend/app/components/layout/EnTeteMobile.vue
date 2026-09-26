@@ -10,13 +10,26 @@ withDefaults(defineProps<{
   sousTitre?: string
   retour?: RouteLocationRaw
   libelleRetour?: string
-}>(), { sousTitre: undefined, retour: undefined, libelleRetour: 'Retour' })
+  /** Retour par action (fermeture d'un écran plein écran) : émet `retour` au lieu de naviguer. */
+  boutonRetour?: boolean
+}>(), { sousTitre: undefined, retour: undefined, libelleRetour: 'Retour', boutonRetour: false })
+
+defineEmits<{ retour: [] }>()
 </script>
 
 <template>
   <header class="entete-mobile">
+    <button
+      v-if="boutonRetour"
+      type="button"
+      class="entete-mobile__retour"
+      :aria-label="libelleRetour"
+      @click="$emit('retour')"
+    >
+      <CzIcon nom="chevron-gauche" />
+    </button>
     <NuxtLink
-      v-if="retour"
+      v-else-if="retour"
       :to="retour"
       class="entete-mobile__retour"
       :aria-label="libelleRetour"
@@ -56,6 +69,10 @@ withDefaults(defineProps<{
 
 .entete-mobile__retour {
   display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
   align-items: center;
   justify-content: center;
   width: 44px;

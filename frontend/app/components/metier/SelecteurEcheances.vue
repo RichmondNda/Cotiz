@@ -5,6 +5,9 @@
   - Ajustement manuel : cocher / décocher ; « Reste à répartir » en direct, danger si négatif.
   - Ordre : retards en premier (fond danger-bg), puis échéance courante, puis futures (non cochées à 55 %).
   `lectureSeule` : même composant dans le détail d'un paiement déclaré (gestionnaire).
+  `vue="souscripteur"` (déclaration) : chaque ligne affiche le montant affecté « sur » le montant de l'échéance,
+  badges « En retard » / « Partiel » seulement ; `lignesMin` limite l'affichage aux lignes couvertes, complétées
+  jusqu'à ce minimum (la répartition porte toujours sur toutes les échéances fournies).
   v-model:repartition expose le résultat ; `valide` = reste nul et montant saisi.
   Slots `entete` et `pied` (reçoivent { repartition, montant }) pour les variantes d'écran.
 -->
@@ -23,7 +26,9 @@ const props = withDefaults(defineProps<{
   /** Échéances non soldées, de la plus ancienne à la plus récente. */
   echeances: EcheanceSelecteur[]
   lectureSeule?: boolean
-}>(), { lectureSeule: false })
+  vue?: 'gestionnaire' | 'souscripteur'
+  lignesMin?: number
+}>(), { lectureSeule: false, vue: 'gestionnaire', lignesMin: undefined })
 
 const repartition = defineModel<Repartition | null>('repartition', { default: null })
 const cochees = ref<Set<string>>(new Set())
@@ -70,6 +75,14 @@ const resume = computed(() => {
   return `${pleines} échéance${pleines > 1 ? 's' : ''} couverte${pleines > 1 ? 's' : ''}`
 })
 
+const estMembre = computed(() => props.vue === 'souscripteur')
+
+const lignesAffichees = computed(() => {
+  if (props.lignesMin === undefined) return props.echeances
+  const derniere = props.echeances.reduce((n, e, i) => (estCochee(e) ? i + 1 : n), 0)
+  return props.echeances.slice(0, Math.max(props.lignesMin, derniere))
+})
+
 function ligne(e: EcheanceSelecteur) {
   return resultat.value?.lignes.find(l => l.id === e.id)
 }
@@ -108,7 +121,7 @@ function classeLigne(e: EcheanceSelecteur) {
       aria-label="Échéances couvertes"
     >
       <div
-        v-for="e in echeances"
+        v-for="e in lignesAffichees"
         :key="e.id"
         class="row"
         :class="classeLigne(e)"
@@ -130,7 +143,23 @@ function classeLigne(e: EcheanceSelecteur) {
         /></span>
         <div class="lbl">
           <b>{{ e.label }}</b>
-          <template v-if="montant && estCochee(e)">
+          <template v-if="estMembre">
+            <CzBadge
+              v-if="ligne(e)?.etat === 'partial'"
+              ton="warning"
+              petit
+            >
+              Partiel
+            </CzBadge>
+            <CzBadge
+              v-else-if="e.enRetard && estCochee(e)"
+              ton="danger"
+              petit
+            >
+              En retard
+            </CzBadge>
+          </template>
+          <template v-else-if="montant && estCochee(e)">
             <CzBadge
               v-if="ligne(e)?.etat === 'partial'"
               ton="warning"
@@ -154,7 +183,7 @@ function classeLigne(e: EcheanceSelecteur) {
             </CzBadge>
           </template>
           <CzBadge
-            v-else-if="!montant && e.enRetard"
+            v-else-if="!montant && e.enRetard && !estMembre"
             ton="danger"
             petit
           >
@@ -162,7 +191,10 @@ function classeLigne(e: EcheanceSelecteur) {
           </CzBadge>
         </div>
         <span class="amt">
-          <template v-if="ligne(e)?.etat === 'partial'">
+          <template v-if="estMembre">
+            {{ formatFCFA(estCochee(e) ? ligne(e)?.affecte ?? 0 : 0) }}<small>sur {{ formatFCFA(e.montant) }}</small>
+          </template>
+          <template v-else-if="ligne(e)?.etat === 'partial'">
             {{ formatFCFA(ligne(e)!.affecte) }}<small>sur {{ formatFCFA(e.montant) }}</small>
           </template>
           <template v-else>{{ formatFCFA(e.montant) }}</template>

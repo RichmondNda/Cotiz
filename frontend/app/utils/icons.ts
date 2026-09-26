@@ -1,5 +1,5 @@
-// Les 44 icônes Cotiz (grille 24 px, trait 1,75 px, extrémités arrondies).
-// Contenu SVG repris tel quel de design/design-system/bundle.js (`Cotiz.icon`) — ne pas redessiner.
+// Les 44 icônes Cotiz (grille 24 px, trait 1,75 px, extrémités arrondies), plus 3 icônes des maquettes souscripteur.
+// Contenu SVG repris tel quel de design/design-system/bundle.js (`Cotiz.icon`) ou du HTML de référence — ne pas redessiner.
 // Rendu via <CzIcon nom="…" />.
 
 export const ICONES = {
@@ -50,6 +50,10 @@ export const ICONES = {
   'cadenas': '<rect x="4.5" y="10.5" width="15" height="10.5" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
   'imprimer': '<path d="M7 9V3.5h10V9M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="6.5" rx="1"/>',
   'facturation': '<path d="M5.5 3h13v18l-3-2-3.5 2-3.5-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  // Icônes des écrans souscripteur, reprises telles quelles du HTML de référence (MbAssociation, MbDeclarer).
+  'appeler': '<path d="M5 4h3.5l1.5 4.5-2 1.5a11 11 0 0 0 6 6l1.5-2 4.5 1.5V19a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  'email': '<path d="M4 6.5h16v11H4zM4 7l8 6 8-6"/>',
+  'appareil-photo': '<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.5-2h5L16 6h1.5A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM12 10a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z"/>',
 } as const
 
 export type NomIcone = keyof typeof ICONES

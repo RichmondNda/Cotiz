@@ -34,6 +34,11 @@ export function lireMontant(saisie: string): number | null {
   return chiffres ? Number(chiffres) : null
 }
 
+/** Date ISO réelle (`2026-03-05…`), par opposition aux placeholders de la maquette (`[DATE]`). */
+export function estDate(d?: string | null): d is string {
+  return Boolean(d && /^\d{4}-\d{2}-\d{2}/.test(d))
+}
+
 /** Pourcentage entier : 82 → `82 %` (espace insécable). */
 export function formatPourcent(n: number | string): string {
   return `${n}${ESPACE_INSECABLE}%`
@@ -166,4 +171,17 @@ export function initiales(nom: string): string {
 /** Accord simple : `pluriel(3, 'échéance')` → `3 échéances`. */
 export function pluriel(n: number, singulier: string, pluriel?: string): string {
   return `${n} ${n > 1 ? (pluriel ?? `${singulier}s`) : singulier}`
+}
+
+/** Nom d'association abrégé pour les cartes : `Association des ressortissants de Man` → `Assoc. des ressortissants de Man`. */
+export function nomCourtAssociation(nom: string): string {
+  return nom.replace(/^Association /, 'Assoc. ')
+}
+
+/** Date et heure d'une signature : `25/09/2026 à 10:42`. */
+export function formatDateHeure(d: string | Date): string {
+  const date = lireDate(d)
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  return `${formatDate(date, 'numerique')} à ${hh}:${mm}`
 }

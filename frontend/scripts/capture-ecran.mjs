@@ -59,6 +59,8 @@ const browser = await chromium.launch()
 for (const [dev, width, height] of [['web', 1440, 900], ['mobile', 390, 844]]) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, isMobile: dev === 'mobile', hasTouch: dev === 'mobile' })
   if (role) await ctx.addCookies([{ name: 'cotiz_role', value: role, url: base }])
+  // Chaque rendu part des données de référence (une capture précédente a pu signer, déclarer…).
+  await fetch(new URL('/api/_dev/reinitialiser', base), { method: 'POST' }).catch(() => {})
   const page = await ctx.newPage()
   const errors = []
   page.on('pageerror', e => errors.push(e.message))

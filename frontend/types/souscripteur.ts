@@ -30,6 +30,8 @@ export interface Souscription {
   statut: StatutSouscription
   /** Montant à régulariser (retards). Ex. Moussa / Centre : 50 000 F. */
   montantEnRetard: MontantFCFA
+  /** Retiré du projet par le gestionnaire (historique conservé, plus d'échéances à venir). */
+  retireLe?: DateISO
 }
 
 /** Vue annuaire (MgSouscripteurs) : statut global = le pire de ses projets. */

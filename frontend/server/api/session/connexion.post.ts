@@ -24,6 +24,11 @@ export default defineMockHandler(async (event): Promise<ResultatConnexion> => {
       if (estBloque(cle)) erreurMetier(423, 'blocage', 'Trop de tentatives')
       const g = gestionnaireParEmail(identifiant)
       if (g && motDePasse === MOT_DE_PASSE_SUSPENDU) erreurMetier(403, 'compte-suspendu', 'Espace suspendu')
+      // Premier accès (accès reçus du super-admin) : onboarding de l'association.
+      if (g && motDePasse === MOT_DE_PASSE_PROVISOIRE) {
+        effacerEchecs(cle)
+        return { etape: 'premiere-connexion', role: 'gestionnaire', prenom: g.prenom }
+      }
       if (!g || motDePasse !== MOT_DE_PASSE) {
         if (enregistrerEchec(cle)) erreurMetier(423, 'blocage', 'Trop de tentatives')
         erreurMetier(401, 'identifiants-incorrects', 'Identifiants incorrects')
