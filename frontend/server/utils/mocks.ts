@@ -64,7 +64,7 @@ export function utilisateurSession(event: H3Event): UtilisateurSession | null {
       return g ? { id: g.id, role, prenom: g.prenom, nom: g.nom, fonction: g.fonction ? majuscule(g.fonction) : undefined, associationId: g.associationId } : null
     }
     case 'superadmin':
-      return { id: superadmin.id, role, prenom: superadmin.prenom }
+      return { id: superadmin.id, role, prenom: store.profilPlateforme.prenom }
     default:
       return null
   }

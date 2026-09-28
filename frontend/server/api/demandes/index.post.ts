@@ -7,10 +7,6 @@ import { chiffresTelephone } from '../../mocks/auth'
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
-function slug(t: string) {
-  return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-}
-
 export default defineMockHandler(async (event): Promise<DemandeCreee> => {
   const d = await readBody<NouvelleDemande>(event)
   const a = d?.association
@@ -22,8 +18,7 @@ export default defineMockHandler(async (event): Promise<DemandeCreee> => {
     && d.cguAcceptees === true
   if (!valide) throw createError({ statusCode: 400, statusMessage: 'Demande incomplete' })
 
-  let id = slug(a.nom) || 'demande'
-  while (store.demandes.some(x => x.id === id)) id += '-1'
+  const id = slugUnique(a.nom, store.demandes.map(x => x.id), 'demande')
   const demande: Demande = {
     id,
     reference: '[RÉF. DE LA DEMANDE]',

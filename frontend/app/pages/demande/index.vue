@@ -76,7 +76,7 @@ const erreurEnvoi = ref(false)
 
 // ---------------------------------------------------------------- Plans
 const route = useRoute()
-const { data: plans, pending: plansEnCours, error: erreurPlans, refresh: rechargerPlans } = usePlans()
+const { data: plans, pending: plansEnCours, error: erreurPlans, refresh: rechargerPlans } = usePlans({ statut: 'actif' })
 const optionsPlans = computed(() => (plans.value ?? []).filter(p => p.statut === 'actif')
   .map(p => ({ valeur: p.id, titre: p.nom, detail: `${formatFCFA(p.prixMensuel)} / mois` })))
 

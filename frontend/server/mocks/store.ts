@@ -1,7 +1,8 @@
 // Store en mémoire des mocks : copie modifiable des données de référence, partagée par les handlers.
 // Les mutations (valider un paiement, signer un contrat…) viendront avec les lots qui en ont besoin.
-import type { Association, Contrat, Demande, Echeance, EnvoiRelance, Gestionnaire, Notification, Paiement, Plan, Projet, RegleRelance, Souscripteur, Souscription } from '~~/types'
+import type { Association, Contrat, Demande, Echeance, EnvoiRelance, Gestionnaire, Notification, Paiement, Plan, ProfilPlateforme, Projet, RegleRelance, Souscripteur, Souscription } from '~~/types'
 import * as ref from './referentiel'
+import * as plateforme from './plateforme'
 import { genererEcheances, paiementsEnAttente, paiementsMoussa, paiementsValidesCentre, rendreContrat } from './generation'
 
 export interface StoreMocks {
@@ -27,6 +28,12 @@ export interface StoreMocks {
   changementsFormuleDemandes: string[]
   /** Profil des gestionnaires (dernier changement de mot de passe, préférences), par id. */
   profilsGestionnaires: Record<string, typeof ref.PROFIL_GESTIONNAIRE>
+  // ---- Espace plateforme
+  /** Suspensions d'associations (date, motif, statut rétabli à la réactivation), par id. */
+  suspensions: Record<string, { le: string, motif: string, statutAvant: Association['statut'] }>
+  /** Dernière activité des associations, par id. */
+  derniereActivite: Record<string, string>
+  profilPlateforme: ProfilPlateforme
 }
 
 function construire(): StoreMocks {
@@ -70,6 +77,9 @@ function construire(): StoreMocks {
     envoisRelance: ref.ENVOIS_RELANCE,
     changementsFormuleDemandes: [],
     profilsGestionnaires: {},
+    suspensions: {},
+    derniereActivite: plateforme.DERNIERE_ACTIVITE,
+    profilPlateforme: plateforme.PROFIL_RICHY,
   })
 }
 

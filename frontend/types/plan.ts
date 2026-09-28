@@ -5,6 +5,8 @@ export type StatutPlan = 'actif' | 'archive'
 export interface Plan {
   id: Identifiant
   nom: string // Découverte, Essentiel, Pro
+  /** Phrase affichée sous le nom sur la carte tarif (SaPlan). */
+  description?: string
   /** Prix non fournis : `[PRIX]` dans toutes les maquettes. */
   prixMensuel: MontantFCFA | '[PRIX]'
   prixAnnuel: MontantFCFA | '[PRIX]'

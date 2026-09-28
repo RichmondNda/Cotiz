@@ -13,6 +13,7 @@ import type {
   Souscripteur,
   Souscription,
 } from '~~/types'
+import { DEMANDE_TONTINE } from './plateforme'
 
 // ---------------------------------------------------------------- Plans
 export const plans: Plan[] = [
@@ -23,7 +24,7 @@ export const plans: Plan[] = [
     associationsAbonnees: 41, misEnAvant: false, statut: 'actif',
   },
   {
-    id: 'essentiel', nom: 'Essentiel', prixMensuel: '[PRIX]', prixAnnuel: '[PRIX]',
+    id: 'essentiel', nom: 'Essentiel', description: 'Pour les associations qui gèrent plusieurs projets.', prixMensuel: '[PRIX]', prixAnnuel: '[PRIX]',
     quotas: { projets: '[N]', souscripteurs: '[N]', gestionnaires: '[N]' },
     fonctionnalites: ['Tout Découverte', 'Contrats à signer en ligne', 'Relances automatiques'],
     associationsAbonnees: 78, misEnAvant: true, statut: 'actif',
@@ -327,8 +328,22 @@ function demande(
   }
 }
 
+/** Demande de référence de SaDemande : valeurs de la capture (fonction, téléphone, besoins, heure de réception…). */
+function avecDetailTontine(d: Demande): Demande {
+  const t = DEMANDE_TONTINE
+  return {
+    ...d,
+    reference: t.reference,
+    recueLe: t.recueLe,
+    consulteeLe: t.consulteeLe,
+    association: { ...d.association, description: t.description },
+    responsable: { ...d.responsable, fonction: t.fonction, telephone: t.telephone },
+    besoins: { ...d.besoins, projetsEnvisages: t.projetsEnvisages, source: t.source },
+  }
+}
+
 export const demandes: Demande[] = [
-  demande('tontine-commercantes-adjame', 'Tontine des commerçantes d’Adjamé', 'tontine', 'Mariam Ouattara', 'm.ouattara@[domaine]', 'Abidjan', '50 à 100', 'essentiel', '2026-09-21', 'a_traiter'),
+  avecDetailTontine(demande('tontine-commercantes-adjame', 'Tontine des commerçantes d’Adjamé', 'tontine', 'Mariam Ouattara', 'm.ouattara@[domaine]', 'Abidjan', '50 à 100', 'essentiel', '2026-09-21', 'a_traiter')),
   demande('mutuelle-enseignants-daloa', 'Mutuelle des enseignants de Daloa', 'mutuelle', 'Koffi N’Guessan', 'k.nguessan@[domaine]', 'Daloa', 'Plus de 250', 'pro', '2026-09-22', 'a_traiter'),
   demande('groupement-femmes-korhogo', 'Groupement des femmes de Korhogo', 'groupement', 'Salimata Coulibaly', 's.coulibaly@[domaine]', 'Korhogo', 'Moins de 50', 'decouverte', '2026-09-23', 'a_traiter'),
   demande('etudiants-yamoussoukro', 'Association des étudiants de Yamoussoukro', 'association', 'Yao Kouamé', 'y.kouame@[domaine]', 'Yamoussoukro', '50 à 100', 'decouverte', '2026-09-24', 'a_traiter'),

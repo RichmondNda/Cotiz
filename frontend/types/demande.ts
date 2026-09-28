@@ -43,8 +43,15 @@ export interface Demande {
   planAttribueId?: Identifiant
   decideLe?: DateISO
   decidePar?: Identifiant
-  motifRefus?: string // incertain : liste de motifs + texte libre
+  motifRefus?: string // liste de motifs (modale de refus)
+  precisionsRefus?: string // texte libre, repris dans l'email
+  refusEnvoyeLe?: DateISO
+  comptesGestionnaires?: number
+  debutAbonnement?: DateISO
+  noteInterne?: string // non visible par l'association
   associationId?: Identifiant // créée à l'approbation
+  /** Première consultation par le super-admin (frise « Consultée par Richy »). */
+  consulteeLe?: DateISO
 }
 
 /** Corps de `POST /api/demandes` (formulaire public `/demande`). */

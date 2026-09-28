@@ -11,7 +11,7 @@ import { formatFCFA } from '~/utils/format'
 definePageMeta({ layout: 'public' })
 useHead({ title: 'Cotiz — Les cotisations de votre association, enfin sous contrôle' })
 
-const { data: plans, pending, error, refresh } = usePlans()
+const { data: plans, pending, error, refresh } = usePlans({ statut: 'actif' })
 // Mobile (carrousel) : le plan mis en avant d'abord. En desktop, l'ordre CSS rétablit l'ordre de l'API.
 const plansOrdonnes = computed(() => (plans.value ?? []).filter(p => p.statut === 'actif'))
 

@@ -3,10 +3,13 @@
 // en retard = danger ; projet brouillon / terminé = neutre ; association suspendue = danger ; demande à traiter = warning.
 import type {
   MotifRejet,
+  RolePlateforme,
+  SignalAssociation,
   StatutAssociation,
   StatutContrat,
   StatutDemande,
   StatutEcheance,
+  StatutFacture,
   StatutPaiement,
   StatutPlan,
   StatutProjet,
@@ -49,7 +52,7 @@ export const STATUTS_SOUSCRIPTION: Record<StatutSouscription, LibelleStatut> = {
 
 export const STATUTS_ASSOCIATION: Record<StatutAssociation, LibelleStatut> = {
   active: { libelle: 'Active', ton: 'success' },
-  impayee: { libelle: 'Impayé', ton: 'warning' },
+  impayee: { libelle: 'Impayée', ton: 'warning' },
   suspendue: { libelle: 'Suspendue', ton: 'danger' },
   onboarding: { libelle: 'Onboarding', ton: 'info' },
 }
@@ -70,6 +73,28 @@ export const STATUTS_PLAN: Record<StatutPlan, LibelleStatut> = {
   archive: { libelle: 'Archivé', ton: 'neutral' },
 }
 
+/** Factures d'abonnement (SaFacturation, onglet Abonnement de SaAssociation). */
+export const STATUTS_FACTURE: Record<StatutFacture, LibelleStatut> = {
+  a_venir: { libelle: 'À venir', ton: 'info' },
+  en_attente: { libelle: 'En attente', ton: 'warning' },
+  payee: { libelle: 'Payée', ton: 'success' },
+  impayee: { libelle: 'Impayée', ton: 'danger' },
+}
+
+/** Signaux des « Associations à surveiller » (SaDashboard). */
+export const SIGNAUX_ASSOCIATION: Record<SignalAssociation, LibelleStatut> = {
+  impaye: { libelle: 'Impayé', ton: 'warning' },
+  onboarding: { libelle: 'Onboarding non terminé', ton: 'info' },
+  quota: { libelle: 'Proche du quota', ton: 'neutral' },
+}
+
+/** Rôles de l'équipe plateforme (SaUtilisateurs, SaProfil). */
+export const ROLES_PLATEFORME: Record<RolePlateforme, string> = {
+  proprietaire: 'Propriétaire',
+  administrateur: 'Administrateur',
+  support: 'Support',
+}
+
 export const TABLES_STATUTS = {
   echeance: STATUTS_ECHEANCE,
   paiement: STATUTS_PAIEMENT,
@@ -79,6 +104,7 @@ export const TABLES_STATUTS = {
   demande: STATUTS_DEMANDE,
   contrat: STATUTS_CONTRAT,
   plan: STATUTS_PLAN,
+  facture: STATUTS_FACTURE,
 } as const
 
 export type TypeStatut = keyof typeof TABLES_STATUTS
@@ -115,3 +141,29 @@ export const MOYENS_PAIEMENT = {
   virement: 'Virement bancaire',
   especes: 'Espèces',
 } as const
+
+/** Motifs de refus d'une demande de création (SaDemande, modale de refus). */
+export const MOTIFS_REFUS_DEMANDE = ['Informations incomplètes', 'Activité hors périmètre', 'Doublon d’une association existante', 'Autre'] as const
+
+/** Motifs de suspension d'une association (SaAssociation, modale de suspension). */
+export const MOTIFS_SUSPENSION = ['Abonnement impayé', 'Demande de l’association', 'Usage non conforme', 'Autre'] as const
+
+/** Types d'association déclarés (demande publique, création directe). */
+export const TYPES_ASSOCIATION = {
+  association: 'Association',
+  mutuelle: 'Mutuelle',
+  tontine: 'Tontine',
+  groupement: 'Groupement',
+  autre: 'Autre',
+} as const
+
+/**
+ * Fonctionnalités cochables d'un plan (SaPlan). `alias` : libellé équivalent déjà présent dans les données de la
+ * landing (« Contrats à signer en ligne » = signature électronique).
+ */
+export const FONCTIONNALITES_PLAN: { libelle: string, alias?: string }[] = [
+  { libelle: 'Import de membres par Excel' },
+  { libelle: 'Relances automatiques' },
+  { libelle: 'Rapports avancés' },
+  { libelle: 'Signature électronique des contrats', alias: 'Contrats à signer en ligne' },
+]
