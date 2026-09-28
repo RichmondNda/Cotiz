@@ -1,6 +1,6 @@
 <!--
-  SaAssociation — comprendre la situation complète d'un client et agir dessus.
-  En-tête : logo carré, nom, badge de statut, ville · plan · client depuis ; « Se connecter en tant que » (V3) ;
+  SaAssociation — comprendre la situation complète d'une association et agir dessus.
+  En-tête : logo carré, nom, badge de statut, ville · plan · inscrite depuis ; « Se connecter en tant que » (V3) ;
   menu ⋯ (changer de plan, réactiver, suspendre). Bandeau orange si impayée, rouge + « Réactiver » si suspendue.
   Onglets (`?onglet=`) : Vue d'ensemble (KPI, contact principal, abonnement et quotas, événements) · Projets ·
   Souscripteurs (lecture seule) · Abonnement (historique de facturation, changer de plan) · Usage (V2) ·
@@ -49,7 +49,7 @@ const ONGLETS: Onglet[] = [
 ]
 
 // ---------------------------------------------------------------- Affichage
-const clientDepuis = computed(() => (a.value ? formatMois(a.value.creeeLe).toLocaleLowerCase('fr') : ''))
+const inscriteDepuis = computed(() => (a.value ? formatMois(a.value.creeeLe).toLocaleLowerCase('fr') : ''))
 const montant = (v: ChiffreOuPlaceholder) => (typeof v === 'number' ? formatFCFA(v) : `${v} F`)
 const taux = (v: FicheAssociationPlateforme['kpi']['tauxRecouvrement']) => (v === null ? '—' : typeof v === 'number' ? formatPourcent(v) : `${v} %`)
 const prix = (v: number | '[PRIX]') => `${typeof v === 'number' ? formatFCFA(v) : `${v} F`} / mois`
@@ -224,7 +224,7 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
             </CzBadge>
           </h1>
           <p class="sa-asso__meta">
-            {{ a.ville }} · Plan {{ f.plan.nom }} · client depuis {{ clientDepuis }}
+            {{ a.ville }} · Plan {{ f.plan.nom }} · inscrite depuis {{ inscriteDepuis }}
           </p>
         </div>
         <div class="sa-asso__actions">

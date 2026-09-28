@@ -1,5 +1,5 @@
 <!--
-  SaNouvelleAssociation — créer une association sans demande préalable (client accompagné, démonstration).
+  SaNouvelleAssociation — créer une association sans demande préalable (association accompagnée, démonstration).
   Formulaire en une page, 4 sections repliables : Association (mêmes champs que le formulaire public) · Gestionnaire
   principal · Abonnement (plan, date de début, comptes gestionnaires, période d'essai) · Envoi (identifiants maintenant).
   Barre d'actions collante en bas : Annuler · Créer l'association. Validation à la perte de focus et à l'envoi
@@ -125,7 +125,7 @@ async function creerAssociation() {
   <div class="sa-nouvelle">
     <EnTetePage
       titre="Créer une association"
-      sous-titre="Création directe, sans demande préalable (client accompagné, démonstration)."
+      sous-titre="Création directe, sans demande préalable (association accompagnée, démonstration)."
     />
 
     <CzAlert
