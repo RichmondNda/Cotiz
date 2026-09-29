@@ -13,6 +13,8 @@
     "format": "prettier --write .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "check:docs": "node tools/check-docs.mjs",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:docs",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -24,7 +26,8 @@
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
     "turbo": "^2.11.5",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "yaml": "^2.9.1"
   },
   "lint-staged": {
     "{backend,packages,tools}/**/*.{ts,mts,js,mjs}": [

@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   qualite:
-    name: Lint, typecheck, tests unitaires, build
+    name: Vérifications (pnpm verify) et build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -22,9 +22,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm verify
       - run: pnpm build
       # Le contrat d'API committé doit correspondre aux handlers de mocks.
       - name: Contrat d'API à jour
