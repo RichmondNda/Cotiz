@@ -1,0 +1,97 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+# Files BullMQ et tâches planifiées (tâches répétables avec verrou : une seule exécution même avec plusieurs workers).
+queues:
+- name: events
+  content: Événements relayés depuis l'outbox
+  settings: concurrence 10, 5 tentatives, backoff exponentiel
+  lot: '0.5'
+- name: files
+  content: Antivirus, EXIF, miniatures, empreinte
+  settings: concurrence 4, 3 tentatives
+  lot: '0.5'
+- name: notify-push
+  content: Envois Web Push
+  settings: concurrence 10, 3 tentatives, heures calmes 21 h – 8 h pour le non urgent
+  lot: '4.2'
+- name: documents
+  content: Génération PDF (Gotenberg)
+  settings: concurrence 2
+  lot: '4.1'
+- name: imports
+  content: Imports de fichiers
+  settings: concurrence 1 par association
+  lot: '4.4'
+- name: exports
+  content: Exports
+  settings: concurrence 1 par association
+  lot: '4.6'
+- name: reconciliation
+  content: Analyse et rapprochement de relevés
+  settings: concurrence 1 par association
+  lot: '5.1'
+- name: webhooks
+  content: Webhooks sortants
+  settings: concurrence 5, reprise 1 min → 24 h
+  lot: '5.2'
+- name: notify-email
+  content: Envois email (option)
+  settings: 5 tentatives
+  lot: '6.1'
+- name: notify-sms
+  content: Envois SMS (option)
+  settings: 3 tentatives, repli manuel
+  lot: '6.2'
+scheduled:
+- name: outbox.relay
+  when: Toutes les secondes
+  role: Relais outbox → BullMQ
+  lot: '0.5'
+- name: installments.refresh-statuses
+  when: Quotidienne 01:00 (fuseau de chaque association)
+  role: Passages due et late, événements regroupés
+  lot: '2.4'
+- name: installments.due-soon
+  when: Quotidienne 08:00 locale
+  role: Rappel « échéance dans 3 jours » in-app/push
+  lot: '2.5'
+- name: projects.activate
+  when: Quotidienne 00:30 locale
+  role: enrolling → active à la date de début
+  lot: '2.2'
+- name: schedule.extend-rolling
+  when: Mensuelle
+  role: Maintient l'horizon de 12 échéances des cycles roulants
+  lot: '2.3'
+- name: codes.expire
+  when: Horaire
+  role: Expire les codes, efface code_encrypted, expire les demandes de réinitialisation
+  lot: '1.1'
+- name: managers.digest
+  when: Quotidienne 07:30 locale
+  role: 'Notification in-app récapitulative : paiements à valider, nouveaux retards, codes non remis'
+  lot: '2.6'
+- name: stats.refresh
+  when: Toutes les 15 min
+  role: Rafraîchit les vues matérialisées
+  lot: '1.4'
+- name: reminders.evaluate
+  when: Quotidienne 08:30 locale
+  role: Relances automatiques + file « À relancer »
+  lot: '4.3'
+- name: usage.daily
+  when: Quotidienne 02:00
+  role: Agrégats usage_daily
+  lot: '4.6'
+- name: billing.issue-invoices
+  when: Quotidienne
+  role: Factures d'abonnement
+  lot: '4.6'
+- name: housekeeping
+  when: Quotidienne 03:00
+  role: Purge sessions, codes, exports expirés, fichiers orphelins, demandes refusées > 1 an
+  lot: '0.5'
+- name: push.cleanup
+  when: Hebdomadaire
+  role: Abonnements push expirés
+  lot: '4.2'

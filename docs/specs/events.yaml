@@ -1,0 +1,452 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+# Enveloppe commune : { id, type, version, occurredAt, associationId, actorUserId, aggregate: { type, id }, payload }
+events:
+- type: association.request_submitted
+  emitter: onboarding
+  lot: '1.3'
+  version: 1
+  payload:
+  - requestId
+  - reference
+  - associationName
+  consumers:
+  - 'notifications: plateforme (in-app, push)'
+- type: association.approved
+  emitter: onboarding
+  lot: '1.3'
+  version: 1
+  payload:
+  - associationId
+  - ownerUserId
+  - planId
+  consumers:
+  - 'reporting: stats plateforme'
+  - 'notifications: aucune (message prêt renvoyé dans la réponse)'
+- type: association.request_rejected
+  emitter: onboarding
+  lot: '1.3'
+  version: 1
+  payload:
+  - requestId
+  - reasonCode
+  consumers:
+  - reporting
+- type: association.updated
+  emitter: tenancy
+  lot: '1.4'
+  version: 1
+  payload:
+  - associationId
+  - changedFields
+  consumers:
+  - 'cache: invalidation abonnement/features'
+- type: association.suspended
+  emitter: tenancy
+  lot: '1.4'
+  version: 1
+  payload:
+  - associationId
+  - reason
+  consumers:
+  - 'auth: liste noire Redis'
+  - 'notifications: gestionnaires'
+  - cache
+- type: association.reactivated
+  emitter: tenancy
+  lot: '1.4'
+  version: 1
+  payload:
+  - associationId
+  consumers:
+  - 'auth: retrait liste noire'
+  - cache
+- type: association.onboarded
+  emitter: tenancy
+  lot: '2.1'
+  version: 1
+  payload:
+  - associationId
+  consumers:
+  - reporting
+- type: subscription.plan_changed
+  emitter: billing
+  lot: '1.4'
+  version: 1
+  payload:
+  - associationId
+  - fromPlanId
+  - toPlanId
+  - effectiveAt
+  consumers:
+  - 'cache: quotas'
+  - 'notifications: owner'
+- type: plan.updated
+  emitter: billing
+  lot: '1.2'
+  version: 1
+  payload:
+  - planId
+  consumers:
+  - 'cache: plans publics'
+- type: user.logged_in
+  emitter: identity
+  lot: '1.1'
+  version: 1
+  payload:
+  - userId
+  - space
+  consumers:
+  - 'reporting: usage'
+- type: user.activated
+  emitter: identity
+  lot: '1.1'
+  version: 1
+  payload:
+  - userId
+  - associationIds
+  consumers:
+  - 'notifications: gestionnaires (in-app)'
+  - 'members: retrait de « Codes à remettre »'
+- type: user.password_changed
+  emitter: identity
+  lot: '1.1'
+  version: 1
+  payload:
+  - userId
+  consumers:
+  - 'auth: révocation des autres sessions'
+- type: user.mfa_enabled
+  emitter: identity
+  lot: '4.7'
+  version: 1
+  payload:
+  - userId
+  consumers:
+  - audit
+- type: password_reset.requested
+  emitter: identity
+  lot: '1.1'
+  version: 1
+  payload:
+  - requestId
+  - userId
+  - associationIds
+  - space
+  consumers:
+  - 'notifications: gestionnaires ou plateforme (in-app, push)'
+- type: password_reset.code_issued
+  emitter: identity
+  lot: '1.4'
+  version: 1
+  payload:
+  - requestId
+  - issuedBy
+  consumers:
+  - audit
+- type: activation.code_issued
+  emitter: members
+  lot: '2.3'
+  version: 1
+  payload:
+  - userId
+  - associationId
+  - codeId
+  consumers:
+  - audit
+- type: activation.code_handed
+  emitter: members
+  lot: '2.3'
+  version: 1
+  payload:
+  - codeId
+  - handedBy
+  consumers:
+  - 'reporting: codes non remis'
+- type: project.created
+  emitter: projects
+  lot: '2.2'
+  version: 1
+  payload:
+  - projectId
+  consumers:
+  - reporting
+- type: project.updated
+  emitter: projects
+  lot: '2.2'
+  version: 1
+  payload:
+  - projectId
+  - changedFields
+  consumers:
+  - cache
+- type: project.published
+  emitter: projects
+  lot: '2.2'
+  version: 1
+  payload:
+  - projectId
+  consumers:
+  - reporting
+  - 'notifications: aucune'
+- type: project.closed
+  emitter: projects
+  lot: '2.2'
+  version: 1
+  payload:
+  - projectId
+  consumers:
+  - reporting
+  - 'reminders: désactivation'
+- type: member.enrolled
+  emitter: members
+  lot: '2.3'
+  version: 1
+  payload:
+  - enrollmentId
+  - projectId
+  - userId
+  - isNewAccount
+  consumers:
+  - 'notifications: souscripteur existant (in-app, push)'
+  - 'cache: KPI'
+  - reporting
+- type: member.withdrawn
+  emitter: members
+  lot: '2.3'
+  version: 1
+  payload:
+  - enrollmentId
+  - reason
+  consumers:
+  - 'cache: KPI'
+  - 'notifications: souscripteur'
+- type: member.updated
+  emitter: members
+  lot: '2.3'
+  version: 1
+  payload:
+  - userId
+  - changedFields
+  consumers:
+  - audit
+- type: payment.declared
+  emitter: ledger
+  lot: '3.3'
+  version: 1
+  payload:
+  - paymentId
+  - projectId
+  - userId
+  - amount
+  consumers:
+  - 'notifications: gestionnaires (in-app, push, regroupement)'
+  - 'cache: compteur à valider'
+- type: payment.validated
+  emitter: ledger
+  lot: '2.4'
+  version: 1
+  payload:
+  - paymentId
+  - userId
+  - amountReceived
+  - installmentIds
+  consumers:
+  - 'notifications: souscripteur (in-app, push)'
+  - 'cache: KPI, synthèse souscripteur'
+  - reporting
+  - 'documents: reçu (4.6, option)'
+  - 'developer: webhooks (5.2)'
+- type: payment.rejected
+  emitter: ledger
+  lot: '2.4'
+  version: 1
+  payload:
+  - paymentId
+  - userId
+  - reasonCode
+  consumers:
+  - 'notifications: souscripteur'
+  - cache
+- type: payment.reverted
+  emitter: ledger
+  lot: '2.4'
+  version: 1
+  payload:
+  - paymentId
+  - revertedBy
+  consumers:
+  - 'notifications: souscripteur'
+  - cache
+- type: installment.due_soon
+  emitter: ledger
+  lot: '2.4'
+  version: 1
+  payload:
+  - userId
+  - projectId
+  - installmentIds
+  - dueDate
+  consumers:
+  - 'notifications: souscripteur (in-app ; push dès 4.2)'
+- type: installment.late
+  emitter: ledger
+  lot: '2.4'
+  version: 1
+  payload:
+  - userId
+  - projectId
+  - installmentIds
+  - lateSince
+  consumers:
+  - 'notifications: souscripteur'
+  - 'reminders: file « À relancer » (4.3)'
+  - 'cache: KPI'
+- type: file.uploaded
+  emitter: storage
+  lot: '0.5'
+  version: 1
+  payload:
+  - fileId
+  - purpose
+  consumers:
+  - 'files: analyse antivirus, EXIF, empreinte'
+- type: contract.locked
+  emitter: contracts
+  lot: '4.1'
+  version: 1
+  payload:
+  - contractId
+  - projectId
+  consumers:
+  - 'notifications: souscripteurs en attente de signature'
+- type: contract.signature_required
+  emitter: contracts
+  lot: '4.1'
+  version: 1
+  payload:
+  - enrollmentId
+  - userId
+  - projectId
+  consumers:
+  - 'notifications: souscripteur'
+- type: contract.signed
+  emitter: contracts
+  lot: '4.1'
+  version: 1
+  payload:
+  - signatureId
+  - enrollmentId
+  - userId
+  consumers:
+  - 'documents: PDF signé'
+  - 'notifications: gestionnaires'
+  - 'ledger: génération de l''échéancier'
+- type: import.created
+  emitter: imports
+  lot: '4.4'
+  version: 1
+  payload:
+  - importId
+  consumers:
+  - 'imports: analyse du fichier'
+- type: import.completed
+  emitter: imports
+  lot: '4.4'
+  version: 1
+  payload:
+  - importId
+  - counts
+  consumers:
+  - 'notifications: gestionnaire'
+- type: import.failed
+  emitter: imports
+  lot: '4.4'
+  version: 1
+  payload:
+  - importId
+  - error
+  consumers:
+  - 'notifications: gestionnaire'
+- type: reminder.sent
+  emitter: reminders
+  lot: '4.3'
+  version: 1
+  payload:
+  - runIds
+  - associationId
+  consumers:
+  - 'notifications: souscripteurs'
+- type: reminder.handled
+  emitter: reminders
+  lot: '4.3'
+  version: 1
+  payload:
+  - runId
+  - status
+  - handledBy
+  consumers:
+  - reporting
+- type: team.changed
+  emitter: access
+  lot: '4.5'
+  version: 1
+  payload:
+  - associationId
+  - userId
+  - change
+  consumers:
+  - 'auth: révocation si retrait'
+  - notifications
+- type: staff.changed
+  emitter: access
+  lot: '4.7'
+  version: 1
+  payload:
+  - userId
+  - change
+  consumers:
+  - auth
+- type: export.completed
+  emitter: reporting
+  lot: '4.6'
+  version: 1
+  payload:
+  - exportId
+  - fileId
+  consumers:
+  - 'notifications: demandeur'
+- type: subscription.invoice_issued
+  emitter: billing
+  lot: '4.6'
+  version: 1
+  payload:
+  - invoiceId
+  - associationId
+  consumers:
+  - 'documents: PDF facture'
+  - 'notifications: owner'
+- type: subscription.invoice_paid
+  emitter: billing
+  lot: '4.6'
+  version: 1
+  payload:
+  - invoiceId
+  consumers:
+  - 'notifications: owner'
+- type: statement.imported
+  emitter: reconciliation
+  lot: '5.1'
+  version: 1
+  payload:
+  - statementId
+  consumers:
+  - 'reconciliation: calcul des correspondances'
+- type: payment.intent_created
+  emitter: payments-online
+  lot: '6.3'
+  version: 1
+  payload:
+  - intentId
+  consumers:
+  - audit

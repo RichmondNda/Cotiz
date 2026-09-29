@@ -1,0 +1,449 @@
+{
+  "function": "validateAllocation",
+  "cases": [
+    {
+      "name": "ok",
+      "description": "Répartition correcte",
+      "input": {
+        "amount": 50000,
+        "allocations": [
+          {
+            "installmentId": "i8",
+            "amount": 25000
+          },
+          {
+            "installmentId": "i9",
+            "amount": 25000
+          }
+        ],
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": {
+        "ok": true,
+        "errors": [],
+        "remainingToAllocate": 0
+      }
+    },
+    {
+      "name": "reste-a-repartir",
+      "description": "Compteur « Reste à répartir » = 25 000 F",
+      "input": {
+        "amount": 75000,
+        "allocations": [
+          {
+            "installmentId": "i8",
+            "amount": 25000
+          },
+          {
+            "installmentId": "i9",
+            "amount": 25000
+          }
+        ],
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "allocation_mismatch",
+            "expected": 75000,
+            "allocated": 50000
+          }
+        ],
+        "remainingToAllocate": 25000
+      }
+    },
+    {
+      "name": "depassement",
+      "description": "Allocation supérieure au reste dû de l'échéance",
+      "input": {
+        "amount": 30000,
+        "allocations": [
+          {
+            "installmentId": "i8",
+            "amount": 30000
+          }
+        ],
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "allocation_exceeds_remaining",
+            "installmentId": "i8",
+            "remaining": 25000
+          }
+        ],
+        "remainingToAllocate": 0
+      }
+    },
+    {
+      "name": "doublon",
+      "description": "Même échéance deux fois",
+      "input": {
+        "amount": 50000,
+        "allocations": [
+          {
+            "installmentId": "i8",
+            "amount": 25000
+          },
+          {
+            "installmentId": "i8",
+            "amount": 25000
+          }
+        ],
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "duplicate_installment",
+            "installmentId": "i8"
+          }
+        ],
+        "remainingToAllocate": 0
+      }
+    },
+    {
+      "name": "zero",
+      "description": "Allocation à zéro",
+      "input": {
+        "amount": 25000,
+        "allocations": [
+          {
+            "installmentId": "i8",
+            "amount": 25000
+          },
+          {
+            "installmentId": "i9",
+            "amount": 0
+          }
+        ],
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "allocation_not_positive",
+            "installmentId": "i9"
+          }
+        ],
+        "remainingToAllocate": 0
+      }
+    },
+    {
+      "name": "echeance-fermee",
+      "description": "Échéance déjà payée",
+      "input": {
+        "amount": 25000,
+        "allocations": [
+          {
+            "installmentId": "p8",
+            "amount": 25000
+          }
+        ],
+        "installments": [
+          {
+            "id": "p8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 1,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 25000,
+            "amountPending": 0,
+            "status": "paid"
+          }
+        ]
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "installment_not_open",
+            "installmentId": "p8"
+          }
+        ],
+        "remainingToAllocate": 0
+      }
+    },
+    {
+      "name": "inscriptions-melangees",
+      "description": "Deux inscriptions différentes dans un même paiement",
+      "input": {
+        "amount": 50000,
+        "allocations": [
+          {
+            "installmentId": "a",
+            "amount": 25000
+          },
+          {
+            "installmentId": "b",
+            "amount": 25000
+          }
+        ],
+        "installments": [
+          {
+            "id": "a",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 1,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "b",
+            "enrollmentId": "e2",
+            "kind": "periodic",
+            "sequence": 1,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          }
+        ]
+      },
+      "output": {
+        "ok": false,
+        "errors": [
+          {
+            "code": "mixed_enrollments"
+          }
+        ],
+        "remainingToAllocate": 0
+      }
+    }
+  ]
+}

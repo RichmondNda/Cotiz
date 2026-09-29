@@ -1,0 +1,195 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+errors:
+- code: validation_failed
+  http: 422
+  message: Certains champs sont invalides.
+  where: 'Tout formulaire : erreurs par champ dans fields'
+- code: not_found
+  http: 404
+  message: Élément introuvable.
+  where: Aussi renvoyé pour une ressource d'une autre association
+- code: forbidden
+  http: 403
+  message: Vous n'avez pas les droits pour cette action.
+  where: Permission absente
+- code: feature_disabled
+  http: 403
+  message: Cette fonctionnalité n'est pas disponible pour votre association.
+  where: features de /me
+- code: too_many_requests
+  http: 429
+  message: Trop de tentatives. Réessayez dans quelques minutes.
+  where: Limitation de débit
+- code: challenge_failed
+  http: 422
+  message: Vérification anti-robot échouée. Réessayez.
+  where: Formulaire de demande (ALTCHA)
+- code: idempotency_key_reused
+  http: 422
+  message: Cette opération a déjà été envoyée avec d'autres informations.
+  where: Même Idempotency-Key, corps différent
+- code: version_conflict
+  http: 412
+  message: Ces informations ont été modifiées entre-temps. Rechargez la page.
+  where: If-Match périmé
+- code: invalid_state
+  http: 409
+  message: Cette action n'est pas possible dans l'état actuel.
+  where: Transition de statut interdite
+- code: invalid_credentials
+  http: 401
+  message: Identifiant ou mot de passe incorrect.
+  where: Pages de connexion
+- code: wrong_space
+  http: 401
+  message: Identifiant ou mot de passe incorrect.
+  where: Même message que invalid_credentials (ne révèle rien)
+- code: account_locked
+  http: 423
+  message: Compte bloqué pendant 15 minutes après plusieurs tentatives.
+  where: Pages de connexion
+- code: account_not_activated
+  http: 403
+  message: Votre compte n'est pas encore activé. Utilisez le code remis par votre association.
+  where: Connexion souscripteur → lien vers /activer
+- code: association_suspended
+  http: 403
+  message: L'espace de votre association est suspendu. Contactez l'équipe Cotiz.
+  where: Bandeau rouge
+- code: session_expired
+  http: 401
+  message: Votre session a expiré. Reconnectez-vous.
+  where: Intercepteur de renouvellement
+- code: session_revoked
+  http: 401
+  message: Vous avez été déconnecté.
+  where: Réutilisation d'un jeton, retrait d'équipe
+- code: invalid_code
+  http: 422
+  message: Code incorrect.
+  where: Activation, réinitialisation, TOTP
+- code: code_expired
+  http: 422
+  message: Ce code a expiré. Demandez-en un nouveau à votre association.
+  where: Activation, réinitialisation
+- code: too_many_attempts
+  http: 423
+  message: 'Trop d''essais : ce code est désactivé. Demandez-en un nouveau.'
+  where: Activation, réinitialisation
+- code: already_activated
+  http: 409
+  message: Ce compte est déjà activé. Connectez-vous.
+  where: Activation
+- code: weak_password
+  http: 422
+  message: Mot de passe trop faible (10 caractères minimum, pas dans la liste des mots de passe courants).
+  where: Activation, réinitialisation, profil
+- code: reset_token_invalid
+  http: 422
+  message: Le lien de réinitialisation n'est plus valable. Recommencez.
+  where: Réinitialisation
+- code: request_already_handled
+  http: 409
+  message: Cette demande a déjà été traitée.
+  where: Demandes de création, de réinitialisation
+- code: email_already_owner
+  http: 409
+  message: Cette adresse gère déjà une autre association.
+  where: Approbation, création directe
+- code: slug_taken
+  http: 409
+  message: Cet identifiant d'association est déjà utilisé.
+  where: Création directe
+- code: code_taken
+  http: 409
+  message: Ce code de plan existe déjà.
+  where: Plans
+- code: last_owner
+  http: 409
+  message: Il doit rester au moins un propriétaire.
+  where: Équipe, personnel plateforme
+- code: quota_exceeded
+  http: 409
+  message: Limite de votre formule atteinte.
+  where: 'Barre de quota, bouton désactivé ; details: limit, usage'
+- code: onboarding_incomplete
+  http: 422
+  message: Complétez les étapes obligatoires avant de terminer.
+  where: Onboarding association
+- code: invalid_phone
+  http: 422
+  message: Numéro de téléphone invalide.
+  where: Ajout de souscripteur
+- code: phone_taken
+  http: 409
+  message: Ce numéro est déjà utilisé par une autre personne.
+  where: Fiche souscripteur
+- code: already_enrolled
+  http: 409
+  message: Cette personne est déjà inscrite à ce projet.
+  where: Cas C de la modale d'ajout
+- code: financial_terms_locked
+  http: 409
+  message: Les conditions financières ne sont plus modifiables après le premier paiement validé.
+  where: Paramètres du projet (cadenas)
+- code: amount_exceeds_remaining
+  http: 422
+  message: Le montant dépasse ce qui reste à payer.
+  where: 'Étape montant de la déclaration ; details: maxAmount'
+- code: allocation_mismatch
+  http: 422
+  message: La répartition ne correspond pas au montant.
+  where: Compteur « Reste à répartir » en rouge
+- code: allocation_exceeds_remaining
+  http: 422
+  message: Une échéance reçoit plus que son reste dû.
+  where: Répartition (déclaration, validation)
+- code: proof_required
+  http: 422
+  message: Ajoutez une preuve ou une référence de transaction.
+  where: Déclaration
+- code: file_not_clean
+  http: 422
+  message: Ce fichier a été refusé par l'analyse de sécurité.
+  where: Zone de dépôt
+- code: file_too_large
+  http: 422
+  message: Fichier trop lourd (5 Mo maximum).
+  where: Zone de dépôt
+- code: file_type_not_allowed
+  http: 422
+  message: Format non accepté (JPG, PNG ou PDF).
+  where: Zone de dépôt
+- code: payment_already_reviewed
+  http: 409
+  message: Ce paiement vient d'être traité par {reviewerName}.
+  where: 'Détail d''un paiement ; details: reviewerName, status'
+- code: revert_window_expired
+  http: 409
+  message: L'annulation n'est plus possible (10 minutes écoulées).
+  where: Toast d'annulation
+- code: not_reviewer
+  http: 403
+  message: Seule la personne qui a validé peut annuler.
+  where: Toast d'annulation
+- code: signature_required
+  http: 403
+  message: Signez le contrat du projet avant de déclarer un paiement.
+  where: Redirection vers la signature
+- code: contract_changed
+  http: 409
+  message: Le contrat a été modifié. Relisez-le avant de signer.
+  where: Signature
+- code: contract_locked
+  http: 409
+  message: Ce contrat est verrouillé.
+  where: Édition du contrat
+- code: already_signed
+  http: 409
+  message: Vous avez déjà signé ce contrat.
+  where: Signature
+- code: invalid_signature
+  http: 401
+  message: Signature invalide.
+  where: Webhooks entrants (6.3)

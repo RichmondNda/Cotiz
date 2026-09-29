@@ -1,0 +1,135 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+# Libellé affiché et couleur fonctionnelle de chaque statut. La couleur ne porte jamais seule l'information.
+colors:
+  success: '#2E9E5B'
+  danger: '#D93A3A'
+  warning: '#E8963C'
+  info: '#3B82C4'
+  neutral: '#6B6478'
+statuses:
+  installments.status:
+  - value: upcoming
+    label: À venir
+    tone: info
+  - value: due
+    label: À venir
+    tone: info
+  - value: declared
+    label: Déclarée
+    tone: warning
+  - value: partial
+    label: Partielle
+    tone: warning
+  - value: paid
+    label: Payée
+    tone: success
+  - value: late
+    label: En retard
+    tone: danger
+  - value: waived
+    label: Dispensée
+    tone: neutral
+  - value: canceled
+    label: Annulée
+    tone: neutral
+  payments.status:
+  - value: pending
+    label: En attente
+    tone: warning
+  - value: validated
+    label: Validé
+    tone: success
+  - value: rejected
+    label: Rejeté
+    tone: danger
+  - value: canceled
+    label: Annulé
+    tone: neutral
+  projects.status:
+  - value: draft
+    label: Brouillon
+    tone: neutral
+  - value: enrolling
+    label: Inscriptions ouvertes
+    tone: info
+  - value: active
+    label: En cours
+    tone: success
+  - value: completed
+    label: Terminé
+    tone: neutral
+  - value: archived
+    label: Archivé
+    tone: neutral
+  memberStanding:
+  - value: signature_required
+    label: Signature attendue
+    tone: warning
+  - value: up_to_date
+    label: À jour
+    tone: success
+  - value: late
+    label: En retard
+    tone: danger
+  - value: withdrawn
+    label: Retiré
+    tone: neutral
+  - value: activation_pending
+    label: Activation en attente
+    tone: info
+  associations.status:
+  - value: onboarding
+    label: Onboarding
+    tone: info
+  - value: active
+    label: Active
+    tone: success
+  - value: past_due
+    label: Impayé
+    tone: warning
+  - value: suspended
+    label: Suspendue
+    tone: danger
+  - value: closed
+    label: Fermée
+    tone: neutral
+  association_requests.status:
+  - value: pending
+    label: À traiter
+    tone: warning
+  - value: approved
+    label: Approuvée
+    tone: success
+  - value: rejected
+    label: Refusée
+    tone: danger
+  reminder_runs.status:
+  - value: to_handle
+    label: À relancer
+    tone: warning
+  - value: handled
+    label: Relancé
+    tone: success
+  - value: dismissed
+    label: Ignoré
+    tone: neutral
+  - value: auto_sent
+    label: Rappel envoyé
+    tone: info
+  password_reset_requests.status:
+  - value: pending
+    label: À traiter
+    tone: warning
+  - value: code_issued
+    label: Code remis
+    tone: info
+  - value: completed
+    label: Terminée
+    tone: success
+  - value: expired
+    label: Expirée
+    tone: neutral
+  - value: dismissed
+    label: Ignorée
+    tone: neutral

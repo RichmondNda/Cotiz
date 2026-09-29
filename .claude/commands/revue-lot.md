@@ -1,10 +1,10 @@
 ---
-description: Revue de fin de lot contre la checklist Cotiz
+description: Revue d'un lot front V0 (prompts/NN) contre la checklist écran
 argument-hint: <numéro du lot>
 ---
 Fais la revue du lot `prompts/$ARGUMENTS-*.md` sans rien modifier d'abord.
 
-Pour chaque écran du lot, contrôle la « Définition de terminé » de `CLAUDE.md` et la checklist de la section 11 de
+Pour chaque écran du lot, contrôle la « Définition de terminé » de `frontend/CLAUDE.md` et la checklist de la section 11 de
 `design/specs/cotiz-spec-ui.html` (objectif, action principale unique par zone, couleur d'espace, statuts, montants,
 vocabulaire, états vide/chargement/erreur, mobile ≥ 44 px, accessibilité, cohérence des données).
 

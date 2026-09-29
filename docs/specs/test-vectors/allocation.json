@@ -1,0 +1,397 @@
+{
+  "function": "proposeAllocation",
+  "cases": [
+    {
+      "name": "trois-echeances",
+      "description": "Moussa paie 75 000 F : les deux retards puis l'échéance d'octobre, pleines",
+      "input": {
+        "amount": 75000,
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": [
+        {
+          "installmentId": "i8",
+          "amount": 25000
+        },
+        {
+          "installmentId": "i9",
+          "amount": 25000
+        },
+        {
+          "installmentId": "i10",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "name": "partielle",
+      "description": "60 000 F : deux pleines puis 10 000 F sur la troisième",
+      "input": {
+        "amount": 60000,
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": [
+        {
+          "installmentId": "i8",
+          "amount": 25000
+        },
+        {
+          "installmentId": "i9",
+          "amount": 25000
+        },
+        {
+          "installmentId": "i10",
+          "amount": 10000
+        }
+      ]
+    },
+    {
+      "name": "deja-partielle",
+      "description": "Jean Kouassi : 10 000 F déjà payés en août, il reste 15 000 F dessus",
+      "input": {
+        "amount": 20000,
+        "installments": [
+          {
+            "id": "j8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 10000,
+            "amountPending": 0,
+            "status": "partial"
+          },
+          {
+            "id": "j9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          }
+        ]
+      },
+      "output": [
+        {
+          "installmentId": "j8",
+          "amount": 15000
+        },
+        {
+          "installmentId": "j9",
+          "amount": 5000
+        }
+      ]
+    },
+    {
+      "name": "pending-reserve",
+      "description": "Une déclaration en attente réserve déjà 25 000 F sur août : on commence par septembre",
+      "input": {
+        "amount": 25000,
+        "installments": [
+          {
+            "id": "k8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 25000,
+            "status": "declared"
+          },
+          {
+            "id": "k9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          }
+        ]
+      },
+      "output": [
+        {
+          "installmentId": "k9",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "name": "fonds-entree-en-premier",
+      "description": "Même date : le fonds d'entrée passe avant la mensualité",
+      "input": {
+        "amount": 60000,
+        "installments": [
+          {
+            "id": "f1",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 1,
+            "dueDate": "2026-03-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "f0",
+            "enrollmentId": "e1",
+            "kind": "entry_fee",
+            "sequence": 0,
+            "dueDate": "2026-03-05",
+            "amountDue": 50000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          }
+        ]
+      },
+      "output": [
+        {
+          "installmentId": "f0",
+          "amount": 50000
+        },
+        {
+          "installmentId": "f1",
+          "amount": 10000
+        }
+      ]
+    },
+    {
+      "name": "payee-ignoree",
+      "description": "Les échéances payées, dispensées ou annulées sont ignorées",
+      "input": {
+        "amount": 25000,
+        "installments": [
+          {
+            "id": "p8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 25000,
+            "amountPending": 0,
+            "status": "paid"
+          },
+          {
+            "id": "p9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "waived"
+          },
+          {
+            "id": "p10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "output": [
+        {
+          "installmentId": "p10",
+          "amount": 25000
+        }
+      ]
+    },
+    {
+      "name": "erreur-trop-percu",
+      "description": "Erreur : plus que le reste dû (trop-perçu refusé en V1)",
+      "input": {
+        "amount": 200000,
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          }
+        ]
+      },
+      "error": {
+        "code": "amount_exceeds_remaining",
+        "maxAmount": 50000
+      }
+    },
+    {
+      "name": "erreur-montant",
+      "description": "Erreur : montant négatif",
+      "input": {
+        "amount": -5,
+        "installments": [
+          {
+            "id": "i8",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 6,
+            "dueDate": "2026-08-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i9",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 7,
+            "dueDate": "2026-09-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "late"
+          },
+          {
+            "id": "i10",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 8,
+            "dueDate": "2026-10-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          },
+          {
+            "id": "i11",
+            "enrollmentId": "e1",
+            "kind": "periodic",
+            "sequence": 9,
+            "dueDate": "2026-11-05",
+            "amountDue": 25000,
+            "amountPaid": 0,
+            "amountPending": 0,
+            "status": "upcoming"
+          }
+        ]
+      },
+      "error": {
+        "code": "invalid_amount"
+      }
+    }
+  ]
+}

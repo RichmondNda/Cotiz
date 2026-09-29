@@ -1,0 +1,2024 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+# Chaque id regroupe une ou plusieurs opérations HTTP d'une même ressource.
+# Erreurs transverses toujours possibles (non répétées) : validation_failed, not_found, forbidden, too_many_requests, feature_disabled, version_conflict (si ifMatch), idempotency_key_reused (si idempotencyKey).
+basePath: /api/v1
+endpoints:
+- id: sys.health
+  lot: '0.1'
+  space: system
+  permission: public
+  operations:
+  - method: GET
+    path: /api/v1/health/live
+  - method: GET
+    path: /api/v1/health/ready
+  summary: Sondes de vie et de disponibilité (base, Redis, MinIO)
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens: []
+- id: fl.upload
+  lot: '0.5'
+  space: common
+  permission: authenticated
+  operations:
+  - method: POST
+    path: /api/v1/uploads
+  - method: POST
+    path: /api/v1/uploads/{id}/complete
+  summary: Demande d'URL de dépôt présignée puis confirmation ; le worker vérifie type réel, antivirus, EXIF, SHA-256
+  errors:
+  - file_too_large
+  - file_type_not_allowed
+  - file_not_clean
+  emits:
+  - file.uploaded
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - mg-onboarding
+  - mg-projet-new
+  - mg-import
+  - mb-declarer
+  - mg-rapprochement
+- id: fl.get
+  lot: '0.5'
+  space: common
+  permission: authenticated
+  operations:
+  - method: GET
+    path: /api/v1/files/{id}
+  summary: Contrôle d'accès puis redirection 302 vers une URL signée de 5 min
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-contrat
+  - mg-paiement-detail
+  - mb-projet
+  - mb-contrat
+  - mb-contrats
+- id: auth.login
+  lot: '1.1'
+  space: auth
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/auth/login
+  summary: Connexion avec space = platform | association | subscriber ; identifiant = email ou téléphone E.164
+  errors:
+  - invalid_credentials
+  - account_locked
+  - account_not_activated
+  - association_suspended
+  - wrong_space
+  emits:
+  - user.logged_in
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - pub-login-mg
+  - pub-login-mb
+  - pub-login-sa
+- id: auth.refresh
+  lot: '1.1'
+  space: auth
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/auth/refresh
+  summary: Rotation du jeton de rafraîchissement (cookie) ; réutilisation = révocation de la famille
+  errors:
+  - session_expired
+  - session_revoked
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens: []
+- id: auth.logout
+  lot: '1.1'
+  space: auth
+  permission: authenticated
+  operations:
+  - method: POST
+    path: /api/v1/auth/logout
+  summary: Révocation de la session courante
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens: []
+- id: auth.forgot
+  lot: '1.1'
+  space: auth
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/auth/password/forgot
+  summary: 'Crée une demande de réinitialisation (sans fournisseur : traitée par le rôle supérieur). Réponse identique que le compte existe ou non'
+  errors: []
+  emits:
+  - password_reset.requested
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - pub-reset
+- id: auth.verify
+  lot: '1.1'
+  space: auth
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/auth/password/verify-code
+  summary: Vérifie le code de réinitialisation remis à la personne, renvoie un jeton de réinitialisation court
+  errors:
+  - invalid_code
+  - code_expired
+  - too_many_attempts
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - pub-reset
+- id: auth.reset
+  lot: '1.1'
+  space: auth
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/auth/password/reset
+  summary: Définit le nouveau mot de passe, révoque toutes les sessions
+  errors:
+  - weak_password
+  - reset_token_invalid
+  emits:
+  - user.password_changed
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: true
+  screens:
+  - pub-reset
+- id: as.resets
+  lot: '3.1'
+  space: association
+  permission: members.manage
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/password-reset-requests
+  - method: POST
+    path: /api/v1/associations/{aid}/password-reset-requests/{id}/issue-code
+  summary: Demandes de réinitialisation des souscripteurs de l'association ; émission d'un code 6 chiffres (15 min) affiché une fois avec message prêt
+  errors:
+  - not_found
+  - request_already_handled
+  emits:
+  - password_reset.code_issued
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-resets
+- id: pf.resets
+  lot: '1.4'
+  space: platform
+  permission: platform.associations.manage
+  operations:
+  - method: GET
+    path: /api/v1/platform/password-reset-requests
+  - method: POST
+    path: /api/v1/platform/password-reset-requests/{id}/issue-code
+  summary: Même mécanisme pour les gestionnaires, traité par le super-admin
+  errors:
+  - not_found
+  - request_already_handled
+  emits:
+  - password_reset.code_issued
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-resets
+- id: me
+  lot: '1.1'
+  space: me
+  permission: authenticated
+  operations:
+  - method: GET
+    path: /api/v1/me
+  summary: Profil, espace courant, associations et rôles, permissions, features (pilote « Bientôt disponible »)
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - pub-login-mg
+  - pub-login-mb
+  - mb-onboarding
+- id: auth.activate
+  lot: '1.1'
+  space: auth
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/auth/activate
+  summary: 'Activation : identifiant (téléphone ou email) + code d''activation (8 caractères, 72 h) + nouveau mot de passe → connecté'
+  errors:
+  - invalid_code
+  - code_expired
+  - too_many_attempts
+  - weak_password
+  - already_activated
+  emits:
+  - user.activated
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: true
+  screens:
+  - pub-login-mg
+  - pub-login-mb
+- id: auth.mfa
+  lot: '4.7'
+  space: auth
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/auth/mfa/verify
+  - method: POST
+    path: /api/v1/me/mfa/totp
+  - method: POST
+    path: /api/v1/me/mfa/totp/confirm
+  summary: 'Second facteur TOTP : vérification à la connexion, enrôlement, confirmation, codes de secours'
+  errors:
+  - invalid_code
+  - too_many_attempts
+  emits:
+  - user.mfa_enabled
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: true
+  screens:
+  - pub-login-sa
+  - sa-profil
+- id: pub.plans
+  lot: '1.2'
+  space: public
+  permission: public
+  operations:
+  - method: GET
+    path: /api/v1/public/plans
+  summary: Plans publiés (landing, formulaire) — cache 1 h
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - pub-landing
+  - pub-demande
+- id: pub.request
+  lot: '1.3'
+  space: public
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/public/association-requests
+  summary: 'Demande de création d''association ; anti-abus sans service tiers : champ piège, preuve de travail auto-hébergée, limitation'
+  errors:
+  - validation_failed
+  - too_many_requests
+  - challenge_failed
+  emits:
+  - association.request_submitted
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - pub-demande
+- id: pub.legal
+  lot: '1.3'
+  space: public
+  permission: public
+  operations:
+  - method: GET
+    path: /api/v1/public/legal/{slug}
+  summary: CGU, confidentialité, mentions (Markdown versionné)
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - pub-legal
+- id: pf.req.list
+  lot: '1.3'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/association-requests
+  summary: Liste filtrée avec facets par statut
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-demandes
+- id: pf.req.get
+  lot: '1.3'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/association-requests/{id}
+  summary: Détail d'une demande
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-demande-detail
+- id: pf.req.approve
+  lot: '1.3'
+  space: platform
+  permission: platform.requests.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/association-requests/{id}/approve
+  summary: 'Approbation en une transaction : association, abonnement, compte gestionnaire, appartenance owner. Renvoie le message d''accès prêt à transmettre (code d''activation affiché une fois)'
+  errors:
+  - request_already_handled
+  - email_already_owner
+  emits:
+  - association.approved
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-demande-detail
+- id: pf.req.reject
+  lot: '1.3'
+  space: platform
+  permission: platform.requests.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/association-requests/{id}/reject
+  summary: Refus motivé (code + message)
+  errors:
+  - request_already_handled
+  emits:
+  - association.request_rejected
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-demande-detail
+- id: pf.asso.list
+  lot: '1.4'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/associations
+  summary: Liste, recherche, facets par statut et plan
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-associations
+- id: pf.asso.create
+  lot: '1.3'
+  space: platform
+  permission: platform.associations.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/associations
+  summary: Création directe sans demande
+  errors:
+  - slug_taken
+  - email_already_owner
+  emits:
+  - association.approved
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-association-new
+- id: pf.asso.get
+  lot: '1.4'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/associations/{id}
+  summary: 'Détail : profil, abonnement, quotas, gestionnaires'
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-association-detail
+- id: pf.asso.patch
+  lot: '1.4'
+  space: platform
+  permission: platform.associations.manage
+  operations:
+  - method: PATCH
+    path: /api/v1/platform/associations/{id}
+  summary: Modification administrative
+  errors:
+  - version_conflict
+  emits:
+  - association.updated
+  idempotencyKey: false
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-association-detail
+- id: pf.asso.suspend
+  lot: '1.4'
+  space: platform
+  permission: platform.associations.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/associations/{id}/suspend
+  - method: POST
+    path: /api/v1/platform/associations/{id}/reactivate
+  summary: Suspension (effet immédiat sur les sessions) et réactivation
+  errors:
+  - invalid_state
+  emits:
+  - association.suspended
+  - association.reactivated
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-association-detail
+- id: pf.asso.plan
+  lot: '1.4'
+  space: platform
+  permission: platform.associations.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/associations/{id}/change-plan
+  summary: Changement de plan avec date d'effet ; refus si l'usage dépasse les nouveaux quotas
+  errors:
+  - quota_exceeded
+  - invalid_state
+  emits:
+  - subscription.plan_changed
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-association-detail
+- id: pf.plans
+  lot: '1.2'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/plans
+  summary: Tous les plans, y compris archivés
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-demande-detail
+  - sa-association-new
+  - sa-plans
+- id: pf.plan.write
+  lot: '1.2'
+  space: platform
+  permission: platform.plans.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/plans
+  - method: PATCH
+    path: /api/v1/platform/plans/{id}
+  summary: Création et modification d'un plan
+  errors:
+  - code_taken
+  - version_conflict
+  emits:
+  - plan.updated
+  idempotencyKey: false
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-plan-edit
+- id: pf.plan.archive
+  lot: '1.2'
+  space: platform
+  permission: platform.plans.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/plans/{id}/archive
+  - method: POST
+    path: /api/v1/platform/plans/{id}/duplicate
+  summary: Archivage (reste appliqué aux abonnés) et duplication
+  errors:
+  - invalid_state
+  emits:
+  - plan.updated
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-plans
+- id: pf.dashboard
+  lot: '1.4'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/dashboard
+  summary: Indicateurs plateforme (vues matérialisées)
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-dashboard
+- id: pf.asso.sub
+  lot: '2.3'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/associations/{id}/projects
+  - method: GET
+    path: /api/v1/platform/associations/{id}/members
+  summary: Projets et membres d'une association (lecture, auditée)
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-association-detail
+- id: pf.asso.usage
+  lot: '4.6'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/associations/{id}/usage
+  summary: Statistiques d'usage quotidiennes
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-association-detail
+- id: pf.invoices
+  lot: '4.6'
+  space: platform
+  permission: platform.associations.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/invoices
+  summary: Factures de toutes les associations
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - sa-association-detail
+  - sa-facturation
+- id: pf.invoice.paid
+  lot: '4.6'
+  space: platform
+  permission: platform.billing.manage
+  operations:
+  - method: POST
+    path: /api/v1/platform/invoices/{id}/mark-paid
+  summary: Marquage manuel d'une facture payée
+  errors:
+  - invalid_state
+  emits:
+  - subscription.invoice_paid
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-facturation
+- id: pf.staff
+  lot: '4.7'
+  space: platform
+  permission: platform.staff.manage
+  operations:
+  - method: GET
+    path: /api/v1/platform/staff
+  - method: POST
+    path: /api/v1/platform/staff/invitations
+  - method: PATCH
+    path: /api/v1/platform/staff/{uid}
+  - method: DELETE
+    path: /api/v1/platform/staff/{uid}
+  summary: Personnel plateforme ; invitation par lien/code affiché (pas d'email)
+  errors:
+  - last_owner
+  emits:
+  - staff.changed
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-users
+- id: pf.audit
+  lot: '4.7'
+  space: platform
+  permission: platform.audit.read
+  operations:
+  - method: GET
+    path: /api/v1/platform/audit-logs
+  summary: Journal d'audit filtrable, export
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-users
+- id: as.get
+  lot: '2.1'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}
+  summary: Profil de l'association, statut d'onboarding
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-onboarding
+  - mg-params
+- id: as.patch
+  lot: '2.1'
+  space: association
+  permission: association.settings.manage
+  operations:
+  - method: PATCH
+    path: /api/v1/associations/{aid}
+  summary: Modification du profil (logo via /uploads)
+  errors:
+  - version_conflict
+  emits:
+  - association.updated
+  idempotencyKey: false
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-onboarding
+  - mg-params
+- id: as.pm
+  lot: '2.1'
+  space: association
+  permission: association.settings.manage
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/payment-methods
+  - method: PUT
+    path: /api/v1/associations/{aid}/payment-methods
+  summary: Moyens de paiement acceptés, remplacement complet
+  errors:
+  - validation_failed
+  emits:
+  - association.updated
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-onboarding
+  - mg-projet-new
+  - mg-params
+- id: as.onb
+  lot: '2.1'
+  space: association
+  permission: association.settings.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/onboarding/complete
+  summary: Clôture de l'onboarding
+  errors:
+  - onboarding_incomplete
+  emits:
+  - association.onboarded
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-onboarding
+- id: bl.sub
+  lot: '2.1'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/subscription
+  summary: Abonnement, plan, quotas et usage
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-abonnement
+- id: as.dashboard
+  lot: '2.6'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/dashboard
+  summary: Indicateurs du tableau de bord (cache 60 s)
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-dashboard
+- id: pr.list
+  lot: '2.2'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/projects
+  summary: Liste avec facets par statut
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projets
+- id: pr.create
+  lot: '2.2'
+  space: association
+  permission: projects.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/projects
+  summary: Création en brouillon
+  errors:
+  - quota_exceeded
+  - validation_failed
+  emits:
+  - project.created
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-new
+- id: pr.preview
+  lot: '2.2'
+  space: association
+  permission: projects.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/schedule-preview
+  summary: Aperçu d'échéancier via @cotiz/domain (aucune écriture)
+  errors:
+  - validation_failed
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-new
+- id: pr.get
+  lot: '2.2'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/projects/{pid}
+  summary: Détail d'un projet avec ETag
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-overview
+  - mg-projet-params
+- id: pr.patch
+  lot: '2.2'
+  space: association
+  permission: projects.manage
+  operations:
+  - method: PATCH
+    path: /api/v1/associations/{aid}/projects/{pid}
+  summary: Modification ; conditions financières refusées après verrouillage
+  errors:
+  - financial_terms_locked
+  - version_conflict
+  - invalid_state
+  emits:
+  - project.updated
+  idempotencyKey: false
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-params
+- id: pr.lifecycle
+  lot: '2.2'
+  space: association
+  permission: projects.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/{pid}/publish
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/{pid}/close
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/{pid}/duplicate
+  summary: Publication (ouvre les inscriptions), clôture, duplication
+  errors:
+  - invalid_state
+  - quota_exceeded
+  emits:
+  - project.published
+  - project.closed
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projets
+  - mg-projet-params
+- id: pr.delete
+  lot: '2.2'
+  space: association
+  permission: projects.manage
+  operations:
+  - method: DELETE
+    path: /api/v1/associations/{aid}/projects/{pid}
+  summary: Suppression d'un brouillon uniquement
+  errors:
+  - invalid_state
+  emits: []
+  idempotencyKey: false
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-params
+- id: pr.overview
+  lot: '2.2'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/projects/{pid}/overview
+  summary: 'Synthèse : attendu, encaissé, retards, prochaine échéance'
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-overview
+- id: mb.lookup
+  lot: '2.3'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/members/lookup
+  summary: Recherche par téléphone E.164 → new | existing_user (prénom + initiale) | already_enrolled
+  errors:
+  - invalid_phone
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: true
+  screens:
+  - mg-add-souscripteur
+- id: en.list
+  lot: '2.3'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/projects/{pid}/enrollments
+  summary: Inscrits d'un projet avec statut (à jour, en retard, activation en attente) et facets
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-souscripteurs
+- id: en.create
+  lot: '2.3'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/{pid}/enrollments
+  summary: Inscription (création du compte si besoin) + génération des échéances ; renvoie le code d'activation et le message prêt si nouveau compte
+  errors:
+  - already_enrolled
+  - quota_exceeded
+  - invalid_state
+  - invalid_phone
+  emits:
+  - member.enrolled
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-add-souscripteur
+- id: en.withdraw
+  lot: '2.3'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/enrollments/{eid}/withdraw
+  summary: 'Retrait : échéances futures annulées, historique conservé'
+  errors:
+  - invalid_state
+  emits:
+  - member.withdrawn
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-souscripteurs
+- id: en.bulk
+  lot: '2.3'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/enrollments/bulk
+  summary: Ajout en lot (≤ 200) avec rapport ligne par ligne
+  errors:
+  - quota_exceeded
+  - validation_failed
+  emits:
+  - member.enrolled
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-souscripteurs
+- id: mb.resend
+  lot: '2.3'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/members/{uid}/activation-code
+  summary: Régénère le code d'activation (l'ancien est invalidé) et renvoie le message prêt
+  errors:
+  - already_activated
+  emits:
+  - activation.code_issued
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: true
+  screens:
+  - mg-projet-souscripteurs
+  - mg-fiche
+  - mg-codes
+- id: mb.codes
+  lot: '2.3'
+  space: association
+  permission: members.manage
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/activation-codes
+  - method: POST
+    path: /api/v1/associations/{aid}/activation-codes/{codeId}/handed
+  summary: 'Panneau « Codes à remettre » : comptes non activés, code en clair lisible jusqu''à consommation, marquage « remis »'
+  errors: []
+  emits:
+  - activation.code_handed
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-dashboard
+  - mg-projet-souscripteurs
+  - mg-fiche
+  - mg-codes
+- id: mb.list
+  lot: '2.3'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/members
+  summary: Annuaire, recherche trigramme, facets
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-annuaire
+- id: mb.get
+  lot: '2.3'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/members/{uid}
+  summary: 'Fiche souscripteur : inscriptions, soldes'
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-fiche
+- id: mb.patch
+  lot: '2.3'
+  space: association
+  permission: members.manage
+  operations:
+  - method: PATCH
+    path: /api/v1/associations/{aid}/members/{uid}
+  summary: Modification des informations (téléphone inclus, avec contrôle d'unicité)
+  errors:
+  - phone_taken
+  - version_conflict
+  emits:
+  - member.updated
+  idempotencyKey: false
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-fiche
+- id: mb.timeline
+  lot: '2.3'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/members/{uid}/timeline
+  summary: Chronologie construite depuis l'audit et les événements
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-fiche
+- id: lg.grid
+  lot: '2.4'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/projects/{pid}/grid
+  summary: Grille membres × échéances, pagination par curseur, filtres
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-paiements
+- id: lg.inst
+  lot: '2.4'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/installments/{iid}
+  summary: Détail d'une échéance et de ses allocations
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-paiements
+- id: lg.pay.list
+  lot: '2.4'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/payments
+  summary: 'Paiements (file de validation par défaut : status=pending), facets'
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-dashboard
+  - mg-projet-paiements
+  - mg-paiements-queue
+- id: lg.pay.get
+  lot: '2.4'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/payments/{payId}
+  summary: Détail d'un paiement déclaré avec répartition proposée et ETag
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-paiement-detail
+- id: lg.pay.validate
+  lot: '2.4'
+  space: association
+  permission: payments.review
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/payments/{payId}/validate
+  summary: Validation en transaction (FOR UPDATE), répartition éventuellement ajustée, montant reçu éventuel
+  errors:
+  - payment_already_reviewed
+  - allocation_mismatch
+  - amount_exceeds_remaining
+  - version_conflict
+  emits:
+  - payment.validated
+  idempotencyKey: true
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-paiements
+  - mg-paiement-detail
+- id: lg.pay.reject
+  lot: '2.4'
+  space: association
+  permission: payments.review
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/payments/{payId}/reject
+  summary: Rejet motivé (code + message)
+  errors:
+  - payment_already_reviewed
+  - version_conflict
+  emits:
+  - payment.rejected
+  idempotencyKey: true
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-paiement-detail
+- id: lg.pay.revert
+  lot: '2.4'
+  space: association
+  permission: payments.review
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/payments/{payId}/revert-validation
+  summary: Annulation compensatoire par l'auteur dans les 10 min
+  errors:
+  - revert_window_expired
+  - not_reviewer
+  - invalid_state
+  emits:
+  - payment.reverted
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-paiement-detail
+- id: nt.list
+  lot: '2.5'
+  space: common
+  permission: authenticated
+  operations:
+  - method: GET
+    path: /api/v1/me/notifications
+  - method: GET
+    path: /api/v1/me/notifications/unread-count
+  summary: Notifications de l'utilisateur (espace courant) et compteur
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-notifs
+  - mb-dashboard
+  - mb-notifs
+- id: nt.read
+  lot: '2.5'
+  space: common
+  permission: authenticated
+  operations:
+  - method: POST
+    path: /api/v1/me/notifications/{id}/read
+  - method: POST
+    path: /api/v1/me/notifications/read-all
+  summary: Marquage lu
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-notifs
+  - mb-notifs
+- id: nt.stream
+  lot: '4.2'
+  space: common
+  permission: authenticated
+  operations:
+  - method: GET
+    path: /api/v1/me/notifications/stream
+  summary: Flux SSE, reprise avec Last-Event-ID
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-notifs
+  - mb-notifs
+- id: me.push
+  lot: '4.2'
+  space: common
+  permission: authenticated
+  operations:
+  - method: GET
+    path: /api/v1/public/push/vapid-public-key
+  - method: POST
+    path: /api/v1/me/push-subscriptions
+  - method: DELETE
+    path: /api/v1/me/push-subscriptions/{id}
+  summary: 'Web Push standard : clé publique VAPID, abonnement et désabonnement d''un appareil'
+  errors:
+  - validation_failed
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-profil
+  - mb-profil
+- id: rp.report
+  lot: '2.6'
+  space: association
+  permission: reports.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/projects/{pid}/report
+  summary: 'Rapport : attendu, encaissé, retards, taux de recouvrement'
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-rapports
+- id: rp.export
+  lot: '4.6'
+  space: association
+  permission: reports.export
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/exports
+  - method: GET
+    path: /api/v1/associations/{aid}/exports/{id}
+  summary: Export asynchrone CSV / Excel / PDF, lien signé
+  errors:
+  - quota_exceeded
+  emits:
+  - export.completed
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-rapports
+  - mg-annuaire
+- id: me.profile
+  lot: '3.1'
+  space: me
+  permission: authenticated
+  operations:
+  - method: GET
+    path: /api/v1/me/profile
+  - method: PATCH
+    path: /api/v1/me/profile
+  - method: PUT
+    path: /api/v1/me/password
+  summary: Profil et changement de mot de passe
+  errors:
+  - invalid_credentials
+  - weak_password
+  - version_conflict
+  emits:
+  - user.password_changed
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - sa-profil
+  - mg-profil
+  - mb-profil
+- id: me.dash
+  lot: '3.2'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/dashboard
+  summary: Reste dû, retards, prochaine échéance, toutes associations
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-dashboard
+- id: me.projects
+  lot: '3.2'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/projects
+  summary: Mes projets et échéances ouvertes (sert aussi au sélecteur de la déclaration)
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-declarer
+- id: me.project
+  lot: '3.2'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/projects/{pid}
+  summary: Mon échéancier sur un projet, paiements liés, moyens de paiement de l'association
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-projet
+- id: me.alloc
+  lot: '3.3'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: POST
+    path: /api/v1/me/payments/allocation-preview
+  summary: Proposition de répartition (proposeAllocation) — aucune écriture
+  errors:
+  - amount_exceeds_remaining
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-declarer
+- id: me.declare
+  lot: '3.3'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: POST
+    path: /api/v1/me/payments
+  summary: 'Déclaration : montant, date, moyen, référence et/ou preuve, répartition'
+  errors:
+  - amount_exceeds_remaining
+  - allocation_mismatch
+  - proof_required
+  - file_not_clean
+  - signature_required
+  - invalid_state
+  emits:
+  - payment.declared
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: true
+  audited: true
+  screens:
+  - mb-declarer
+- id: me.payment
+  lot: '3.3'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/payments/{id}
+  summary: Suivi d'une déclaration
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-declarer-ok
+  - mb-historique
+- id: me.history
+  lot: '3.4'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/history
+  - method: GET
+    path: /api/v1/me/history/series
+  summary: Historique filtrable et série mensuelle
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-historique
+- id: me.contract
+  lot: '4.1'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/projects/{pid}/contract
+  summary: Contrat personnalisé + empreinte SHA-256
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-contrat
+- id: me.sign
+  lot: '4.1'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: POST
+    path: /api/v1/me/projects/{pid}/contract/sign
+  summary: Signature avec empreinte affichée et texte de consentement
+  errors:
+  - contract_changed
+  - already_signed
+  emits:
+  - contract.signed
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mb-contrat
+- id: me.contracts
+  lot: '4.1'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/contracts
+  summary: Mes contrats signés
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-contrats
+- id: me.prefs
+  lot: '4.2'
+  space: me
+  permission: authenticated
+  operations:
+  - method: GET
+    path: /api/v1/me/notification-preferences
+  - method: PUT
+    path: /api/v1/me/notification-preferences
+  summary: Préférences par type d'événement et par canal disponible
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-profil
+  - mb-profil
+- id: me.assos
+  lot: '4.5'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: GET
+    path: /api/v1/me/associations
+  - method: GET
+    path: /api/v1/me/associations/{aid}
+  summary: Mes associations et leur détail public
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mb-associations
+  - mb-association-detail
+- id: ct.get
+  lot: '4.1'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/projects/{pid}/contract
+  - method: PUT
+    path: /api/v1/associations/{aid}/projects/{pid}/contract
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/{pid}/contract/lock
+  summary: 'Contrat du projet : lecture, édition du modèle, signature de l''association et verrouillage'
+  errors:
+  - contract_locked
+  - version_conflict
+  emits:
+  - contract.locked
+  idempotencyKey: false
+  ifMatch: true
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-projet-contrat
+- id: ct.list
+  lot: '4.1'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/contracts
+  summary: Contrats et état des signatures
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-contrats
+- id: im.flow
+  lot: '4.4'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/{pid}/imports
+  summary: Création d'un import depuis un fichier déposé
+  errors:
+  - file_type_not_allowed
+  - quota_exceeded
+  emits:
+  - import.created
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-import
+- id: im.steps
+  lot: '4.4'
+  space: association
+  permission: members.manage
+  operations:
+  - method: PATCH
+    path: /api/v1/associations/{aid}/imports/{id}/mapping
+  - method: PATCH
+    path: /api/v1/associations/{aid}/imports/{id}/rows/{rowId}
+  summary: Mappage des colonnes, correction d'une ligne
+  errors:
+  - invalid_state
+  - validation_failed
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-import
+- id: im.read
+  lot: '4.4'
+  space: association
+  permission: members.manage
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/imports/{id}
+  - method: GET
+    path: /api/v1/associations/{aid}/imports/{id}/rows
+  summary: Progression et lignes par catégorie
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-import
+- id: im.commit
+  lot: '4.4'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/imports/{id}/commit
+  summary: Exécution asynchrone (réutilise le cas d'usage d'inscription)
+  errors:
+  - invalid_state
+  - quota_exceeded
+  emits:
+  - import.completed
+  - import.failed
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-import
+- id: rm.rules
+  lot: '4.3'
+  space: association
+  permission: reminders.send
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/reminder-rules
+  - method: POST
+    path: /api/v1/associations/{aid}/reminder-rules
+  - method: PATCH
+    path: /api/v1/associations/{aid}/reminder-rules/{id}
+  summary: 'Règles de relance (canaux : in_app, push ; sms/email si activés)'
+  errors:
+  - validation_failed
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-relances
+- id: rm.send
+  lot: '4.3'
+  space: association
+  permission: reminders.send
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/reminders
+  summary: 'Relance manuelle ciblée : rappel in-app/push + entrée dans « À relancer » avec message prêt'
+  errors:
+  - too_many_requests
+  emits:
+  - reminder.sent
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: true
+  audited: true
+  screens:
+  - mg-projet-overview
+  - mg-projet-contrat
+  - mg-fiche
+  - mg-relances
+- id: rm.queue
+  lot: '4.3'
+  space: association
+  permission: reminders.send
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/reminders/queue
+  - method: POST
+    path: /api/v1/associations/{aid}/reminders/queue/{id}/handled
+  summary: 'File « À relancer » : message prêt (copier, WhatsApp, sms:) et marquage relancé / ignoré'
+  errors: []
+  emits:
+  - reminder.handled
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-relances
+  - mg-a-relancer
+- id: rm.hist
+  lot: '4.3'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/reminders/history
+  summary: Historique des relances
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-relances
+- id: tm.team
+  lot: '4.5'
+  space: association
+  permission: association.team.manage
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/team
+  - method: POST
+    path: /api/v1/associations/{aid}/team/invitations
+  - method: PATCH
+    path: /api/v1/associations/{aid}/team/{uid}
+  - method: DELETE
+    path: /api/v1/associations/{aid}/team/{uid}
+  summary: 'Équipe : invitation par code/lien affiché, rôles, retrait (révoque les sessions)'
+  errors:
+  - last_owner
+  - quota_exceeded
+  emits:
+  - team.changed
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-equipe
+- id: bl.inv
+  lot: '4.6'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/invoices
+  summary: Factures de l'association
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-abonnement
+- id: bk.statements
+  lot: '5.1'
+  space: association
+  permission: payments.review
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/bank-statements
+  - method: GET
+    path: /api/v1/associations/{aid}/bank-statements
+  - method: GET
+    path: /api/v1/associations/{aid}/bank-statements/{id}
+  summary: Import de relevés CSV/Excel (fichier déposé), mappage mémorisé par format
+  errors:
+  - file_type_not_allowed
+  - validation_failed
+  emits:
+  - statement.imported
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-rapprochement
+- id: bk.match
+  lot: '5.1'
+  space: association
+  permission: payments.review
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/bank-statements/{id}/matches
+  - method: POST
+    path: /api/v1/associations/{aid}/bank-statements/{id}/matches/confirm
+  summary: Propositions de rapprochement avec score ; confirmation = validation des paiements concernés
+  errors:
+  - payment_already_reviewed
+  - allocation_mismatch
+  emits:
+  - payment.validated
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-rapprochement
+- id: dev.keys
+  lot: '5.2'
+  space: association
+  permission: association.settings.manage
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/api-keys
+  - method: POST
+    path: /api/v1/associations/{aid}/api-keys
+  - method: DELETE
+    path: /api/v1/associations/{aid}/api-keys/{id}
+  summary: Clés d'API (affichées une fois, stockées hachées)
+  errors:
+  - quota_exceeded
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-developpeurs
+- id: dev.webhooks
+  lot: '5.2'
+  space: association
+  permission: association.settings.manage
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/webhooks
+  - method: POST
+    path: /api/v1/associations/{aid}/webhooks
+  - method: PATCH
+    path: /api/v1/associations/{aid}/webhooks/{id}
+  - method: GET
+    path: /api/v1/associations/{aid}/webhooks/{id}/deliveries
+  summary: Webhooks sortants signés HMAC, reprise
+  errors:
+  - validation_failed
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-developpeurs
+- id: rp.analytics
+  lot: '5.2'
+  space: association
+  permission: reports.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/analytics
+  summary: Tableaux analytiques
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-projet-rapports
+- id: psp.checkout
+  lot: '6.3'
+  space: me
+  permission: subscriber.self
+  operations:
+  - method: POST
+    path: /api/v1/me/payments/checkout
+  summary: Intention de paiement chez le prestataire agréé (derrière features)
+  errors:
+  - feature_disabled
+  - amount_exceeds_remaining
+  emits:
+  - payment.intent_created
+  idempotencyKey: true
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens: []
+- id: psp.webhook
+  lot: '6.3'
+  space: system
+  permission: public
+  operations:
+  - method: POST
+    path: /api/v1/webhooks/psp/{provider}
+  summary: Réception signée des confirmations du prestataire, idempotente
+  errors:
+  - invalid_signature
+  emits:
+  - payment.validated
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens: []

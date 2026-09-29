@@ -1,0 +1,815 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+# realAtLot : lot où l'écran cesse d'être simulé pour son périmètre V1 ; completeAtLot : lot où tous ses endpoints sont réels.
+# route : route Nuxt réelle (frontend/app/pages) ; mockup : nom de l'écran dans design/INVENTAIRE.md (captures design/screens/<espace>/<web|mobile>/<mockup>__<état>.png), null si absent.
+# status « à maquetter » : écran ajouté par le choix « sans fournisseur » ou par la V3, absent des maquettes Claude Design.
+screens:
+- id: pub-landing
+  space: public
+  title: Landing page
+  route: /
+  mockup: Main
+  specVersion: —
+  status: maquetté
+  realAtLot: '1.2'
+  completeAtLot: '1.2'
+  endpoints:
+  - pub.plans
+  uiDeviations: 0
+- id: pub-demande
+  space: public
+  title: Formulaire de demande de création
+  route: /demande
+  mockup: Demande
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.3'
+  completeAtLot: '1.3'
+  endpoints:
+  - pub.plans
+  - pub.request
+  uiDeviations: 0
+- id: pub-confirm
+  space: public
+  title: Confirmation de demande
+  route: /demande/confirmation
+  mockup: Confirmation
+  specVersion: V1
+  status: maquetté
+  realAtLot: null
+  completeAtLot: null
+  endpoints: []
+  uiDeviations: 0
+- id: pub-login-mg
+  space: public
+  title: Connexion gestionnaire
+  route: /connexion/association
+  mockup: ConnexionAssociation
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.3'
+  completeAtLot: '1.1'
+  endpoints:
+  - auth.login
+  - auth.activate
+  - me
+  uiDeviations: 0
+- id: pub-login-mb
+  space: public
+  title: Connexion souscripteur
+  route: /connexion
+  mockup: Connexion
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.1'
+  completeAtLot: '1.1'
+  endpoints:
+  - auth.login
+  - auth.activate
+  - me
+  uiDeviations: 1
+- id: pub-login-sa
+  space: public
+  title: Connexion plateforme
+  route: /connexion/plateforme
+  mockup: ConnexionPlateforme
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.1'
+  completeAtLot: '4.7'
+  endpoints:
+  - auth.login
+  - auth.mfa
+  uiDeviations: 0
+- id: pub-reset
+  space: public
+  title: Mot de passe oublié
+  route: /mot-de-passe
+  mockup: MotDePasse
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.1'
+  completeAtLot: '1.1'
+  endpoints:
+  - auth.forgot
+  - auth.verify
+  - auth.reset
+  uiDeviations: 1
+- id: pub-legal
+  space: public
+  title: Pages légales
+  route: /legal/:document
+  mockup: Legal
+  specVersion: —
+  status: maquetté
+  realAtLot: '1.3'
+  completeAtLot: '1.3'
+  endpoints:
+  - pub.legal
+  uiDeviations: 0
+- id: sa-dashboard
+  space: super-admin
+  title: Tableau de bord plateforme
+  route: /plateforme
+  mockup: SaDashboard
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.4'
+  completeAtLot: '1.4'
+  endpoints:
+  - pf.dashboard
+  uiDeviations: 0
+- id: sa-demandes
+  space: super-admin
+  title: Liste des demandes
+  route: /plateforme/demandes
+  mockup: SaDemandes
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.3'
+  completeAtLot: '1.3'
+  endpoints:
+  - pf.req.list
+  uiDeviations: 0
+- id: sa-demande-detail
+  space: super-admin
+  title: Traitement d'une demande
+  route: /plateforme/demandes/:id
+  mockup: SaDemande
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.3'
+  completeAtLot: '1.3'
+  endpoints:
+  - pf.req.get
+  - pf.req.approve
+  - pf.req.reject
+  - pf.plans
+  uiDeviations: 1
+- id: sa-associations
+  space: super-admin
+  title: Liste des associations
+  route: /plateforme/associations
+  mockup: SaAssociations
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.4'
+  completeAtLot: '1.4'
+  endpoints:
+  - pf.asso.list
+  uiDeviations: 0
+- id: sa-association-detail
+  space: super-admin
+  title: Détail d'une association
+  route: /plateforme/associations/:id
+  mockup: SaAssociation
+  specVersion: V1 (onglets usage et facturation en V2)
+  status: maquetté
+  realAtLot: '2.3'
+  completeAtLot: '4.6'
+  endpoints:
+  - pf.asso.get
+  - pf.asso.sub
+  - pf.asso.usage
+  - pf.asso.patch
+  - pf.asso.suspend
+  - pf.asso.plan
+  - pf.invoices
+  uiDeviations: 0
+- id: sa-association-new
+  space: super-admin
+  title: Création directe d'association
+  route: /plateforme/associations/nouvelle
+  mockup: SaNouvelleAssociation
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.3'
+  completeAtLot: '1.3'
+  endpoints:
+  - pf.asso.create
+  - pf.plans
+  uiDeviations: 0
+- id: sa-plans
+  space: super-admin
+  title: Plans d'abonnement
+  route: /plateforme/plans
+  mockup: SaPlans
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.2'
+  completeAtLot: '1.2'
+  endpoints:
+  - pf.plans
+  - pf.plan.archive
+  uiDeviations: 0
+- id: sa-plan-edit
+  space: super-admin
+  title: Édition d'un plan
+  route: /plateforme/plans/:id
+  mockup: SaPlan
+  specVersion: V1
+  status: maquetté
+  realAtLot: '1.2'
+  completeAtLot: '1.2'
+  endpoints:
+  - pf.plan.write
+  uiDeviations: 0
+- id: sa-facturation
+  space: super-admin
+  title: Facturation globale
+  route: /plateforme/facturation
+  mockup: SaFacturation
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.6'
+  completeAtLot: '4.6'
+  endpoints:
+  - pf.invoices
+  - pf.invoice.paid
+  uiDeviations: 0
+- id: sa-users
+  space: super-admin
+  title: Utilisateurs plateforme
+  route: /plateforme/utilisateurs
+  mockup: SaUtilisateurs
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.7'
+  completeAtLot: '4.7'
+  endpoints:
+  - pf.staff
+  - pf.audit
+  uiDeviations: 1
+- id: sa-profil
+  space: super-admin
+  title: Profil super-admin
+  route: /plateforme/profil
+  mockup: SaProfil
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.1'
+  completeAtLot: '4.7'
+  endpoints:
+  - me.profile
+  - auth.mfa
+  uiDeviations: 0
+- id: mg-onboarding
+  space: manager
+  title: Onboarding association
+  route: /asso/bienvenue
+  mockup: MgOnboarding
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.1'
+  completeAtLot: '2.1'
+  endpoints:
+  - as.get
+  - as.patch
+  - as.pm
+  - as.onb
+  - fl.upload
+  uiDeviations: 0
+- id: mg-dashboard
+  space: manager
+  title: Tableau de bord gestionnaire
+  route: /asso
+  mockup: MgDashboard
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.6'
+  completeAtLot: '2.6'
+  endpoints:
+  - as.dashboard
+  - mb.codes
+  - lg.pay.list
+  uiDeviations: 0
+- id: mg-projets
+  space: manager
+  title: Liste des projets
+  route: /asso/projets
+  mockup: MgProjets
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.2'
+  completeAtLot: '2.2'
+  endpoints:
+  - pr.list
+  - pr.lifecycle
+  uiDeviations: 0
+- id: mg-projet-new
+  space: manager
+  title: Création de projet
+  route: /asso/projets/nouveau
+  mockup: MgNouveauProjet
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.2'
+  completeAtLot: '2.2'
+  endpoints:
+  - pr.create
+  - pr.preview
+  - as.pm
+  - fl.upload
+  uiDeviations: 0
+- id: mg-projet-overview
+  space: manager
+  title: Détail projet — Vue d'ensemble
+  route: /asso/projets/:id
+  mockup: MgProjet
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.2'
+  completeAtLot: '4.3'
+  endpoints:
+  - pr.get
+  - pr.overview
+  - rm.send
+  uiDeviations: 0
+- id: mg-projet-souscripteurs
+  space: manager
+  title: Détail projet — Souscripteurs
+  route: /asso/projets/:id/souscripteurs
+  mockup: MgProjetSouscripteurs
+  specVersion: V1 (import en V2)
+  status: maquetté
+  realAtLot: '2.3'
+  completeAtLot: '2.3'
+  endpoints:
+  - en.list
+  - en.withdraw
+  - en.bulk
+  - mb.resend
+  - mb.codes
+  uiDeviations: 0
+- id: mg-projet-paiements
+  space: manager
+  title: Détail projet — Paiements
+  route: /asso/projets/:id/paiements
+  mockup: MgProjetPaiements
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.4'
+  completeAtLot: '2.4'
+  endpoints:
+  - lg.grid
+  - lg.inst
+  - lg.pay.list
+  - lg.pay.validate
+  uiDeviations: 0
+- id: mg-projet-contrat
+  space: manager
+  title: Détail projet — Contrat
+  route: /asso/projets/:id/contrat
+  mockup: MgProjetContrat
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.1'
+  completeAtLot: '4.3'
+  endpoints:
+  - ct.get
+  - fl.get
+  - rm.send
+  uiDeviations: 0
+- id: mg-projet-params
+  space: manager
+  title: Détail projet — Paramètres
+  route: /asso/projets/:id/parametres
+  mockup: MgProjetParametres
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.2'
+  completeAtLot: '2.2'
+  endpoints:
+  - pr.get
+  - pr.patch
+  - pr.lifecycle
+  - pr.delete
+  uiDeviations: 0
+- id: mg-projet-rapports
+  space: manager
+  title: Détail projet — Rapports
+  route: /asso/projets/:id/rapports
+  mockup: MgProjetRapports
+  specVersion: V1 simple, V2 avancé
+  status: maquetté
+  realAtLot: '2.6'
+  completeAtLot: '5.2'
+  endpoints:
+  - rp.report
+  - rp.export
+  - rp.analytics
+  uiDeviations: 0
+- id: mg-add-souscripteur
+  space: manager
+  title: Ajout manuel d'un souscripteur
+  route: /asso/projets/:id/souscripteurs (modale)
+  mockup: MgAjoutSouscripteur
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.3'
+  completeAtLot: '2.3'
+  endpoints:
+  - mb.lookup
+  - en.create
+  uiDeviations: 1
+- id: mg-import
+  space: manager
+  title: Import Excel
+  route: /asso/projets/:id/import
+  mockup: MgImport
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.4'
+  completeAtLot: '4.4'
+  endpoints:
+  - fl.upload
+  - im.flow
+  - im.steps
+  - im.read
+  - im.commit
+  uiDeviations: 1
+- id: mg-paiements-queue
+  space: manager
+  title: File de validation des paiements
+  route: /asso/paiements
+  mockup: MgPaiements
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.4'
+  completeAtLot: '2.4'
+  endpoints:
+  - lg.pay.list
+  uiDeviations: 0
+- id: mg-paiement-detail
+  space: manager
+  title: Détail d'un paiement déclaré
+  route: /asso/paiements/:id
+  mockup: MgPaiement
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.4'
+  completeAtLot: '2.4'
+  endpoints:
+  - lg.pay.get
+  - fl.get
+  - lg.pay.validate
+  - lg.pay.reject
+  - lg.pay.revert
+  uiDeviations: 0
+- id: mg-annuaire
+  space: manager
+  title: Annuaire des souscripteurs
+  route: /asso/souscripteurs
+  mockup: MgSouscripteurs
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.3'
+  completeAtLot: '4.6'
+  endpoints:
+  - mb.list
+  - rp.export
+  uiDeviations: 0
+- id: mg-fiche
+  space: manager
+  title: Fiche souscripteur
+  route: /asso/souscripteurs/:id
+  mockup: MgSouscripteur
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.3'
+  completeAtLot: '4.3'
+  endpoints:
+  - mb.get
+  - mb.patch
+  - mb.timeline
+  - mb.resend
+  - rm.send
+  - mb.codes
+  uiDeviations: 0
+- id: mg-relances
+  space: manager
+  title: Relances
+  route: /asso/relances
+  mockup: MgRelances
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.3'
+  completeAtLot: '4.3'
+  endpoints:
+  - rm.rules
+  - rm.send
+  - rm.hist
+  - rm.queue
+  uiDeviations: 1
+- id: mg-contrats
+  space: manager
+  title: Contrats
+  route: /asso/contrats
+  mockup: MgContrats
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.1'
+  completeAtLot: '4.1'
+  endpoints:
+  - ct.list
+  uiDeviations: 0
+- id: mg-equipe
+  space: manager
+  title: Comptes gestionnaires
+  route: /asso/equipe
+  mockup: MgEquipe
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.5'
+  completeAtLot: '4.5'
+  endpoints:
+  - tm.team
+  uiDeviations: 1
+- id: mg-abonnement
+  space: manager
+  title: Abonnement
+  route: /asso/abonnement
+  mockup: MgAbonnement
+  specVersion: V1 lecture, V2 factures
+  status: maquetté
+  realAtLot: '2.1'
+  completeAtLot: '4.6'
+  endpoints:
+  - bl.sub
+  - bl.inv
+  uiDeviations: 0
+- id: mg-params
+  space: manager
+  title: Paramètres de l'association
+  route: /asso/parametres
+  mockup: MgParametres
+  specVersion: V1
+  status: maquetté
+  realAtLot: '2.1'
+  completeAtLot: '2.1'
+  endpoints:
+  - as.get
+  - as.patch
+  - as.pm
+  uiDeviations: 0
+- id: mg-notifs
+  space: manager
+  title: Notifications gestionnaire
+  route: /asso/notifications
+  mockup: MgNotifications
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.2'
+  completeAtLot: '4.2'
+  endpoints:
+  - nt.list
+  - nt.read
+  - nt.stream
+  uiDeviations: 0
+- id: mg-profil
+  space: manager
+  title: Profil gestionnaire
+  route: /asso/profil
+  mockup: MgProfil
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.1'
+  completeAtLot: '4.2'
+  endpoints:
+  - me.profile
+  - me.prefs
+  - me.push
+  uiDeviations: 0
+- id: mb-onboarding
+  space: subscriber
+  title: Onboarding souscripteur
+  route: /bienvenue
+  mockup: MbOnboarding
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.1'
+  completeAtLot: '1.1'
+  endpoints:
+  - me
+  uiDeviations: 0
+- id: mb-dashboard
+  space: subscriber
+  title: Tableau de bord souscripteur
+  route: /accueil
+  mockup: MbAccueil
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.2'
+  completeAtLot: '3.2'
+  endpoints:
+  - me.dash
+  - nt.list
+  uiDeviations: 0
+- id: mb-projet
+  space: subscriber
+  title: Détail d'un projet
+  route: /projets/:id
+  mockup: MbProjet
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.2'
+  completeAtLot: '3.2'
+  endpoints:
+  - me.project
+  - fl.get
+  uiDeviations: 0
+- id: mb-contrat
+  space: subscriber
+  title: Signature de contrat
+  route: /projets/:id/contrat
+  mockup: MbContrat
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.1'
+  completeAtLot: '4.1'
+  endpoints:
+  - me.contract
+  - me.sign
+  - fl.get
+  uiDeviations: 0
+- id: mb-declarer
+  space: subscriber
+  title: Déclaration de paiement
+  route: /paiements/declarer
+  mockup: MbDeclarer
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.3'
+  completeAtLot: '3.3'
+  endpoints:
+  - me.projects
+  - me.alloc
+  - fl.upload
+  - me.declare
+  uiDeviations: 0
+- id: mb-declarer-ok
+  space: subscriber
+  title: Confirmation de déclaration
+  route: /paiements/declarer/ok
+  mockup: MbDeclarerOk
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.3'
+  completeAtLot: '3.3'
+  endpoints:
+  - me.payment
+  uiDeviations: 0
+- id: mb-historique
+  space: subscriber
+  title: Historique complet
+  route: /historique
+  mockup: MbHistorique
+  specVersion: V1 tableau, V2 graphiques
+  status: maquetté
+  realAtLot: '3.4'
+  completeAtLot: '3.4'
+  endpoints:
+  - me.history
+  - me.payment
+  uiDeviations: 0
+- id: mb-associations
+  space: subscriber
+  title: Mes associations
+  route: /associations
+  mockup: MbAssociations
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.5'
+  completeAtLot: '4.5'
+  endpoints:
+  - me.assos
+  uiDeviations: 0
+- id: mb-association-detail
+  space: subscriber
+  title: Détail d'une association
+  route: /associations/:id
+  mockup: MbAssociation
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.5'
+  completeAtLot: '4.5'
+  endpoints:
+  - me.assos
+  uiDeviations: 0
+- id: mb-contrats
+  space: subscriber
+  title: Mes contrats
+  route: /contrats
+  mockup: MbContrats
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.1'
+  completeAtLot: '4.1'
+  endpoints:
+  - me.contracts
+  - fl.get
+  uiDeviations: 0
+- id: mb-notifs
+  space: subscriber
+  title: Notifications
+  route: /notifications
+  mockup: MbNotifications
+  specVersion: V2
+  status: maquetté
+  realAtLot: '4.2'
+  completeAtLot: '4.2'
+  endpoints:
+  - nt.list
+  - nt.read
+  - nt.stream
+  uiDeviations: 0
+- id: mb-profil
+  space: subscriber
+  title: Profil et paramètres
+  route: /profil
+  mockup: MbProfil
+  specVersion: V1
+  status: maquetté
+  realAtLot: '3.1'
+  completeAtLot: '4.2'
+  endpoints:
+  - me.profile
+  - me.prefs
+  - me.push
+  uiDeviations: 1
+- id: mg-codes
+  space: manager
+  title: Codes à remettre
+  route: /asso/souscripteurs/codes
+  mockup: null
+  specVersion: —
+  status: à maquetter
+  realAtLot: '2.3'
+  completeAtLot: '2.3'
+  endpoints:
+  - mb.codes
+  - mb.resend
+  uiDeviations: 0
+- id: mg-resets
+  space: manager
+  title: Demandes de réinitialisation
+  route: /asso/souscripteurs/reinitialisations
+  mockup: null
+  specVersion: —
+  status: à maquetter
+  realAtLot: '3.1'
+  completeAtLot: '3.1'
+  endpoints:
+  - as.resets
+  uiDeviations: 0
+- id: sa-resets
+  space: super-admin
+  title: Demandes de réinitialisation (gestionnaires)
+  route: /plateforme/reinitialisations
+  mockup: null
+  specVersion: —
+  status: à maquetter
+  realAtLot: '1.4'
+  completeAtLot: '1.4'
+  endpoints:
+  - pf.resets
+  uiDeviations: 0
+- id: mg-a-relancer
+  space: manager
+  title: Relances — onglet « À relancer »
+  route: /asso/relances?onglet=a-relancer
+  mockup: null
+  specVersion: —
+  status: à maquetter
+  realAtLot: '4.3'
+  completeAtLot: '4.3'
+  endpoints:
+  - rm.queue
+  uiDeviations: 0
+- id: mg-rapprochement
+  space: manager
+  title: Rapprochement de relevés
+  route: /asso/rapprochement
+  mockup: null
+  specVersion: —
+  status: à maquetter
+  realAtLot: '5.1'
+  completeAtLot: '5.1'
+  endpoints:
+  - bk.statements
+  - bk.match
+  - fl.upload
+  uiDeviations: 0
+- id: mg-developpeurs
+  space: manager
+  title: API et webhooks
+  route: /asso/parametres/developpeurs
+  mockup: null
+  specVersion: —
+  status: à maquetter
+  realAtLot: '5.2'
+  completeAtLot: '5.2'
+  endpoints:
+  - dev.keys
+  - dev.webhooks
+  uiDeviations: 0
