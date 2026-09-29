@@ -1,7 +1,7 @@
 <!--
   SaAssociations — trouver une association et voir d'un coup d'œil son état.
   En-tête « Associations » + total, Exporter (CSV), Créer une association ; puces de statut (compteurs illustratifs :
-  147 au total), filtres plan et pays, recherche ; vue Tableau / Cartes ; menu ⋯ (voir, changer de plan, suspendre).
+  148 au total), filtres plan et pays, recherche ; vue Tableau / Cartes ; menu ⋯ (voir, changer de plan, suspendre).
   Filtres dans l'URL (`?statut=impayee&plan=pro`) : liens des KPI du tableau de bord.
   Scénarios : `vide` (+ `chargement`, `erreur`).
 -->
@@ -61,7 +61,7 @@ const associations = computed(() => (data.value?.associations ?? [])
   .map(a => ({ ...a })))
 const filtre = computed(() => statut.value !== 'toutes' || plan.value !== 'tous' || pays.value !== 'tous' || Boolean(recherche.value.trim()))
 
-// La liste ne détaille que les associations de démonstration : pagination sur le total de référence (147),
+// La liste ne détaille que les associations de démonstration : pagination sur le total de référence (148),
 // comme la maquette (pages 1, 2, 3 quels que soient les filtres).
 const PAR_PAGE = 50
 const { page, pages, lignesPage } = usePagination(associations, { parPage: PAR_PAGE, totalReference: () => compteurs.value?.toutes ?? 0 })
@@ -259,11 +259,8 @@ const chargement = computed(() => pending.value && !data.value)
               class="sa-assos__avatar"
             />
             <div>
-              <NuxtLink
-                :to="lien(ligne)"
-                class="sa-assos__nom"
-                @click.stop
-              >{{ ligne.nom }}</NuxtLink>
+              <!-- La carte entière est cliquable (CzTable, `@ligne`) : pas de lien imbriqué. -->
+              <span class="sa-assos__nom">{{ ligne.nom }}</span>
               <div class="sub">
                 Plan {{ ligne.planNom }} · {{ pluriel(ligne.nbSouscripteurs, 'souscripteur') }}
               </div>

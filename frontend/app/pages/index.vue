@@ -145,10 +145,10 @@ const faqOuverte = ref(0)
               <span class="cz-badge cz-badge--success">En cours</span>
             </div>
             <div class="cz-bar">
-              <i style="width: 68%" />
+              <i style="width: 37%" />
             </div>
             <div class="row">
-              <span>{{ formatFCFA(8_500_000) }} collectés</span><span>68&nbsp;%</span>
+              <span>{{ formatFCFA(9_594_000) }} collectés</span><span>37&nbsp;%</span>
             </div>
           </div>
         </li>
@@ -207,7 +207,7 @@ const faqOuverte = ref(0)
               <div>
                 <b>Awa Koné · {{ formatFCFA(75_000) }}</b>
                 <div class="landing-etape__mois">
-                  août, septembre, octobre
+                  septembre, octobre, novembre
                 </div>
               </div>
               <span class="cz-badge cz-badge--warning cz-badge--sm">En attente</span>

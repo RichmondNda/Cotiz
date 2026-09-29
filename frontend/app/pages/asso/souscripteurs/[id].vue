@@ -189,6 +189,8 @@ const menuMobile = computed<ElementMenu[]>(() => [
     <CzErreurChargement
       v-else-if="error || !fiche || !s"
       titre="Impossible d’afficher ce souscripteur"
+      :erreur="error"
+      :introuvable="{ titre: 'Souscripteur introuvable', description: 'Ce souscripteur n’existe pas ou a été retiré.', retour: { label: 'Voir les souscripteurs', to: '/asso/souscripteurs' } }"
       @reessayer="refresh()"
     />
 

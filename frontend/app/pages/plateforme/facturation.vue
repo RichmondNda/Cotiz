@@ -40,7 +40,7 @@ const COLONNES: ColonneTable[] = [
   { cle: 'pdf', label: 'PDF' },
   { cle: 'action', label: '' },
 ]
-const montant = (v: ChiffreOuPlaceholder | '[PRIX]') => (typeof v === 'number' ? formatFCFA(v) : `${v} F`)
+const montant = (v: ChiffreOuPlaceholder | '[PRIX]') => formatFCFA(v)
 const bientot = () => toast.info('Bientôt disponible', { message: 'La facturation globale arrive en V2.' })
 </script>
 

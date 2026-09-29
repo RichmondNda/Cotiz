@@ -40,7 +40,8 @@ export const ACTIVITE_PLATEFORME: EvenementPlateforme[] = [
 
 // ---------------------------------------------------------------- Associations (SaAssociations, SaAssociation)
 /** Compteurs des puces (illustratifs : la liste ne détaille que 3 associations de démonstration). */
-export const COMPTEURS_ASSOCIATIONS: CompteursAssociations = { toutes: 147, active: 132, impayee: 15, suspendue: 0, onboarding: 1 }
+// `toutes` est recalculé par GET /api/associations (somme des statuts).
+export const COMPTEURS_ASSOCIATIONS: CompteursAssociations = { toutes: 148, active: 132, impayee: 15, suspendue: 0, onboarding: 1 }
 
 /** Dernière activité de chaque association (colonne « Dernière activité »). */
 export const DERNIERE_ACTIVITE: Record<string, string> = {
@@ -94,7 +95,7 @@ export const FICHES_ASSOCIATIONS: Record<string, DetailFiche> = {
     kpi: { projetsActifs: 5, souscripteurs: 142, collecteCumule: '[MONTANT]', tauxRecouvrement: '[N]' },
     // Pro : 5 projets, 200 souscripteurs, 3 gestionnaires (barres calculées).
     quotas: {
-      projets: { utilise: 3, limite: 5, pourcentage: 60 },
+      projets: { utilise: 5, limite: 5, pourcentage: 100 },
       souscripteurs: { utilise: 142, limite: 200, pourcentage: 71 },
       gestionnaires: { utilise: 2, limite: 3, pourcentage: 67 },
     },

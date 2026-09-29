@@ -50,9 +50,9 @@ const ONGLETS: Onglet[] = [
 
 // ---------------------------------------------------------------- Affichage
 const inscriteDepuis = computed(() => (a.value ? formatMois(a.value.creeeLe).toLocaleLowerCase('fr') : ''))
-const montant = (v: ChiffreOuPlaceholder) => (typeof v === 'number' ? formatFCFA(v) : `${v} F`)
+const montant = (v: ChiffreOuPlaceholder) => formatFCFA(v)
 const taux = (v: FicheAssociationPlateforme['kpi']['tauxRecouvrement']) => (v === null ? '—' : typeof v === 'number' ? formatPourcent(v) : `${v} %`)
-const prix = (v: number | '[PRIX]') => `${typeof v === 'number' ? formatFCFA(v) : `${v} F`} / mois`
+const prix = (v: number | '[PRIX]') => `${formatFCFA(v)} / mois`
 
 const contact = computed<Definition[]>(() => f.value
   ? [
@@ -456,7 +456,7 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
             {{ formatMois(ligne.periode) }}
           </template>
           <template #cell-montant="{ ligne }">
-            {{ typeof ligne.montant === 'number' ? formatFCFA(ligne.montant) : `${ligne.montant} F` }}
+            {{ formatFCFA(ligne.montant) }}
           </template>
           <template #cell-statut="{ ligne }">
             <CzBadge :ton="STATUTS_FACTURE[ligne.statut].ton">
