@@ -36,22 +36,27 @@ for (const e of endpoints) {
 }
 for (const s of screens) {
   for (const id of s.endpoints) if (!ids.has(id)) fail(`écran ${s.id} : endpoint inconnu ${id}`);
-  for (const k of ['realAtLot', 'completeAtLot']) if (s[k] && !lots.has(s[k])) fail(`écran ${s.id} : ${k} ${s[k]} inconnu`);
+  for (const k of ['realAtLot', 'completeAtLot'])
+    if (s[k] && !lots.has(s[k])) fail(`écran ${s.id} : ${k} ${s[k]} inconnu`);
 }
 for (const f of features) if (!lots.has(f.lot)) fail(`feature ${f.key} : lot ${f.lot} inconnu`);
 
 const progress = readFileSync(path.join(root, 'docs/progress.md'), 'utf8');
-for (const l of lots) if (!new RegExp(`^\\| ${l.replace('.', '\\.')} \\|`, 'm').test(progress)) fail(`progress.md : lot ${l} absent`);
+for (const l of lots)
+  if (!new RegExp(`^\\| ${l.replace('.', '\\.')} \\|`, 'm').test(progress)) fail(`progress.md : lot ${l} absent`);
 
 // Si le registre du contrat existe (à partir du lot 0.2), il doit couvrir exactement endpoints.yaml.
 const registry = path.join(root, 'packages/contracts/src/endpoint-ids.generated.ts');
 if (existsSync(registry)) {
   const src = readFileSync(registry, 'utf8');
-  for (const id of ids) if (!src.includes(`'${id}'`)) fail(`packages/contracts : endpoint ${id} absent du registre généré`);
+  for (const id of ids)
+    if (!src.includes(`'${id}'`)) fail(`packages/contracts : endpoint ${id} absent du registre généré`);
 }
 
 if (errors.length) {
   console.error(`check-docs : ${errors.length} problème(s)\n- ` + errors.join('\n- '));
   process.exit(1);
 }
-console.log(`check-docs : OK (${ids.size} endpoints, ${ops.size} opérations, ${screens.length} écrans, ${lots.size} lots)`);
+console.log(
+  `check-docs : OK (${ids.size} endpoints, ${ops.size} opérations, ${screens.length} écrans, ${lots.size} lots)`,
+);

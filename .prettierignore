@@ -1,0 +1,10 @@
+# Prettier ne s'applique qu'au code de backend/, packages/* et tools/.
+frontend/
+design/
+docs/
+prompts/
+graphify-out/
+.claude/
+.github/
+**/*.md
+pnpm-lock.yaml
