@@ -19,7 +19,9 @@ export function useApi<T>(
     return Object.fromEntries(Object.entries(q).filter(([, v]) => v !== undefined && v !== null && v !== ''))
   })
 
-  const { data, pending, error, refresh, status } = useFetch<T>(() => toValue(chemin), {
+  // Renvoyé tel quel : destructurable directement, ou `await`-able quand la page initialise un formulaire
+  // à partir des données (sinon le rendu serveur part avec des champs vides → écart d'hydratation).
+  return useFetch<T>(() => toValue(chemin), {
     baseURL: config.public.apiBase,
     query,
     // Clé explicite et réactive : chemin + paramètres (sans elle, tous les appels partageraient le même cache).
@@ -28,8 +30,6 @@ export function useApi<T>(
     // Les cookies (session mockée) doivent suivre lors du rendu serveur.
     headers: import.meta.server ? useRequestHeaders(['cookie']) : undefined,
   })
-
-  return { data, pending, error, refresh, status }
 }
 
 /**

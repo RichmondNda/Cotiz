@@ -13,7 +13,8 @@ export interface Onglet {
   compteur?: number | string
   tonCompteur?: 'warning' | 'neutral' | 'danger'
   disabled?: boolean
-  bientot?: boolean
+  /** Fonction à venir : badge « Bientôt », ou le texte donné (« V2 »). */
+  bientot?: boolean | string
 }
 
 const props = withDefaults(defineProps<{
@@ -86,7 +87,7 @@ watch(() => route.path, () => nextTick(centrerActif))
       <CzSoon
         v-if="o.bientot"
         petit
-      >Bientôt</CzSoon>
+      >{{ typeof o.bientot === 'string' ? o.bientot : 'Bientôt' }}</CzSoon>
     </span>
   </nav>
 </template>

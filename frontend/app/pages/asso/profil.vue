@@ -15,7 +15,7 @@ useHead({ title: 'Mon profil · Cotiz' })
 
 const toast = useToast()
 const { deconnecter } = useSession()
-const { data: profil, pending, error, refresh } = useProfilGestionnaire()
+const { data: profil, pending, error, refresh } = await useProfilGestionnaire()
 const { refresh: rafraichirSession } = useMoi()
 const actions = useActionsProfilGestionnaire()
 

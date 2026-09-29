@@ -185,3 +185,9 @@ export function formatDateHeure(d: string | Date): string {
   const mm = String(date.getMinutes()).padStart(2, '0')
   return `${formatDate(date, 'numerique')} à ${hh}:${mm}`
 }
+
+/** Heure à la française : « 10 h 14 », « 9 h 02 ». */
+export function formatHeure(d: string | Date): string {
+  const date = lireDate(d)
+  return `${date.getHours()} h ${String(date.getMinutes()).padStart(2, '0')}`
+}

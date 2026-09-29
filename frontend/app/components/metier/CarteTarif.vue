@@ -1,19 +1,21 @@
 <!--
   Carte de tarif (`cz-price`) : nom du plan, badge « Le plus choisi » si mis en avant (bordure brand), prix mensuel,
   limites, fonctionnalités cochées, bouton qui pré-sélectionne le plan dans le formulaire de demande.
+  `apercu` (SaPlan, rendu en direct) : description courte sous le nom, bouton inerte.
 -->
 <script setup lang="ts">
 import type { Plan, Quota } from '~~/types'
 import { formatFCFA } from '~/utils/format'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   plan: Plan
-}>()
+  apercu?: boolean
+}>(), { apercu: false })
 
-const quota = (q: Quota) => (q === null ? 'illimité' : String(q))
+const quota = (q: Quota, mot: string) => (q === null ? `${mot} illimités` : `${q} ${mot}`)
 const limites = computed(() => {
   const q = props.plan.quotas
-  return `${quota(q.projets)} projets · ${quota(q.souscripteurs)} souscripteurs · ${quota(q.gestionnaires)} gestionnaires`
+  return `${quota(q.projets, 'projets')} · ${quota(q.souscripteurs, 'souscripteurs')} · ${quota(q.gestionnaires, 'gestionnaires')}`
 })
 </script>
 
@@ -31,6 +33,12 @@ const limites = computed(() => {
         class="cz-badge cz-badge--brand"
       >Le plus choisi</span>
     </div>
+    <p
+      v-if="apercu && plan.description"
+      class="carte-tarif__description"
+    >
+      {{ plan.description }}
+    </p>
     <div class="pr">
       {{ formatFCFA(plan.prixMensuel) }} <small>/ mois</small>
     </div>
@@ -48,7 +56,14 @@ const limites = computed(() => {
         />{{ f }}
       </li>
     </ul>
+    <span
+      v-if="apercu"
+      class="cz-btn cz-btn--block carte-tarif__bouton"
+      :class="{ 'cz-btn--secondary': !plan.misEnAvant }"
+      aria-hidden="true"
+    >Choisir {{ plan.nom }}</span>
     <CzButton
+      v-else
       :variante="plan.misEnAvant ? 'primaire' : 'secondaire'"
       bloc
       :to="{ path: '/demande', query: { plan: plan.id } }"
@@ -68,6 +83,12 @@ const limites = computed(() => {
   margin: 0;
   font: inherit;
   font-size: 17px;
+}
+
+.carte-tarif__description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .carte-tarif__limites {
