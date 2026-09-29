@@ -108,6 +108,7 @@ const estImage = computed(() => !modele.value?.type || modele.value.type.startsW
       type="file"
       class="sr-only"
       tabindex="-1"
+      aria-hidden="true"
       :accept="accept"
       :disabled="disabled"
       @change="surChoix"

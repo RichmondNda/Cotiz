@@ -298,6 +298,7 @@ async function cloturer() {
           accept="image/*"
           class="sr-only"
           tabindex="-1"
+          aria-hidden="true"
           @change="surImage"
         >
         <CzButton

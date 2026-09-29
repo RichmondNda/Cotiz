@@ -83,6 +83,7 @@ const accueil = computed(() => (props.espace === 'superadmin' ? '/plateforme' : 
           type="button"
           class="it sidebar__it"
           :title="replie ? e.label : undefined"
+          :aria-label="replie ? e.label : undefined"
           @click="deconnecter"
         >
           <CzIcon :nom="e.icone" /><span class="sidebar__texte sidebar__label">{{ e.label }}</span>
@@ -94,6 +95,7 @@ const accueil = computed(() => (props.espace === 'superadmin' ? '/plateforme' : 
           :class="{ 'is-on': actif(e) }"
           :aria-current="actif(e) ? 'page' : undefined"
           :title="replie ? e.label : undefined"
+          :aria-label="replie ? (compteur(e) ? `${e.label} (${compteur(e)})` : e.label) : undefined"
           @click="$emit('naviguer')"
         >
           <CzIcon :nom="e.icone" /><span class="sidebar__texte sidebar__label">{{ e.label }}</span>

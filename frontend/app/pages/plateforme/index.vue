@@ -20,7 +20,7 @@ const aujourdhui = computed(() => {
   const d = formatDate(maintenant(), 'complet')
   return d.charAt(0).toUpperCase() + d.slice(1)
 })
-const chiffre = (v: number | string, montant = false) => (typeof v === 'number' ? (montant ? formatFCFA(v) : String(v)) : montant ? `${v} F` : v)
+const chiffre = (v: number | string, montant = false) => (montant ? formatFCFA(v) : String(v))
 const totalRepartition = computed(() => (data.value?.repartition ?? []).reduce((n, r) => n + r.nombre, 0) || 1)
 </script>
 

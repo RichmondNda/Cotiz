@@ -33,7 +33,7 @@ import { formatFCFA } from '~/utils/format'
         Régulariser
       </div>
       <div class="apercu-tel__du">
-        {{ formatFCFA(30_000) }}
+        {{ formatFCFA(50_000) }}
       </div>
     </div>
     <div class="apercu-tel__action">

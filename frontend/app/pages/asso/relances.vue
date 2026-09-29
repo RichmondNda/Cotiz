@@ -559,7 +559,7 @@ const nomAssociation = computed(() => association.value?.nom)
             Aperçu du message
           </h2>
           <p class="relances__apercu">
-            Bonjour Moussa, votre échéance de 25 000 F pour le projet Centre communautaire est prévue le 5 octobre.
+            Bonjour Moussa, votre échéance de {{ formatFCFA(25_000) }} pour le projet Centre communautaire est prévue le 5 octobre.
             Pensez à déclarer votre paiement sur Cotiz. — {{ nomAssociation ?? 'Entraide Yopougon' }}
           </p>
         </section>

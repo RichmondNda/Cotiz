@@ -165,10 +165,8 @@ function effacer() {
         </CzBadge>
       </template>
       <template #carte="{ ligne }">
-        <NuxtLink
-          :to="`/plateforme/demandes/${ligne.id}`"
-          class="sa-demandes__carte"
-        >
+        <!-- La carte entière est cliquable (CzTable, `@ligne`) : pas de lien imbriqué. -->
+        <div class="sa-demandes__carte">
           <span class="sa-demandes__carte-l">
             <b>{{ ligne.association }}</b>
             <span class="sa-demandes__sous">Reçue le {{ formatDate(ligne.recueLe, 'numerique') }} · {{ ligne.plan }}</span>
@@ -176,7 +174,7 @@ function effacer() {
           <CzBadge :ton="STATUTS_DEMANDE[ligne.statut].ton">
             {{ STATUTS_DEMANDE[ligne.statut].libelle }}
           </CzBadge>
-        </NuxtLink>
+        </div>
       </template>
       <template #vide>
         <CzEmpty

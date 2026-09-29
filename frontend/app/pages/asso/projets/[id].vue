@@ -63,22 +63,11 @@ useFilAriane(() => {
       </div>
       <CzErreurChargement
         v-else-if="error"
-        :titre="error.statusCode === 404 ? 'Projet introuvable' : 'Impossible d’afficher le projet'"
-        :description="error.statusCode === 404 ? 'Ce projet n’existe pas ou a été supprimé.' : undefined"
+        titre="Impossible d’afficher le projet"
+        :erreur="error"
+        :introuvable="{ titre: 'Projet introuvable', description: 'Ce projet n’existe pas ou a été supprimé.', retour: { label: 'Voir les projets', to: '/asso/projets' } }"
         @reessayer="refresh()"
-      >
-        <template
-          v-if="error.statusCode === 404"
-          #action
-        >
-          <CzButton
-            variante="secondaire"
-            to="/asso/projets"
-          >
-            Voir les projets
-          </CzButton>
-        </template>
-      </CzErreurChargement>
+      />
       <ProjetHeader
         v-else-if="projet"
         :projet="projet"

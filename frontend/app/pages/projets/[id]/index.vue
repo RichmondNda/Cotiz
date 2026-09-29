@@ -34,6 +34,7 @@ const commentPayerOuvert = ref(false)
     >
       <template #actions>
         <CzButton
+          v-if="s"
           variante="secondaire"
           taille="sm"
           icone="contrat"
@@ -60,23 +61,14 @@ const commentPayerOuvert = ref(false)
         />
       </template>
 
-      <CzEmpty
+      <CzErreurChargement
         v-else-if="error || !s"
-        icone="alerte"
-        ton="danger"
         titre="Impossible d’afficher ce projet"
-        description="Vérifiez votre connexion, puis réessayez."
+        :erreur="error"
+        :introuvable="{ titre: 'Projet introuvable', description: 'Ce projet n’existe pas ou vous n’y êtes pas inscrit.', retour: { label: 'Voir mes projets', to: '/accueil' } }"
         class="projet__vide"
-      >
-        <template #action>
-          <CzButton
-            variante="secondaire"
-            @click="refresh()"
-          >
-            Réessayer
-          </CzButton>
-        </template>
-      </CzEmpty>
+        @reessayer="refresh()"
+      />
 
       <CzEmpty
         v-else-if="aSigner"

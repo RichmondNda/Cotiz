@@ -180,7 +180,7 @@ function ouvrir(e: MouseEvent | KeyboardEvent) {
         <CzProgress
           :valeur="progression"
           :ton="tonBarre"
-          :label="progressionGauche"
+          :label="progressionGauche ?? `Progression — ${nom}`"
         />
         <div class="row">
           <span>{{ progressionGauche }}</span><span>{{ progressionDroite }}</span>

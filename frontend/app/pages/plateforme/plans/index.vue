@@ -18,7 +18,7 @@ const toast = useToast()
 const { data: plans, pending, error, refresh } = usePlans()
 const { archiver, desarchiver, dupliquer } = useActionsPlan()
 
-const prix = (p: Plan['prixMensuel']) => (typeof p === 'number' ? formatFCFA(p) : `${p} F`)
+const prix = (p: Plan['prixMensuel']) => formatFCFA(p)
 const quota = (q: Quota) => (q === null ? '∞' : String(q))
 const lien = (p: Plan) => `/plateforme/plans/${p.id}`
 

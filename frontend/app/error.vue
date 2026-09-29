@@ -17,6 +17,11 @@ useHead({ title: introuvable.value ? 'Page introuvable — Cotiz' : 'Erreur — 
 function retour() {
   clearError({ redirect: accueil.value })
 }
+
+/** Erreur serveur : recharge la page courante. */
+function reessayer() {
+  reloadNuxtApp({ force: true })
+}
 </script>
 
 <template>
@@ -35,9 +40,20 @@ function retour() {
         : 'Nous n’avons pas pu afficher cette page. Réessayez dans un instant.'"
     >
       <template #action>
-        <CzButton @click="retour">
-          Retour à l’accueil
-        </CzButton>
+        <div class="page-erreur__actions">
+          <CzButton
+            v-if="!introuvable"
+            @click="reessayer"
+          >
+            Réessayer
+          </CzButton>
+          <CzButton
+            :variante="introuvable ? 'primaire' : 'secondaire'"
+            @click="retour"
+          >
+            Retour à l’accueil
+          </CzButton>
+        </div>
       </template>
     </CzEmpty>
   </main>
@@ -53,6 +69,13 @@ function retour() {
   min-height: 100vh;
   padding: var(--space-6) var(--space-4);
   background: var(--page);
+}
+
+.page-erreur__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
 }
 
 .page-erreur__carte {

@@ -53,6 +53,14 @@ a {
   border: 0;
 }
 
+/* Focus clavier toujours visible. L'anneau `--focus-ring` du design system (brand-pale, ≈ 1,2:1 sur blanc,
+   cf. design-system/README.md « Accessibilité ») reste en place ; on y ajoute un contour `--brand` qui contraste
+   avec les cartes et le fond de page. Les champs de saisie gardent leur bordure `--brand` (pas de double contour). */
+:where(a, button, summary, [role="button"], [role="tab"], [role="radio"], [role="option"], [role="menuitem"], [role="checkbox"], [role="switch"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--brand) !important;
+  outline-offset: 2px;
+}
+
 /* Mobile : cibles tactiles ≥ 44 px sans changer l'apparence des petites commandes du design system.
    Un pseudo-élément invisible, centré, agrandit la zone cliquable (::before : .cz-toggle utilise déjà ::after). */
 @media (max-width: 767px) {

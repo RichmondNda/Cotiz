@@ -9,10 +9,16 @@ export const useDemande = (id: MaybeRefOrGetter<string>) => useApi<DemandeDetail
 /** Décision sur une demande : approbation (crée l'espace de l'association) ou refus motivé. */
 export function useDecisionDemande() {
   const appel = useAppelApi()
+  // Une décision retire la demande de « À traiter » : le badge « Demandes » du menu doit suivre.
+  const { refresh: rechargerCompteurs } = useCompteursNavigation()
+  async function decider(chemin: string, body: object) {
+    const demande = await appel<DemandeDetaillee>(chemin, { body })
+    await rechargerCompteurs()
+    return demande
+  }
   return {
-    approuver: (id: string, approbation: ApprobationDemande) =>
-      appel<DemandeDetaillee>(`/demandes/${id}/approbation`, { body: approbation }),
-    refuser: (id: string, refus: RefusDemande) => appel<DemandeDetaillee>(`/demandes/${id}/refus`, { body: refus }),
+    approuver: (id: string, approbation: ApprobationDemande) => decider(`/demandes/${id}/approbation`, approbation),
+    refuser: (id: string, refus: RefusDemande) => decider(`/demandes/${id}/refus`, refus),
   }
 }
 

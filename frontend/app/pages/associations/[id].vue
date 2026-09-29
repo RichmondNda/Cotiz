@@ -60,23 +60,14 @@ function pied(s: SouscriptionMembre): [string, string] {
       </div>
     </template>
 
-    <CzEmpty
+    <CzErreurChargement
       v-else-if="error || !groupe || !association"
-      icone="alerte"
-      ton="danger"
       titre="Impossible d’afficher cette association"
-      description="Vérifiez votre connexion, puis réessayez."
+      :erreur="error"
+      :introuvable="{ titre: 'Association introuvable', description: 'Vous n’êtes inscrit à aucun projet de cette association.', retour: { label: 'Retour à l’accueil', to: '/accueil' } }"
       class="asso__vide"
-    >
-      <template #action>
-        <CzButton
-          variante="secondaire"
-          @click="refresh()"
-        >
-          Réessayer
-        </CzButton>
-      </template>
-    </CzEmpty>
+      @reessayer="refresh()"
+    />
 
     <template v-else>
       <CzCard

@@ -12,7 +12,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "capture": "node scripts/capture-ecran.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "node tests/e2e/parcours.mjs",
+    "a11y": "node tests/e2e/accessibilite.mjs",
+    "coherence": "node tests/e2e/coherence.mjs",
+    "contrat-api": "node scripts/generer-contrat-api.mjs"
   },
   "dependencies": {
     "nuxt": "^4.5.2",
@@ -21,6 +25,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
+    "axe-core": "^4.13.0",
     "eslint": "^10.11.0",
     "playwright": "^1.63.0",
     "typescript": "^6.0.3",

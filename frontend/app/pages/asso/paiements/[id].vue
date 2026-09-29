@@ -156,6 +156,8 @@ function demanderValidation() {
     <CzErreurChargement
       v-else-if="error || !paiement"
       titre="Impossible d’afficher ce paiement"
+      :erreur="error"
+      :introuvable="{ titre: 'Paiement introuvable', description: 'Ce paiement n’existe pas ou a été supprimé.', retour: { label: 'Voir les paiements', to: '/asso/paiements' } }"
       @reessayer="refresh()"
     />
 
