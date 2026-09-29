@@ -1,14 +1,14 @@
 ---
-description: Démarre un lot d'implémentation Cotiz (ex. /lot 03)
-argument-hint: <numéro du lot, ex. 02>
+description: Démarrer un lot d'implémentation (lecture, vérifications, plan)
+argument-hint: <id du lot, ex. 2.4>
 ---
-Lis `prompts/$ARGUMENTS-*.md` (le fichier dont le nom commence par `$ARGUMENTS`) et exécute ce lot en respectant `CLAUDE.md`.
+Nous démarrons le lot $ARGUMENTS.
 
-Déroulé obligatoire :
-1. Lis les captures (`design/screens/...`) et le HTML de référence (`design/html/...`) de chaque écran du lot,
-   ainsi que la fiche correspondante dans `design/specs/cotiz-spec-ui.html`.
-2. Présente-moi un plan court : composants à créer ou réutiliser, pages, endpoints mockés, ordre de travail.
-   Attends mon feu vert avant de coder.
-3. Implémente écran par écran. Après chaque écran, lance `/verifier-ecran` sur ses états principaux et corrige les écarts.
-4. En fin de lot : typecheck + lint, puis un compte rendu : écrans faits, écarts restants assumés, données inventées ou
-   placeholders, questions ouvertes. Propose un message de commit (ne commite pas sans mon accord).
+0. Si l'argument est un numéro de lot front à deux chiffres (`00` à `09`), arrête-toi : c'est `/lot-front` (lots terminés).
+
+1. Lis `docs/lots/$ARGUMENTS-*.md` en entier, puis chaque document de sa section « À lire ».
+2. Vérifie dans `docs/progress.md` que toutes ses dépendances sont `terminé`. Sinon, arrête-toi et dis-moi lesquelles manquent.
+3. Vérifie dans `docs/decisions.md` les décisions listées par le lot. Si l'une est `ouvert`, pose-moi la question avant tout.
+4. Crée la branche `lot/$ARGUMENTS-<slug du fichier>` si elle n'existe pas.
+5. Propose un plan : pour chaque étape du lot, les fichiers que tu vas créer ou modifier, les tests que tu vas écrire, et la vérification prévue. Signale toute contradiction entre le lot et `docs/specs/`.
+6. **Ne modifie aucun fichier** avant que j'aie validé le plan. Ensuite, on avance étape par étape avec `/etape`.

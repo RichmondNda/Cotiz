@@ -1,0 +1,72 @@
+# Jeu de données de référence — identique dans les maquettes, les mocks (frontend/server/mocks),
+# les seeds de recette (packages/db/seeds) et les tests.
+# Les échéances ne sont pas listées : elles sont générées par generateSchedule().
+today: "2026-09-29"   # date « du jour » des maquettes et des mocks
+associations:
+  - key: entraide-yopougon
+    name: Entraide Yopougon
+    city: Abidjan
+    plan: essentiel
+    status: active
+    timezone: Africa/Abidjan
+    currency: XOF
+    paymentMethods:
+      - { kind: mobile_money, label: Orange Money, details: { operator: orange, number: "+2250708091011" } }
+      - { kind: bank_transfer, label: SGBCI, details: { bank: SGBCI, iban: "CI93 CI00 8011 1234 5678 9012 34" } }
+  - key: ressortissants-man
+    name: Association des ressortissants de Man
+    city: Abidjan
+    plan: pro
+    status: past_due
+  - key: jeunesse-bouake
+    name: Jeunesse solidaire de Bouaké
+    city: Bouaké
+    plan: decouverte
+    status: onboarding
+plans:
+  - { code: decouverte, name: Découverte, priceMonthly: 0, maxProjects: 1, maxSubscribers: 20, maxManagers: 1 }
+  - { code: essentiel, name: Essentiel, priceMonthly: 10000, maxProjects: 5, maxSubscribers: 100, maxManagers: 2 }
+  - { code: pro, name: Pro, priceMonthly: 25000, maxProjects: null, maxSubscribers: 500, maxManagers: 5 }
+projects:   # tous chez entraide-yopougon
+  - key: centre-communautaire
+    name: Centre communautaire
+    scheduleType: fixed
+    entryFeeAmount: 50000
+    installmentAmount: 25000
+    frequency: monthly
+    dueDay: 5
+    startDate: "2026-03-01"
+    endDate: "2027-08-31"      # 18 mensualités
+    graceDays: 5
+    status: active
+  - key: tontine-2027
+    name: Tontine solidaire 2027
+    scheduleType: rolling
+    installmentAmount: 10000
+    frequency: monthly
+    dueDay: 5
+    startDate: "2027-01-01"
+    requiredSubscribers: 30
+    status: enrolling          # 12 inscrits sur 30
+  - key: voyage-solidaire
+    name: Voyage solidaire
+    scheduleType: fixed
+    entryFeeAmount: 50000
+    installmentAmount: 10000
+    frequency: monthly
+    dueDay: 5
+    startDate: "2026-06-01"
+    endDate: "2027-05-31"      # 12 mois
+    status: active
+    contractRequired: true     # à partir du lot 4.1
+people:
+  - { key: awa, firstName: Awa, lastName: Koné, phone: "+2250708091011", email: awa.kone@entraide-yopougon.ci, roles: ["entraide-yopougon:owner"], note: "Trésorière, utilisatrice des maquettes gestionnaire" }
+  - { key: aminata, firstName: Aminata, lastName: Konaté, email: aminata.konate@entraide-yopougon.ci, roles: ["entraide-yopougon:manager"], note: "Apparaît comme « validé par »" }
+  - { key: moussa, firstName: Moussa, lastName: Diarra, phone: "+2250544218790", roles: ["entraide-yopougon:subscriber", "ressortissants-man:subscriber"], note: "Centre communautaire : 2 échéances en retard (août et septembre). Contrat Voyage solidaire à signer." }
+  - { key: fatou, firstName: Fatou, lastName: Traoré, phone: "+2250122334455", roles: ["entraide-yopougon:subscriber"], note: "Souscriptrice récente, signature attendue ; compte non activé (code à remettre)" }
+  - { key: jean, firstName: Jean, lastName: Kouassi, phone: "+2250755667788", roles: ["entraide-yopougon:subscriber"], note: "Paiement partiel de 10 000 F en août" }
+  - { key: richy, firstName: Richy, email: richy@cotiz.app, roles: ["platform:owner"], note: "Super-admin des maquettes" }
+expected:   # chiffres que les mocks et le seed de démonstration doivent reproduire
+  managerDashboard: { collectedThisMonth: 1240000, expectedThisMonth: 1300000, paymentsToReview: 6, oldestPendingDays: 3, lateSubscribers: 14, totalSubscribers: 52, recoveryRate: 0.82 }
+  subscriberDashboard_moussa: { remainingTotal: 395000, projects: 3, associations: 2, lateAmount: 50000, nextDue: { amount: 25000, date: "2026-10-05" } }
+  # Décision n° 13 (adoptée) : 2 échéances de 25 000 F en retard depuis le 5 août = 50 000 F, comme les maquettes et la V0.

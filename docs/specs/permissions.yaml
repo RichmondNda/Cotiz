@@ -1,0 +1,204 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+# Rôles : platform:{owner,admin,support} · association:{owner,manager,viewer} · subscriber. « * » = tout le monde, « *authenticated » = toute personne connectée.
+permissions:
+- permission: public
+  roles:
+  - '*'
+  endpoints:
+  - sys.health
+  - auth.login
+  - auth.refresh
+  - auth.forgot
+  - auth.verify
+  - auth.reset
+  - auth.activate
+  - auth.mfa
+  - pub.plans
+  - pub.request
+  - pub.legal
+  - psp.webhook
+- permission: authenticated
+  roles:
+  - '*authenticated'
+  endpoints:
+  - fl.upload
+  - fl.get
+  - auth.logout
+  - me
+  - nt.list
+  - nt.read
+  - nt.stream
+  - me.push
+  - me.profile
+  - me.prefs
+- permission: platform.requests.manage
+  roles:
+  - platform:owner
+  - platform:admin
+  endpoints:
+  - pf.req.approve
+  - pf.req.reject
+- permission: platform.associations.read
+  roles:
+  - platform:owner
+  - platform:admin
+  - platform:support
+  endpoints:
+  - pf.req.list
+  - pf.req.get
+  - pf.asso.list
+  - pf.asso.get
+  - pf.plans
+  - pf.dashboard
+  - pf.asso.sub
+  - pf.asso.usage
+  - pf.invoices
+- permission: platform.associations.manage
+  roles:
+  - platform:owner
+  - platform:admin
+  endpoints:
+  - pf.resets
+  - pf.asso.create
+  - pf.asso.patch
+  - pf.asso.suspend
+  - pf.asso.plan
+- permission: platform.plans.manage
+  roles:
+  - platform:owner
+  - platform:admin
+  endpoints:
+  - pf.plan.write
+  - pf.plan.archive
+- permission: platform.billing.manage
+  roles:
+  - platform:owner
+  - platform:admin
+  endpoints:
+  - pf.invoice.paid
+- permission: platform.staff.manage
+  roles:
+  - platform:owner
+  endpoints:
+  - pf.staff
+- permission: platform.audit.read
+  roles:
+  - platform:owner
+  - platform:admin
+  endpoints:
+  - pf.audit
+- permission: association.read
+  roles:
+  - association:owner
+  - association:manager
+  - association:viewer
+  endpoints:
+  - as.get
+  - bl.sub
+  - as.dashboard
+  - pr.list
+  - pr.get
+  - pr.overview
+  - en.list
+  - mb.list
+  - mb.get
+  - mb.timeline
+  - lg.grid
+  - lg.inst
+  - lg.pay.list
+  - lg.pay.get
+  - ct.get
+  - ct.list
+  - rm.hist
+  - bl.inv
+- permission: association.settings.manage
+  roles:
+  - association:owner
+  endpoints:
+  - as.patch
+  - as.pm
+  - as.onb
+  - dev.keys
+  - dev.webhooks
+- permission: association.team.manage
+  roles:
+  - association:owner
+  endpoints:
+  - tm.team
+- permission: projects.manage
+  roles:
+  - association:owner
+  - association:manager
+  endpoints:
+  - pr.create
+  - pr.preview
+  - pr.patch
+  - pr.lifecycle
+  - pr.delete
+- permission: members.manage
+  roles:
+  - association:owner
+  - association:manager
+  endpoints:
+  - as.resets
+  - mb.lookup
+  - en.create
+  - en.withdraw
+  - en.bulk
+  - mb.resend
+  - mb.codes
+  - mb.patch
+  - im.flow
+  - im.steps
+  - im.read
+  - im.commit
+- permission: payments.review
+  roles:
+  - association:owner
+  - association:manager
+  endpoints:
+  - lg.pay.validate
+  - lg.pay.reject
+  - lg.pay.revert
+  - bk.statements
+  - bk.match
+- permission: reminders.send
+  roles:
+  - association:owner
+  - association:manager
+  endpoints:
+  - rm.rules
+  - rm.send
+  - rm.queue
+- permission: reports.read
+  roles:
+  - association:owner
+  - association:manager
+  - association:viewer
+  endpoints:
+  - rp.report
+  - rp.analytics
+- permission: reports.export
+  roles:
+  - association:owner
+  - association:manager
+  - association:viewer
+  endpoints:
+  - rp.export
+- permission: subscriber.self
+  roles:
+  - subscriber
+  endpoints:
+  - me.dash
+  - me.projects
+  - me.project
+  - me.alloc
+  - me.declare
+  - me.payment
+  - me.history
+  - me.contract
+  - me.sign
+  - me.contracts
+  - me.assos
+  - psp.checkout

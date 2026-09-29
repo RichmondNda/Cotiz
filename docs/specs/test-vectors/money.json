@@ -1,0 +1,55 @@
+{
+  "function": "formatMoney",
+  "note": "Séparateur de milliers U+202F (espace fine insécable), espace insécable U+00A0 avant le symbole",
+  "cases": [
+    {
+      "input": {
+        "amount": 25000,
+        "currency": "XOF"
+      },
+      "output": "25 000 F"
+    },
+    {
+      "input": {
+        "amount": 1240000,
+        "currency": "XOF"
+      },
+      "output": "1 240 000 F"
+    },
+    {
+      "input": {
+        "amount": 0,
+        "currency": "XOF"
+      },
+      "output": "0 F"
+    },
+    {
+      "input": {
+        "amount": 500,
+        "currency": "XOF"
+      },
+      "output": "500 F"
+    },
+    {
+      "input": {
+        "amount": -5000,
+        "currency": "XOF"
+      },
+      "output": "-5 000 F"
+    },
+    {
+      "input": {
+        "amount": 395000,
+        "currency": "XOF"
+      },
+      "output": "395 000 F"
+    },
+    {
+      "input": {
+        "amount": 1000000,
+        "currency": "GNF"
+      },
+      "output": "1 000 000 FG"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+# Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
+# Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
+# Exposées par GET /me (features). Une fonctionnalité absente → « Bientôt disponible » côté front, feature_disabled côté API.
+# planGated : la fonctionnalité dépend aussi du plan de l'association (plans.features).
+features:
+- key: payments
+  lot: '3.3'
+  description: Déclaration et validation de paiements
+  planGated: false
+  externalProvider: false
+- key: activation_codes
+  lot: '2.3'
+  description: Codes d'activation remis à la main
+  planGated: false
+  externalProvider: false
+- key: password_reset_manual
+  lot: '1.1'
+  description: Réinitialisation traitée par le rôle supérieur
+  planGated: false
+  externalProvider: false
+- key: realtime
+  lot: '4.2'
+  description: Notifications en temps réel (SSE)
+  planGated: false
+  externalProvider: false
+- key: web_push
+  lot: '4.2'
+  description: Notifications push navigateur
+  planGated: false
+  externalProvider: false
+- key: contracts
+  lot: '4.1'
+  description: Contrats et signature électronique
+  planGated: true
+  externalProvider: false
+- key: imports
+  lot: '4.4'
+  description: Import Excel/CSV
+  planGated: true
+  externalProvider: false
+- key: auto_reminders
+  lot: '4.3'
+  description: Relances automatiques et file « À relancer »
+  planGated: true
+  externalProvider: false
+- key: team
+  lot: '4.5'
+  description: Plusieurs gestionnaires
+  planGated: true
+  externalProvider: false
+- key: invoices
+  lot: '4.6'
+  description: Factures d'abonnement
+  planGated: false
+  externalProvider: false
+- key: exports
+  lot: '4.6'
+  description: Exports CSV / Excel / PDF
+  planGated: true
+  externalProvider: false
+- key: usage_stats
+  lot: '4.6'
+  description: Statistiques d'usage
+  planGated: false
+  externalProvider: false
+- key: mfa
+  lot: '4.7'
+  description: Double authentification
+  planGated: false
+  externalProvider: false
+- key: audit_log
+  lot: '4.7'
+  description: Journal d'audit consultable
+  planGated: false
+  externalProvider: false
+- key: reconciliation
+  lot: '5.1'
+  description: Rapprochement par relevés importés
+  planGated: true
+  externalProvider: false
+- key: public_api
+  lot: '5.2'
+  description: API publique et webhooks
+  planGated: true
+  externalProvider: false
+- key: analytics
+  lot: '5.2'
+  description: Tableaux analytiques
+  planGated: true
+  externalProvider: false
+- key: channel_email
+  lot: '6.1'
+  description: Canal email (option, fournisseur externe)
+  planGated: false
+  externalProvider: true
+- key: channel_sms
+  lot: '6.2'
+  description: Canal SMS (option, fournisseur externe)
+  planGated: false
+  externalProvider: true
+- key: online_payment
+  lot: '6.3'
+  description: Paiement en ligne via prestataire agréé (option)
+  planGated: false
+  externalProvider: true

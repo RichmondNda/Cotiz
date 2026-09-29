@@ -1,0 +1,214 @@
+{
+  "function": "installmentStatus",
+  "cases": [
+    {
+      "name": "a-venir",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 0,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-09-29",
+        "graceDays": 5
+      },
+      "output": "upcoming"
+    },
+    {
+      "name": "jour-j",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 0,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-10-05",
+        "graceDays": 5
+      },
+      "output": "due"
+    },
+    {
+      "name": "dans-le-delai-de-grace",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 0,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-10-10",
+        "graceDays": 5
+      },
+      "output": "due"
+    },
+    {
+      "name": "en-retard",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 0,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-10-11",
+        "graceDays": 5
+      },
+      "output": "late"
+    },
+    {
+      "name": "partielle-non-echue",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 10000,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-10-07",
+        "graceDays": 5
+      },
+      "output": "partial"
+    },
+    {
+      "name": "partielle-en-retard",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 10000,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-10-20",
+        "graceDays": 5
+      },
+      "output": "late"
+    },
+    {
+      "name": "declaree",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 0,
+          "amountPending": 25000,
+          "status": "late"
+        },
+        "today": "2026-10-20",
+        "graceDays": 5
+      },
+      "output": "declared"
+    },
+    {
+      "name": "declaree-partielle",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 10000,
+          "amountPending": 5000,
+          "status": "late"
+        },
+        "today": "2026-10-20",
+        "graceDays": 5
+      },
+      "output": "declared"
+    },
+    {
+      "name": "payee",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 25000,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-12-01",
+        "graceDays": 5
+      },
+      "output": "paid"
+    },
+    {
+      "name": "dispensee",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 0,
+          "amountPending": 0,
+          "status": "waived"
+        },
+        "today": "2026-12-01",
+        "graceDays": 5
+      },
+      "output": "waived"
+    },
+    {
+      "name": "grace-zero",
+      "input": {
+        "installment": {
+          "id": "s",
+          "enrollmentId": "e1",
+          "kind": "periodic",
+          "sequence": 1,
+          "dueDate": "2026-10-05",
+          "amountDue": 25000,
+          "amountPaid": 0,
+          "amountPending": 0,
+          "status": "late"
+        },
+        "today": "2026-10-06",
+        "graceDays": 0
+      },
+      "output": "late"
+    }
+  ]
+}
