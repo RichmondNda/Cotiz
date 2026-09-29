@@ -4,6 +4,11 @@ graphify-out/
 # Réglages locaux de Claude Code (les commandes partagées de .claude/commands restent suivies)
 .claude/settings.local.json
 
+# Dépendances et sorties de build (workspace pnpm + Turborepo)
+node_modules/
+.turbo/
+dist/
+
 # Système et éditeurs
 .DS_Store
 Thumbs.db

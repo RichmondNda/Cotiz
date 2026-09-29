@@ -9,10 +9,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: frontend
-
 jobs:
   qualite:
     name: Lint, typecheck, tests unitaires, build
@@ -20,21 +16,21 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
       # Le contrat d'API committé doit correspondre aux handlers de mocks.
       - name: Contrat d'API à jour
         run: |
-          npm run contrat-api
-          git diff --exit-code -- ../docs/api-v0.md || { echo "::error::docs/api-v0.md n'est pas à jour : lancer « npm run contrat-api » dans frontend/"; exit 1; }
+          pnpm --filter frontend contrat-api
+          git diff --exit-code -- docs/api-v0.md || { echo "::error::docs/api-v0.md n'est pas à jour : lancer « pnpm --filter frontend contrat-api »"; exit 1; }
 
   parcours:
     name: Parcours, cohérence, accessibilité
@@ -42,25 +38,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter frontend exec playwright install --with-deps chromium
       - name: Serveur de dev (mocks Nitro)
+        working-directory: frontend
         run: |
-          nohup npm run dev > dev.log 2>&1 &
+          nohup pnpm dev > dev.log 2>&1 &
           for i in $(seq 1 90); do
             curl -sf -o /dev/null http://localhost:3000/connexion && exit 0
             sleep 2
           done
           cat dev.log
           exit 1
-      - run: npm run e2e
-      - run: npm run coherence
-      - run: npm run a11y
+      - run: pnpm --filter frontend e2e
+      - run: pnpm --filter frontend coherence
+      - run: pnpm --filter frontend a11y
       - name: Captures et journal du serveur
         if: always()
         uses: actions/upload-artifact@v4

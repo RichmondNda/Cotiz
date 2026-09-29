@@ -5,7 +5,7 @@ argument-hint: <route> [--role …] [--scenario …] — ex. /asso/paiements --r
 Vérifie visuellement la route suivante : $ARGUMENTS
 
 0. Toutes les commandes se lancent depuis `frontend/` (l'app Nuxt) ; les références sont sous `design/` à la racine.
-1. Si le serveur de dev ne tourne pas, lance `npm run dev` en arrière-plan et attends qu'il réponde.
+1. Si le serveur de dev ne tourne pas, lance `pnpm --filter frontend dev` en arrière-plan et attends qu'il réponde.
 2. Lance `node scripts/capture-ecran.mjs $ARGUMENTS` (sortie dans `frontend/.verif/`).
 3. Retrouve dans `design/INVENTAIRE.md` l'écran correspondant et ses captures de référence
    (`design/screens/<espace>/web/<Écran>__<état>.png` et `.../mobile/...`). L'état = le scénario passé, sinon le premier état.
