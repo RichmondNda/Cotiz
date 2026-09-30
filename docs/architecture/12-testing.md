@@ -8,7 +8,7 @@
 | Contrat | Zod | Chaque réponse réelle et chaque mock passent leur schéma ; `oasdiff` sur l'OpenAPI généré |
 | Bout en bout | Playwright | Parcours de référence : demande → approbation → onboarding → projet → inscription → code remis → activation → déclaration → validation → notification ; **sans aucun fournisseur configuré** |
 | Charge | k6 | Grille 200 × 24, tableau de bord, 100 déclarations simultanées, 2 validations concurrentes |
-| Sécurité | OWASP ZAP (recette) | Analyse de base à chaque version |
+| Sécurité | OWASP ZAP (local au lot 3.5, puis recette à partir du lot 7.1) | Analyse de base à chaque version |
 
 Couverture visée : 95 % sur `packages/domain` et le module `ledger`. Ailleurs, pas d'objectif chiffré : les tests de parcours comptent davantage.
 

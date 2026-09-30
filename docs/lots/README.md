@@ -6,14 +6,16 @@ La V0 du front (tous les écrans, sur mocks Nitro) est **déjà livrée** : lots
 
 Les lots 0.3 (front) et 0.4–0.6 (back) peuvent avancer en parallèle après 0.2 / 0.1 ; ensuite, le front d'un lot reste sur données simulées pendant que le back est construit.
 
+**Tout se développe et se teste en local** (`docker compose` + `pnpm dev`, CI GitHub Actions) jusqu'au lot 7.1 : aucune recette Dokploy ni production avant. Le lot 3.5 valide le jalon V1 sur une pile de production lancée en local ; le lot 7.1 la met en ligne.
+
 | Lot | Titre | Phase | Jours | Dépend de | Tables | Endpoints |
 |---|---|---|---|---|---|---|
-| [0.1](0.1-monorepo-ci.md) | Monorepo, CI et environnements | Phase 0 · Fondations | 5 | — | 0 | 1 |
+| [0.1](0.1-monorepo-ci.md) | Monorepo, CI et environnements | Phase 0 · Fondations | 4 | — | 0 | 1 |
 | [0.2](0.2-contrats-domaine.md) | Contrats et logique métier partagée | Phase 0 · Fondations | 10 | 0.1 | 0 | 0 |
 | [0.3](0.3-v0-contrat.md) | Aligner la V0 du front sur le contrat | Phase 0 · Fondations | 8 | 0.2 | 0 | 0 |
 | [0.4](0.4-base-isolation.md) | Base de données, isolation et contexte tenant | Phase 0 · Fondations | 7 | 0.1 | 0 | 0 |
 | [0.5](0.5-socle-transverse.md) | Socle transverse : outbox, stockage, audit, idempotence | Phase 0 · Fondations | 8 | 0.4 | 3 | 2 |
-| [0.6](0.6-observabilite.md) | Observabilité minimale | Phase 0 · Fondations | 4 | 0.1 | 0 | 0 |
+| [0.6](0.6-observabilite.md) | Observabilité minimale | Phase 0 · Fondations | 3 | 0.1 | 0 | 0 |
 | [1.1](1.1-identite-auth.md) | Identité, authentification et activation | V1 · Super-admin | 11 | 0.5 | 6 | 8 |
 | [1.2](1.2-associations-plans.md) | Associations, plans et abonnements (socle) | V1 · Super-admin | 8 | 1.1 | 5 | 4 |
 | [1.3](1.3-demandes-approbation.md) | Demandes, approbation et création directe | V1 · Super-admin | 9 | 1.2 | 1 | 7 |
@@ -28,7 +30,7 @@ Les lots 0.3 (front) et 0.4–0.6 (back) peuvent avancer en parallèle après 0.
 | [3.2](3.2-espace-souscripteur.md) | Tableau de bord et projets du souscripteur | V1 · Souscripteur | 5 | 3.1 | 0 | 3 |
 | [3.3](3.3-declaration.md) | Déclaration de paiement | V1 · Souscripteur | 8 | 3.2 | 0 | 3 |
 | [3.4](3.4-historique.md) | Historique du souscripteur | V1 · Souscripteur | 3 | 3.3 | 0 | 1 |
-| [3.5](3.5-jalon-v1.md) | Recette du jalon V1 et mise en production | V1 · Souscripteur | 10 | 3.4 | 0 | 0 |
+| [3.5](3.5-jalon-v1.md) | Recette locale du jalon V1 | V1 · Souscripteur | 5 | 3.4 | 0 | 0 |
 | [4.1](4.1-contrats-pdf.md) | Contrats et génération PDF | V2 · Automatisation | 12 | 3.5 | 2 | 5 |
 | [4.2](4.2-temps-reel-push.md) | Temps réel et Web Push | V2 · Automatisation | 9 | 3.5 | 3 | 3 |
 | [4.3](4.3-relances.md) | Relances automatiques et file « À relancer » | V2 · Automatisation | 6 | 4.2 | 2 | 4 |
@@ -41,17 +43,19 @@ Les lots 0.3 (front) et 0.4–0.6 (back) peuvent avancer en parallèle après 0.
 | [6.1](6.1-option-email.md) | Email (option) | Groupe 6 · Fournisseurs externes (options) | 6 | 4.2 | 0 | 0 |
 | [6.2](6.2-option-sms.md) | Passerelle SMS (option) | Groupe 6 · Fournisseurs externes (options) | 6 | 4.3 | 0 | 0 |
 | [6.3](6.3-option-paiement-en-ligne.md) | Paiement en ligne via prestataire agréé (option) | Groupe 6 · Fournisseurs externes (options) | 25 | 5.1 | 1 | 2 |
+| [7.1](7.1-mise-en-ligne.md) | Mise en ligne : recette Dokploy, observabilité et production | Groupe 7 · Mise en ligne | 10 | 5.2 | 0 | 0 |
 
 | Phase | Jours-personne |
 |---|---|
-| Phase 0 · Fondations | 42 |
+| Phase 0 · Fondations | 40 |
 | V1 · Super-admin | 36 |
 | V1 · Gestionnaire | 52 |
-| V1 · Souscripteur | 31 |
+| V1 · Souscripteur | 26 |
 | V2 · Automatisation | 55 |
 | V3 · Ouverture | 30 |
 | Groupe 6 · Fournisseurs externes (options) | 37 |
-| **Jusqu'au jalon V1 (3.5)** | **161** |
-| **Total** | **283** |
+| Groupe 7 · Mise en ligne | 10 |
+| **Jusqu'au jalon V1 validé en local (3.5)** | **154** |
+| **Total** | **286** |
 
 Estimations en jours de travail concentré, tests et revue inclus, **hors** marge (+25 % conseillés). Avec Claude Code, la saisie va plus vite ; la revue, la recette et les décisions prennent le même temps : recaler après les lots 0.2 et 1.1.
