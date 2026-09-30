@@ -22,3 +22,4 @@ Statuts : `ouvert` (bloque le lot indiqué) · `proposé` (valable par défaut, 
 | 16 | Données simulées | Mocks Nitro conservés (pas de MSW), alignés sur le contrat ; bascule par proxy Nitro (`frontend/server/bascule/`) | 0.3 | adopté |
 | 17 | Tableau de bord souscripteur | Route `/accueil` (la spec UI dit `/`, pris par la landing) | — | adopté |
 | 18 | Maquette et « sans fournisseur » | Le rendu suit `design/` ; seuls les écarts listés dans `specs/ui-deviations.md` priment sur la maquette, dans le lot de l'écran | — | adopté |
+| 19 | Espace `system` sur des routes HTTP (`sys.health`, `psp.webhook` dans `endpoints.yaml`) alors que `architecture/02` le réserve au worker | Passer ces deux routes en `space: public` ; le contexte tenant refuse `system` hors du worker (test au lot 0.4) ; `psp.webhook` ouvre ensuite un contexte `association` pour l'association du paiement confirmé | 0.4 | ouvert |
