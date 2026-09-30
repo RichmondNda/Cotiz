@@ -22,13 +22,44 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Inclut les tests d'intégration du back (Testcontainers : Docker est disponible sur le runner).
       - run: pnpm verify
+      - name: Audit des dépendances de production
+        run: pnpm audit --prod
       - run: pnpm build
       # Le contrat d'API committé doit correspondre aux handlers de mocks.
       - name: Contrat d'API à jour
         run: |
           pnpm --filter frontend contrat-api
           git diff --exit-code -- docs/api-v0.md || { echo "::error::docs/api-v0.md n'est pas à jour : lancer « pnpm --filter frontend contrat-api »"; exit 1; }
+
+  # Images construites et analysées, jamais publiées : la publication (GHCR) et la recette arrivent au lot 7.1.
+  images:
+    name: Image ${{ matrix.image }} (build + Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, web]
+    env:
+      TRIVY: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${{ github.workspace }}:/src:ro aquasec/trivy:0.74.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/docker/${{ matrix.image }}.Dockerfile
+          tags: cotiz-${{ matrix.image }}:ci
+          load: true
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+      - name: Trivy — Dockerfile
+        run: $TRIVY config --quiet --severity HIGH,CRITICAL --exit-code 1 /src/infra/docker/${{ matrix.image }}.Dockerfile
+      - name: Trivy — image
+        run: $TRIVY image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 cotiz-${{ matrix.image }}:ci
 
   parcours:
     name: Parcours, cohérence, accessibilité

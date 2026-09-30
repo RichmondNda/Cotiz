@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "dev": "concurrently --kill-others-on-fail -n api,worker -c blue,magenta \"node --run dev:api\" \"node --run dev:worker\"",
-    "dev:api": "node --env-file=.env.example --env-file-if-exists=.env --import @swc-node/register/esm-register --watch src/main.ts",
-    "dev:worker": "node --env-file=.env.example --env-file-if-exists=.env --import @swc-node/register/esm-register --watch src/worker.ts",
+    "dev:api": "node --conditions=development --env-file=.env.example --env-file-if-exists=.env --import @swc-node/register/esm-register --watch src/main.ts",
+    "dev:worker": "node --conditions=development --env-file=.env.example --env-file-if-exists=.env --import @swc-node/register/esm-register --watch src/worker.ts",
+    "start": "node dist/main.js",
+    "start:worker": "node dist/worker.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run"
@@ -32,6 +35,7 @@
     "@types/pg": "^8.23.1",
     "concurrently": "^10.0.5",
     "testcontainers": "^12.2.0",
+    "typescript": "^6.0.3",
     "unplugin-swc": "^2.0.0",
     "vitest": "^5.0.2"
   }
