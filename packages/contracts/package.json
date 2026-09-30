@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "@cotiz/config": "workspace:*"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
   }
 }
