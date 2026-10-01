@@ -1,7 +1,7 @@
 # packages/contracts — source de vérité des échanges
 
-- Registre `src/endpoints.ts` : une entrée par id de `docs/specs/endpoints.yaml` (`{ id, method, path, permission, flags, request: { params, query, body }, response, errors }`). Un test vérifie l'égalité exacte avec le YAML (ids, méthodes, chemins, permissions, erreurs, drapeaux).
-- `ErrorCode`, `EndpointId`, `Permission`, `Feature`, libellés de statut : **générés** depuis `docs/specs/*.yaml` (`pnpm --filter contracts gen`). Ne pas les éditer à la main.
-- Schémas Zod en `camelCase` ; montants `{ amount: z.number().int(), currency }` ; dates `z.string().date()` / instants `z.string().datetime()`.
+- Registre `src/endpoints.ts` : une entrée par id de `docs/specs/endpoints.yaml` (`{ id, space, permission, flags, errors, operations: [{ method, path, request: { params, query, body }, response }] }`) ; un id regroupe une ou plusieurs opérations, drapeaux et erreurs sont portés par l'id. Un test vérifie l'égalité exacte avec le YAML (ids, méthodes, chemins, permissions, erreurs, drapeaux).
+- `ErrorCode` (+ `ERRORS` : statut HTTP, message), `EndpointId`, `Permission`, `Feature`, `STATUS_LABELS` : **générés** dans `src/generated/` depuis `docs/specs/*.yaml` (`pnpm --filter contracts gen`). Ne pas les éditer à la main ; un test échoue s'ils ne sont pas à jour.
+- Schémas Zod 4 en `camelCase`, à partir des types communs de `src/common/` : `Money` (`{ amount: z.int(), currency }`), `IsoDate` (`z.iso.date()`), `Instant` (`z.iso.datetime()`), `Uuid`, `listOf()`, `ListQuery`, `Problem`.
 - L'OpenAPI 3.1 est généré dans `openapi.json` ; `oasdiff` en CI refuse les changements cassants.
 - Toute modification d'un schéma = une PR qui met à jour back, front et mocks ensemble.
