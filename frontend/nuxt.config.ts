@@ -35,6 +35,9 @@ export default defineNuxtConfig({
     '~/assets/css/app.css',
   ],
   runtimeConfig: {
+    // Bascule mock → NestJS (server/middleware/bascule.ts) : NUXT_MOCKS=0 transmet tout `/api/v1` à NUXT_API_ORIGIN.
+    mocks: true,
+    apiOrigin: 'http://localhost:4000',
     public: {
       // Base des appels d'API. V0 : handlers Nitro locaux (mocks). Brancher NestJS = changer cette valeur
       // (NUXT_PUBLIC_API_BASE).
@@ -42,6 +45,11 @@ export default defineNuxtConfig({
     },
   },
   compatibilityDate: '2025-07-15',
+
+  // Build sans mocks (NUXT_MOCKS=0 au build : production, recette) : handlers simulés et outils de dev exclus.
+  nitro: {
+    ignore: process.env.NUXT_MOCKS === '0' ? ['api/v1/**', 'api/_dev/**'] : [],
+  },
 
   typescript: {
     strict: true,
