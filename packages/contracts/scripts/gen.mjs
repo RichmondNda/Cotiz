@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Génère src/generated/*.ts depuis docs/specs/*.yaml : ErrorCode, EndpointId, Permission, Feature, libellés de statut.
+// Génère src/generated/*.ts depuis docs/specs/*.yaml : ErrorCode, EndpointId, Permission, Feature, libellés de statut,
+// énumérations de schema.sql.
 //   node scripts/gen.mjs           → écrit les fichiers
 //   node scripts/gen.mjs --check   → échoue si un fichier n'est pas à jour (test et CI)
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -10,6 +11,15 @@ import { parse } from 'yaml';
 const specsDir = new URL('../../../docs/specs/', import.meta.url);
 const outDir = new URL('../src/generated/', import.meta.url);
 const specs = (file) => parse(readFileSync(new URL(file, specsDir), 'utf8'));
+
+/** `CREATE TYPE x AS ENUM ('a', 'b')` de schema.sql → { x: ['a', 'b'] }. */
+export function schemaEnums(sql) {
+  const enums = {};
+  for (const [, name, values] of sql.matchAll(/CREATE TYPE (\w+) AS ENUM \(([^)]*)\)/g)) {
+    enums[name] = [...values.matchAll(/'([^']*)'/g)].map((m) => m[1]);
+  }
+  return enums;
+}
 
 const header = (source) =>
   `// Généré par scripts/gen.mjs depuis docs/specs/${source}. Ne pas modifier : lancer « pnpm --filter contracts gen ».\n\n`;
@@ -31,6 +41,7 @@ function render() {
   const { permissions } = specs('permissions.yaml');
   const { features } = specs('features.yaml');
   const { statuses } = specs('status-mapping.yaml');
+  const dbEnums = schemaEnums(readFileSync(new URL('schema.sql', specsDir), 'utf8'));
 
   const errorEntries = errors.map((e) => `  ${e.code}: { http: ${e.http}, message: ${str(e.message)} },\n`).join('');
 
@@ -70,6 +81,13 @@ function render() {
         .join('')}} as const;\n` +
       `export type StatusFamily = keyof typeof STATUS_LABELS;\n` +
       `export type StatusTone = 'success' | 'danger' | 'warning' | 'info' | 'neutral';\n`,
+    'db-enums.ts':
+      header('schema.sql') +
+      `/** Valeurs des types \`ENUM\` de la base, par nom de type. */\n` +
+      `export const DB_ENUMS = {\n${Object.entries(dbEnums)
+        .map(([name, values]) => `  ${name}: [${values.map(str).join(', ')}],\n`)
+        .join('')}} as const;\n` +
+      `export type DbEnum = keyof typeof DB_ENUMS;\n`,
     'features.ts': union(
       'features.yaml',
       'FEATURES',
@@ -80,21 +98,25 @@ function render() {
   };
 }
 
-const check = process.argv.includes('--check');
-const stale = [];
-if (!check) mkdirSync(outDir, { recursive: true });
-for (const [name, raw] of Object.entries(render())) {
-  const file = new URL(name, outDir);
-  const path = fileURLToPath(file);
-  // Même formatage que `prettier --check` de pnpm lint.
-  const content = await format(raw, { ...(await resolveConfig(path)), filepath: path });
-  const current = existsSync(file) ? readFileSync(file, 'utf8') : null;
-  if (current === content) continue;
-  if (check) stale.push(name);
-  else writeFileSync(file, content);
+if (process.argv[1] === fileURLToPath(import.meta.url)) await main();
+
+async function main() {
+  const check = process.argv.includes('--check');
+  const stale = [];
+  if (!check) mkdirSync(outDir, { recursive: true });
+  for (const [name, raw] of Object.entries(render())) {
+    const file = new URL(name, outDir);
+    const path = fileURLToPath(file);
+    // Même formatage que `prettier --check` de pnpm lint.
+    const content = await format(raw, { ...(await resolveConfig(path)), filepath: path });
+    const current = existsSync(file) ? readFileSync(file, 'utf8') : null;
+    if (current === content) continue;
+    if (check) stale.push(name);
+    else writeFileSync(file, content);
+  }
+  if (stale.length) {
+    console.error(`src/generated/ n'est pas à jour (${stale.join(', ')}) : lancer « pnpm --filter contracts gen ».`);
+    process.exit(1);
+  }
+  if (!check) console.log(`src/generated/ régénéré depuis ${fileURLToPath(specsDir)}`);
 }
-if (stale.length) {
-  console.error(`src/generated/ n'est pas à jour (${stale.join(', ')}) : lancer « pnpm --filter contracts gen ».`);
-  process.exit(1);
-}
-if (!check) console.log(`src/generated/ régénéré depuis ${fileURLToPath(specsDir)}`);
