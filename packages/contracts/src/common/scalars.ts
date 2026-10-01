@@ -7,10 +7,12 @@ export const Currency = z.enum(['XOF', 'XAF', 'GNF']);
 export type Currency = z.infer<typeof Currency>;
 
 /** Montant : entier sûr dans la plus petite unité de la devise (25 000 F = 25000), jamais de décimal. */
-export const Money = z.object({
-  amount: z.int(),
-  currency: Currency,
-});
+export const Money = z
+  .object({
+    amount: z.int(),
+    currency: Currency,
+  })
+  .meta({ id: 'Money' });
 export type Money = z.infer<typeof Money>;
 
 /** Date civile, ex. échéance : `2026-10-05`. */

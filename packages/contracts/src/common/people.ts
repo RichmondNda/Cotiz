@@ -10,16 +10,18 @@ export const Email = z.email();
 export const NewPassword = z.string().min(8).max(128);
 
 /** Référence courte à une personne (« validé par Aminata K. »). */
-export const PersonRef = z.object({
-  id: Uuid,
-  firstName: z.string(),
-  lastName: z.string(),
-});
+export const PersonRef = z
+  .object({
+    id: Uuid,
+    firstName: z.string(),
+    lastName: z.string(),
+  })
+  .meta({ id: 'PersonRef' });
 export type PersonRef = z.infer<typeof PersonRef>;
 
 /** Personne avec ses coordonnées (fiches, demandes de réinitialisation). */
 export const PersonContact = PersonRef.extend({
   phone: PhoneE164.nullable(),
   email: Email.nullable(),
-});
+}).meta({ id: 'PersonContact' });
 export type PersonContact = z.infer<typeof PersonContact>;

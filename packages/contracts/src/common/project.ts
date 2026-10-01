@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { Frequency, ProjectStatus, ScheduleType } from './enums.js';
 import { Instant, IsoDate, Money, Uuid } from './scalars.js';
 
-export const ProjectRef = z.object({ id: Uuid, name: z.string() });
+export const ProjectRef = z.object({ id: Uuid, name: z.string() }).meta({ id: 'ProjectRef' });
 export type ProjectRef = z.infer<typeof ProjectRef>;
 
 /** Conditions financières (verrouillées au premier paiement validé, domain-rules.md § 9). */
@@ -20,28 +20,32 @@ export const FinancialTerms = z.object({
 });
 
 /** Moyen de paiement retenu pour un projet, avec ses consignes propres. */
-export const ProjectPaymentMethod = z.object({
-  paymentMethodId: Uuid,
-  instructionsOverride: z.string().nullable(),
-});
+export const ProjectPaymentMethod = z
+  .object({
+    paymentMethodId: Uuid,
+    instructionsOverride: z.string().nullable(),
+  })
+  .meta({ id: 'ProjectPaymentMethod' });
 
 /** Indicateurs calculés par le back (listes, cartes, tableaux de bord). */
-export const ProjectStats = z.object({
-  subscribersCount: z.int().nonnegative(),
-  collected: Money,
-  expectedToDate: Money,
-  /** Entre 0 et 1 ; `null` tant qu'aucune échéance n'est échue. */
-  recoveryRate: z.number().min(0).max(1).nullable(),
-  /** Part de l'engagement total déjà collectée, entre 0 et 1. */
-  progress: z.number().min(0).max(1).nullable(),
-  lateSubscribersCount: z.int().nonnegative(),
-  pendingPaymentsCount: z.int().nonnegative(),
-  pendingSignaturesCount: z.int().nonnegative(),
-  nextDueDate: IsoDate.nullable(),
-  /** Dates fixes : nombre d'échéances périodiques et engagement total par souscripteur. */
-  installmentsCount: z.int().nonnegative().nullable(),
-  totalPerSubscriber: Money.nullable(),
-});
+export const ProjectStats = z
+  .object({
+    subscribersCount: z.int().nonnegative(),
+    collected: Money,
+    expectedToDate: Money,
+    /** Entre 0 et 1 ; `null` tant qu'aucune échéance n'est échue. */
+    recoveryRate: z.number().min(0).max(1).nullable(),
+    /** Part de l'engagement total déjà collectée, entre 0 et 1. */
+    progress: z.number().min(0).max(1).nullable(),
+    lateSubscribersCount: z.int().nonnegative(),
+    pendingPaymentsCount: z.int().nonnegative(),
+    pendingSignaturesCount: z.int().nonnegative(),
+    nextDueDate: IsoDate.nullable(),
+    /** Dates fixes : nombre d'échéances périodiques et engagement total par souscripteur. */
+    installmentsCount: z.int().nonnegative().nullable(),
+    totalPerSubscriber: Money.nullable(),
+  })
+  .meta({ id: 'ProjectStats' });
 
 export const Project = FinancialTerms.extend({
   id: Uuid,
@@ -59,8 +63,8 @@ export const Project = FinancialTerms.extend({
   stats: ProjectStats,
   /** Verrouillage optimiste (`ETag`, `If-Match`). */
   version: z.int().min(1),
-});
+}).meta({ id: 'Project' });
 export type Project = z.infer<typeof Project>;
 
 /** Projet dans une liste ou une carte. */
-export const ProjectSummary = Project.omit({ description: true, paymentMethods: true });
+export const ProjectSummary = Project.omit({ description: true, paymentMethods: true }).meta({ id: 'ProjectSummary' });

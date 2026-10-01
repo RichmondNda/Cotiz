@@ -147,7 +147,7 @@ export const PaymentDetail = PaymentSummary.extend({
   /** Annulation possible par l'auteur de la validation jusqu'à cet instant (10 min). */
   revertibleUntil: Instant.nullable(),
   version: z.int().min(1),
-});
+}).meta({ id: 'PaymentDetail' });
 export type PaymentDetail = z.infer<typeof PaymentDetail>;
 
 export const PaymentParams = AssociationParams.extend({ payId: Uuid });

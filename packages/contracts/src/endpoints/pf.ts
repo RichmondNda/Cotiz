@@ -26,19 +26,21 @@ const manage = 'platform.associations.manage';
 
 // ---------------------------------------------------------------- Demandes de création
 
-export const AssociationRequestSummary = z.object({
-  id: Uuid,
-  reference: z.string(),
-  status: AssociationRequestStatus,
-  associationName: z.string(),
-  associationType: AssociationType,
-  city: z.string(),
-  country: z.string(),
-  contact: z.object({ firstName: z.string(), lastName: z.string(), email: Email }),
-  estimatedSubscribers: EstimatedSubscribers,
-  desiredPlan: PlanRef.nullable(),
-  createdAt: Instant,
-});
+export const AssociationRequestSummary = z
+  .object({
+    id: Uuid,
+    reference: z.string(),
+    status: AssociationRequestStatus,
+    associationName: z.string(),
+    associationType: AssociationType,
+    city: z.string(),
+    country: z.string(),
+    contact: z.object({ firstName: z.string(), lastName: z.string(), email: Email }),
+    estimatedSubscribers: EstimatedSubscribers,
+    desiredPlan: PlanRef.nullable(),
+    createdAt: Instant,
+  })
+  .meta({ id: 'AssociationRequestSummary' });
 
 export const AssociationRequestDetail = AssociationRequestSummary.extend({
   association: AssociationIdentity.extend({ activityDescription: z.string() }),
@@ -61,7 +63,7 @@ export const AssociationRequestDetail = AssociationRequestSummary.extend({
   history: z.array(
     z.object({ type: z.enum(['received', 'approved', 'rejected']), at: Instant, by: PersonRef.nullable() }),
   ),
-});
+}).meta({ id: 'AssociationRequestDetail' });
 export type AssociationRequestDetail = z.infer<typeof AssociationRequestDetail>;
 
 export const AssociationRequestsQuery = ListQuery.extend({
@@ -200,18 +202,20 @@ export const pfAssoList = defineEndpoint({
   },
 });
 
-export const PlatformSubscription = z.object({
-  id: Uuid,
-  plan: PlanRef,
-  billingPeriod: BillingPeriod,
-  status: SubscriptionStatus,
-  price: Money,
-  currentPeriodStart: IsoDate,
-  currentPeriodEnd: IsoDate.nullable(),
-  trialEndsOn: IsoDate.nullable(),
-  /** Surcharge du nombre de comptes gestionnaires du plan. */
-  managerSeatsOverride: z.int().min(1).nullable(),
-});
+export const PlatformSubscription = z
+  .object({
+    id: Uuid,
+    plan: PlanRef,
+    billingPeriod: BillingPeriod,
+    status: SubscriptionStatus,
+    price: Money,
+    currentPeriodStart: IsoDate,
+    currentPeriodEnd: IsoDate.nullable(),
+    trialEndsOn: IsoDate.nullable(),
+    /** Surcharge du nombre de comptes gestionnaires du plan. */
+    managerSeatsOverride: z.int().min(1).nullable(),
+  })
+  .meta({ id: 'PlatformSubscription' });
 
 export const PlatformAssociationDetail = PlatformAssociationSummary.extend({
   type: AssociationType,
@@ -239,7 +243,7 @@ export const PlatformAssociationDetail = PlatformAssociationSummary.extend({
   events: z.array(z.object({ type: z.string(), at: Instant, by: PersonRef.nullable(), detail: z.string().nullable() })),
   /** Verrouillage optimiste (`If-Match` de `pf.asso.patch`). */
   version: z.int().min(1),
-});
+}).meta({ id: 'PlatformAssociationDetail' });
 export type PlatformAssociationDetail = z.infer<typeof PlatformAssociationDetail>;
 
 export const CreateAssociationInput = z.object({

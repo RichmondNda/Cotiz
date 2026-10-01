@@ -9,19 +9,21 @@ import { defineEndpoint, noFlags } from '../registry.js';
 
 // ---------------------------------------------------------------- Notifications
 
-export const Notification = z.object({
-  id: Uuid,
-  /** Type d'événement (`payment.validated`, `installment.late`…). */
-  type: z.string(),
-  title: z.string(),
-  body: z.string(),
-  /** Route de l'écran d'action ouvert au clic. */
-  actionUrl: z.string().nullable(),
-  data: z.record(z.string(), z.unknown()),
-  associationId: Uuid.nullable(),
-  readAt: Instant.nullable(),
-  createdAt: Instant,
-});
+export const Notification = z
+  .object({
+    id: Uuid,
+    /** Type d'événement (`payment.validated`, `installment.late`…). */
+    type: z.string(),
+    title: z.string(),
+    body: z.string(),
+    /** Route de l'écran d'action ouvert au clic. */
+    actionUrl: z.string().nullable(),
+    data: z.record(z.string(), z.unknown()),
+    associationId: Uuid.nullable(),
+    readAt: Instant.nullable(),
+    createdAt: Instant,
+  })
+  .meta({ id: 'Notification' });
 export type Notification = z.infer<typeof Notification>;
 
 export const ntList = defineEndpoint({

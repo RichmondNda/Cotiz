@@ -13,26 +13,28 @@ import { defineEndpoint, noFlags } from '../registry.js';
 
 // Espace association : profil, moyens de paiement, onboarding, abonnement, tableau de bord (docs/ui/manager.md).
 
-export const Association = z.object({
-  id: Uuid,
-  slug: z.string(),
-  name: z.string(),
-  type: AssociationType,
-  city: z.string(),
-  country: z.string(),
-  description: z.string().nullable(),
-  logoFileId: Uuid.nullable(),
-  contactEmail: Email,
-  contactPhone: PhoneE164,
-  status: AssociationStatus,
-  currency: Currency,
-  timezone: z.string(),
-  /** Délai de grâce proposé par défaut aux nouveaux projets. */
-  defaultGraceDays: z.int().min(0).max(90),
-  /** `null` : configuration incomplète (bandeau du tableau de bord). */
-  onboardingCompletedAt: Instant.nullable(),
-  version: z.int().min(1),
-});
+export const Association = z
+  .object({
+    id: Uuid,
+    slug: z.string(),
+    name: z.string(),
+    type: AssociationType,
+    city: z.string(),
+    country: z.string(),
+    description: z.string().nullable(),
+    logoFileId: Uuid.nullable(),
+    contactEmail: Email,
+    contactPhone: PhoneE164,
+    status: AssociationStatus,
+    currency: Currency,
+    timezone: z.string(),
+    /** Délai de grâce proposé par défaut aux nouveaux projets. */
+    defaultGraceDays: z.int().min(0).max(90),
+    /** `null` : configuration incomplète (bandeau du tableau de bord). */
+    onboardingCompletedAt: Instant.nullable(),
+    version: z.int().min(1),
+  })
+  .meta({ id: 'Association' });
 export type Association = z.infer<typeof Association>;
 
 export const PatchAssociationProfile = z

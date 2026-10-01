@@ -4,13 +4,30 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "@cotiz/config": "workspace:*"
-  }
+    "@cotiz/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "@cotiz/contracts": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
 }

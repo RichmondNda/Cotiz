@@ -33,6 +33,29 @@ jobs:
           pnpm --filter frontend contrat-api
           git diff --exit-code -- docs/api-v0.md || { echo "::error::docs/api-v0.md n'est pas à jour : lancer « pnpm --filter frontend contrat-api »"; exit 1; }
 
+  # Contrat d'API : un changement cassant de openapi.json par rapport à la branche cible fait échouer la PR.
+  contrat-openapi:
+    name: Contrat OpenAPI (oasdiff)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Changements cassants par rapport à ${{ github.base_ref }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          spec=packages/contracts/openapi.json
+          if ! git cat-file -e "origin/$BASE_REF:$spec" 2>/dev/null; then
+            echo "Pas de $spec sur $BASE_REF : première version du contrat, comparaison sautée."
+            exit 0
+          fi
+          mkdir -p .oasdiff
+          git show "origin/$BASE_REF:$spec" > .oasdiff/base.json
+          docker run --rm -v "$PWD:/w:ro" tufin/oasdiff:v1.32.1 breaking /w/.oasdiff/base.json "/w/$spec" --fail-on ERR
+
   # Images construites et analysées, jamais publiées : la publication (GHCR) et la recette arrivent au lot 7.1.
   images:
     name: Image ${{ matrix.image }} (build + Trivy)

@@ -27,7 +27,9 @@ const self = 'subscriber.self';
 
 // ---------------------------------------------------------------- Identité, droits, fonctionnalités
 
-export const AssociationRef = z.object({ id: Uuid, name: z.string(), logoFileId: Uuid.nullable() });
+export const AssociationRef = z
+  .object({ id: Uuid, name: z.string(), logoFileId: Uuid.nullable() })
+  .meta({ id: 'AssociationRef' });
 export type AssociationRef = z.infer<typeof AssociationRef>;
 
 export const Me = z.object({
@@ -148,36 +150,40 @@ export const mePrefs = defineEndpoint({
 // ---------------------------------------------------------------- Projets et échéances du souscripteur
 
 /** Carte projet souscripteur (tableau de bord, mes projets, association). */
-export const SubscriberProjectCard = z.object({
-  enrollmentId: Uuid,
-  project: ProjectRef.extend({ status: ProjectStatus }),
-  association: AssociationRef,
-  standing: MemberStanding,
-  paid: Money,
-  remaining: Money,
-  /** Dates fixes : engagement total ; `null` pour un cycle roulant. */
-  commitment: Money.nullable(),
-  progress: z.number().min(0).max(1).nullable(),
-  late: z.object({ count: z.int().min(1), amount: Money, since: IsoDate }).nullable(),
-  nextDue: z.object({ dueDate: IsoDate, amount: Money }).nullable(),
-});
+export const SubscriberProjectCard = z
+  .object({
+    enrollmentId: Uuid,
+    project: ProjectRef.extend({ status: ProjectStatus }),
+    association: AssociationRef,
+    standing: MemberStanding,
+    paid: Money,
+    remaining: Money,
+    /** Dates fixes : engagement total ; `null` pour un cycle roulant. */
+    commitment: Money.nullable(),
+    progress: z.number().min(0).max(1).nullable(),
+    late: z.object({ count: z.int().min(1), amount: Money, since: IsoDate }).nullable(),
+    nextDue: z.object({ dueDate: IsoDate, amount: Money }).nullable(),
+  })
+  .meta({ id: 'SubscriberProjectCard' });
 export type SubscriberProjectCard = z.infer<typeof SubscriberProjectCard>;
 
 /** Paiement déclaré, vu par le souscripteur. */
-export const SubscriberPayment = z.object({
-  id: Uuid,
-  status: PaymentStatus,
-  amountDeclared: Money,
-  amountReceived: Money.nullable(),
-  paidOn: IsoDate,
-  declaredAt: Instant,
-  project: ProjectRef,
-  association: AssociationRef,
-  covered: z.array(CoveredInstallment),
-  proof: PaymentProof,
-  rejection: Rejection.nullable(),
-  reviewedAt: Instant.nullable(),
-});
+export const SubscriberPayment = z
+  .object({
+    id: Uuid,
+    status: PaymentStatus,
+    amountDeclared: Money,
+    amountReceived: Money.nullable(),
+    paidOn: IsoDate,
+    declaredAt: Instant,
+    project: ProjectRef,
+    association: AssociationRef,
+    covered: z.array(CoveredInstallment),
+    proof: PaymentProof,
+    rejection: Rejection.nullable(),
+    reviewedAt: Instant.nullable(),
+  })
+  .meta({ id: 'SubscriberPayment' });
 export type SubscriberPayment = z.infer<typeof SubscriberPayment>;
 
 export const SubscriberDashboard = z.object({
