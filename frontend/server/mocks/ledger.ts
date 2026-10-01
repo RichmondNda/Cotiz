@@ -1,5 +1,9 @@
 // Calculs du registre simulé : uniquement des appels à @cotiz/domain (statuts, situation, répartition) et des sommes.
-// Mêmes définitions que le back : reste = dû − payé ; retard = échéances `late` ; attendu à date = échéances échues.
+// Définitions :
+// - reste d'une échéance (`InstallmentView.remaining`) = dû − payé − déclaré en attente (domain-rules § 3) ;
+// - reste d'une inscription (`EnrollmentFigures.remaining`) = engagement − versé validé (annuaire, cartes projet) ;
+// - retard = échéances `late` (installmentStatus) ; attendu à date = échéances dont la date est passée ;
+// - reçu dans le mois = allocations confirmées des paiements validés dans le mois.
 import { generateSchedule, installmentStatus, lateSince as domainLateSince, memberStanding } from '@cotiz/domain'
 import type { InstallmentStatus, LedgerInstallment, MemberStanding } from '@cotiz/domain'
 import { db } from './db'
@@ -73,7 +77,7 @@ export interface EnrollmentFigures {
   commitment: number | null
   lateAmount: number
   lateCount: number
-  /** Date d'échéance de la plus ancienne échéance en retard (« depuis le 5 août »). */
+  /** Date d'échéance (pas `lateSince` du domaine) de la plus ancienne échéance en retard : « depuis le 5 août ». */
   lateFrom: string | null
   lateDueDates: string[]
   expectedToDate: number
@@ -89,7 +93,8 @@ export function enrollmentFigures(enrollment: EnrollmentRow): EnrollmentFigures 
   const paid = sum(lives.map(i => i.amountPaid))
   const due = sum(lives.map(i => i.amountDue))
   const late = lives.filter(i => i.status === 'late')
-  const next = lives.find(i => i.dueDate > today() && i.amountPaid < i.amountDue)
+  // Prochaine échéance : la première encore ouverte (reste > 0) qui n'est ni en retard ni couverte par une déclaration.
+  const next = lives.find(i => (i.status === 'upcoming' || i.status === 'due' || i.status === 'partial') && i.remaining > 0)
   // Signature attendue : aucun échéancier encore (généré à la signature) ; l'engagement est celui qui sera généré
   // à partir de la date d'entrée (aucune échéance rétroactive, domain-rules § 2).
   const commitment = project.scheduleType !== 'fixed'
@@ -108,7 +113,7 @@ export function enrollmentFigures(enrollment: EnrollmentRow): EnrollmentFigures 
     lateFrom: late[0]?.dueDate ?? null,
     lateDueDates: late.map(i => i.dueDate),
     expectedToDate: sum(lives.filter(i => i.dueDate <= today()).map(i => i.amountDue)),
-    nextDue: next ? { dueDate: next.dueDate, amount: next.amountDue - next.amountPaid } : null,
+    nextDue: next ? { dueDate: next.dueDate, amount: next.remaining } : null,
     standing,
     progress: commitment ? paid / commitment : null,
   }
@@ -162,7 +167,8 @@ export function projectFigures(project: ProjectRow): ProjectFigures {
   const figures = enrollments.map(enrollmentFigures)
   const extra = unlistedOf('project', project.id)
   const terms = projectTerms(project)
-  const subscribersCount = enrollments.length + (extra?.members ?? 0)
+  // Souscripteurs engagés (signature faite) : une inscription en attente de signature est comptée à part.
+  const subscribersCount = enrollments.filter(e => e.status !== 'pending_signature').length + (extra?.members ?? 0)
   const collected = sum(figures.map(f => f.paid)) + (extra?.collected ?? 0)
   const expectedToDate = sum(figures.map(f => f.expectedToDate)) + (extra?.expectedToDate ?? 0)
   const month = monthOf(today())
@@ -172,6 +178,7 @@ export function projectFigures(project: ProjectRow): ProjectFigures {
     .sort((a, b) => a.declaredAt.localeCompare(b.declaredAt))
   const upcoming = figures.flatMap(f => f.installments).filter(i => i.dueDate > today()).map(i => i.dueDate).sort()
   const nextDueDate = upcoming[0] ?? null
+  const atNextDue = figures.flatMap(f => f.installments).filter(i => i.dueDate === nextDueDate)
   const progress = project.status === 'enrolling'
     ? (project.requiredSubscribers ? subscribersCount / project.requiredSubscribers : null)
     : (terms.totalPerSubscriber && subscribersCount ? collected / (subscribersCount * terms.totalPerSubscriber) : null)
@@ -187,9 +194,10 @@ export function projectFigures(project: ProjectRow): ProjectFigures {
     oldestPendingAt: pending[0]?.declaredAt ?? null,
     pendingSignaturesCount: enrollments.filter(e => e.status === 'pending_signature').length,
     nextDueDate,
-    nextDueTotal: nextDueDate ? subscribersCount * project.installmentAmount : 0,
+    // Attendu à la prochaine date : échéances nommées de cette date + une échéance par souscripteur non nommé.
+    nextDueTotal: nextDueDate ? sum(atNextDue.map(i => i.amountDue)) + (extra?.activeMembers ?? 0) * project.installmentAmount : 0,
     ...terms,
-    collectedThisMonth: sum(thisMonth.map(i => i.amountPaid)) + (extra?.collectedThisMonth ?? 0),
+    collectedThisMonth: receivedInMonth(project.id, month) + (extra?.collectedThisMonth ?? 0),
     expectedThisMonth: sum(thisMonth.map(i => i.amountDue)) + (extra?.expectedThisMonth ?? 0),
   }
 }
@@ -245,6 +253,36 @@ export function associationFigures(associationId: string): AssociationFigures {
     pendingPaymentsCount: pending.length,
     oldestPendingAt: pending[0]?.declaredAt ?? null,
     projectsCount: projects.length,
+  }
+}
+
+/** Allocations confirmées des paiements validés pendant le mois `YYYY-MM`. */
+export function receivedInMonth(projectId: string, month: string): number {
+  const validated = new Set(db.payments
+    .filter(p => p.projectId === projectId && p.status === 'validated' && p.reviewedAt && monthOf(p.reviewedAt) === month)
+    .map(p => p.id))
+  return sum(db.allocations.filter(a => validated.has(a.paymentId) && a.state === 'confirmed').map(a => a.amount))
+}
+
+/**
+ * Tableau de bord d'un souscripteur, toutes associations : reste et retard sur les inscriptions engagées (une
+ * inscription en attente de signature n'est pas comptée), prochaine échéance la plus proche ; à date égale, la plus
+ * grosse (Centre 25 000 F avant Mutuelle 10 000 F le 5 octobre).
+ */
+export function subscriberTotals(userId: string) {
+  const enrollments = db.enrollments.filter(e => e.userId === userId && e.status !== 'withdrawn')
+  const engaged = enrollments.filter(e => e.status === 'active' || e.status === 'completed')
+  const figures = engaged.map(e => ({ enrollment: e, f: enrollmentFigures(e) }))
+  const next = figures
+    .flatMap(({ enrollment, f }) => (f.nextDue ? [{ enrollment, ...f.nextDue }] : []))
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || b.amount - a.amount)[0] ?? null
+  const lateCount = sum(figures.map(({ f }) => f.lateCount))
+  return {
+    remainingTotal: sum(figures.map(({ f }) => f.remaining)),
+    projectsCount: enrollments.length,
+    associationsCount: new Set(enrollments.map(e => projectById(e.projectId)!.associationId)).size,
+    late: lateCount > 0 ? { count: lateCount, amount: sum(figures.map(({ f }) => f.lateAmount)) } : null,
+    nextDue: next,
   }
 }
 

@@ -238,7 +238,8 @@ const ENROLLMENTS: EnrollmentSeed[] = [
   { project: 'tontine-2027', user: 'kadiatou-sanogo', status: 'active', joined: '2026-09-10', signed: null, paid: '' },
   // Voyage solidaire.
   { project: 'voyage-solidaire', user: 'moussa-diarra', status: 'pending_signature', joined: '2026-09-18', signed: null, paid: '', startsFrom: '2026-09-18' },
-  { project: 'voyage-solidaire', user: 'ibrahim-toure', status: 'active', joined: '2026-06-01', signed: '2026-06-01', paid: 'oooo' },
+  // Entré en septembre (après le 5) : aucune échéance due ce mois-ci, son premier versement entame le fonds d'entrée.
+  { project: 'voyage-solidaire', user: 'ibrahim-toure', status: 'active', joined: '2026-09-15', signed: '2026-09-15', paid: '', startsFrom: '2026-09-15' },
   { project: 'voyage-solidaire', user: 'adjoua-yao', status: 'active', joined: '2026-09-20', signed: '2026-09-21', paid: '', startsFrom: '2026-09-20' },
   // Mutuelle santé (Ressortissants de Man) : fonds d'entrée, juillet, août, septembre payés.
   { project: 'mutuelle-sante', user: 'moussa-diarra', status: 'active', joined: '2026-07-01', signed: '2026-07-01', paid: 'oooo' },
@@ -264,7 +265,8 @@ function ledger(projectRows: ProjectRow[]): { enrollments: EnrollmentRow[], inst
     })
     lines.forEach((l, i) => {
       const code = e.paid[i]
-      const amountPaid = code === 'o' ? l.amountDue : code === 'P' ? l.amountDue / 2 : 0
+      // `P` : moitié payée, arrondie à l'entier inférieur (montants entiers, jamais de fraction).
+      const amountPaid = code === 'o' ? l.amountDue : code === 'P' ? Math.floor(l.amountDue / 2) : 0
       installments.push({
         id: installmentId(e.project, e.user, l.sequence), enrollmentId: id, projectId: project.id, kind: l.kind,
         sequence: l.sequence, dueDate: l.dueDate, amountDue: l.amountDue, amountPaid, persistedStatus: 'open',
@@ -299,7 +301,7 @@ const PAYMENTS: PaymentSeed[] = [
   { key: 'pm-jean-kouassi', project: 'centre-communautaire', user: 'jean-kouassi', amount: 12500, declared: '2026-09-23T08:15', method: 'mobile_money', covers: [[6, 12500]], status: 'pending', proof: { transactionReference: REF } },
   { key: 'pm-kadiatou-sanogo', project: 'centre-communautaire', user: 'kadiatou-sanogo', amount: 25000, declared: '2026-09-23T14:02', method: 'bank_transfer', covers: [[7, 25000]], status: 'pending', proof: { fileName: 'recu_banque.pdf', mimeType: 'application/pdf' } },
   { key: 'pm-serge-gnagne', project: 'centre-communautaire', user: 'serge-gnagne', amount: 25000, declared: '2026-09-24T09:30', method: 'mobile_money', covers: [[7, 25000]], status: 'pending', proof: { fileName: '[FICHIER]', mimeType: 'image/jpeg' } },
-  { key: 'pm-ibrahim-toure', project: 'voyage-solidaire', user: 'ibrahim-toure', amount: 10000, declared: '2026-09-24T18:05', method: 'mobile_money', covers: [[4, 10000]], status: 'pending', proof: { fileName: '[FICHIER]', mimeType: 'image/jpeg' } },
+  { key: 'pm-ibrahim-toure', project: 'voyage-solidaire', user: 'ibrahim-toure', amount: 10000, declared: '2026-09-24T18:05', method: 'mobile_money', covers: [[0, 10000]], status: 'pending', proof: { fileName: '[FICHIER]', mimeType: 'image/jpeg' } },
   { key: 'pm-adjoua-yao', project: 'voyage-solidaire', user: 'adjoua-yao', amount: 50000, declared: '2026-09-25T08:20', method: 'bank_transfer', covers: [[0, 50000]], status: 'pending', proof: { fileName: '[FICHIER]', mimeType: 'image/jpeg' } },
   // Validés (MgProjetPaiements vue liste, MgProjetRapports) par Aminata Konaté.
   { key: 'pm-jk-09', project: 'centre-communautaire', user: 'jean-kouassi', amount: 37500, declared: '2026-09-06T09:00', method: 'mobile_money', covers: [[7, 25000], [6, 12500]], status: 'validated', reviewed: '2026-09-06T15:00', by: 'aminata-konate' },
@@ -436,7 +438,8 @@ function reminderRuns(): ReminderRunRow[] {
     run('auto-0920-koffi', '2026-09-20T07:30:00Z', 'automatic', 'koffi-brou', { ruleId: r15 }),
     run('auto-0920-mariam', '2026-09-20T07:30:00Z', 'automatic', 'mariam-diallo', { ruleId: r15 }),
     run('man-0912-jean', '2026-09-12T10:00:00Z', 'manual', 'jean-kouassi', { triggeredBy: U('awa-kone') }),
-    run('auto-0910-moussa', '2026-09-10T07:30:00Z', 'automatic', 'moussa-diarra', { ruleId: uid('reminder-rule', 'retard-7j'), installmentId: installmentId('centre-communautaire', 'moussa-diarra', 7) }),
+    // Relance de la frise de la fiche (MgSouscripteur), sans règle associée dans la maquette.
+    run('auto-0910-moussa', '2026-09-10T07:30:00Z', 'automatic', 'moussa-diarra', { installmentId: installmentId('centre-communautaire', 'moussa-diarra', 7) }),
     run('man-0810-moussa', '2026-08-10T10:00:00Z', 'manual', 'moussa-diarra', { triggeredBy: U('awa-kone'), installmentId: installmentId('centre-communautaire', 'moussa-diarra', 6) }),
   ]
 }
@@ -470,16 +473,20 @@ function events(): EventRow[] {
 }
 
 // ---------------------------------------------------------------- Compléments non nommés
-// Écart entre les compteurs des maquettes et les souscripteurs nommés (calcul détaillé : tests/unit/mocks-reference.test.ts).
-// Centre communautaire : 52 souscripteurs, 14 en retard dans l'association, 9 594 000 F collectés sur 11 700 000 F attendus
-// à date, 1 240 000 F reçus sur 1 300 000 F attendus en septembre. Complément = cible − part calculée des nommés :
-//   souscripteurs 52 − 10 · retards 14 − 5 · collecté 9 594 000 − 1 762 500 · attendu 11 700 000 − 2 025 000 ·
-//   septembre : reçu 1 240 000 − 25 000, attendu 1 300 000 − 235 000 (Voyage solidaire compris).
-// Les maquettes ne sont pas cohérentes entre elles (reçu > attendu pour le complément) : seuls les totaux comptent.
+// Écart entre les compteurs des maquettes et les souscripteurs nommés : agrégats ajoutés aux calculs, jamais listés.
+// Centre communautaire (cibles DONNEES-REFERENCE / seed-reference `expected`) : 52 souscripteurs engagés dont 9 nommés
+// (Fatou Traoré, signature attendue, est comptée à part) → 43 non nommés, tous entrés en mars :
+//   attendu à date 43 × 225 000 = 9 675 000 F (total 11 700 000 F) ;
+//   collecté 9 594 000 − 1 762 500 (nommés) = 7 831 500 F (82 % au total) ;
+//   en retard 14 − 5 (nommés) = 9, dont le manque est entièrement en retard : 9 675 000 − 7 831 500 = 1 843 500 F ;
+//   septembre : attendu 43 × 25 000 = 1 075 000 F (total 1 300 000 F), reçu (paiements validés en septembre)
+//   1 240 000 − 37 500 (Jean Kouassi, 6 septembre) = 1 202 500 F, rattrapages compris.
+// Invariants de faisabilité vérifiés par tests/unit/mocks-reference.test.ts.
 export const UNLISTED: UnlistedRow[] = [
-  { scope: 'project', scopeId: uid('project', 'centre-communautaire'), members: 42, activeMembers: 42, late: 9, collected: 7_831_500, expectedToDate: 9_675_000, collectedThisMonth: 1_215_000, expectedThisMonth: 1_065_000, lateAmount: 225_000 },
+  { scope: 'project', scopeId: uid('project', 'centre-communautaire'), members: 43, activeMembers: 43, late: 9, collected: 7_831_500, expectedToDate: 9_675_000, collectedThisMonth: 1_202_500, expectedThisMonth: 1_075_000, lateAmount: 1_843_500 },
+  // Tontine : 12 inscrits sur 30 dont Kadiatou Sanogo ; cycle qui démarre en janvier 2027 (rien d'attendu).
   { scope: 'project', scopeId: uid('project', 'tontine-2027'), members: 11, activeMembers: 11, late: 0, collected: 0, expectedToDate: 0, collectedThisMonth: 0, expectedThisMonth: 0, lateAmount: 0 },
-  // Annuaire de l'association : « 52 membres ».
+  // Annuaire de l'association : « 52 membres » dont 13 nommés.
   { scope: 'association', scopeId: A('entraide-yopougon'), members: 39, activeMembers: 39, late: 0, collected: 0, expectedToDate: 0, collectedThisMonth: 0, expectedThisMonth: 0, lateAmount: 0 },
   { scope: 'association', scopeId: A('ressortissants-man'), members: 141, activeMembers: 141, late: 0, collected: 0, expectedToDate: 0, collectedThisMonth: 0, expectedThisMonth: 0, lateAmount: 0 },
 ]
