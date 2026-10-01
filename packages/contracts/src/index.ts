@@ -32,4 +32,6 @@ export * from './endpoints/members.js';
 export * from './endpoints/ledger.js';
 export * from './endpoints/reports.js';
 export * from './endpoints/manager-misc.js';
+export * from './endpoints/me.js';
+export * from './endpoints/common.js';
 export * from './endpoints/index.js';

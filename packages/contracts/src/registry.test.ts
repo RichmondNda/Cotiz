@@ -26,21 +26,12 @@ const { endpoints } = parse(readFileSync(yamlFile, 'utf8')) as { endpoints: Yaml
 const yamlById = new Map(endpoints.map((e) => [e.id, e]));
 const registry = Object.values(ENDPOINTS) as EndpointDef[];
 
-// Groupes couverts (lot 0.2) : étape 2 = sys, auth, pub, pf, as.resets, pf.resets ;
-// étape 3 = as, pr, en, mb, lg, rp, ct, im, rm, tm, bl, bk, dev.
-const covered = (id: string) => /^(sys|auth|pub|pf|as|pr|en|mb|lg|rp|ct|im|rm|tm|bl|bk|dev)\./.test(id);
-
 const opKey = (o: { method: string; path: string }) => `${o.method} ${o.path}`;
 const placeholders = (path: string) => [...path.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
 describe('registre des endpoints', () => {
-  it('chaque id de endpoints.yaml des groupes couverts a son entrée, aucune en trop', () => {
-    expect(registry.map((e) => e.id).sort()).toEqual(
-      endpoints
-        .map((e) => e.id)
-        .filter(covered)
-        .sort(),
-    );
+  it(`les ${String(endpoints.length)} ids de endpoints.yaml sont tous dans le registre, aucun en trop`, () => {
+    expect(registry.map((e) => e.id).sort()).toEqual(endpoints.map((e) => e.id).sort());
   });
 
   it('les clés du registre sont les ids', () => {
