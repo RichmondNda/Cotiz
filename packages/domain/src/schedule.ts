@@ -11,19 +11,19 @@ export type InstallmentKind = 'entry_fee' | 'periodic';
 
 export interface ScheduleInput {
   installmentAmount: number;
-  /** Fonds d'entrée ; 0 ou absent = aucun. */
-  entryFeeAmount?: number;
+  /** Fonds d'entrée ; 0, `null` ou absent = aucun. */
+  entryFeeAmount?: number | null;
   frequency: Frequency;
   /** 1–31 (jour du mois) ; 1–7 (jour ISO) pour `weekly`. */
   dueDay: number;
   scheduleType: ScheduleType;
   startDate: IsoDate;
-  /** Obligatoire pour `fixed`, ignorée pour `rolling`. */
-  endDate?: IsoDate;
+  /** Obligatoire pour `fixed`, ignorée pour `rolling`. `null` (colonne vide) = absente. */
+  endDate?: IsoDate | null;
   /** Date d'entrée du souscripteur ; `startDate` par défaut. */
-  enrolledFrom?: IsoDate;
-  /** `rolling` : nombre d'échéances générées, 12 par défaut. */
-  horizon?: number;
+  enrolledFrom?: IsoDate | null;
+  /** `rolling` : nombre d'échéances générées, 12 par défaut, 120 au plus (comme le contrat). */
+  horizon?: number | null;
 }
 
 export interface ScheduleLine {
@@ -41,13 +41,23 @@ const MONTH_STEP: Record<Exclude<Frequency, 'weekly'>, number> = {
   annual: 12,
 };
 const FREQUENCIES: readonly string[] = ['weekly', 'monthly', 'quarterly', 'semiannual', 'annual'];
+const MAX_HORIZON = 120;
+/** Années acceptées pour les dates d'entrée : borne la taille d'un échéancier et l'ordre des chaînes. */
+const MIN_YEAR = 1900;
+const MAX_YEAR = 2199;
+
+function parseBounded(value: unknown): IsoDate {
+  const { year } = parseIsoDate(value);
+  if (year < MIN_YEAR || year > MAX_YEAR) throw new DomainError('invalid_date', { value });
+  return value as IsoDate;
+}
 
 function validate(input: ScheduleInput): void {
   const { installmentAmount, entryFeeAmount, frequency, dueDay, scheduleType, horizon } = input;
   if (!Number.isSafeInteger(installmentAmount) || installmentAmount <= 0) {
     throw new DomainError('invalid_amount', { field: 'installmentAmount' });
   }
-  if (entryFeeAmount !== undefined && (!Number.isSafeInteger(entryFeeAmount) || entryFeeAmount < 0)) {
+  if (entryFeeAmount != null && (!Number.isSafeInteger(entryFeeAmount) || entryFeeAmount < 0)) {
     throw new DomainError('invalid_amount', { field: 'entryFeeAmount' });
   }
   if (!FREQUENCIES.includes(frequency)) throw new DomainError('invalid_frequency', { frequency });
@@ -58,13 +68,19 @@ function validate(input: ScheduleInput): void {
   if (!(['fixed', 'rolling'] as readonly string[]).includes(scheduleType)) {
     throw new DomainError('invalid_schedule_type', { scheduleType });
   }
-  parseIsoDate(input.startDate);
-  if (input.enrolledFrom !== undefined) parseIsoDate(input.enrolledFrom);
+  // Ordre du tableau de domain-rules § 2 : début, fin, puis date d'entrée et horizon.
+  parseBounded(input.startDate);
   if (scheduleType === 'fixed') {
-    if (input.endDate === undefined) throw new DomainError('end_date_required');
-    parseIsoDate(input.endDate);
+    if (input.endDate == null) throw new DomainError('end_date_required');
+    parseBounded(input.endDate);
     if (input.endDate < input.startDate) throw new DomainError('end_before_start');
-  } else if (horizon !== undefined && (!Number.isInteger(horizon) || horizon < 1)) {
+  }
+  if (input.enrolledFrom != null) parseBounded(input.enrolledFrom);
+  if (
+    scheduleType === 'rolling' &&
+    horizon != null &&
+    (!Number.isInteger(horizon) || horizon < 1 || horizon > MAX_HORIZON)
+  ) {
     throw new DomainError('invalid_horizon', { horizon });
   }
 }
@@ -91,13 +107,13 @@ function* projectDates(input: ScheduleInput): Generator<IsoDate> {
 export function generateSchedule(input: ScheduleInput): ScheduleLine[] {
   validate(input);
   const from =
-    input.enrolledFrom !== undefined && input.enrolledFrom > input.startDate ? input.enrolledFrom : input.startDate;
+    input.enrolledFrom != null && input.enrolledFrom > input.startDate ? input.enrolledFrom : input.startDate;
   const horizon = input.horizon ?? 12;
-  const end = input.scheduleType === 'fixed' ? input.endDate : undefined;
+  const end = input.scheduleType === 'fixed' ? input.endDate : null;
   const periodic: ScheduleLine[] = [];
   let sequence = 0;
   for (const dueDate of projectDates(input)) {
-    if (end !== undefined && dueDate > end) break;
+    if (end != null && dueDate > end) break;
     sequence += 1;
     // Aucune échéance rétroactive ; la numérotation du projet est conservée.
     if (dueDate < from) continue;

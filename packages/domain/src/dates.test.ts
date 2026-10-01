@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { addDays, addMonths, daysInMonth, isIsoDate, isoWeekday, parseIsoDate } from './dates.js';
+import { addDays, addMonths, daysInMonth, formatIsoDate, isIsoDate, isoWeekday, parseIsoDate } from './dates.js';
 
 describe('dates YYYY-MM-DD', () => {
   it('isIsoDate : format et calendrier', () => {
@@ -32,9 +32,49 @@ describe('dates YYYY-MM-DD', () => {
     expect(isoWeekday('2026-03-01')).toBe(7); // dimanche
   });
 
-  it('addMonths : premier jour du mois décalé', () => {
+  it('addMonths : décalage en avant comme en arrière', () => {
     expect(addMonths(2026, 11, 3)).toEqual({ year: 2027, month: 2 });
     expect(addMonths(2026, 1, 0)).toEqual({ year: 2026, month: 1 });
+    expect(addMonths(2026, 1, -1)).toEqual({ year: 2025, month: 12 });
+    expect(addMonths(2026, 3, -14)).toEqual({ year: 2025, month: 1 });
+  });
+
+  it('formatIsoDate refuse une année hors de 0000–9999 (ordre des chaînes préservé)', () => {
+    expect(formatIsoDate({ year: 9999, month: 12, day: 31 })).toBe('9999-12-31');
+    expect(() => formatIsoDate({ year: 10000, month: 1, day: 5 })).toThrow(
+      expect.objectContaining({ code: 'invalid_date' }),
+    );
+    expect(() => formatIsoDate({ year: -1, month: 1, day: 5 })).toThrow(
+      expect.objectContaining({ code: 'invalid_date' }),
+    );
+  });
+
+  it('oracle Date UTC de 1900 à 2199 : addDays, isoWeekday, daysInMonth', () => {
+    const start = Date.UTC(1900, 0, 1);
+    const span = Math.round((Date.UTC(2199, 11, 31) - start) / 86_400_000);
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: span }), fc.integer({ min: -400, max: 400 }), (n, k) => {
+        const d = new Date(start + n * 86_400_000);
+        const iso = d.toISOString().slice(0, 10);
+        expect(addDays('1900-01-01', n)).toBe(iso);
+        expect(isoWeekday(iso)).toBe(d.getUTCDay() === 0 ? 7 : d.getUTCDay());
+        expect(daysInMonth(d.getUTCFullYear(), d.getUTCMonth() + 1)).toBe(
+          new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(),
+        );
+        expect(addDays(iso, k)).toBe(new Date(d.getTime() + k * 86_400_000).toISOString().slice(0, 10));
+      }),
+      { numRuns: 3000 },
+    );
+    for (const [date, weekday] of [
+      ['1900-02-28', 3],
+      ['1900-03-01', 4],
+      ['2000-02-29', 2],
+      ['2100-03-01', 1],
+    ] as const) {
+      expect(isoWeekday(date)).toBe(weekday);
+    }
+    expect(addDays('1900-02-28', 1)).toBe('1900-03-01');
+    expect(addDays('2100-02-28', 1)).toBe('2100-03-01');
   });
 
   it('propriété : addDays(d, n) puis addDays(…, −n) revient à d ; l’ordre des chaînes suit l’ordre des dates', () => {

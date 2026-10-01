@@ -33,6 +33,8 @@ export function parseIsoDate(value: unknown): CivilDate {
 }
 
 export function formatIsoDate({ year, month, day }: CivilDate): IsoDate {
+  // Au-delà de 4 chiffres, l'ordre des chaînes ne serait plus l'ordre chronologique.
+  if (!Number.isInteger(year) || year < 0 || year > 9999) throw new DomainError('invalid_date', { year });
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
@@ -71,5 +73,5 @@ export function isoWeekday(date: IsoDate): number {
 /** Mois décalé de `months` (année et mois seulement). */
 export function addMonths(year: number, month: number, months: number): { year: number; month: number } {
   const index = year * 12 + (month - 1) + months;
-  return { year: Math.floor(index / 12), month: (index % 12) + 1 };
+  return { year: Math.floor(index / 12), month: (((index % 12) + 12) % 12) + 1 };
 }

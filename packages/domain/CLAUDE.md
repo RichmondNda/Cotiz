@@ -6,3 +6,4 @@
 - Exporte : `Money`, `formatMoney`, `newId` (UUID v7), `generateSchedule`, `proposeAllocation`, `validateAllocation`, `installmentStatus`, `lateSince`, `memberStanding`, `DomainError`.
 - `Money` est une forme JSON : chaque opération revalide ses entrées (`Money.check`). Un montant lu en base passe par `Money.fromDb(bigint | string, devise)`, jamais par `Number()`/`parseFloat`.
 - U+202F et U+00A0 s'écrivent en échappement (`'\u202f'`), jamais en caractère littéral : ESLint (`no-irregular-whitespace`, chaînes comprises) le refuse.
+- Échéancier, répartition, statuts : montants en entiers de la plus petite unité (l'appelant passe `money.amount`, la devise est celle du projet) ; `null` venu de la base vaut « absent » ; dates d'entrée bornées à 1900–2199.

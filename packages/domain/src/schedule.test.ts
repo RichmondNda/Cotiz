@@ -61,15 +61,59 @@ describe('generateSchedule — contrôles des entrées', () => {
     [{ endDate: '31/12/2026' }, 'invalid_date'],
     [{ enrolledFrom: '2026-13-01' }, 'invalid_date'],
     [{ scheduleType: 'rolling', endDate: undefined, horizon: 0 }, 'invalid_horizon'],
+    [{ scheduleType: 'rolling', endDate: undefined, horizon: 121 }, 'invalid_horizon'],
+    [{ startDate: '1899-12-31' }, 'invalid_date'],
+    [{ endDate: '2200-01-01' }, 'invalid_date'],
+    [{ enrolledFrom: '2200-01-01' }, 'invalid_date'],
+    [{ endDate: null }, 'end_date_required'],
+    // Ordre des contrôles : date de fin manquante avant une date d'entrée illisible.
+    [{ endDate: undefined, enrolledFrom: 'n/a' }, 'end_date_required'],
     [{ scheduleType: 'rolling', endDate: undefined, horizon: 1.5 }, 'invalid_horizon'],
   ])('%o → %s', (patch, expected) => {
     expect(code(patch)).toEqual({ code: expected });
   });
 
-  it('fonds d’entrée à 0 ou absent : aucune échéance de fonds d’entrée', () => {
+  it('fonds d’entrée à 0, null ou absent : aucune échéance de fonds d’entrée', () => {
     const lines = generateSchedule({ ...base, entryFeeAmount: 0 });
     expect(lines.some((l) => l.kind === 'entry_fee')).toBe(false);
     expect(lines).toEqual(generateSchedule(base));
+    expect(generateSchedule({ ...base, entryFeeAmount: null })).toEqual(lines);
+  });
+
+  it('null (colonne vide en base) vaut absent pour enrolledFrom et horizon', () => {
+    expect(generateSchedule({ ...base, enrolledFrom: null })).toEqual(generateSchedule(base));
+    const rolling = { ...base, scheduleType: 'rolling' as const, endDate: null };
+    expect(generateSchedule({ ...rolling, horizon: null })).toHaveLength(12);
+    expect(generateSchedule({ ...rolling, horizon: 120 })).toHaveLength(120);
+  });
+
+  it('entrée le jour même d’une échéance : cette échéance est due (pas de décalage)', () => {
+    const lines = generateSchedule({
+      ...base,
+      endDate: '2027-08-31',
+      entryFeeAmount: 50000,
+      enrolledFrom: '2026-10-05',
+    });
+    expect(lines.slice(0, 2)).toEqual([
+      { sequence: 0, kind: 'entry_fee', dueDate: '2026-10-05', amountDue: 50000 },
+      { sequence: 8, kind: 'periodic', dueDate: '2026-10-05', amountDue: 25000 },
+    ]);
+  });
+
+  it('dates fixes jusqu’en 2199 : années à 4 chiffres seulement', () => {
+    const lines = generateSchedule({ ...base, frequency: 'annual', startDate: '2190-01-01', endDate: '2199-12-31' });
+    expect(lines.map((l) => l.dueDate.slice(0, 4))).toEqual([
+      '2190',
+      '2191',
+      '2192',
+      '2193',
+      '2194',
+      '2195',
+      '2196',
+      '2197',
+      '2198',
+      '2199',
+    ]);
   });
 
   it('entrée après la fin du projet : aucune échéance, pas de fonds d’entrée', () => {
@@ -106,7 +150,7 @@ describe('generateSchedule — propriétés', () => {
       frequency: fc.constantFrom('weekly', 'monthly', 'quarterly', 'semiannual', 'annual'),
       dueDay: fc.integer({ min: 1, max: 31 }),
       scheduleType: fc.constantFrom('fixed', 'rolling'),
-      startDate: day('2024-01-01', 1500),
+      startDate: fc.oneof(day('2024-01-01', 1500), day('1999-01-01', 800), day('2099-01-01', 800)),
       length: fc.integer({ min: 0, max: 1500 }),
       offset: fc.integer({ min: -30, max: 1800 }),
       horizon: fc.option(fc.integer({ min: 1, max: 24 }), { nil: undefined }),
@@ -147,15 +191,89 @@ describe('generateSchedule — propriétés', () => {
     );
   });
 
-  it('numérotation du projet identique pour tous : une entrée tardive est une suite de l’échéancier complet', () => {
+  /** Échéances périodiques ≥ date d'entrée, extraites de l'échéancier du projet (souscripteur entré au début). */
+  const fromFull = (i: ScheduleInput) => {
+    const from = i.enrolledFrom != null && i.enrolledFrom > i.startDate ? i.enrolledFrom : i.startDate;
+    const full = generateSchedule({
+      ...i,
+      enrolledFrom: undefined,
+      horizon: i.scheduleType === 'rolling' ? 120 : i.horizon,
+    });
+    return full.filter((l) => l.kind === 'periodic' && l.dueDate >= from);
+  };
+
+  it('entrée tardive = échéancier du projet filtré à partir de la date d’entrée (numérotation conservée)', () => {
     fc.assert(
       fc.property(input, (i) => {
-        fc.pre(i.scheduleType === 'fixed');
-        const full = generateSchedule({ ...i, enrolledFrom: undefined }).filter((l) => l.kind === 'periodic');
         const late = generateSchedule(i).filter((l) => l.kind === 'periodic');
-        const bySequence = new Map(full.map((l) => [l.sequence, l]));
-        for (const l of late) expect(bySequence.get(l.sequence)).toEqual(l);
-        if (late.length) expect(late.at(-1)).toEqual(full.at(-1));
+        const expected = fromFull(i);
+        if (i.scheduleType === 'fixed') {
+          expect(late).toEqual(expected);
+        } else {
+          // Cycle roulant : les `horizon` premières dates à partir de l'entrée (si 120 dates du projet suffisent).
+          const horizon = i.horizon ?? 12;
+          fc.pre(expected.length >= horizon);
+          expect(late).toEqual(expected.slice(0, horizon));
+        }
+      }),
+      { numRuns: 1000 },
+    );
+  });
+
+  it('entrée exactement le jour d’une échéance du projet : cette échéance est la première', () => {
+    fc.assert(
+      fc.property(input, fc.nat(), (i, pick) => {
+        const full = generateSchedule({ ...i, enrolledFrom: undefined }).filter((l) => l.kind === 'periodic');
+        fc.pre(full.length > 0);
+        const target = full[pick % full.length];
+        if (!target) return;
+        const late = generateSchedule({ ...i, enrolledFrom: target.dueDate }).filter((l) => l.kind === 'periodic');
+        expect(late[0]).toEqual(target);
+      }),
+      { numRuns: 500 },
+    );
+  });
+
+  it('pas entre deux dates : 7 jours (hebdomadaire) ou 1, 3, 6, 12 mois', () => {
+    const months = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 } as const;
+    fc.assert(
+      fc.property(input, (i) => {
+        const dates = generateSchedule(i)
+          .filter((l) => l.kind === 'periodic')
+          .map((l) => l.dueDate);
+        dates.slice(1).forEach((d, k) => {
+          const previous = dates[k] ?? '';
+          if (i.frequency === 'weekly') {
+            expect((Date.parse(d) - Date.parse(previous)) / 86_400_000).toBe(7);
+          } else {
+            const index = (x: string) => Number(x.slice(0, 4)) * 12 + Number(x.slice(5, 7));
+            expect(index(d) - index(previous)).toBe(months[i.frequency]);
+          }
+        });
+      }),
+      { numRuns: 500 },
+    );
+  });
+
+  it('première date du projet : la première date valide ≥ début ; jour ISO respecté en hebdomadaire', () => {
+    fc.assert(
+      fc.property(input, (i) => {
+        const first = generateSchedule({ ...i, enrolledFrom: undefined }).find((l) => l.kind === 'periodic');
+        if (!first) return;
+        expect(first.sequence).toBe(1);
+        const gap = (Date.parse(first.dueDate) - Date.parse(i.startDate)) / 86_400_000;
+        if (i.frequency === 'weekly') {
+          expect(gap).toBeGreaterThanOrEqual(0);
+          expect(gap).toBeLessThan(7);
+          expect(new Date(first.dueDate).getUTCDay() || 7).toBe(i.dueDay);
+        } else {
+          const step = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 }[i.frequency];
+          const index = (x: string) => Number(x.slice(0, 4)) * 12 + Number(x.slice(5, 7));
+          const offset = index(first.dueDate) - index(i.startDate);
+          // Mois du début si la date y est ≥ début, sinon la période suivante.
+          expect([0, step]).toContain(offset);
+          if (offset === step) expect(Math.min(i.dueDay, 28) < Number(i.startDate.slice(8))).toBe(true);
+        }
       }),
       { numRuns: 500 },
     );
