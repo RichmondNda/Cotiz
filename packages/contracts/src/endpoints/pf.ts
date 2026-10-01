@@ -15,7 +15,7 @@ import { Handoff } from '../common/handoff.js';
 import { Facets, listOf, ListQuery } from '../common/list.js';
 import { IdParams } from '../common/params.js';
 import { Email, PersonContact, PersonRef, PhoneE164 } from '../common/people.js';
-import { FeatureSchema, Plan, PlanRef, Quota } from '../common/plan.js';
+import { FeatureSchema, Plan, PlanRef, Quota, QuotaUsage } from '../common/plan.js';
 import { Currency, Instant, IsoDate, Money, Uuid } from '../common/scalars.js';
 import { defineEndpoint, noFlags } from '../registry.js';
 
@@ -23,9 +23,6 @@ import { defineEndpoint, noFlags } from '../registry.js';
 
 const read = 'platform.associations.read';
 const manage = 'platform.associations.manage';
-
-/** Jauge d'un quota : utilisé / limite (`null` = illimité). */
-export const QuotaUsage = z.object({ used: z.int().nonnegative(), limit: Quota });
 
 // ---------------------------------------------------------------- Demandes de création
 

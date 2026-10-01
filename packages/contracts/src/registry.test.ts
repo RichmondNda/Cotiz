@@ -26,8 +26,9 @@ const { endpoints } = parse(readFileSync(yamlFile, 'utf8')) as { endpoints: Yaml
 const yamlById = new Map(endpoints.map((e) => [e.id, e]));
 const registry = Object.values(ENDPOINTS) as EndpointDef[];
 
-// Groupes couverts (lot 0.2) : étape 2 = sys, auth, pub, pf, as.resets, pf.resets.
-const covered = (id: string) => /^(sys|auth|pub|pf)\./.test(id) || id === 'as.resets';
+// Groupes couverts (lot 0.2) : étape 2 = sys, auth, pub, pf, as.resets, pf.resets ;
+// étape 3 = as, pr, en, mb, lg, rp, ct, im, rm, tm, bl, bk, dev.
+const covered = (id: string) => /^(sys|auth|pub|pf|as|pr|en|mb|lg|rp|ct|im|rm|tm|bl|bk|dev)\./.test(id);
 
 const opKey = (o: { method: string; path: string }) => `${o.method} ${o.path}`;
 const placeholders = (path: string) => [...path.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();

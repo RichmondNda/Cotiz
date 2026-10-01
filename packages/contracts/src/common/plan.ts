@@ -32,4 +32,7 @@ export const Plan = PublicPlan.extend({
 });
 export type Plan = z.infer<typeof Plan>;
 
+/** Jauge d'un quota : utilisé / limite (`null` = illimité). */
+export const QuotaUsage = z.object({ used: z.int().nonnegative(), limit: Quota });
+
 export const PlanRef = z.object({ id: Uuid, code: z.string(), name: z.string() });

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Génère src/generated/*.ts depuis docs/specs/*.yaml : ErrorCode, EndpointId, Permission, Feature, libellés de statut,
+// Génère src/generated/*.ts depuis docs/specs/*.yaml : ErrorCode, EndpointId, Permission, Feature, EventType, libellés de statut,
 // énumérations de schema.sql.
 //   node scripts/gen.mjs           → écrit les fichiers
 //   node scripts/gen.mjs --check   → échoue si un fichier n'est pas à jour (test et CI)
@@ -40,6 +40,7 @@ function render() {
   const { endpoints } = specs('endpoints.yaml');
   const { permissions } = specs('permissions.yaml');
   const { features } = specs('features.yaml');
+  const { events } = specs('events.yaml');
   const { statuses } = specs('status-mapping.yaml');
   const dbEnums = schemaEnums(readFileSync(new URL('schema.sql', specsDir), 'utf8'));
 
@@ -88,6 +89,13 @@ function render() {
         .map(([name, values]) => `  ${name}: [${values.map(str).join(', ')}],\n`)
         .join('')}} as const;\n` +
       `export type DbEnum = keyof typeof DB_ENUMS;\n`,
+    'event-types.ts': union(
+      'events.yaml',
+      'EVENT_TYPES',
+      'EventType',
+      events.map((e) => e.type),
+      "Types d'événements de domaine (outbox, webhooks sortants).",
+    ),
     'features.ts': union(
       'features.yaml',
       'FEATURES',
