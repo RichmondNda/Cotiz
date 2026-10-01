@@ -156,6 +156,7 @@ Lien entre une personne et une association, avec son rôle. Un souscripteur dans
 | `user_id` | `uuid FK` |  |
 | `role` | `enum` | owner · manager · viewer · subscriber |
 | `status` | `enum` | invited · active · removed |
+| `title` | `text NULL` | fonction affichée (« Trésorière ») |
 | `invited_by` | `uuid NULL FK users` |  |
 | `joined_at / removed_at` | `timestamptz` |  |
 | `UNIQUE` | `(association_id, user_id, role)` |  |
@@ -178,6 +179,7 @@ Demandes de création issues du formulaire public.
 | `acquisition_source` | `text NULL` |  |
 | `terms_accepted_at` | `timestamptz` | preuve d'acceptation des CGU |
 | `status` | `enum` | pending · approved · rejected |
+| `viewed_by / viewed_at` | `uuid / timestamptz` | première ouverture par la plateforme |
 | `decided_by / decided_at` | `uuid / timestamptz` |  |
 | `rejection_reason_code / rejection_message` | `text NULL` |  |
 | `internal_note` | `text NULL` | jamais visible par la candidate |
@@ -547,6 +549,7 @@ Référentiel de tous les fichiers stockés dans MinIO.
 | `owner_user_id` | `uuid` |  |
 | `purpose` | `enum` | payment_proof · contract_pdf · invoice_pdf · export · logo · cover · import_source · bank_statement |
 | `bucket / object_key` | `text` | {association_id}/{purpose}/{uuid}.{ext} |
+| `original_name` | `text` | nom du fichier déposé (affichage) |
 | `mime_type / size_bytes` | `text / bigint` | vérifiés sur le contenu réel |
 | `sha256` | `text` | intégrité et preuve |
 | `scan_status` | `enum` | pending · clean · infected |

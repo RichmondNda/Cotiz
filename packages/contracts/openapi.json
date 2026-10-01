@@ -2182,6 +2182,9 @@
                         "bank_statement"
                       ]
                     },
+                    "fileName": {
+                      "type": "string"
+                    },
                     "mimeType": {
                       "type": "string"
                     },
@@ -2204,7 +2207,16 @@
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                   },
-                  "required": ["id", "purpose", "mimeType", "sizeBytes", "sha256", "scanStatus", "createdAt"],
+                  "required": [
+                    "id",
+                    "purpose",
+                    "fileName",
+                    "mimeType",
+                    "sizeBytes",
+                    "sha256",
+                    "scanStatus",
+                    "createdAt"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -8427,9 +8439,12 @@
                           "role": {
                             "type": "string",
                             "enum": ["owner", "manager", "viewer", "subscriber"]
+                          },
+                          "title": {
+                            "type": ["string", "null"]
                           }
                         },
-                        "required": ["association", "role"],
+                        "required": ["association", "role", "title"],
                         "additionalProperties": false
                       }
                     },
@@ -9858,6 +9873,17 @@
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     },
+                    "paymentMethodKind": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["bank_transfer", "mobile_money", "cash", "other"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "project": {
                       "$ref": "#/components/schemas/ProjectRef"
                     },
@@ -9916,6 +9942,7 @@
                     "amountReceived",
                     "paidOn",
                     "declaredAt",
+                    "paymentMethodKind",
                     "project",
                     "association",
                     "covered",
@@ -19168,6 +19195,9 @@
               }
             ]
           },
+          "coverFileName": {
+            "type": ["string", "null"]
+          },
           "status": {
             "type": "string",
             "enum": ["draft", "enrolling", "active", "completed", "archived"]
@@ -19238,6 +19268,7 @@
           "id",
           "name",
           "coverFileId",
+          "coverFileName",
           "status",
           "requiredSubscribers",
           "graceDays",
@@ -19387,6 +19418,17 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
+          "paymentMethodKind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["bank_transfer", "mobile_money", "cash", "other"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "member": {
             "$ref": "#/components/schemas/PersonRef"
           },
@@ -19432,6 +19474,7 @@
           "amountReceived",
           "paidOn",
           "declaredAt",
+          "paymentMethodKind",
           "member",
           "project",
           "covered",
@@ -19489,11 +19532,17 @@
               }
             ]
           },
+          "fileName": {
+            "type": ["string", "null"]
+          },
+          "mimeType": {
+            "type": ["string", "null"]
+          },
           "transactionReference": {
             "type": ["string", "null"]
           }
         },
-        "required": ["fileId", "transactionReference"],
+        "required": ["fileId", "fileName", "mimeType", "transactionReference"],
         "additionalProperties": false
       },
       "Notification": {
@@ -19681,6 +19730,17 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
+          "paymentMethodKind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["bank_transfer", "mobile_money", "cash", "other"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "member": {
             "$ref": "#/components/schemas/PersonRef"
           },
@@ -19782,6 +19842,7 @@
           "amountReceived",
           "paidOn",
           "declaredAt",
+          "paymentMethodKind",
           "member",
           "project",
           "covered",
@@ -20119,6 +20180,17 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
           },
+          "paymentMethodKind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["bank_transfer", "mobile_money", "cash", "other"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "project": {
             "$ref": "#/components/schemas/ProjectRef"
           },
@@ -20164,6 +20236,7 @@
           "amountReceived",
           "paidOn",
           "declaredAt",
+          "paymentMethodKind",
           "project",
           "association",
           "covered",
@@ -20631,6 +20704,28 @@
           "internalNote": {
             "type": ["string", "null"]
           },
+          "viewedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "viewedBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "history": {
             "type": "array",
             "items": {
@@ -20678,6 +20773,8 @@
           "termsAcceptedAt",
           "decision",
           "internalNote",
+          "viewedAt",
+          "viewedBy",
           "history"
         ],
         "additionalProperties": false
@@ -21252,6 +21349,9 @@
               }
             ]
           },
+          "coverFileName": {
+            "type": ["string", "null"]
+          },
           "status": {
             "type": "string",
             "enum": ["draft", "enrolling", "active", "completed", "archived"]
@@ -21329,6 +21429,7 @@
           "name",
           "description",
           "coverFileId",
+          "coverFileName",
           "status",
           "requiredSubscribers",
           "graceDays",

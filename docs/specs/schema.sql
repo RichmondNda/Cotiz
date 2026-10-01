@@ -209,6 +209,7 @@ CREATE TABLE memberships (
   user_id uuid NOT NULL,
   role memberships_role NOT NULL,
   status memberships_status NOT NULL DEFAULT 'invited',
+  title text,
   invited_by uuid,
   joined_at timestamptz,
   removed_at timestamptz,
@@ -219,6 +220,7 @@ COMMENT ON TABLE memberships IS 'Lien entre une personne et une association, ave
 COMMENT ON COLUMN memberships.association_id IS 'colonne RLS';
 COMMENT ON COLUMN memberships.role IS 'owner · manager · viewer · subscriber';
 COMMENT ON COLUMN memberships.status IS 'invited · active · removed';
+COMMENT ON COLUMN memberships.title IS 'fonction affichée (« Trésorière »), facultative';
 
 -- association_requests · module onboarding · V1 · lot 1.3
 -- Demandes de création issues du formulaire public.
@@ -242,6 +244,8 @@ CREATE TABLE association_requests (
   acquisition_source text,
   terms_accepted_at timestamptz NOT NULL,
   status association_requests_status NOT NULL DEFAULT 'pending',
+  viewed_by uuid,
+  viewed_at timestamptz,
   decided_by uuid,
   decided_at timestamptz,
   rejection_reason_code text,
@@ -256,6 +260,7 @@ COMMENT ON COLUMN association_requests.activity_description IS '500 caractères 
 COMMENT ON COLUMN association_requests.estimated_subscribers IS '1_20 · 21_50 · 51_200 · 201_500 · 500_plus';
 COMMENT ON COLUMN association_requests.terms_accepted_at IS 'preuve d''acceptation des CGU';
 COMMENT ON COLUMN association_requests.status IS 'pending · approved · rejected';
+COMMENT ON COLUMN association_requests.viewed_at IS 'première ouverture par la plateforme (frise « Consultée »)';
 COMMENT ON COLUMN association_requests.internal_note IS 'jamais visible par la candidate';
 COMMENT ON COLUMN association_requests.association_id IS 'association créée à l''approbation';
 
@@ -754,6 +759,7 @@ CREATE TABLE files (
   purpose files_purpose NOT NULL,
   bucket text NOT NULL,
   object_key text NOT NULL,
+  original_name text NOT NULL,
   mime_type text NOT NULL,
   size_bytes bigint NOT NULL,
   sha256 text NOT NULL,
@@ -766,6 +772,7 @@ COMMENT ON COLUMN files.association_id IS 'RLS';
 COMMENT ON COLUMN files.purpose IS 'payment_proof · contract_pdf · invoice_pdf · export · logo · cover · import_source · bank_statement';
 COMMENT ON COLUMN files.bucket IS '{association_id}/{purpose}/{uuid}.{ext}';
 COMMENT ON COLUMN files.object_key IS '{association_id}/{purpose}/{uuid}.{ext}';
+COMMENT ON COLUMN files.original_name IS 'nom du fichier déposé (affichage seulement, jamais utilisé comme clé)';
 COMMENT ON COLUMN files.mime_type IS 'vérifiés sur le contenu réel';
 COMMENT ON COLUMN files.size_bytes IS 'vérifiés sur le contenu réel';
 COMMENT ON COLUMN files.sha256 IS 'intégrité et preuve';
