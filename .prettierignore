@@ -8,3 +8,4 @@ graphify-out/
 .github/
 **/*.md
 pnpm-lock.yaml
+coverage/

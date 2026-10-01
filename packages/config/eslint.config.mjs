@@ -9,6 +9,7 @@ export const ignores = [
   '**/node_modules/**',
   '**/dist/**',
   '**/.turbo/**',
+  '**/coverage/**',
   'frontend/**',
   'design/**',
   'docs/**',
@@ -28,6 +29,11 @@ export default tseslint.config(
     },
     rules: {
       '@typescript-eslint/consistent-type-imports': 'error',
+      // Espaces invisibles (U+202F, U+00A0 des montants) : toujours écrits en échappement, jamais en littéral.
+      'no-irregular-whitespace': [
+        'error',
+        { skipStrings: false, skipTemplates: false, skipRegExps: false, skipComments: false },
+      ],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       // Modules NestJS : classes vides portant @Module.
       '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
