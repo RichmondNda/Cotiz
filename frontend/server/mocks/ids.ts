@@ -22,7 +22,7 @@ export const ID = {
   man: uid('association', 'ressortissants-man'),
   bouake: uid('association', 'jeunesse-bouake'),
   centre: uid('project', 'centre-communautaire'),
-  tontine: uid('project', 'tontine-solidaire-2027'),
+  tontine: uid('project', 'tontine-2027'),
   voyage: uid('project', 'voyage-solidaire'),
   mutuelle: uid('project', 'mutuelle-sante'),
   moussa: uid('user', 'moussa-diarra'),

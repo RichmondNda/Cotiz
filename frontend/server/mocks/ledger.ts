@@ -186,7 +186,8 @@ export function projectFigures(project: ProjectRow): ProjectFigures {
     subscribersCount,
     collected,
     expectedToDate,
-    recoveryRate: expectedToDate > 0 ? collected / expectedToDate : null,
+    // Taux plafonné à 1 (contrat) : un versement anticipé ne fait pas dépasser 100 %.
+    recoveryRate: expectedToDate > 0 ? Math.min(1, collected / expectedToDate) : null,
     progress: progress === null ? null : Math.min(1, progress),
     lateSubscribersCount: figures.filter(f => f.standing === 'late').length + (extra?.late ?? 0),
     lateAmount: sum(figures.map(f => f.lateAmount)) + (extra?.lateAmount ?? 0),
@@ -247,7 +248,7 @@ export function associationFigures(associationId: string): AssociationFigures {
     lateMembersCount: lateNamed + lateUnlisted,
     collected,
     expectedToDate,
-    recoveryRate: expectedToDate > 0 ? collected / expectedToDate : null,
+    recoveryRate: expectedToDate > 0 ? Math.min(1, collected / expectedToDate) : null,
     collectedThisMonth: sum(figures.map(f => f.collectedThisMonth)),
     expectedThisMonth: sum(figures.map(f => f.expectedThisMonth)),
     pendingPaymentsCount: pending.length,
