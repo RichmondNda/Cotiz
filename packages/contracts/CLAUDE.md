@@ -6,3 +6,4 @@
 - L'OpenAPI 3.1 est généré dans `openapi.json` (`pnpm --filter contracts openapi`, à relancer après tout changement de schéma : un test échoue sinon) ; en CI, `oasdiff` compare à la branche cible et refuse les changements cassants. Page de doc : `http://localhost:4000/api/v1/docs` (api en dev).
 - Client : `@cotiz/api-client`, `client.call('<id>', '<opération>', { params, query, body, ifMatch?, idempotencyKey? })`.
 - Toute modification d'un schéma = une PR qui met à jour back, front et mocks ensemble.
+- `exports.types` pointe sur `src/` : back et front typent contre les sources, sans build ; un champ changé casse `tsc` du back immédiatement (vérifié au lot 0.2 sur `sys.health`).
