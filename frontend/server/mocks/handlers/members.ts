@@ -7,7 +7,7 @@ import type { EnrollmentRow, UserRow } from '../db'
 import type { MockContext } from '../http'
 import { checkVersion, nowInstant, problem } from '../http'
 import { uid } from '../ids'
-import { associationFigures, enrollmentFigures, enrollmentsOfProject, memberStandingIn, projectById, today } from '../ledger'
+import { amountPending, associationFigures, enrollmentFigures, enrollmentsOfProject, memberStandingIn, projectById, today } from '../ledger'
 import { signEnrollment } from '../scenarios'
 import { enrollment, installment, personContact, projectRef, projectRow, userRow } from '../views'
 import { handoff } from './handoff'
@@ -103,7 +103,7 @@ export function enrollmentWithdraw(ctx: MockContext<'en.withdraw', 'withdraw'>) 
   if (e.status === 'withdrawn') problem('invalid_state')
   Object.assign(e, { status: 'withdrawn', withdrawnAt: nowInstant() })
   // Échéances futures annulées ; l'historique (paiements validés) est conservé.
-  for (const i of db.installments.filter(x => x.enrollmentId === e.id && x.dueDate > today() && x.amountPaid === 0)) i.persistedStatus = 'canceled'
+  for (const i of db.installments.filter(x => x.enrollmentId === e.id && x.dueDate > today() && x.amountPaid === 0 && amountPending(x.id) === 0)) i.persistedStatus = 'canceled'
   return enrollment(e)
 }
 

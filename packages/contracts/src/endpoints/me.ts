@@ -316,6 +316,7 @@ export const meDeclare = defineEndpoint({
   errors: [
     'amount_exceeds_remaining',
     'allocation_mismatch',
+    'allocation_exceeds_remaining',
     'proof_required',
     'file_not_clean',
     'signature_required',

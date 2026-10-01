@@ -5,7 +5,7 @@
 //   docs/specs/v0-mapping.md ;
 // - réponse contrôlée par son schéma : un mock non conforme échoue bruyamment (500) au lieu de tromper le front.
 // Les implémentations sont aussi enregistrées dans IMPLEMENTATIONS : le test de conformité les appelle sans serveur.
-import { ENDPOINTS, ERRORS } from '@cotiz/contracts'
+import { ENDPOINTS, ERROR_CODES, ERRORS } from '@cotiz/contracts'
 import type { EndpointDef, ErrorCode, OperationDef } from '@cotiz/contracts'
 import type { EndpointKey, OperationName } from '@cotiz/api-client'
 import type { H3Event } from 'h3'
@@ -31,7 +31,8 @@ export function problem(code: ErrorCode, extra: Record<string, unknown> = {}, de
 
 export function problemBody(e: ProblemError) {
   const { http, message } = ERRORS[e.code]
-  return { type: `https://cotiz.app/errors/${e.code}`, title: message, status: http, code: e.code, ...(e.detail ? { detail: e.detail } : {}), ...e.extra }
+  // Membres d'extension d'abord : ils ne peuvent pas écraser les membres standard du Problem.
+  return { ...e.extra, type: `https://cotiz.app/errors/${e.code}`, title: message, status: http, code: e.code, ...(e.detail ? { detail: e.detail } : {}) }
 }
 
 // ---------------------------------------------------------------- Session mockée
@@ -96,6 +97,9 @@ function parseOr422(schema: z.ZodType | undefined, value: unknown) {
   if (!schema) return undefined
   const result = schema.safeParse(value)
   if (result.success) return result.data
+  // Règle portée par le schéma avec un code du catalogue (ex. `proof_required` de DeclarePaymentInput).
+  const coded = result.error.issues.find(i => (ERROR_CODES as readonly string[]).includes(i.message))
+  if (coded) problem(coded.message as ErrorCode)
   const fields = Object.fromEntries(result.error.issues.map(i => [i.path.join('.') || '_', i.message]))
   problem('validation_failed', { fields })
 }
@@ -131,7 +135,8 @@ export async function runImplementation(id: EndpointKey, op: string, ctx: MockCo
   const { def, operation } = definition(id, op)
   authorize(def, ctx.session, ctx.params as Record<string, unknown> | undefined)
   scenarioError(def, operation, ctx.scenario)
-  const out = withScenario(ctx.scenario, () => registered.impl(ctx))
+  // Scénarios d'état : lectures seulement ; une écriture agit toujours sur le jeu réel.
+  const out = operation.method === 'GET' ? withScenario(ctx.scenario, () => registered.impl(ctx)) : await replay(def, id, op, ctx, () => registered.impl(ctx))
   const schema = operation.response.body
   if (schema && operation.response.contentType !== 'text/event-stream') {
     const result = schema.safeParse(out)
@@ -139,6 +144,25 @@ export async function runImplementation(id: EndpointKey, op: string, ctx: MockCo
       throw new Error(`Réponse simulée non conforme pour ${id}.${op} : ${JSON.stringify(result.error.issues.slice(0, 5))}`)
     }
   }
+  return out
+}
+
+// ---------------------------------------------------------------- Idempotence (Idempotency-Key)
+
+/** Réponses déjà rendues par (personne, opération, clé) : rejouer la clé renvoie la même réponse. */
+const replays = new Map<string, { fingerprint: string, out: unknown }>()
+
+async function replay(def: EndpointDef, id: string, op: string, ctx: MockContext<never, never>, run: () => unknown) {
+  if (!def.flags.idempotencyKey || !ctx.idempotencyKey) return run()
+  const key = `${ctx.session?.userId ?? 'public'}:${id}.${op}:${ctx.idempotencyKey}`
+  const fingerprint = JSON.stringify({ params: ctx.params, body: ctx.body })
+  const previous = replays.get(key)
+  if (previous) {
+    if (previous.fingerprint !== fingerprint) problem('idempotency_key_reused')
+    return structuredClone(previous.out)
+  }
+  const out = await run()
+  replays.set(key, { fingerprint, out: structuredClone(out) })
   return out
 }
 

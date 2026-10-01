@@ -1242,6 +1242,7 @@ endpoints:
   errors:
   - payment_already_reviewed
   - allocation_mismatch
+  - allocation_exceeds_remaining
   - amount_exceeds_remaining
   - version_conflict
   emits:
@@ -1510,6 +1511,7 @@ endpoints:
   errors:
   - amount_exceeds_remaining
   - allocation_mismatch
+  - allocation_exceeds_remaining
   - proof_required
   - file_not_clean
   - signature_required

@@ -196,6 +196,8 @@ export interface PaymentRow {
   reviewedAt: string | null
   rejection: { reasonCode: 'unreadable_proof' | 'not_received' | 'amount_mismatch' | 'other', message: string | null } | null
   allocationAdjusted: boolean
+  /** Répartition déclarée par le souscripteur : recréée en propositions si une validation est annulée. */
+  declaredAllocations: { installmentId: string, amount: number }[]
   version: number
 }
 

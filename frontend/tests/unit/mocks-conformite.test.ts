@@ -333,6 +333,46 @@ describe('mutations : état en mémoire', () => {
     expect(firstPending()).toBeDefined()
   })
 
+  it('valider avec une répartition ajustée puis annuler : la répartition déclarée est reproposée, rien n’est supprimé', async () => {
+    const payId = uid('payment', 'pm-awa-kone')
+    const awa = (seq: number) => uid('installment', `centre-communautaire:awa-kone:${seq}`)
+    const avant = db.allocations.length
+    // Montant reçu 50 000 F au lieu de 75 000 F : septembre et octobre seulement.
+    await call('lg.pay.validate', 'validate', { params: { aid, payId }, ifMatch: 1, body: {
+      amountReceived: money(50000), allocations: [{ installmentId: awa(7), amount: money(25000) }, { installmentId: awa(8), amount: money(25000) }],
+    } })
+    expect(db.installments.find(i => i.id === awa(7))!.amountPaid).toBe(25000)
+    expect(db.projects.find(p => p.id === ID.centre)!.financialTermsLockedAt).not.toBeNull()
+    const annule = await call('lg.pay.revert', 'revert', { params: { aid, payId } }) as { status: string, covered: { installmentId: string, amount: { amount: number }, state: string }[] }
+    expect(annule.status).toBe('pending')
+    expect(annule.covered.map(c => [c.installmentId, c.amount.amount, c.state])).toEqual([7, 8, 9].map(s => [awa(s), 25000, 'proposed']))
+    expect(db.installments.find(i => i.id === awa(7))!.amountPaid).toBe(0)
+    expect(db.allocations.length).toBeGreaterThan(avant)
+    // Revalider sans corps : la répartition déclarée (75 000 F) passe.
+    await expect(call('lg.pay.validate', 'validate', { params: { aid, payId }, body: {}, ifMatch: 3 })).resolves.toBeDefined()
+  })
+
+  it('Idempotency-Key : même clé et même corps → même réponse ; corps différent → idempotency_key_reused', async () => {
+    const run = (body: unknown) => runImplementation('me.declare' as never, 'declare', {
+      params: undefined, query: undefined, body, session: sessionFromRole('souscripteur'), scenario: undefined, ifMatch: null, idempotencyKey: 'cle-1',
+    } as MockContext<never, never>)
+    const body = WRITES['me.declare declare']!().body
+    const parsed = ENDPOINTS['me.declare'].operations.declare.request.body.parse(body)
+    const first = await run(parsed) as { id: string }
+    expect((await run(parsed) as { id: string }).id).toBe(first.id)
+    expect(db.payments.filter(p => p.userId === ID.moussa && p.status === 'pending')).toHaveLength(1)
+    const other = ENDPOINTS['me.declare'].operations.declare.request.body.parse({ ...(body as object), amount: money(25000), allocations: moussaCentreLate().slice(0, 1) })
+    await expect(run(other)).rejects.toMatchObject({ code: 'idempotency_key_reused' })
+  })
+
+  it('déclaration sans preuve ni référence → proof_required (règle du schéma)', async () => {
+    const { transactionReference: _ref, ...sansPreuve } = WRITES['me.declare declare']!().body as Record<string, unknown>
+    const ctx = { body: sansPreuve, session: sessionFromRole('souscripteur') }
+    const result = ENDPOINTS['me.declare'].operations.declare.request.body.safeParse(ctx.body)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toBe('proof_required')
+  })
+
   it('inscrire un nouveau souscripteur : inscription et code d’activation à remettre', async () => {
     const r = await call('en.create', 'create', WRITES['en.create create']!()) as { enrollment: { status: string }, handoff: { code: string } | null }
     expect(r.enrollment.status).toBe('active')

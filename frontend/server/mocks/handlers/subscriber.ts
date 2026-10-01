@@ -1,13 +1,13 @@
 // Espace souscripteur : tableau de bord, projets, aperçu et déclaration d'un paiement, historique, contrats, associations.
 import { createHash } from 'node:crypto'
-import { DomainError, formatMoney, proposeAllocation, remainingOf, validateAllocation } from '@cotiz/domain'
+import { DomainError, formatMoney, proposeAllocation, validateAllocation } from '@cotiz/domain'
 import { formatTelephone } from '../../../app/utils/format'
 import { db } from '../db'
 import type { EnrollmentRow, PaymentRow, ProjectRow } from '../db'
 import type { MockContext } from '../http'
 import { nowInstant, problem, requireSession } from '../http'
 import { uid } from '../ids'
-import { enrollmentFigures, ledgerInstallments, monthOf, scheduleFrom, subscriberTotals, sum } from '../ledger'
+import { enrollmentFigures, ledgerInstallments, monthOf, openTotal, scheduleFrom, subscriberTotals, sum } from '../ledger'
 import { signEnrollment } from '../scenarios'
 import {
   associationRef, associationRow, enrollmentsOfUser, installment, money, moneyOrNull, paymentMethodsOf, projectRef, projectRow,
@@ -93,7 +93,7 @@ export function allocationPreview(ctx: MockContext<'me.alloc', 'preview'>) {
   const installments = ledgerInstallments(e.id)
   try {
     const allocations = proposeAllocation(ctx.body.amount.amount, installments)
-    const open = sum(installments.filter(i => i.status !== 'paid' && i.status !== 'waived' && i.status !== 'canceled').map(remainingOf))
+    const open = openTotal(installments)
     return {
       allocations: allocations.map(a => ({ installmentId: a.installmentId, amount: money(a.amount) })),
       remainingAfter: money(open - ctx.body.amount.amount),
@@ -106,22 +106,15 @@ export function allocationPreview(ctx: MockContext<'me.alloc', 'preview'>) {
   }
 }
 
-/** Déclarations déjà reçues, par clé d'idempotence (rejouer la même clé renvoie le même paiement). */
-const declared = new Map<string, string>()
-
 export function declare(ctx: MockContext<'me.declare', 'declare'>) {
   const userId = requireSession(ctx).userId
-  if (ctx.idempotencyKey && declared.has(ctx.idempotencyKey)) {
-    const existing = db.payments.find(p => p.id === declared.get(ctx.idempotencyKey!))
-    if (existing) return subscriberPayment(existing)
-  }
   const b = ctx.body
   const e = myEnrollment(userId, b.projectId)
   if (e.status === 'pending_signature') problem('signature_required')
   if (e.status !== 'active') problem('invalid_state')
   const p = projectRow(e.projectId)
   const installments = ledgerInstallments(e.id)
-  const maxAmount = sum(installments.filter(i => i.status !== 'paid' && i.status !== 'waived' && i.status !== 'canceled').map(remainingOf))
+  const maxAmount = openTotal(installments)
   if (b.amount.amount > maxAmount) problem('amount_exceeds_remaining', { maxAmount })
   const allocations = b.allocations.map(a => ({ installmentId: a.installmentId, amount: a.amount.amount }))
   const result = validateAllocation(b.amount.amount, allocations, installments, { enrollmentId: e.id })
@@ -134,11 +127,10 @@ export function declare(ctx: MockContext<'me.declare', 'declare'>) {
     amountReceived: null, paidOn: b.paidOn, paymentMethodId: method?.id ?? null, paymentMethodKind: method?.kind ?? null,
     proof: { fileId: b.proofFileId ?? null, fileName: file?.fileName ?? null, mimeType: file?.mimeType ?? null, transactionReference: b.transactionReference ?? null },
     comment: b.comment ?? null, status: 'pending', declaredAt: nowInstant(), reviewedBy: null, reviewedAt: null, rejection: null,
-    allocationAdjusted: false, version: 1,
+    allocationAdjusted: false, declaredAllocations: allocations.map(a => ({ ...a })), version: 1,
   }
   db.payments.push(row)
   for (const a of allocations) db.allocations.push({ paymentId: id, installmentId: a.installmentId, amount: a.amount, state: 'proposed' })
-  if (ctx.idempotencyKey) declared.set(ctx.idempotencyKey, id)
   return subscriberPayment(row)
 }
 

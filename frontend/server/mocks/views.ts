@@ -126,9 +126,17 @@ export function enrollment(e: EnrollmentRow): In<typeof Enrollment> {
 
 // ---------------------------------------------------------------- Paiements
 
+/**
+ * Échéances couvertes par un paiement, selon son état : propositions (en attente), allocations confirmées (validé),
+ * répartition déclarée annulée (rejeté). Les lignes annulées des cycles précédents ne sont pas montrées.
+ */
 export function covered(p: PaymentRow) {
-  return db.allocations
-    .filter(a => a.paymentId === p.id)
+  const rows = p.status === 'pending'
+    ? db.allocations.filter(a => a.paymentId === p.id && a.state === 'proposed')
+    : p.status === 'validated'
+      ? db.allocations.filter(a => a.paymentId === p.id && a.state === 'confirmed')
+      : p.declaredAllocations.map(a => ({ ...a, paymentId: p.id, state: 'voided' as const }))
+  return rows
     .map((a) => {
       const i = db.installments.find(x => x.id === a.installmentId)!
       return { installmentId: i.id, kind: i.kind, sequence: i.sequence, dueDate: i.dueDate, amount: money(a.amount), state: a.state }

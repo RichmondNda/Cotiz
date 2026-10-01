@@ -331,7 +331,8 @@ function payments(projectRows: ProjectRow[], pms: PaymentMethodRow[]): { payment
       paymentMethodKind: p.method,
       proof: { fileId: p.proof?.fileName ? uid('file', p.key) : null, fileName: null, mimeType: null, transactionReference: p.proof?.fileName ? null : REF, ...p.proof },
       comment: null, status: p.status, declaredAt: `${p.declared}:00Z`, reviewedBy: p.by ? U(p.by) : null,
-      reviewedAt: p.reviewed ? `${p.reviewed}:00Z` : null, rejection: null, allocationAdjusted: false, version: 1,
+      reviewedAt: p.reviewed ? `${p.reviewed}:00Z` : null, rejection: null, allocationAdjusted: false,
+      declaredAllocations: p.covers.map(([sequence, amount]) => ({ installmentId: installmentId(p.project, p.user, sequence), amount })), version: 1,
     })
     for (const [sequence, amount] of p.covers) {
       allocations.push({ paymentId: id, installmentId: installmentId(p.project, p.user, sequence), amount, state: p.status === 'pending' ? 'proposed' : 'confirmed' })

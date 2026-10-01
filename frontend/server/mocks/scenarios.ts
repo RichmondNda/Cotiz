@@ -55,10 +55,10 @@ export function signEnrollment(d: MockDb, enrollment: MockDb['enrollments'][numb
   enrollment.status = 'active'
   enrollment.contractSignedAt = at
   if (d.installments.some(i => i.enrollmentId === enrollment.id)) return
-  const key = d.users.find(u => u.id === enrollment.userId)!.key
+  // Identifiant par inscription : une réinscription après un retrait ne réutilise pas les échéances du retrait.
   for (const l of scheduleFrom(project, enrollment.startsFrom)) {
     d.installments.push({
-      id: installmentId(project.key, key, l.sequence), enrollmentId: enrollment.id, projectId: project.id, kind: l.kind,
+      id: uid('installment', `${enrollment.id}:${l.sequence}`), enrollmentId: enrollment.id, projectId: project.id, kind: l.kind,
       sequence: l.sequence, dueDate: l.dueDate, amountDue: l.amountDue, amountPaid: 0, persistedStatus: 'open', paidAt: null,
     })
   }
@@ -77,7 +77,8 @@ function moussaPayment(d: MockDb, status: PaymentRow['status'], declaredAt: stri
     paymentMethodKind: 'mobile_money', proof: { fileId: null, fileName: null, mimeType: null, transactionReference: '[RÉFÉRENCE]' },
     comment: null, status, declaredAt,
     reviewedBy: status === 'pending' ? null : ID.aminata, reviewedAt: status === 'pending' ? null : `${declaredAt.slice(0, 10)}T15:00:00Z`,
-    rejection: status === 'rejected' ? { reasonCode: 'unreadable_proof', message: null } : null, allocationAdjusted: false, version: 1,
+    rejection: status === 'rejected' ? { reasonCode: 'unreadable_proof', message: null } : null, allocationAdjusted: false,
+    declaredAllocations: [6, 7].map(seq => ({ installmentId: installmentId('centre-communautaire', 'moussa-diarra', seq), amount: 25000 })), version: 1,
   })
   for (const seq of [6, 7]) {
     d.allocations.push({ paymentId: id, installmentId: installmentId('centre-communautaire', 'moussa-diarra', seq), amount: 25000, state: status === 'pending' ? 'proposed' : status === 'validated' ? 'confirmed' : 'voided' })

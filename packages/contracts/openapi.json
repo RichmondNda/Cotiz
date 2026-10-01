@@ -2906,7 +2906,13 @@
         "tags": ["association"],
         "x-endpoint-id": "lg.pay.validate",
         "x-permission": "payments.review",
-        "x-errors": ["payment_already_reviewed", "allocation_mismatch", "amount_exceeds_remaining", "version_conflict"],
+        "x-errors": [
+          "payment_already_reviewed",
+          "allocation_mismatch",
+          "allocation_exceeds_remaining",
+          "amount_exceeds_remaining",
+          "version_conflict"
+        ],
         "x-rate-limited": false,
         "x-audited": true,
         "parameters": [
@@ -9707,6 +9713,7 @@
         "x-errors": [
           "amount_exceeds_remaining",
           "allocation_mismatch",
+          "allocation_exceeds_remaining",
           "proof_required",
           "file_not_clean",
           "signature_required",

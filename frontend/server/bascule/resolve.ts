@@ -1,13 +1,13 @@
 // Méthode + chemin d'une requête `/api/v1/...` → id d'endpoint et opération du registre de @cotiz/contracts.
 // À chemin égal, le segment fixe l'emporte sur le paramètre (`/projects/schedule-preview` avant `/projects/{pid}`).
 import { ENDPOINTS } from '@cotiz/contracts'
-import type { EndpointId } from '@cotiz/contracts'
+import type { EndpointDef, EndpointId } from '@cotiz/contracts'
 
 interface Route { id: EndpointId, op: string, method: string, segments: string[], params: number }
 
-const ROUTES: Route[] = Object.values(ENDPOINTS)
+const ROUTES: Route[] = (Object.values(ENDPOINTS) as EndpointDef[])
   .flatMap(def => Object.entries(def.operations).map(([op, o]) => {
-    const segments = o.path.split('/').filter(Boolean)
+    const segments = o.path.split('/').filter((s: string) => s.length > 0)
     return { id: def.id as EndpointId, op, method: o.method, segments, params: segments.filter(s => s.startsWith('{')).length }
   }))
   .sort((a, b) => a.params - b.params)

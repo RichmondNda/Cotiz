@@ -5,7 +5,7 @@ import type { ProjectRow } from '../db'
 import type { MockContext } from '../http'
 import { checkVersion, nowInstant, problem, requireSession } from '../http'
 import { uid } from '../ids'
-import { enrollmentFigures, enrollmentsOfProject, projectFigures, scheduleFrom, sum, today } from '../ledger'
+import { amountPending, enrollmentFigures, enrollmentsOfProject, projectFigures, scheduleFrom, sum, today } from '../ledger'
 import { money, moneyOrNull, personRef, planRow, project, projectRow, projectSummary, userRow, associationRow } from '../views'
 import { page } from './list'
 
@@ -124,7 +124,8 @@ export function projectClose(ctx: MockContext<'pr.lifecycle', 'close'>) {
   if (p.status !== 'enrolling' && p.status !== 'active') problem('invalid_state')
   Object.assign(p, { status: 'completed', closedAt: nowInstant(), version: p.version + 1 })
   // Échéances à venir annulées (opération compensatoire, rien n'est supprimé).
-  for (const i of db.installments.filter(x => x.projectId === p.id && x.dueDate > today() && x.amountPaid === 0)) i.persistedStatus = 'canceled'
+  // Une échéance qui porte un paiement en attente reste ouverte : sa validation doit rester possible.
+  for (const i of db.installments.filter(x => x.projectId === p.id && x.dueDate > today() && x.amountPaid === 0 && amountPending(x.id) === 0)) i.persistedStatus = 'canceled'
   for (const e of enrollmentsOfProject(p.id).filter(x => x.status === 'active')) e.status = 'completed'
   return project(p)
 }

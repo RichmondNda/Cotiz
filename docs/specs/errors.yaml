@@ -164,7 +164,7 @@ errors:
 - code: payment_already_reviewed
   http: 409
   message: Ce paiement vient d'être traité par {reviewerName}.
-  where: 'Détail d''un paiement ; details: reviewerName, status'
+  where: 'Détail d''un paiement ; details: reviewerName, paymentStatus (status est le code HTTP du Problem)'
 - code: revert_window_expired
   http: 409
   message: L'annulation n'est plus possible (10 minutes écoulées).

@@ -84,7 +84,11 @@ export function allocationProblem(errors: AllocationIssue[]): never {
 }
 
 function pendingOrProblem(p: PaymentRow) {
-  if (p.status !== 'pending') problem('payment_already_reviewed')
+  if (p.status === 'pending') return
+  const by = p.reviewedBy ? userRow(p.reviewedBy) : null
+  // Détails du catalogue (`reviewerName`, statut) ; le statut du paiement prend le nom `paymentStatus` : `status` est
+  // le code HTTP dans un Problem (RFC 9457).
+  problem('payment_already_reviewed', { reviewerName: by ? `${by.firstName} ${by.lastName}`.trim() : null, paymentStatus: p.status })
 }
 
 export function paymentValidate(ctx: MockContext<'lg.pay.validate', 'validate'>) {
@@ -98,7 +102,8 @@ export function paymentValidate(ctx: MockContext<'lg.pay.validate', 'validate'>)
   if (!result.ok) allocationProblem(result.errors)
 
   const now = nowInstant()
-  db.allocations = db.allocations.filter(a => !(a.paymentId === p.id && a.state === 'proposed'))
+  // Propositions annulées (jamais supprimées, règle 8), allocations confirmées créées, payé crédité.
+  for (const a of db.allocations.filter(x => x.paymentId === p.id && x.state === 'proposed')) a.state = 'voided'
   for (const a of allocations) {
     db.allocations.push({ paymentId: p.id, installmentId: a.installmentId, amount: a.amount, state: 'confirmed' })
     const i = db.installments.find(x => x.id === a.installmentId)!
@@ -112,6 +117,9 @@ export function paymentValidate(ctx: MockContext<'lg.pay.validate', 'validate'>)
     reviewedAt: now, allocationAdjusted: adjusted, version: p.version + 1,
   })
   revertibleUntil.set(p.id, Date.now() + 10 * 60 * 1000)
+  // Premier paiement validé : conditions financières du projet verrouillées (architecture/04-flows.md § 4.5).
+  const project = projectRow(p.projectId)
+  project.financialTermsLockedAt ??= now
   return paymentDetail(p)
 }
 
@@ -132,13 +140,15 @@ export function paymentRevert(ctx: MockContext<'lg.pay.revert', 'revert'>) {
   if (p.status !== 'validated') problem('invalid_state')
   if (p.reviewedBy !== requireSession(ctx).userId) problem('not_reviewer')
   if ((revertibleUntil.get(p.id) ?? 0) < Date.now()) problem('revert_window_expired')
-  // Opération compensatoire : les allocations confirmées redeviennent proposées, le payé est décrédité.
+  // Opération compensatoire (04-flows § 4.5) : allocations confirmées annulées et payé décrédité, puis la répartition
+  // déclarée par le souscripteur est reproposée (Σ = montant déclaré), quel qu'ait été l'ajustement du gestionnaire.
   for (const a of db.allocations.filter(x => x.paymentId === p.id && x.state === 'confirmed')) {
     const i = db.installments.find(x => x.id === a.installmentId)!
     i.amountPaid -= a.amount
     if (i.amountPaid < i.amountDue) i.paidAt = null
-    a.state = 'proposed'
+    a.state = 'voided'
   }
+  for (const a of p.declaredAllocations) db.allocations.push({ paymentId: p.id, installmentId: a.installmentId, amount: a.amount, state: 'proposed' })
   Object.assign(p, { status: 'pending', amountReceived: null, reviewedBy: null, reviewedAt: null, allocationAdjusted: false, version: p.version + 1 })
   revertibleUntil.delete(p.id)
   return paymentDetail(p)

@@ -4,7 +4,7 @@
 // - reste d'une inscription (`EnrollmentFigures.remaining`) = engagement − versé validé (annuaire, cartes projet) ;
 // - retard = échéances `late` (installmentStatus) ; attendu à date = échéances dont la date est passée ;
 // - reçu dans le mois = allocations confirmées des paiements validés dans le mois.
-import { generateSchedule, installmentStatus, lateSince as domainLateSince, memberStanding } from '@cotiz/domain'
+import { DomainError, generateSchedule, installmentStatus, lateSince as domainLateSince, memberStanding, proposeAllocation } from '@cotiz/domain'
 import type { InstallmentStatus, LedgerInstallment, MemberStanding } from '@cotiz/domain'
 import { db } from './db'
 import type { EnrollmentRow, InstallmentRow, ProjectRow } from './db'
@@ -255,6 +255,21 @@ export function associationFigures(associationId: string): AssociationFigures {
     oldestPendingAt: pending[0]?.declaredAt ?? null,
     projectsCount: projects.length,
   }
+}
+
+/**
+ * Total encore répartissable sur des échéances (reste dû des échéances ouvertes, domain-rules § 3-4) : la valeur
+ * `maxAmount` que proposeAllocation() donne quand on lui demande plus que possible, sans recopier sa règle.
+ */
+export function openTotal(installments: LedgerInstallment[]): number {
+  try {
+    proposeAllocation(Number.MAX_SAFE_INTEGER, installments)
+  }
+  catch (e) {
+    if (e instanceof DomainError && e.code === 'amount_exceeds_remaining') return e.details.maxAmount as number
+    throw e
+  }
+  throw new Error('proposeAllocation aurait dû refuser un montant illimité')
 }
 
 /** Allocations confirmées des paiements validés pendant le mois `YYYY-MM`. */
