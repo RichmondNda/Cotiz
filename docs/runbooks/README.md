@@ -1,4 +1,4 @@
-# Runbooks (à rédiger au lot 3.5)
+# Runbooks (à rédiger au lot 7.1)
 
 - `restore.md` — restauration complète PostgreSQL + MinIO sur un nouveau VPS
 - `incident.md` — qui prévenir, comment diagnostiquer (GlitchTip → Kibana → Tempo), communication

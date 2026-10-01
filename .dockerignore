@@ -1,0 +1,21 @@
+# Contexte : racine du dépôt. Tout ce qui n'est pas nécessaire aux images est exclu.
+**/node_modules
+**/dist
+**/.turbo
+**/.nuxt
+**/.output
+**/.verif
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+.git
+.github
+.claude
+.husky
+design
+docs
+prompts
+graphify-out
+infra/compose
+AGENTS.md

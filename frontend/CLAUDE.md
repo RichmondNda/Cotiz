@@ -50,9 +50,10 @@ En cas de conflit entre la capture et la spec : **la capture gagne**, et tu le s
   Scripts : `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `test`, `capture`, `e2e`, `a11y`, `coherence`, `contrat-api` (jusqu'au lot 0.3).
   Depuis `frontend/`, les références de la maquette sont sous `../design/`.
 - Types : `frontend/types/` (import via `~~/types`) en V0 ; remplacés par `@cotiz/contracts` au lot 0.3.
-- Styles du DS : copies **non modifiées** de `design/css/` dans `frontend/app/assets/css/`, plus `app.css`
-  (reset léger, fond `var(--page)`). Polices : Google Fonts dans `nuxt.config` (`app.head`) en V0 ; auto-hébergées
-  via `@fontsource` au lot 0.1 (aucun appel à un service tiers). Logos copiés dans `frontend/public/`.
+- Styles du DS : copies **non modifiées** de `design/css/` dans `frontend/app/assets/css/` (seule exception : l'`@import`
+  Google Fonts en tête de `bundle.css`, retiré au lot 0.1), plus `app.css` (reset léger, fond `var(--page)`).
+  Polices : auto-hébergées via `@fontsource` (`css` de `nuxt.config`), aucun appel à un service tiers. Logos copiés dans
+  `frontend/public/`.
 - État global : Pinia uniquement si nécessaire (session, compteurs de navigation). Sinon composables.
 - Styles spécifiques en `<style scoped>` qui **n'utilisent que des variables de tokens**.
 

@@ -1,0 +1,39 @@
+// Configuration ESLint partagée (flat config) pour backend/, packages/* et tools/.
+// frontend/ garde @nuxt/eslint et sa propre configuration.
+import js from '@eslint/js';
+import prettier from 'eslint-config-prettier';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+export const ignores = [
+  '**/node_modules/**',
+  '**/dist/**',
+  '**/.turbo/**',
+  'frontend/**',
+  'design/**',
+  'docs/**',
+  'prompts/**',
+  'graphify-out/**',
+];
+
+export default tseslint.config(
+  { ignores },
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
+  {
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: { projectService: true },
+    },
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // Modules NestJS : classes vides portant @Module.
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
+    },
+  },
+  // Fichiers JavaScript (configurations, outils) : pas d'analyse de types.
+  { files: ['**/*.{js,mjs,cjs}'], ...tseslint.configs.disableTypeChecked },
+  prettier,
+);

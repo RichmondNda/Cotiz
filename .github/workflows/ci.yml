@@ -9,32 +9,57 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: frontend
-
 jobs:
   qualite:
-    name: Lint, typecheck, tests unitaires, build
+    name: Vérifications (pnpm verify) et build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Inclut les tests d'intégration du back (Testcontainers : Docker est disponible sur le runner).
+      - run: pnpm verify
+      - name: Audit des dépendances de production
+        run: pnpm audit --prod
+      - run: pnpm build
       # Le contrat d'API committé doit correspondre aux handlers de mocks.
       - name: Contrat d'API à jour
         run: |
-          npm run contrat-api
-          git diff --exit-code -- ../docs/api-v0.md || { echo "::error::docs/api-v0.md n'est pas à jour : lancer « npm run contrat-api » dans frontend/"; exit 1; }
+          pnpm --filter frontend contrat-api
+          git diff --exit-code -- docs/api-v0.md || { echo "::error::docs/api-v0.md n'est pas à jour : lancer « pnpm --filter frontend contrat-api »"; exit 1; }
+
+  # Images construites et analysées, jamais publiées : la publication (GHCR) et la recette arrivent au lot 7.1.
+  images:
+    name: Image ${{ matrix.image }} (build + Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, web]
+    env:
+      TRIVY: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${{ github.workspace }}:/src:ro aquasec/trivy:0.74.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/docker/${{ matrix.image }}.Dockerfile
+          tags: cotiz-${{ matrix.image }}:ci
+          load: true
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+      - name: Trivy — Dockerfile
+        run: $TRIVY config --quiet --severity HIGH,CRITICAL --exit-code 1 /src/infra/docker/${{ matrix.image }}.Dockerfile
+      - name: Trivy — image
+        run: $TRIVY image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 cotiz-${{ matrix.image }}:ci
 
   parcours:
     name: Parcours, cohérence, accessibilité
@@ -42,25 +67,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter frontend exec playwright install --with-deps chromium
       - name: Serveur de dev (mocks Nitro)
+        working-directory: frontend
         run: |
-          nohup npm run dev > dev.log 2>&1 &
+          nohup pnpm dev > dev.log 2>&1 &
           for i in $(seq 1 90); do
             curl -sf -o /dev/null http://localhost:3000/connexion && exit 0
             sleep 2
           done
           cat dev.log
           exit 1
-      - run: npm run e2e
-      - run: npm run coherence
-      - run: npm run a11y
+      - run: pnpm --filter frontend e2e
+      - run: pnpm --filter frontend coherence
+      - run: pnpm --filter frontend a11y
       - name: Captures et journal du serveur
         if: always()
         uses: actions/upload-artifact@v4

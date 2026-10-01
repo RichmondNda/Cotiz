@@ -1,89 +1,40 @@
-# Nuxt Minimal Starter
+# Cotiz — front (Nuxt 4)
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Membre du workspace pnpm du dépôt : toutes les commandes se lancent **depuis la racine**, avec `pnpm --filter frontend <script>`.
 
-## Setup
-
-Make sure to install dependencies:
+## Installation
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
+## Serveur de développement
 
-Start the development server on `http://localhost:3000`:
+Sur `http://localhost:3000` (données simulées par les handlers Nitro de `server/`) :
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+pnpm --filter frontend dev
 ```
 
 ## Vérifications de la V0
 
-Avec le serveur de dev lancé (`npm run dev`) :
+Avec le serveur de dev lancé :
 
 | Script | Rôle |
 |---|---|
-| `npm run e2e` | 4 parcours complets par l'interface (public, souscripteur, gestionnaire, plateforme) ; captures dans `.verif/e2e/` |
-| `npm run coherence` | Mêmes montants et compteurs d'un écran à l'autre (Moussa Diarra, Awa Koné, Centre communautaire, plateforme) |
-| `npm run a11y` | Audit axe-core (WCAG 2.1 A/AA) de toutes les routes en 1440 et 390 px |
-| `npm run capture -- <route>` | Capture d'un écran à comparer avec `design/screens/` |
+| `pnpm --filter frontend e2e` | 4 parcours complets par l'interface (public, souscripteur, gestionnaire, plateforme) ; captures dans `.verif/e2e/` |
+| `pnpm --filter frontend coherence` | Mêmes montants et compteurs d'un écran à l'autre (Moussa Diarra, Awa Koné, Centre communautaire, plateforme) |
+| `pnpm --filter frontend a11y` | Audit axe-core (WCAG 2.1 A/AA) de toutes les routes en 1440 et 390 px |
+| `pnpm --filter frontend capture <route>` | Capture d'un écran à comparer avec `design/screens/` |
 
-Sans serveur : `npm run typecheck`, `npm run lint`, `npm test` (tests unitaires) et `npm run contrat-api`, qui
-régénère `../docs/api-v0.md`, le contrat d'API que le back-end NestJS doit respecter.
+Sans serveur : `typecheck`, `lint`, `test` (tests unitaires) et `contrat-api`, qui régénère `../docs/api-v0.md`, le contrat
+d'API transitoire de la V0.
 
 ## Production
 
-Build the application for production:
-
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+pnpm --filter frontend build     # sortie dans .output/
+pnpm --filter frontend preview   # aperçu local du build
 ```
 
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+Voir la [documentation de déploiement Nuxt](https://nuxt.com/docs/getting-started/deployment).

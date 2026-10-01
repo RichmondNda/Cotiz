@@ -1,0 +1,100 @@
+# Environnement local : services dont dépendent l'api et le worker.
+# Lancement : docker compose -f infra/compose/local.yml up -d   (puis `pnpm dev` à la racine)
+# Identifiants de développement uniquement, jamais réutilisés ailleurs. Ports liés à 127.0.0.1.
+name: cotiz
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cotiz
+      POSTGRES_PASSWORD: cotiz
+      POSTGRES_DB: cotiz
+    ports:
+      - '127.0.0.1:${COTIZ_PG_PORT:-5432}:5432'
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cotiz -d cotiz']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Mode transaction : le contexte tenant passe par SET LOCAL (architecture/02).
+  # L'api et le worker passent par PgBouncer ; les migrations se connectent directement à PostgreSQL.
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    environment:
+      DB_HOST: postgres
+      DB_USER: cotiz
+      DB_PASSWORD: cotiz
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_PREPARED_STATEMENTS: '100'
+      MAX_CLIENT_CONN: '200'
+      DEFAULT_POOL_SIZE: '20'
+    ports:
+      - '127.0.0.1:${COTIZ_PGBOUNCER_PORT:-6432}:5432'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U cotiz']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '127.0.0.1:${COTIZ_REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # MinIO ne publie plus d'image sur Docker Hub : image Chainguard, construite depuis les sources.
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: cotiz
+      MINIO_ROOT_PASSWORD: cotiz-local-minio
+    ports:
+      - '127.0.0.1:${COTIZ_MINIO_PORT:-9000}:9000'
+      - '127.0.0.1:${COTIZ_MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio:/data
+
+  # Crée les 5 compartiments (architecture/08) puis s'arrête. Idempotent.
+  minio-init:
+    build: ./minio-init
+    environment:
+      MINIO_ROOT_USER: cotiz
+      MINIO_ROOT_PASSWORD: cotiz-local-minio
+    depends_on:
+      - minio
+    restart: 'no'
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - '127.0.0.1:${COTIZ_GOTENBERG_PORT:-3100}:3000'
+
+  # Premier démarrage long : téléchargement des signatures (plusieurs minutes).
+  clamav:
+    image: clamav/clamav:stable
+    ports:
+      - '127.0.0.1:${COTIZ_CLAMAV_PORT:-3310}:3310'
+    volumes:
+      - clamav:/var/lib/clamav
+
+volumes:
+  postgres:
+  redis:
+  minio:
+  clamav:

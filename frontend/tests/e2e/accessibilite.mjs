@@ -18,41 +18,47 @@ const ROUTES = {
 }
 
 const filtre = process.argv.slice(2)
+// Rendus audités en parallèle (pages indépendantes) : l'audit séquentiel dépassait 6 min en CI.
+const PARALLELE = Number(process.env.A11Y_PARALLELE ?? 4)
 const browser = await chromium.launch()
 const violations = new Map() // règle → { impact, aide, occurrences: Set<route (vue) : cible> }
 let pages = 0
 
-for (const [role, routes] of Object.entries(ROUTES)) {
-  for (const route of routes) {
-    if (filtre.length && !filtre.includes(route)) continue
-    for (const [vue, width, height] of [['web', 1440, 900], ['mobile', 390, 844]]) {
-      const ctx = await browser.newContext({ viewport: { width, height }, isMobile: vue === 'mobile', hasTouch: vue === 'mobile' })
-      if (role !== 'null') await ctx.addCookies([{ name: 'cotiz_role', value: role, url: BASE }])
-      const page = await ctx.newPage()
-      await page.goto(new URL(route, BASE).toString(), { waitUntil: 'networkidle' })
-      await page.waitForTimeout(700)
-      await page.addScriptTag({ content: axe })
-      const res = await page.evaluate(() => window.axe.run(document, {
-        runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
-      }))
-      pages++
-      for (const v of res.violations) {
-        const e = violations.get(v.id) ?? { impact: v.impact, aide: v.help, occurrences: new Set() }
-        // Outils de dev Nuxt (bouton flottant) : hors application.
-        for (const n of v.nodes.filter(n => !n.target.join(' ').includes('nuxt-devtools'))) e.occurrences.add(`${route} (${vue}) : ${n.target.join(' ')}${v.id === 'color-contrast' ? ' — ' + (n.any[0]?.message.match(/contrast of ([\d.]+)/)?.[1] ?? '?') + ':1' : ''}`)
-        if (e.occurrences.size) violations.set(v.id, e)
-      }
-      await ctx.close()
-    }
+const rendus = Object.entries(ROUTES).flatMap(([role, routes]) => routes
+  .filter(route => !filtre.length || filtre.includes(route))
+  .flatMap(route => [['web', 1440, 900], ['mobile', 390, 844]].map(([vue, width, height]) => ({ role, route, vue, width, height }))))
+
+async function auditer({ role, route, vue, width, height }) {
+  const ctx = await browser.newContext({ viewport: { width, height }, isMobile: vue === 'mobile', hasTouch: vue === 'mobile' })
+  if (role !== 'null') await ctx.addCookies([{ name: 'cotiz_role', value: role, url: BASE }])
+  const page = await ctx.newPage()
+  await page.goto(new URL(route, BASE).toString(), { waitUntil: 'networkidle' })
+  await page.waitForTimeout(700)
+  await page.addScriptTag({ content: axe })
+  const res = await page.evaluate(() => window.axe.run(document, {
+    runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+  }))
+  pages++
+  for (const v of res.violations) {
+    const e = violations.get(v.id) ?? { impact: v.impact, aide: v.help, occurrences: new Set() }
+    // Outils de dev Nuxt (bouton flottant) : hors application.
+    for (const n of v.nodes.filter(n => !n.target.join(' ').includes('nuxt-devtools'))) e.occurrences.add(`${route} (${vue}) : ${n.target.join(' ')}${v.id === 'color-contrast' ? ' — ' + (n.any[0]?.message.match(/contrast of ([\d.]+)/)?.[1] ?? '?') + ':1' : ''}`)
+    if (e.occurrences.size) violations.set(v.id, e)
   }
+  await ctx.close()
 }
+
+let suivant = 0
+await Promise.all(Array.from({ length: PARALLELE }, async () => {
+  while (suivant < rendus.length) await auditer(rendus[suivant++])
+}))
 await browser.close()
 
 console.log(`${pages} rendus audités.`)
 if (!violations.size) console.log('Aucune violation.')
 for (const [id, v] of violations) {
   console.log(`\n■ ${id} [${v.impact}] ${v.aide} — ${v.occurrences.size} occurrence(s)`)
-  for (const o of [...v.occurrences].slice(0, 12)) console.log(`   - ${o}`)
+  for (const o of [...v.occurrences].sort().slice(0, 12)) console.log(`   - ${o}`)
   if (v.occurrences.size > 12) console.log(`   … ${v.occurrences.size - 12} de plus`)
 }
 process.exit([...violations.keys()].some(k => k !== 'color-contrast') ? 1 : 0)

@@ -27,13 +27,15 @@ Recommandation : ELK, Prometheus, Grafana, Tempo, GlitchTip et Uptime Kuma sur u
 ## Environnements
 | Env | Où | Données | Déploiement |
 |---|---|---|---|
-| Local | `docker compose` (`infra/compose/local.yml`) | Jeu de référence | Manuel |
-| Recette | Projet Dokploy séparé | Fictives uniquement | Automatique à chaque fusion sur `main` |
-| Production | VPS applicatif | Réelles | Sur étiquette de version, validation manuelle |
+| Local | `docker compose` (`infra/compose/local.yml`) ; pile de production répétée en local au lot 3.5 (`infra/compose/production.yml`) | Jeu de référence | Manuel |
+| Recette | Projet Dokploy séparé (à partir du lot 7.1) | Fictives uniquement | Automatique à chaque fusion sur `main` |
+| Production | VPS applicatif (à partir du lot 7.1) | Réelles | Sur étiquette de version, validation manuelle |
+
+Tout est développé et testé en local avant la mise en ligne : la recette Dokploy, le raccordement de l'observabilité et la production arrivent ensemble au lot 7.1, en dernier.
 
 ## CI/CD (GitHub Actions)
 1. PR : lint, types, tests unitaires, intégration (Testcontainers), isolation, frontières de modules, conformité des mocks, `oasdiff`, contrôle de cohérence des docs.
-2. Fusion sur `main` : images, Trivy, GHCR, webhook Dokploy recette, Playwright en recette.
+2. Fusion sur `main` : images, Trivy, GHCR, webhook Dokploy recette, Playwright en recette (à partir du lot 7.1 ; avant, la CI construit les images sans les publier).
 3. Étiquette : migrations en tâche préalable, déploiement production après validation.
 Migrations « étendre puis contracter » : jamais de `DROP` dans le même déploiement qu'un changement de code.
 

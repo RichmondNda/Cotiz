@@ -1,0 +1,42 @@
+{
+  "name": "backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "concurrently --kill-others-on-fail -n api,worker -c blue,magenta \"node --run dev:api\" \"node --run dev:worker\"",
+    "dev:api": "node --conditions=development --env-file=.env.example --env-file-if-exists=.env --import @swc-node/register/esm-register --watch src/main.ts",
+    "dev:worker": "node --conditions=development --env-file=.env.example --env-file-if-exists=.env --import @swc-node/register/esm-register --watch src/worker.ts",
+    "start": "node dist/main.js",
+    "start:worker": "node dist/worker.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@cotiz/contracts": "workspace:*",
+    "@nestjs/common": "^12.1.2",
+    "@nestjs/core": "^12.1.2",
+    "@nestjs/platform-express": "^12.1.2",
+    "ioredis": "^6.0.0",
+    "pg": "^8.23.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cotiz/config": "workspace:*",
+    "@swc-node/register": "^1.12.1",
+    "@swc/core": "^1.16.13",
+    "@testcontainers/postgresql": "^12.2.0",
+    "@testcontainers/redis": "^12.2.0",
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "concurrently": "^10.0.5",
+    "testcontainers": "^12.2.0",
+    "typescript": "^6.0.3",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^5.0.2"
+  }
+}
