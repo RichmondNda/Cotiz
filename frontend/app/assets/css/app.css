@@ -1,5 +1,5 @@
 /* Surcouche applicative Cotiz : reset léger et fond de page.
-   Les polices (Poppins, Inter) sont chargées dans nuxt.config (app.head) avec preconnect.
+   Les polices (Poppins, Inter) sont auto-hébergées via @fontsource (nuxt.config, `css`).
    N'utiliser ici que des variables de cotiz-tokens.css. */
 
 *,

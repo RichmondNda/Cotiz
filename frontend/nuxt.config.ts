@@ -15,18 +15,25 @@ export default defineNuxtConfig({
       title: 'Cotiz',
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/cotiz-mark.svg' },
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        {
-          rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap',
-        },
       ],
     },
   },
 
-  // Design system Cotiz : fichiers copiés tels quels depuis design/css, puis surcouche applicative.
-  css: ['~/assets/css/cotiz-tokens.css', '~/assets/css/bundle.css', '~/assets/css/app.css'],
+  // Polices auto-hébergées (@fontsource, aucun appel à un service tiers) : mêmes graisses que la maquette.
+  // Puis le design system Cotiz : fichiers copiés tels quels depuis design/css (sauf l'@import Google Fonts
+  // de bundle.css, retiré), puis surcouche applicative.
+  css: [
+    '@fontsource/poppins/400.css',
+    '@fontsource/poppins/500.css',
+    '@fontsource/poppins/600.css',
+    '@fontsource/poppins/700.css',
+    '@fontsource/inter/400.css',
+    '@fontsource/inter/500.css',
+    '@fontsource/inter/600.css',
+    '~/assets/css/cotiz-tokens.css',
+    '~/assets/css/bundle.css',
+    '~/assets/css/app.css',
+  ],
   runtimeConfig: {
     public: {
       // Base des appels d'API. V0 : handlers Nitro locaux (mocks). Brancher NestJS = changer cette valeur
