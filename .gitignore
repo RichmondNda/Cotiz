@@ -24,3 +24,6 @@ Thumbs.db
 
 # Journaux
 *.log
+
+# Rapports de couverture (vitest --coverage)
+coverage/

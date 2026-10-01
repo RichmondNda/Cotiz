@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@cotiz/config": "workspace:*",
+    "@scalar/api-reference": "^1.72.3",
     "@swc-node/register": "^1.12.1",
     "@swc/core": "^1.16.13",
     "@testcontainers/postgresql": "^12.2.0",
