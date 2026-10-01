@@ -20,4 +20,8 @@ export interface Plan {
   /** Plan mis en avant sur la landing (« Le plus choisi », étoile dans SaPlans). */
   misEnAvant: boolean
   statut: StatutPlan
+  /** Version lue (verrouillage optimiste des modifications). */
+  version?: number
+  /** Code stable du plan (`essentiel`). */
+  code?: string
 }

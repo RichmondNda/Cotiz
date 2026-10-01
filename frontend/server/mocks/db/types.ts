@@ -218,6 +218,7 @@ export interface ContractRow {
   associationSignedBy: string | null
   lockedAt: string | null
   createdAt: string
+  version: number
 }
 
 export interface NotificationRow {

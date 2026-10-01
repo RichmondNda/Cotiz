@@ -45,13 +45,13 @@ const signatures = computed<Signature[]>(() => {
   ]
 })
 
-const appeler = useAppelApi()
+const signerContrat = useSignatureContrat()
 async function signer() {
   if (!contrat.value || !accepte.value) return
   envoi.value = true
   erreurSignature.value = false
   try {
-    signeMaintenant.value = await appeler<ContratDetaille>(`/contrats/${contrat.value.id}/signature`)
+    signeMaintenant.value = await signerContrat(contrat.value.projetId)
     // Accueil, compteurs et liste des contrats changent : on rafraîchit les données déjà chargées.
     await refreshNuxtData()
   }

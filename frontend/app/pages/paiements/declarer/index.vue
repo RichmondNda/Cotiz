@@ -148,7 +148,7 @@ function scrollHaut() {
 }
 
 // ---------------------------------------------------------------- Envoi
-const appeler = useAppelApi()
+const declarer = useDeclarationPaiement()
 const envoi = ref(false)
 const erreurEnvoi = ref(false)
 
@@ -172,7 +172,7 @@ async function envoyer() {
   envoi.value = true
   erreurEnvoi.value = false
   try {
-    const paiement = await appeler<Paiement>('/declarations', { body: corps })
+    const paiement = await declarer(corps)
     reinitialiser()
     await refreshNuxtData()
     await navigateTo({ path: '/paiements/declarer/ok', query: { paiement: paiement.id } })

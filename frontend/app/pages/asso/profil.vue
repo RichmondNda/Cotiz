@@ -7,7 +7,7 @@
 -->
 <script setup lang="ts">
 import type { PreferencesGestionnaire } from '~~/types'
-import { codeErreur } from '~/composables/api/useApi'
+import { codeErreur } from '~/composables/api/client'
 import { estDate, formatDate } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-gestionnaire', layout: 'backoffice', espace: 'gestionnaire', titre: 'Mon profil' })

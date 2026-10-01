@@ -138,7 +138,7 @@ function teamMember(associationId: string, userId: string) {
   const u = userRow(userId)
   return {
     member: { ...personRef(u), email: u.email ?? `${u.key}@entraide.example`, phone: u.phone },
-    role: m.role as 'owner' | 'manager' | 'viewer', status: m.status, lastLoginAt: u.lastLoginAt ?? (m.status === 'active' ? '2026-09-24T18:40:00Z' : null),
+    role: m.role as 'owner' | 'manager' | 'viewer', title: m.title, status: m.status, lastLoginAt: u.lastLoginAt ?? (m.status === 'active' ? '2026-09-24T18:40:00Z' : null),
   }
 }
 
@@ -202,6 +202,7 @@ export function projectContract(projectId: string) {
     signatures: { signed: enrollments.length - unsigned.length + extra, total: enrollments.length + extra },
     unsigned: unsigned.map(e => ({ enrollmentId: e.id, member: personRef(userRow(e.userId)), enrolledAt: e.joinedAt })),
     pdfFileId: null,
+    version: c.version,
   }
 }
 
@@ -213,17 +214,19 @@ export function contractGet(ctx: MockContext<'ct.get', 'get'>) {
 export function contractUpdate(ctx: MockContext<'ct.get', 'update'>) {
   projectRow(ctx.params.pid, ctx.params.aid)
   const c = contractOf(ctx.params.pid)
+  checkVersion(ctx, c.version)
   if (c.lockedAt) problem('contract_locked')
-  Object.assign(c, { bodyTemplate: ctx.body.bodyTemplate, signerName: ctx.body.signerName, signerTitle: ctx.body.signerTitle })
+  Object.assign(c, { bodyTemplate: ctx.body.bodyTemplate, signerName: ctx.body.signerName, signerTitle: ctx.body.signerTitle, version: c.version + 1 })
   return projectContract(ctx.params.pid)
 }
 
 export function contractLock(ctx: MockContext<'ct.get', 'lock'>) {
   projectRow(ctx.params.pid, ctx.params.aid)
   const c = contractOf(ctx.params.pid)
+  checkVersion(ctx, c.version)
   if (c.lockedAt) problem('contract_locked')
   const now = nowInstant()
-  Object.assign(c, { lockedAt: now, associationSignedAt: now, associationSignedBy: requireSession(ctx).userId })
+  Object.assign(c, { lockedAt: now, associationSignedAt: now, associationSignedBy: requireSession(ctx).userId, version: c.version + 1 })
   return projectContract(ctx.params.pid)
 }
 

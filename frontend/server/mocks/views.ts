@@ -59,7 +59,7 @@ export function publicPlan(p: PlanRow): In<typeof PublicPlan> {
   }
 }
 export function plan(p: PlanRow): In<typeof Plan> {
-  return { ...publicPlan(p), isActive: p.isActive, archivedAt: p.archivedAt, subscribersCount: p.subscribersCount }
+  return { ...publicPlan(p), isActive: p.isActive, archivedAt: p.archivedAt, subscribersCount: p.subscribersCount, version: p.version }
 }
 
 // ---------------------------------------------------------------- Association

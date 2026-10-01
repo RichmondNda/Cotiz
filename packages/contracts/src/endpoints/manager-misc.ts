@@ -41,6 +41,8 @@ export const ProjectContract = z.object({
   signatures: z.object({ signed: z.int().nonnegative(), total: z.int().nonnegative() }),
   unsigned: z.array(z.object({ enrollmentId: Uuid, member: PersonRef, enrolledAt: Instant })),
   pdfFileId: Uuid.nullable(),
+  /** Verrouillage optimiste (`If-Match` de `update` et `lock`). */
+  version: z.int().min(1),
 });
 
 export const ctGet = defineEndpoint({
@@ -367,6 +369,8 @@ export const rmHist = defineEndpoint({
 export const TeamMember = z.object({
   member: PersonRef.extend({ email: Email, phone: PhoneE164.nullable() }),
   role: ManagerRole,
+  /** Fonction affichée (« Trésorière ») ; `null` si non renseignée. */
+  title: z.string().nullable(),
   status: MembershipStatus,
   lastLoginAt: Instant.nullable(),
 });

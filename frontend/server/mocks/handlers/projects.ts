@@ -80,7 +80,7 @@ export function projectCreate(ctx: MockContext<'pr.create', 'create'>) {
     db.contracts.push({
       id: uid('contract', key), projectId: row.id, bodyTemplate: b.contract.bodyTemplate, signerName: b.contract.signerName,
       signerTitle: b.contract.signerTitle, associationSignedAt: signed, associationSignedBy: signed ? requireSession(ctx).userId : null,
-      lockedAt: signed, createdAt: nowInstant(),
+      lockedAt: signed, createdAt: nowInstant(), version: 1,
     })
   }
   return project(row)

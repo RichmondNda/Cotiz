@@ -347,7 +347,7 @@ function contracts(projectRows: ProjectRow[]): ContractRow[] {
     id: uid('contract', key), projectId: projectRows.find(p => p.key === key)!.id, bodyTemplate: CONTRACT_TEMPLATE,
     signerName: by === 'awa-kone' ? 'Awa Koné' : '[SIGNATAIRE]', signerTitle: by === 'awa-kone' ? 'trésorière' : '[FONCTION]',
     associationSignedAt: date ? at(date) : null, associationSignedBy: by ? U(by) : null, lockedAt: date ? at(date) : null,
-    createdAt: at(date ?? '2026-09-01'),
+    createdAt: at(date ?? '2026-09-01'), version: 1,
   })
   return [
     signed('centre-communautaire', '2026-03-01', 'awa-kone'),

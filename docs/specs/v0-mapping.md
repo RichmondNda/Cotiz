@@ -237,6 +237,8 @@ l'état du store l'impose (paiement déjà traité, répartition qui ne correspo
 | C4 | `paymentMethodKind` (`PaymentMethodKind \| null`) sur `PaymentSummary` et `SubscriberPayment` | `packages/contracts` (`ledger.ts`, `me.ts`) | Moyen affiché dans la file de validation et l'aperçu (`payments.payment_method_id`). |
 | C5 | `files.original_name` ; `StoredFile.fileName` ; `PaymentProof.fileName`, `PaymentProof.mimeType` (`string \| null`) | `schema.sql`, `data-model.md`, `packages/contracts` (`common.ts`, `ledger.ts`) | Nom et type de la preuve dans la visionneuse (image ou PDF) ; le nom est déjà transmis à `fl.upload`. |
 | C6 | `allocation_exceeds_remaining` ajouté aux erreurs de `me.declare` et `lg.pay.validate` | `endpoints.yaml`, `packages/contracts` (`me.ts`, `ledger.ts`) | `errors.yaml` le prévoit pour la déclaration et la validation (« Une échéance reçoit plus que son reste dû ») ; `validateAllocation()` le produit. |
+| C7 | `version` sur `Plan` et `ProjectContract` | `packages/contracts` (`plan.ts`, `manager-misc.ts`) | `pf.plan.write` et `ct.get` exigent `If-Match` : la version doit être lisible dans la ressource. |
+| C8 | `TeamMember.title` | `packages/contracts` (`manager-misc.ts`) | Fonction des gestionnaires dans l'écran Équipe (colonne `memberships.title` de C1). |
 
 Tous les changements sont additifs (champs nouveaux) : `oasdiff breaking` contre `backend` ne signale rien. Écarté : remplacer les tranches de `estimated_subscribers` par celles de la maquette (valeurs d'énumération retirées d'une requête = changement cassant) → R8.
 

@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import type { ElementMenu } from '~/components/cz/CzMenu.vue'
 import type { EvenementFrise } from '~/components/metier/Frise.vue'
-import { codeErreur } from '~/composables/api/useApi'
+import { codeErreur } from '~/composables/api/client'
 import { estDate, formatDate, formatMois } from '~/utils/format'
 import { STATUTS_SOUSCRIPTION } from '~/utils/statuts'
 

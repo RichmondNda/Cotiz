@@ -11,6 +11,10 @@ export interface UtilisateurSession {
   /** Gestionnaire : association courante (carte en tête de la barre latérale). */
   associationId?: Identifiant
   association?: { id: Identifiant, nom: string, sigle?: string, plan: string }
+  /** Permissions de l'espace courant (`GET /me`) : le front masque, le back refuse. */
+  permissions: string[]
+  /** Fonctionnalités actives (`GET /me`) : une absente → « Bientôt disponible ». */
+  features: string[]
 }
 
 /** Compteurs des menus (`/api/navigation/compteurs`). */
@@ -21,6 +25,8 @@ export interface CompteursNavigation {
   souscripteursEnRetard: number
   demandesATraiter: number
 }
+
+// Types d'interface des écrans (lot 0.3) : les échanges suivent @cotiz/contracts, adaptés par composables/api/vues.
 
 // ---------------------------------------------------------------- Authentification (écrans publics)
 

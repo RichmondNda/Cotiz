@@ -31,6 +31,8 @@ export const Plan = PublicPlan.extend({
   archivedAt: z.iso.datetime().nullable(),
   /** Associations abonnées à ce plan. */
   subscribersCount: z.int().nonnegative(),
+  /** Verrouillage optimiste (`If-Match` de `pf.plan.write`). */
+  version: z.int().min(1),
 }).meta({ id: 'Plan' });
 export type Plan = z.infer<typeof Plan>;
 
