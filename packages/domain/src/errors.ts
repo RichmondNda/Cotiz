@@ -11,7 +11,12 @@ export type DomainErrorCode =
   // Contrôles d'entrée non décrits par domain-rules : date illisible, type de calendrier ou horizon inconnus.
   | 'invalid_date'
   | 'invalid_schedule_type'
-  | 'invalid_horizon';
+  | 'invalid_horizon'
+  // Répartition (domain-rules § 4) ; les erreurs de validateAllocation sont renvoyées, pas levées.
+  | 'amount_exceeds_remaining'
+  // Statuts : délai de grâce ou statut d'inscription invalides (non décrits par domain-rules).
+  | 'invalid_grace_days'
+  | 'invalid_status';
 
 /** Erreur d'une règle métier : `code` stable, `details` facultatifs (ex. `maxAmount`). */
 export class DomainError extends Error {
