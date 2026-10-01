@@ -1,5 +1,17 @@
 /** Codes d'erreur des règles métier (docs/specs/domain-rules.md, vecteurs de test). */
-export type DomainErrorCode = 'invalid_amount' | 'invalid_currency' | 'currency_mismatch';
+export type DomainErrorCode =
+  | 'invalid_amount'
+  | 'invalid_currency'
+  | 'currency_mismatch'
+  // Échéancier (domain-rules § 2).
+  | 'invalid_frequency'
+  | 'invalid_due_day'
+  | 'end_date_required'
+  | 'end_before_start'
+  // Contrôles d'entrée non décrits par domain-rules : date illisible, type de calendrier ou horizon inconnus.
+  | 'invalid_date'
+  | 'invalid_schedule_type'
+  | 'invalid_horizon';
 
 /** Erreur d'une règle métier : `code` stable, `details` facultatifs (ex. `maxAmount`). */
 export class DomainError extends Error {
