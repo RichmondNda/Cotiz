@@ -5,8 +5,22 @@ import type { EnrollmentStatus, InstallmentState, InstallmentStatus, MemberStand
 
 // Statuts : domain-rules.md § 6 (échéance) et § 7 (situation d'un souscripteur). Vecteurs : status.json.
 
+/** Au-delà, une saisie est certainement erronée (et les dates sortiraient du calendrier pris en charge). */
+const MAX_GRACE_DAYS = 365;
+
 function assertGraceDays(graceDays: number): void {
-  if (!Number.isInteger(graceDays) || graceDays < 0) throw new DomainError('invalid_grace_days', { graceDays });
+  if (!Number.isInteger(graceDays) || graceDays < 0 || graceDays > MAX_GRACE_DAYS) {
+    throw new DomainError('invalid_grace_days', { graceDays });
+  }
+}
+
+/**
+ * Date du jour dans le fuseau de l'association (`Africa/Abidjan` par défaut, domain-rules § 6), commune au front
+ * et au back : jamais `new Date().toISOString().slice(0, 10)`, faux hors UTC entre minuit UTC et minuit local.
+ */
+export function todayIn(timeZone = 'Africa/Abidjan', now: Date = new Date()): IsoDate {
+  // `en-CA` formate en `YYYY-MM-DD`.
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
 }
 
 /** Premier jour de retard : échéance + délai de grâce + 1 jour. */
@@ -38,7 +52,9 @@ export function installmentStatus(installment: InstallmentState, today: IsoDate,
 }
 
 /**
- * Situation d'un souscripteur sur un projet (§ 7). `activation_pending` est calculé par le back à partir du compte.
+ * Situation d'un souscripteur sur un projet (§ 7). `installmentStatuses` : statuts *calculés* (`installmentStatus`),
+ * le `late` persisté n'étant mis à jour que par la tâche quotidienne. `activation_pending` est calculé par le back à
+ * partir du compte ; sa priorité face à `signature_required` n'est pas fixée par la spec.
  */
 export function memberStanding(
   enrollmentStatus: EnrollmentStatus,

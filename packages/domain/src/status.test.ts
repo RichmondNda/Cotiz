@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { installmentStatus, lateSince, memberStanding } from './index.js';
+import { installmentStatus, lateSince, memberStanding, todayIn } from './index.js';
 import type { InstallmentState, InstallmentStatus, LedgerInstallment } from './index.js';
 import { loadVectors } from './test-vectors.js';
 
@@ -93,5 +93,15 @@ describe('memberStanding', () => {
 
   it('statut d’inscription inconnu → invalid_status', () => {
     expect(() => memberStanding('frozen' as 'active', [])).toThrow(expect.objectContaining({ code: 'invalid_status' }));
+  });
+});
+
+describe('todayIn', () => {
+  it('date du jour dans le fuseau de l’association, y compris entre minuit UTC et minuit local', () => {
+    const lateEvening = new Date('2026-09-29T23:30:00Z');
+    expect(todayIn('Africa/Abidjan', lateEvening)).toBe('2026-09-29');
+    expect(todayIn('Africa/Douala', lateEvening)).toBe('2026-09-30');
+    expect(todayIn(undefined, lateEvening)).toBe('2026-09-29');
+    expect(todayIn('America/Port-au-Prince', new Date('2026-09-30T02:00:00Z'))).toBe('2026-09-29');
   });
 });

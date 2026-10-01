@@ -11,7 +11,10 @@ export function remainingOf(installment: LedgerInstallment): number {
   return installment.amountDue - installment.amountPaid - installment.amountPending;
 }
 
-/** Ouverte : ni payée, ni dispensée, ni annulée, et reste dû > 0 (§ 3). */
+/**
+ * Ouverte : statut persisté ni `paid`, ni `waived`, ni `canceled`, et reste dû > 0 (§ 3, lecture littérale).
+ * L'appelant doit donc tenir le statut persisté à jour (recalcul par `installmentStatus` dans la transaction).
+ */
 function isOpen(installment: LedgerInstallment): boolean {
   return !CLOSED.has(installment.status) && remainingOf(installment) > 0;
 }
@@ -69,6 +72,28 @@ export interface ValidationResult {
 }
 
 /**
+ * Échéances vues par la validation d'un paiement par le gestionnaire (§ 5, architecture/04-flows § 4.5) :
+ * `amountPending` sans les allocations proposées de ce paiement.
+ */
+export function excludingPayment(
+  installments: readonly LedgerInstallment[],
+  paymentAllocations: readonly Allocation[],
+): LedgerInstallment[] {
+  const own = new Map<string, number>();
+  for (const a of paymentAllocations) own.set(a.installmentId, (own.get(a.installmentId) ?? 0) + a.amount);
+  return installments.map((x) => {
+    const mine = own.get(x.id) ?? 0;
+    if (mine > x.amountPending) throw new DomainError('invalid_amount', { installmentId: x.id });
+    return mine === 0 ? x : { ...x, amountPending: x.amountPending - mine };
+  });
+}
+
+export interface ValidateOptions {
+  /** Inscription du paiement : une allocation sur une autre inscription → `mixed_enrollments`. */
+  enrollmentId?: string;
+}
+
+/**
  * Contrôle d'une répartition (§ 5). Σ réparti = somme des allocations dont le montant est un entier positif
  * (doublons et échéances fermées compris : ils ont déjà leur propre erreur).
  * À la validation par un gestionnaire, `amountPending` des échéances exclut les allocations du paiement en cours.
@@ -77,6 +102,7 @@ export function validateAllocation(
   amount: number,
   allocations: readonly Allocation[],
   installments: readonly LedgerInstallment[],
+  options: ValidateOptions = {},
 ): ValidationResult {
   // Données d'échéance corrompues (montant décimal, négatif) : erreur levée, ce n'est pas une saisie à corriger.
   installments.forEach(assertInstallment);
@@ -86,7 +112,7 @@ export function validateAllocation(
 
   const byId = new Map(installments.map((x) => [x.id, x]));
   const seen = new Set<string>();
-  const enrollments = new Set<string>();
+  const enrollments = new Set<string>(options.enrollmentId === undefined ? [] : [options.enrollmentId]);
   let allocated = 0;
   for (const { installmentId, amount: part } of allocations) {
     const positive = Number.isSafeInteger(part) && part > 0;
