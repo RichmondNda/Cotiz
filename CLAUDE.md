@@ -95,5 +95,7 @@ node tools/check-docs.mjs         # cohérence de docs/specs et docs/lots
 - Ne modifie `docs/` que pour mettre à jour `docs/progress.md`, sauf demande explicite. Si une spec doit changer, propose le changement.
 - Tout écran touché par une bascule est revérifié avec `/verifier-ecran` (le rendu ne doit pas bouger).
 - Commits : Conventional Commits, portée = module ou paquet (`feat(ledger): valider un paiement`). Branche `lot/<id>-<slug>`.
+- Branche d'intégration des lots back : `backend`. Chaque `lot/<id>-<slug>` part de `origin/backend` et sa PR y est fusionnée
+  (`--base backend`, commit de fusion) ; `backend` n'est fusionnée dans `main` que sur demande.
 - Termine chaque étape par : ce qui est fait, résultat de `pnpm verify`, ce qui reste.
 - Si une information manque ou si une règle bloque : **demander**, ne pas inventer.
