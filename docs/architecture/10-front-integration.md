@@ -25,7 +25,7 @@ export const REAL_ENDPOINTS = new Set<EndpointId>([
 ```
 - Middleware Nitro `frontend/server/middleware/bascule.ts` : pour une requête `/api/v1/**`, retrouve l'id d'endpoint (méthode + chemin, via le registre du contrat) ; si l'id est dans `REAL_ENDPOINTS` **ou** si `NUXT_MOCKS=0`, `proxyRequest()` vers `NUXT_API_ORIGIN` (NestJS, `http://localhost:4000` en local) ; sinon le handler simulé répond.
 - Le navigateur ne parle qu'à Nuxt (même origine : pas de CORS, cookies d'authentification sur le domaine du front).
-- En local et en recette : `NUXT_MOCKS=1`. En production (à partir du lot 3.5) : `NUXT_MOCKS=0` et les handlers simulés sont exclus du build (`nitro.ignore` conditionnel).
+- En développement local : `NUXT_MOCKS=1`. Build de production (répété en local au lot 3.5, déployé en recette et en production au lot 7.1) : `NUXT_MOCKS=0` et les handlers simulés sont exclus du build (`nitro.ignore` conditionnel).
 
 ## Protocole par endpoint (à suivre dans chaque lot)
 1. **Figer le contrat** : schéma Zod relu ; toute modification = changement dans `packages/contracts`, front, back et mock dans la même PR.
