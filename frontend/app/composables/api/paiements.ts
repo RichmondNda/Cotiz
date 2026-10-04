@@ -1,7 +1,7 @@
 // Paiements : file et détail gestionnaire (lg.pay.*), historique et confirmation souscripteur (me.history, me.payment),
 // échéances (me.project / lg.grid). Le rôle de la session choisit l'espace interrogé.
 import type { ApiClient } from './client'
-import type { Echeance, NouvelleDeclaration, Paiement, PaiementDetail, PaiementListe, Projet, RejetPaiement, Souscripteur, ValidationPaiement } from '~~/types'
+import type { Echeance, EtatPaiement, NouvelleDeclaration, Paiement, PaiementDetail, PaiementListe, Projet, RejetPaiement, Souscripteur, ValidationPaiement } from '~~/types'
 import { useSession } from '~/composables/useSession'
 import { associationCourante } from './session'
 import { chargerAssociation } from './associations'
@@ -77,9 +77,14 @@ export const useEcheances = (filtres: MaybeRefOrGetter<{ projetId?: string, sous
     return [...c.echeances.values()].filter(e => (!f.projetId || e.projetId === f.projetId) && (!f.statut || e.statut === f.statut))
   })
 
-/** Version courante d'un paiement (If-Match des décisions). */
-async function versionPaiement(client: ApiClient, aid: string, payId: string) {
-  return (await client.call('lg.pay.get', 'get', { params: { aid, payId } })).version
+/**
+ * Version (If-Match) et devise d'une décision : celles du paiement affiché (détail) — une modification entre-temps
+ * renvoie `version_conflict`. Écrans de liste (le résumé du contrat n'a pas de `version`) : relues juste avant l'envoi.
+ */
+async function etatPaiement(client: ApiClient, aid: string, payId: string, connu?: EtatPaiement): Promise<EtatPaiement> {
+  if (connu) return connu
+  const p = await client.call('lg.pay.get', 'get', { params: { aid, payId } })
+  return { version: p.version, devise: p.amountDeclared.currency }
 }
 
 /** Validation d'un paiement déclaré par un gestionnaire (grille, file de validation, détail), répartition ajustable. */
@@ -88,11 +93,12 @@ export function useValidationPaiement() {
   return async (paiementId: string, corps: ValidationPaiement = {}): Promise<Paiement> => {
     const aid = await associationCourante(client)
     try {
+      const { version, devise } = await etatPaiement(client, aid, paiementId, corps.etat)
       await client.call('lg.pay.validate', 'validate', {
-        params: { aid, payId: paiementId }, ifMatch: await versionPaiement(client, aid, paiementId),
+        params: { aid, payId: paiementId }, ifMatch: version,
         body: {
-          ...(corps.repartition ? { allocations: corps.repartition.map(r => ({ installmentId: r.echeanceId, amount: { amount: r.montantAffecte, currency: 'XOF' as const } })) } : {}),
-          ...(corps.montantRecu !== undefined ? { amountReceived: { amount: corps.montantRecu, currency: 'XOF' as const } } : {}),
+          ...(corps.repartition ? { allocations: corps.repartition.map(r => ({ installmentId: r.echeanceId, amount: { amount: r.montantAffecte, currency: devise } })) } : {}),
+          ...(corps.montantRecu !== undefined ? { amountReceived: { amount: corps.montantRecu, currency: devise } } : {}),
         },
       })
       return detailPaiement(client, aid, paiementId)
@@ -118,7 +124,7 @@ export function useTraitementPaiement() {
       const aid = await associationCourante(client)
       try {
         await client.call('lg.pay.reject', 'reject', {
-          params: { aid, payId: paiementId }, ifMatch: await versionPaiement(client, aid, paiementId),
+          params: { aid, payId: paiementId }, ifMatch: (await etatPaiement(client, aid, paiementId, corps.etat)).version,
           body: { reasonCode: MOTIF_REJET_INVERSE[corps.motif], ...(corps.message ? { message: corps.message } : {}) },
         })
         return detailPaiement(client, aid, paiementId)
@@ -149,8 +155,10 @@ const MIME_PREUVE = (nom: string) => (nom.toLowerCase().endsWith('.pdf') ? 'appl
  */
 export function useDeclarationPaiement() {
   const client = useClient()
-  return async (d: NouvelleDeclaration): Promise<{ id: string }> => {
+  /** `cle` : clé d'idempotence, identique pour chaque nouvel essai du même contenu (useDeclaration › cleEnvoi). */
+  return async (d: NouvelleDeclaration, cle: string): Promise<{ id: string }> => {
     const projet = await client.call('me.project', 'get', { params: { pid: d.projetId } })
+    const devise = projet.remaining.currency
     const moyen = projet.paymentMethods.find(pm => pm.kind === MOYEN_INVERSE[d.moyen]) ?? null
     let proofFileId: string | undefined
     if (d.preuve.type !== 'reference') {
@@ -161,17 +169,17 @@ export function useDeclarationPaiement() {
     }
     const reference = d.preuve.reference?.trim()
     try {
-      return await client.call('me.declare', 'declare', { body: {
-        projectId: d.projetId, amount: { amount: d.montant, currency: 'XOF' }, paidOn: d.dateVirement, paymentMethodId: moyen?.id ?? null,
+      return await client.call('me.declare', 'declare', { idempotencyKey: cle, body: {
+        projectId: d.projetId, amount: { amount: d.montant, currency: devise }, paidOn: d.dateVirement, paymentMethodId: moyen?.id ?? null,
         ...(proofFileId ? { proofFileId } : {}), ...(reference ? { transactionReference: reference } : {}),
         ...(d.commentaire ? { comment: d.commentaire } : {}),
-        allocations: d.repartition.map(r => ({ installmentId: r.echeanceId, amount: { amount: r.montantAffecte, currency: 'XOF' as const } })),
+        allocations: d.repartition.map(r => ({ installmentId: r.echeanceId, amount: { amount: r.montantAffecte, currency: devise } })),
       } })
     }
     catch (e) {
       traduireErreur(e, {
         signature_required: 'contrat-a-signer', amount_exceeds_remaining: 'montant-trop-eleve', allocation_mismatch: 'repartition-invalide',
-        allocation_exceeds_remaining: 'repartition-invalide', proof_required: 'preuve-manquante', validation_failed: 'montant-invalide',
+        allocation_exceeds_remaining: 'repartition-invalide', installment_not_open: 'repartition-invalide', proof_required: 'preuve-manquante', validation_failed: 'montant-invalide',
       })
     }
   }

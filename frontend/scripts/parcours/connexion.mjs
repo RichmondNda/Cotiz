@@ -7,7 +7,7 @@ async function saisir(page, telephone, motDePasse) {
 
 async function soumettre(page) {
   await page.getByRole('button', { name: 'Me connecter' }).click()
-  await page.waitForResponse('**/api/session/connexion')
+  await page.waitForResponse('**/api/v1/auth/login')
 }
 
 export default {

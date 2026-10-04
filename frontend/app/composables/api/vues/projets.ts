@@ -3,10 +3,11 @@
 import { formatMoney, generateSchedule } from '@cotiz/domain'
 import type { Enrollment, PaymentMethod, Project, ProjectSummary as ProjectSummarySchema } from '@cotiz/contracts'
 import type { z } from 'zod'
+import type { CallOutput } from '@cotiz/api-client'
 import type {
   ContratProjet, Echeance, LigneGrilleProjet, ModalitePaiement, Projet, RapportProjet, SouscriptionAvecSouscripteur, SyntheseProjet,
 } from '~~/types'
-import { CALENDRIER, email, FREQUENCE, jour, m, mOu, pourcent, SITUATION, STATUT_ECHEANCE, STATUT_PROJET, tel } from './communs'
+import { CALENDRIER, ECHEANCE_FERMEE, email, FREQUENCE, jour, m, mOu, pourcent, SITUATION, STATUT_ECHEANCE, STATUT_PROJET, tel } from './communs'
 import { vueModalites } from './associations'
 
 type ProjectSummary = z.output<typeof ProjectSummarySchema>
@@ -97,10 +98,7 @@ export function vueSouscription(e: Enrollment, associationId: string): Souscript
   }
 }
 
-type Grille = {
-  columns: { sequence: number, kind: string, dueDate: string }[]
-  items: { enrollmentId: string, member: { id: string }, cells: { installmentId: string, sequence: number, status: string, amountDue: { amount: number }, amountPaid: { amount: number } }[] }[]
-}
+type Grille = CallOutput<'lg.grid', 'get'>
 
 /** Grille du projet : une ligne par souscripteur, ses échéances dans l'ordre. */
 export function vueGrille(g: Grille, souscriptions: SouscriptionAvecSouscripteur[], projetId: string): LigneGrilleProjet[] {
@@ -113,6 +111,7 @@ export function vueGrille(g: Grille, souscriptions: SouscriptionAvecSouscripteur
       return {
         id: c.installmentId, projetId, souscripteurId: row.member.id, rang: c.sequence, estFondsEntree: col.kind === 'entry_fee',
         date: col.dueDate, montant: c.amountDue.amount, montantPaye: c.amountPaid.amount, statut: STATUT_ECHEANCE[c.status]!,
+        ...(ECHEANCE_FERMEE(c.status) ? { fermee: true } : {}),
       }
     })
     return [{ souscription, souscripteur, echeances }]
@@ -122,12 +121,7 @@ export function vueGrille(g: Grille, souscriptions: SouscriptionAvecSouscripteur
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
 const moisDe = (d: string) => MOIS[Number(d.slice(5, 7)) - 1]!
 
-type Synthese = {
-  paymentsToReview: { count: number, oldestDeclaredAt: string | null }
-  unsignedContracts: { member: { id: string, firstName: string, lastName: string }, enrolledAt: string }[]
-  collectionBySequence: { dueDate: string, expected: { amount: number }, received: { amount: number } }[]
-  lateMembers: { member: { id: string, firstName: string, lastName: string }, lateInstallments: number, amountDue: { amount: number }, lateDueDates: string[] }[]
-}
+type Synthese = CallOutput<'pr.overview', 'get'>
 
 /** Vue d'ensemble d'un projet (MgProjet). `aujourdhui` : mois en cours marqué « en cours ». */
 export function vueSynthese(o: Synthese, aujourdhui: string): SyntheseProjet {
@@ -140,14 +134,10 @@ export function vueSynthese(o: Synthese, aujourdhui: string): SyntheseProjet {
   }
 }
 
-type Rapport = {
-  recoveryRateBySequence: { dueDate: string, rate: number }[]
-  standingCounts: Record<string, number>
-  rows: { member: { id: string, firstName: string, lastName: string }, expectedToDate: { amount: number }, paid: { amount: number }, remaining: { amount: number }, lateCount: number, lastPaymentOn: string | null }[]
-}
+type Rapport = CallOutput<'rp.report', 'get'>
 
 /** Rapport d'un projet (MgProjetRapports) ; une signature attendue n'a ni attendu ni reste. */
-export function vueRapport(r: Rapport, enAttente: Set<string>, graphiques: boolean): RapportProjet {
+export function vueRapport(r: Rapport, enAttente: Set<string>): RapportProjet {
   return {
     lignes: r.rows.map((x) => {
       const attente = enAttente.has(x.member.id)
@@ -159,7 +149,6 @@ export function vueRapport(r: Rapport, enAttente: Set<string>, graphiques: boole
     }),
     tauxParEcheance: r.recoveryRateBySequence.map(t => ({ mois: t.dueDate, taux: Math.round(t.rate * 100) })),
     statuts: { aJour: r.standingCounts.up_to_date ?? 0, enRetard: r.standingCounts.late ?? 0, signature: r.standingCounts.signature_required ?? 0 },
-    graphiquesDisponibles: graphiques,
   }
 }
 
@@ -176,10 +165,7 @@ export function rendreModele(modele: string, p: ProjectSummary, association: str
   return modele.replace(/\{(\w+)\}/g, (tout, cle: string) => valeurs[cle] ?? tout)
 }
 
-type ContratGestionnaire = {
-  bodyTemplate: string, signer: { name: string, title: string }, associationSignedAt: string | null
-  signatures: { signed: number, total: number }, unsigned: { member: { id: string, firstName: string, lastName: string }, enrolledAt: string }[]
-}
+type ContratGestionnaire = CallOutput<'ct.get', 'get'>
 
 export function vueContratProjet(c: ContratGestionnaire, p: ProjectSummary, association: { name: string, city: string }): ContratProjet {
   return {
@@ -191,4 +177,3 @@ export function vueContratProjet(c: ContratGestionnaire, p: ProjectSummary, asso
     nonSignataires: c.unsigned.map(u => ({ souscripteurId: u.member.id, nom: `${u.member.firstName} ${u.member.lastName}`.trim(), inscritLe: jour(u.enrolledAt) })),
   }
 }
-

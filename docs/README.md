@@ -24,7 +24,6 @@ Documentation de travail pour implémenter Cotiz avec Claude Code. **Ce dossier 
 | `adr/` | Décisions d'architecture | Historique |
 | `runbooks/` | Procédures d'exploitation (lot 7.1) | Exploitation |
 | `glossary.md` | Vocabulaire interface (français) ↔ code (anglais) | Référence |
-| `api-v0.md` | Contrat de la V0 (chemins français, mocks Nitro), généré par `frontend/scripts/generer-contrat-api.mjs` ; supprimé à la fin du lot 0.3 | Transitoire |
 | `placeholders-v0.md` | Placeholders `[N]`, `[MONTANT]`… encore présents dans la V0 | Transitoire |
 
 ## Hiérarchie des sources

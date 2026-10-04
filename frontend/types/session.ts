@@ -1,6 +1,7 @@
+import type { Feature, Permission } from '@cotiz/contracts'
 import type { Identifiant, Role } from './commun'
 
-/** Utilisateur de la session courante (`/api/session/moi`). */
+/** Utilisateur de la session courante (`me › get`). */
 export interface UtilisateurSession {
   id: Identifiant
   role: Role
@@ -12,12 +13,12 @@ export interface UtilisateurSession {
   associationId?: Identifiant
   association?: { id: Identifiant, nom: string, sigle?: string, plan: string }
   /** Permissions de l'espace courant (`GET /me`) : le front masque, le back refuse. */
-  permissions: string[]
+  permissions: Permission[]
   /** Fonctionnalités actives (`GET /me`) : une absente → « Bientôt disponible ». */
-  features: string[]
+  features: Feature[]
 }
 
-/** Compteurs des menus (`/api/navigation/compteurs`). */
+/** Compteurs des menus, recomposés selon l'espace (`nt.list › unreadCount`, `as.dashboard › get`, `pf.dashboard › get`). */
 export interface CompteursNavigation {
   paiementsAValider: number
   notificationsNonLues: number
@@ -33,7 +34,7 @@ export interface CompteursNavigation {
 /** Espace visé par un écran de connexion. */
 export type EspaceConnexion = Role
 
-/** Corps de `POST /api/session/connexion`. `identifiant` : téléphone (souscripteur) ou email. */
+/** Corps de `auth.login › login`. `identifiant` : téléphone (souscripteur) ou email. */
 export interface DemandeConnexion {
   espace: EspaceConnexion
   identifiant: string
@@ -41,7 +42,7 @@ export interface DemandeConnexion {
 }
 
 /**
- * Réponse de `POST /api/session/connexion` :
+ * Réponse de `auth.login › login` :
  * - `connecte` : session ouverte ;
  * - `premiere-connexion` : mot de passe provisoire, à remplacer (souscripteur) ;
  * - `code-requis` : second facteur à saisir (plateforme).
@@ -51,7 +52,7 @@ export type ResultatConnexion
     | { etape: 'premiere-connexion', role: Role, prenom: string }
     | { etape: 'code-requis', role: Role }
 
-/** Codes d'erreur métier des écrans d'authentification (`data.code` de la réponse d'erreur). */
+/** Codes d'erreur des écrans d'authentification, traduits depuis le `code` du `Problem` (composables/api/auth.ts). */
 export type CodeErreurAuth
   = | 'numero-inconnu'
     | 'mot-de-passe-incorrect'
@@ -64,7 +65,7 @@ export type CodeErreurAuth
 /** Mot de passe oublié : profil d'origine (le champ demandé en dépend). */
 export type ProfilMotDePasse = 'souscripteur' | 'gestionnaire'
 
-/** Réponse de `POST /api/mot-de-passe/code`. */
+/** Réponse de `auth.forgot › forgot`. */
 export interface EnvoiCode {
   /** Destination affichée (« +225 05 44 21 87 90 » ou l'email). */
   destination: string

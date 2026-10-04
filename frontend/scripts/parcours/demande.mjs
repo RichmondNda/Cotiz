@@ -51,7 +51,7 @@ export default {
   },
   'envoi-en-cours': async (page) => {
     // Retient la réponse de l'API pour photographier l'état d'envoi.
-    await page.route('**/api/demandes', () => new Promise(() => {}))
+    await page.route('**/api/v1/public/association-requests', () => new Promise(() => {}))
     await etape1(page)
     await continuer(page)
     await etape2(page)

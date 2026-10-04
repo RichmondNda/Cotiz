@@ -38,11 +38,6 @@ export default defineNuxtConfig({
     // Bascule mock → NestJS (server/middleware/bascule.ts) : NUXT_MOCKS=0 transmet tout `/api/v1` à NUXT_API_ORIGIN.
     mocks: true,
     apiOrigin: 'http://localhost:4000',
-    public: {
-      // Base des appels d'API. V0 : handlers Nitro locaux (mocks). Brancher NestJS = changer cette valeur
-      // (NUXT_PUBLIC_API_BASE).
-      apiBase: '/api',
-    },
   },
   compatibilityDate: '2025-07-15',
 

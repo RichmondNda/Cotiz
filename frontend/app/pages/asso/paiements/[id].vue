@@ -88,6 +88,7 @@ async function validerPaiement() {
   if (!p) return
   const n = (repartition.value ?? p.repartition).length
   await valider(p.id, {
+    etat: p.etat,
     repartition: repartition.value ?? undefined,
     montantRecu: montantDifferent.value && montantRecu.value ? montantRecu.value : undefined,
   }, {
@@ -105,7 +106,7 @@ async function rejeterPaiement(corps: RejetPaiement) {
   if (!p) return
   // Après le rejet : paiement suivant de la file ; « Annuler » ramène sur ce paiement.
   const cible = lienSuivant.value
-  await rejeter(p.id, corps, {
+  await rejeter(p.id, { ...corps, etat: p.etat }, {
     message: `${nom.value} a reçu le motif : ${MOTIFS_REJET[corps.motif]}.`,
     puis: () => {
       rejetOuvert.value = false

@@ -49,6 +49,7 @@ const lignes = computed<EcheanceSelecteur[]>(() => {
       // Paiement déjà validé : on retire sa part pour retrouver ce qui restait dû au moment de la déclaration.
       montantPaye: p.statut === 'valide' ? e.montantPaye - (couvertes.get(e.id) ?? 0) : e.montantPaye,
       enRetard: e.statut === 'en_retard',
+      fermee: e.fermee,
       badge: badge(e),
     }))
 })

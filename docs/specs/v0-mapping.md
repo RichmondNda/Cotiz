@@ -1,6 +1,6 @@
 # Correspondance V0 → contrat (lot 0.3)
 
-Normatif pour le lot 0.3. Pour chaque route de la V0 (`docs/api-v0.md`, chemins français), l'id d'endpoint de
+Normatif pour le lot 0.3. Pour chaque route de la V0 (ex-`docs/api-v0.md`, chemins français, supprimé à l'étape 5), l'id d'endpoint de
 `endpoints.yaml` et l'opération du registre `@cotiz/contracts` qui la remplacent, les champs renommés et les écarts.
 Chaque écart porte sa **décision** : *contrat* (ajout dans `packages/contracts` et, si besoin, `endpoints.yaml` /
 `schema.sql`), *front* (le front s'adapte, rien n'est ajouté au contrat) ou *rendu* (écart visible accepté, à revoir

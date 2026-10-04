@@ -71,14 +71,11 @@ export function champsErreur(e: unknown): Record<string, string> {
 /** Charge toutes les pages d'une liste paginée (`{ items, nextCursor }`) : écrans qui paginent côté client. */
 export async function toutesLesPages<T>(page: (cursor?: string) => Promise<{ items: T[], nextCursor: string | null, total: number }>) {
   const items: T[] = []
-  let cursor: string | undefined
-  let total = 0
-  for (;;) {
-    const r = await page(cursor)
+  let r = await page()
+  items.push(...r.items)
+  while (r.nextCursor) {
+    r = await page(r.nextCursor)
     items.push(...r.items)
-    total = r.total
-    if (!r.nextCursor) break
-    cursor = r.nextCursor
   }
-  return { items, total }
+  return { items, total: r.total }
 }

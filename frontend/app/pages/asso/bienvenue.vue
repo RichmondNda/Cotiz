@@ -3,7 +3,7 @@
   Plein écran, sans barre latérale : logo, progression en 4 étapes, « Terminer plus tard » (→ tableau de bord).
   1 Bienvenue · 2 Votre association (logo, nom, description, ville, contacts) · 3 Moyens de paiement (cases,
   coordonnées de chaque moyen retenu, aperçu côté souscripteur) · 4 C'est prêt (récapitulatif, deux choix).
-  Chaque étape est enregistrée à la validation (`PATCH /api/associations/:id`).
+  Chaque étape est enregistrée à la validation (`as.patch`).
   Mobile : une étape par écran, progression en segments, barre d'action fixe en bas.
 -->
 <script setup lang="ts">

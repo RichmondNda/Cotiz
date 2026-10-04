@@ -54,10 +54,10 @@ export interface Demande {
   consulteeLe?: DateISO
 }
 
-/** Corps de `POST /api/demandes` (formulaire public `/demande`). */
+/** Corps de `pub.request › create` (formulaire public `/demande`). */
 export type NouvelleDemande = Pick<Demande, 'association' | 'responsable' | 'besoins' | 'cguAcceptees'>
 
-/** Réponse de `POST /api/demandes`. */
+/** Réponse de `pub.request › create`. */
 export interface DemandeCreee {
   id: Identifiant
   reference: string

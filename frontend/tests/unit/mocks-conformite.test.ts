@@ -321,6 +321,28 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   })
 })
 
+describe('GET /me : droits et fonctionnalités (usePermissions, FeatureGate)', () => {
+  const moi = (as: keyof typeof ROLE, scenario?: string) =>
+    call('me', 'get', { as, scenario }) as Promise<{ permissions: string[], features: string[] }>
+
+  it('chaque espace reçoit ses permissions, et seulement les siennes', async () => {
+    const [plateforme, gestionnaire, souscripteur] = await Promise.all([moi('platform'), moi('association'), moi('subscriber')])
+    expect(plateforme.permissions).toContain('platform.associations.manage')
+    expect(plateforme.permissions).not.toContain('payments.review')
+    expect(gestionnaire.permissions).toContain('payments.review')
+    expect(gestionnaire.permissions.some(p => p.startsWith('platform.'))).toBe(false)
+    expect(souscripteur.permissions).toEqual(['authenticated', 'subscriber.self'])
+  })
+
+  it('analytics actif en nominal, retiré par graphiques-bientot-disponibles (sans toucher au reste)', async () => {
+    const nominal = await moi('association')
+    const bientot = await moi('association', 'graphiques-bientot-disponibles')
+    expect(nominal.features).toContain('analytics')
+    expect(bientot.features).not.toContain('analytics')
+    expect(bientot.features).toEqual(nominal.features.filter(f => f !== 'analytics'))
+  })
+})
+
 describe('mutations : état en mémoire', () => {
   it('déclarer puis valider : les échéances d’août et septembre de Moussa passent payées', async () => {
     const declared = await call('me.declare', 'declare', WRITES['me.declare declare']!()) as { id: string, status: string }

@@ -1,10 +1,11 @@
 // Relances de l'association (lot 4.3) : retardataires (file « À relancer », rm.queue), règles (rm.rules), historique des
 // envois (rm.hist), relance ponctuelle (rm.send). Aucun SMS ni email : le message prêt est transmis par une personne.
+import type { CallOutput } from '@cotiz/api-client'
 import type { EnvoiRelance, LigneRetard, RegleRelance, Relances } from '~~/types'
 import { associationCourante } from './session'
 import { jour, tel } from './vues/communs'
 
-type Regle = { id: string, trigger: string, offsetDays: number, message: string, isActive: boolean }
+type Regle = CallOutput<'rm.rules', 'list'>['items'][number]
 
 function vueRegle(r: Regle): RegleRelance {
   const titre = r.trigger === 'before_due' ? `${r.offsetDays} jours avant l’échéance` : r.trigger === 'on_due' ? 'Le jour de l’échéance' : `${r.offsetDays} jours de retard`

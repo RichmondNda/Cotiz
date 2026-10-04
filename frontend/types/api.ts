@@ -1,4 +1,5 @@
-// Formes des réponses de l'API (mocks Nitro en V0, NestJS ensuite) quand elles joignent plusieurs ressources.
+// Types d'interface des écrans qui joignent plusieurs ressources, produits par composables/api/vues/* à partir de @cotiz/contracts.
+import type { Currency } from '@cotiz/contracts'
 import type { DateISO, Identifiant, MontantFCFA, MoyenPaiement, Quota } from './commun'
 import type { Association, Gestionnaire, RoleGestionnaire } from './association'
 import type { Contrat } from './contrat'
@@ -27,7 +28,7 @@ export interface EvenementSouscripteur {
   ton: 'success' | 'warning' | 'danger' | 'info' | 'brand'
 }
 
-/** Fiche d'un souscripteur vue par le gestionnaire (`GET /api/souscripteurs/:id`), limitée à son association. */
+/** Fiche d'un souscripteur vue par le gestionnaire (`mb.get › get + mb.timeline › list`), limitée à son association. */
 export interface FicheSouscripteur {
   /** Coordonnées vues par l'association (placeholders `[email]` de la maquette compris). */
   souscripteur: Souscripteur
@@ -40,7 +41,7 @@ export interface FicheSouscripteur {
   historique: EvenementSouscripteur[]
 }
 
-/** Corps de `PATCH /api/souscripteurs/:id` (« Modifier » de la fiche). */
+/** Corps de `mb.patch › patch` (« Modifier » de la fiche). */
 export type ModificationSouscripteur = Partial<Pick<Souscripteur, 'email' | 'adresse'>>
 
 export type PaiementListe = Paiement & {
@@ -62,6 +63,8 @@ export interface VersementValide {
 }
 
 export type PaiementDetail = PaiementListe & {
+  /** Gestionnaire : version et devise du paiement affiché (If-Match des décisions). */
+  etat?: EtatPaiement
   /** Échéances couvertes (identique à `echeancesCouvertes`). */
   echeances: Echeance[]
   association: Association
@@ -72,23 +75,33 @@ export type PaiementDetail = PaiementListe & {
   derniersVersements: VersementValide[]
 }
 
-/** Corps de `POST /api/paiements/:id/validation`. */
+/** Corps de `lg.pay.validate › validate`. */
+/** Version (If-Match) et devise du paiement affiché, pour décider sur ce qui est vu. */
+export interface EtatPaiement {
+  version: number
+  devise: Currency
+}
+
 export interface ValidationPaiement {
+  /** Paiement affiché (détail) ; absent (écrans de liste) : relu juste avant l'envoi. */
+  etat?: EtatPaiement
   /** Répartition ajustée par le gestionnaire (sinon celle du souscripteur). */
   repartition?: RepartitionEcheance[]
   /** « Le montant reçu est différent ». */
   montantRecu?: MontantFCFA
 }
 
-/** Corps de `POST /api/paiements/:id/rejet`. */
+/** Corps de `lg.pay.reject › reject`. */
 export interface RejetPaiement {
+  /** Paiement affiché (détail) ; absent (écrans de liste) : relu juste avant l'envoi. */
+  etat?: EtatPaiement
   motif: MotifRejet
   message?: string
 }
 
 export type ContratDetaille = Contrat & { projet: Projet, souscripteur: Souscripteur, association: Association }
 
-// ---------------------------------------------------------------- Espace souscripteur (`/api/moi/...`)
+// ---------------------------------------------------------------- Espace souscripteur (`me.*`)
 
 /** Situation d'une souscription calculée à partir de ses échéances (cartes projet, associations). */
 export interface SituationSouscription {
@@ -101,7 +114,7 @@ export interface SituationSouscription {
 
 export type SouscriptionMembre = SouscriptionComplete & SituationSouscription
 
-/** Détail d'un projet vu par le souscripteur (`/api/moi/souscriptions/:projetId`). */
+/** Détail d'un projet vu par le souscripteur (`me.project › get`). */
 export type DetailSouscriptionMembre = SouscriptionMembre & {
   echeances: Echeance[]
   /** Paiements déclarés sur ce projet, plus récents d'abord. */
@@ -109,7 +122,7 @@ export type DetailSouscriptionMembre = SouscriptionMembre & {
   contrat?: Contrat
 }
 
-/** Association du souscripteur et ses projets (`/api/moi/associations`). */
+/** Association du souscripteur et ses projets (`me.assos › list`). */
 export interface AssociationMembre {
   association: Association
   /** Date de la première inscription à un projet de l'association. */
@@ -117,7 +130,7 @@ export interface AssociationMembre {
   souscriptions: SouscriptionMembre[]
 }
 
-/** Corps de `POST /api/declarations`. */
+/** Corps de `me.alloc › preview + me.declare › declare`. */
 export interface NouvelleDeclaration {
   projetId: Identifiant
   montant: MontantFCFA
@@ -148,7 +161,7 @@ export interface ContratEnSouffrance {
   nomProjet: string
 }
 
-/** Tableau de bord gestionnaire (`GET /api/gestionnaire/tableau-de-bord`). */
+/** Tableau de bord gestionnaire (`as.dashboard › get`). */
 export interface TableauDeBordGestionnaire {
   association: { id: Identifiant, nom: string }
   /** Mois en cours, tous projets. */
@@ -164,7 +177,7 @@ export interface TableauDeBordGestionnaire {
   collecteMensuelle: CollecteMois[]
 }
 
-/** Corps de `POST /api/projets` (création en 6 étapes). */
+/** Corps de `pr.create › create + pr.lifecycle › publish` (création en 6 étapes). */
 export type NouveauProjet = Pick<Projet,
   'nom' | 'description' | 'fondsEntree' | 'montantEcheance' | 'frequence' | 'jourEcheance'
   | 'typeCalendrier' | 'dateDebut' | 'dateFin' | 'delaiGraceJours' | 'souscripteursRequis'
@@ -177,7 +190,7 @@ export type NouveauProjet = Pick<Projet,
   brouillon?: boolean
 }
 
-/** Corps de `PATCH /api/associations/:id` (onboarding étapes 2 et 3, paramètres). */
+/** Corps de `as.patch › patch + as.pm › replace` (onboarding étapes 2 et 3, paramètres). */
 export type ModificationAssociation = Partial<Pick<Association,
   'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement' | 'instructionsPaiement'
 >>
@@ -194,7 +207,7 @@ export interface Retardataire {
   mois: string[]
 }
 
-/** Vue d'ensemble d'un projet (`GET /api/projets/:id/synthese`). */
+/** Vue d'ensemble d'un projet (`pr.overview › get`). */
 export interface SyntheseProjet {
   /** Tous les retardataires, du plus gros montant au plus petit (la page en montre 5). */
   retardataires: Retardataire[]
@@ -210,7 +223,7 @@ export type ResultatRechercheSouscripteur
     | { cas: 'compte_existant', souscripteur: Souscripteur, nbAssociations: number, projets: string[] }
     | { cas: 'deja_inscrit', souscripteur: Souscripteur }
 
-/** Corps de `POST /api/projets/:id/souscripteurs`. */
+/** Corps de `en.create › create`. */
 export interface NouvelleInscription {
   telephone: string
   /** Compte existant retrouvé : pas de nouveau compte. */
@@ -226,7 +239,7 @@ export interface NouvelleInscription {
   rattrapage?: number[]
 }
 
-/** Ligne du tableau des rapports (`GET /api/projets/:id/rapport`). */
+/** Ligne du tableau des rapports (`rp.report › get`). */
 export interface LigneRapport {
   souscripteurId: Identifiant
   nom: string
@@ -242,11 +255,9 @@ export interface RapportProjet {
   /** Taux de recouvrement cumulé après chaque échéance échue, en %. */
   tauxParEcheance: { mois: DateISO, taux: number }[]
   statuts: { aJour: number, enRetard: number, signature: number }
-  /** V1 : graphiques avancés pas encore disponibles (état « Bientôt disponible »). */
-  graphiquesDisponibles: boolean
 }
 
-/** Contrat d'un projet vu par le gestionnaire (`GET /api/projets/:id/contrat`) : modèle commun et suivi des signatures. */
+/** Contrat d'un projet vu par le gestionnaire (`ct.get › get`) : modèle commun et suivi des signatures. */
 export interface ContratProjet {
   association: { nom: string, ville?: string }
   /** Texte du modèle, variables du projet remplacées ; `{nom_souscripteur}` reste tel quel. `**…**` = gras. */
@@ -272,7 +283,7 @@ export interface LigneImport {
   doublonDe?: number
 }
 
-/** Résultat de `POST /api/projets/:id/import/analyse` (fichier simulé en V0). */
+/** Résultat de `fl.upload › create + im.flow › create + im.read › get` (fichier simulé en V0). */
 export interface AnalyseImport {
   fichier: string
   nbLignes: number
@@ -282,7 +293,7 @@ export interface AnalyseImport {
   lignes: LigneImport[]
 }
 
-/** Corps de `PATCH /api/projets/:id` (paramètres modifiables après création). */
+/** Corps de `pr.patch › patch` (paramètres modifiables après création). */
 export type ModificationProjet = Partial<Pick<Projet,
   'nom' | 'description' | 'imageCouvertureNom' | 'souscripteursRequis' | 'modalitesPaiement' | 'instructionsPaiement' | 'delaiGraceJours'
 >>
@@ -323,7 +334,7 @@ export interface EnvoiRelance {
   par: string
 }
 
-/** `GET /api/relances` — relances de l'association du gestionnaire. */
+/** `rm.queue › list + rm.rules › list + rm.hist › list` — relances de l'association du gestionnaire. */
 export interface Relances {
   retardataires: LigneRetard[]
   /** Souscripteurs en retard / actifs (KPI « 14 sur 52 »). */
@@ -338,7 +349,7 @@ export interface Relances {
 
 // ---------------------------------------------------------------- Contrats (gestionnaire)
 
-/** Contrat d'un projet vu depuis la page Contrats (`GET /api/gestionnaire/contrats`) : conditions et suivi des signatures. */
+/** Contrat d'un projet vu depuis la page Contrats (`ct.list › list`) : conditions et suivi des signatures. */
 export interface SyntheseContratProjet {
   projetId: Identifiant
   nomProjet: string
@@ -358,14 +369,14 @@ export interface SyntheseContratProjet {
 
 // ---------------------------------------------------------------- Équipe, abonnement, profil (gestionnaire)
 
-/** Équipe de l'association (`GET /api/gestionnaire/equipe`). */
+/** Équipe de l'association (`tm.team › list`). */
 export interface EquipeAssociation {
   membres: Gestionnaire[]
   /** Comptes secondaires (hors gestionnaire principal) : utilisés / limite fixée par la plateforme. */
   comptesSecondaires: { utilises: number, limite: number }
 }
 
-/** Corps de `POST /api/gestionnaire/equipe` : le rôle est toujours « secondaire » (MgEquipe). */
+/** Corps de `tm.team › invite` : le rôle est toujours « secondaire » (MgEquipe). */
 export interface InvitationGestionnaire {
   prenom: string
   nom: string
@@ -394,7 +405,7 @@ export interface UtilisationQuota {
   pourcentage: number
 }
 
-/** Abonnement de l'association (`GET /api/gestionnaire/abonnement`). */
+/** Abonnement de l'association (`bl.sub › get + bl.inv › list`). */
 export interface AbonnementAssociation {
   planId: Identifiant
   nomPlan: string
@@ -420,7 +431,7 @@ export interface PreferencesGestionnaire {
   resumeQuotidien: boolean
 }
 
-/** Profil du gestionnaire connecté (`GET /api/gestionnaire/profil`). */
+/** Profil du gestionnaire connecté (`me.profile › get + me.prefs › get`). */
 export interface ProfilGestionnaire {
   id: Identifiant
   prenom: string

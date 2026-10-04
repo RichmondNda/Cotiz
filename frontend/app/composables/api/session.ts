@@ -1,4 +1,5 @@
 // Session et navigation : utilisateur connecté (`GET /me`), droits et fonctionnalités, compteurs des menus.
+import type { Feature, Permission } from '@cotiz/contracts'
 import type { ApiClient } from './client'
 import type { CompteursNavigation, Role, UtilisateurSession } from '~~/types'
 import { initiales } from '~/utils/format'
@@ -56,8 +57,8 @@ export const useCompteursNavigation = () => {
 export function usePermissions() {
   const { data: moi } = useMoi()
   return {
-    peut: (permission: string) => Boolean(moi.value?.permissions.includes(permission)),
-    active: (feature: string) => Boolean(moi.value?.features.includes(feature)),
+    peut: (permission: Permission) => Boolean(moi.value?.permissions.includes(permission)),
+    active: (feature: Feature) => Boolean(moi.value?.features.includes(feature)),
     pret: computed(() => Boolean(moi.value)),
   }
 }

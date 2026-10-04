@@ -67,7 +67,7 @@ export function useActionsSouscripteur() {
         return fiche(client, aid, id)
       }
       catch (e) {
-        traduireErreur(e, { 'champ:email': 'email-invalide', validation_failed: 'email-invalide' })
+        traduireErreur(e, { 'champ:email': 'email-invalide', 'validation_failed': 'email-invalide' })
       }
     },
     /**
@@ -151,7 +151,7 @@ export function useModificationMonProfil() {
       return (await contexteSouscripteur(client)).moi
     }
     catch (e) {
-      traduireErreur(e, { 'champ:email': 'email-invalide', validation_failed: 'email-invalide' })
+      traduireErreur(e, { 'champ:email': 'email-invalide', 'validation_failed': 'email-invalide' })
     }
   }
 }

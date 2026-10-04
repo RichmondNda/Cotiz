@@ -1,10 +1,11 @@
 // Équipe de l'association (tm.team, lot 4.5) : gestionnaires et quota de comptes secondaires.
+import type { CallOutput } from '@cotiz/api-client'
 import type { EquipeAssociation, Gestionnaire, InvitationGestionnaire } from '~~/types'
 import { associationCourante } from './session'
 import { email, local, tel, versE164 } from './vues/communs'
 import { traduireErreur } from './vues/erreurs'
 
-type Membre = { member: { id: string, firstName: string, lastName: string, email: string, phone: string | null }, role: string, title: string | null, status: string, lastLoginAt: string | null }
+type Membre = CallOutput<'tm.team', 'list'>['items'][number]
 
 function vueGestionnaire(aid: string, x: Membre): Gestionnaire {
   return {

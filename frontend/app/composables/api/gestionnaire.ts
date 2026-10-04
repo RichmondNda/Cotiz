@@ -24,4 +24,3 @@ export const useTableauDeBordGestionnaire = () =>
       collecteMensuelle: t.monthlyCollection.map((x, i) => ({ mois: x.month, attendu: m(x.expected), recu: m(x.received), enCours: i === t.monthlyCollection.length - 1 })),
     }
   })
-

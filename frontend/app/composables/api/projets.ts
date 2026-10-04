@@ -111,16 +111,15 @@ export const useSyntheseProjet = (id: MaybeRefOrGetter<string>) =>
     return vueSynthese(o, DATE_REFERENCE)
   })
 
-/** Rapports d'un projet : situation par souscripteur, taux cumulé, statuts ; graphiques avancés = fonctionnalité `analytics`. */
+/** Rapports d'un projet : situation par souscripteur, taux cumulé, statuts (graphiques avancés : `<FeatureGate feature="analytics">`). */
 export const useRapportProjet = (id: MaybeRefOrGetter<string>) =>
   useLecture<RapportProjet>(() => `rapport-projet:${toValue(id)}`, async (client) => {
     const aid = await associationCourante(client)
-    const [r, enr, me] = await Promise.all([
+    const [r, enr] = await Promise.all([
       client.call('rp.report', 'get', { params: { aid, pid: toValue(id) } }),
       inscriptions(client, aid, toValue(id)),
-      client.call('me', 'get'),
     ])
-    return vueRapport(r, new Set(enr.filter(e => e.status === 'pending_signature').map(e => e.member.id)), me.features.includes('analytics'))
+    return vueRapport(r, new Set(enr.filter(e => e.status === 'pending_signature').map(e => e.member.id)))
   })
 
 export const useContratProjet = (id: MaybeRefOrGetter<string>) =>

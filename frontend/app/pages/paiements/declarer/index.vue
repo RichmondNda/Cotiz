@@ -5,11 +5,11 @@
   - Montant : raccourcis (1 échéance, tout le retard, 3 mois) ; sélecteur d'échéances couvertes pré-rempli,
     les plus anciennes d'abord. Paiement partiel : alerte « Il restera… ». Montant supérieur au reste : erreur,
     excédent affiché, « Continuer » désactivé.
-  - Envoi : POST /api/declarations, puis /paiements/declarer/ok.
+  - Envoi : `me.declare`, puis /paiements/declarer/ok.
   Mobile : une étape par écran, navigation basse masquée, barre d'action fixe en bas.
 -->
 <script setup lang="ts">
-import type { MoyenPaiement, NouvelleDeclaration, Paiement } from '~~/types'
+import type { MoyenPaiement, NouvelleDeclaration } from '~~/types'
 import type { EcheanceSelecteur } from '~/components/metier/SelecteurEcheances.vue'
 import { ETAPES_DECLARATION } from '~/composables/useDeclaration'
 import { maintenant } from '~/utils/date-reference'
@@ -21,7 +21,7 @@ definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur', fab:
 useHead({ title: 'Déclarer un paiement · Cotiz' })
 
 const route = useRoute()
-const { etat, commencer, choisirProjet, reinitialiser } = useDeclaration()
+const { etat, commencer, choisirProjet, cleEnvoi, reinitialiser } = useDeclaration()
 
 const projetDemande = typeof route.query.projet === 'string' ? route.query.projet : undefined
 if (projetDemande && etat.value.projetId !== projetDemande) commencer(projetDemande)
@@ -51,7 +51,7 @@ const projetChoisi = computed({
 
 // ---------------------------------------------------------------- Étape 2 — Montant
 const echeancesProjet = computed<EcheanceSelecteur[]>(() => (echeances.value ?? [])
-  .filter(e => e.projetId === etat.value.projetId && ['en_retard', 'a_venir', 'partielle'].includes(e.statut))
+  .filter(e => e.projetId === etat.value.projetId && !e.fermee && ['en_retard', 'a_venir', 'partielle'].includes(e.statut))
   .sort((a, b) => a.rang - b.rang)
   .map(e => ({ id: e.id, montant: e.montant, montantPaye: e.montantPaye, label: libelleEcheance(e), enRetard: e.statut === 'en_retard' })))
 
@@ -153,6 +153,7 @@ const envoi = ref(false)
 const erreurEnvoi = ref(false)
 
 async function envoyer() {
+  if (envoi.value) return
   const s = souscription.value
   const r = repartition.value
   const date = dateIso(etat.value.date)
@@ -172,7 +173,7 @@ async function envoyer() {
   envoi.value = true
   erreurEnvoi.value = false
   try {
-    const paiement = await declarer(corps)
+    const paiement = await declarer(corps, cleEnvoi(corps))
     reinitialiser()
     await refreshNuxtData()
     await navigateTo({ path: '/paiements/declarer/ok', query: { paiement: paiement.id } })

@@ -1,4 +1,5 @@
 // Associations : réponses du contrat (Association, PaymentMethod, PlatformAssociation*) → types d'interface.
+import type { CallOutput } from '@cotiz/api-client'
 import type { Association as AssociationContrat, PaymentMethod, PlatformAssociationDetail } from '@cotiz/contracts'
 import type {
   Association, AssociationListe, EvenementPlateforme, FicheAssociationPlateforme, ModalitePaiement, Plan, Quota, QuotaUtilise, StatutFacture,
@@ -47,10 +48,7 @@ export function vueAssociation(a: AssociationContrat, moyens: PaymentMethod[], c
   }
 }
 
-type Resume = {
-  id: string, name: string, city: string, country: string, status: string, plan: { id: string, name: string }
-  projectsCount: number, subscribersCount: number, lastActivityAt: string | null, createdAt: string
-}
+type Resume = CallOutput<'pf.asso.list', 'list'>['items'][number]
 
 /** Ligne de SaAssociations. */
 export function vueAssociationListe(a: Resume): AssociationListe {
@@ -138,4 +136,3 @@ function lendemain(d: string): string {
   t.setUTCDate(t.getUTCDate() + 1)
   return t.toISOString().slice(0, 10)
 }
-

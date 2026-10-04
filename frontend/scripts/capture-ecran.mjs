@@ -14,11 +14,15 @@
 // `--scenario` force un état de données (propagé aux mocks). `--etat` rejoue un parcours d'interface
 // (remplir, cliquer…) décrit dans scripts/parcours/<route>.mjs (`/connexion/association` → connexion_association.mjs).
 //
+// Les routes de l'inventaire portent des slugs (`/asso/projets/centre-communautaire`) : ils sont traduits en UUID des mocks
+// (server/mocks/ids.ts) pour la navigation ; le nom de sortie et le fichier de parcours gardent le slug.
+//
 // Sortie : .verif/<nom>__web.png et .verif/<nom>__mobile.png (pages entières).
 // Prérequis : npm i -D playwright && npx playwright install chromium ; serveur `npm run dev` lancé.
 
 import { chromium } from 'playwright'
 import { existsSync, mkdirSync } from 'node:fs'
+import { uid } from '../server/mocks/ids.ts'
 
 const args = process.argv.slice(2)
 const route = args.find(a => a.startsWith('/'))
@@ -51,7 +55,16 @@ if (etat) {
   }
 }
 
-const url = new URL(route, base)
+// Segment qui suit `projets/`, `souscripteurs/`… → UUID du type correspondant (sauf s'il en est déjà un, ou une sous-page).
+const TYPES = { projets: 'project', souscripteurs: 'user', associations: 'association', paiements: 'payment', demandes: 'request' }
+const SOUS_PAGES = new Set(['nouveau', 'nouvelle', 'declarer', 'import'])
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/
+const [chemin, requete] = route.split('?')
+const segments = chemin.split('/').map((seg, i, tous) => {
+  const type = TYPES[tous[i - 1]]
+  return type && seg && !UUID.test(seg) && !SOUS_PAGES.has(seg) ? uid(type, seg) : seg
+})
+const url = new URL(segments.join('/') + (requete ? `?${requete}` : ''), base)
 if (scenario) url.searchParams.set('scenario', scenario)
 
 mkdirSync('.verif', { recursive: true })

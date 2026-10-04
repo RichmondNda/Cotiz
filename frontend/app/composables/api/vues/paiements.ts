@@ -1,13 +1,14 @@
 // Paiements : PaymentSummary / PaymentDetail / SubscriberPayment et Installment du contrat → types d'interface.
 import type { Installment, PaymentDetail, PaymentSummary, SubscriberPayment } from '@cotiz/contracts'
 import type { Association, Echeance, Paiement, PaiementDetail, PaiementListe, Preuve, Projet, Souscripteur } from '~~/types'
-import { jour, m, MOTIF_REJET, MOYEN, STATUT_ECHEANCE, STATUT_PAIEMENT } from './communs'
+import { ECHEANCE_FERMEE, jour, m, MOTIF_REJET, MOYEN, STATUT_ECHEANCE, STATUT_PAIEMENT } from './communs'
 
 /** Échéance du contrat → échéance de l'interface (grilles, échéanciers, couvertures). */
 export function vueEcheance(i: Installment, souscripteurId: string): Echeance {
   return {
     id: i.id, projetId: i.projectId, souscripteurId, rang: i.sequence, estFondsEntree: i.kind === 'entry_fee', date: i.dueDate,
     montant: m(i.amountDue), montantPaye: m(i.amountPaid), statut: STATUT_ECHEANCE[i.status]!,
+    ...(ECHEANCE_FERMEE(i.status) ? { fermee: true } : {}),
   }
 }
 
@@ -72,6 +73,7 @@ export function vuePaiementDetail(p: PaymentDetail, c: Contexte & { association:
     ...vuePaiement(p, { souscripteurId: sid, projetId: p.project.id, associationId: c.associationId, traitePar: p.reviewedBy?.id, ajuste: p.allocationAdjusted, rejet: p.rejection, commentaire: p.comment }),
     echeances: liste.echeancesCouvertes,
     association: c.association,
+    etat: { version: p.version, devise: p.amountDeclared.currency },
     echeancier,
     derniersVersements: p.recentPayments.flatMap(r => r.covered.map(cv => ({
       echeanceId: cv.installmentId, date: jour(r.reviewedAt ?? r.declaredAt), montant: m(cv.amount),
@@ -89,4 +91,3 @@ export function vuePaiementSouscripteur(p: SubscriberPayment, c: { echeances: Ma
     echeancesCouvertes: couvertes(p, c.echeances, c.moi.id, p.project.id),
   }
 }
-

@@ -1,12 +1,11 @@
 // Adaptation des réponses du contrat (@cotiz/contracts, anglais) aux types d'interface des écrans (`~~/types`).
 // Renommages et libellés seulement (docs/specs/v0-mapping.md § 1) : aucun calcul métier, les chiffres viennent de l'API.
 // Champ nullable sans valeur → placeholder de la maquette (règle de docs/placeholders-v0.md, repli d'interface).
+import type { Money } from '@cotiz/contracts'
 import type {
   Frequence, MoyenPaiement, StatutAssociation, StatutDemande, StatutEcheance, StatutPaiement, StatutProjet,
   StatutSouscription, TypeCalendrier,
 } from '~~/types'
-
-type Money = { amount: number, currency: string }
 
 /** Montant du contrat → entier F CFA de l'interface. */
 export const m = (x: Money): number => x.amount
@@ -45,6 +44,9 @@ export const STATUT_PROJET_INVERSE: Record<StatutProjet, string> = { brouillon: 
 
 /** `due` (échue, dans le délai de grâce) est affiché « À venir » (décision 11). */
 export const STATUT_ECHEANCE: Record<string, StatutEcheance> = { upcoming: 'a_venir', due: 'a_venir', declared: 'declaree', partial: 'partielle', paid: 'payee', late: 'en_retard', waived: 'payee', canceled: 'a_venir' }
+
+/** Échéances fermées du registre (n'acceptent plus de paiement). */
+export const ECHEANCE_FERMEE = (status: string): boolean => status === 'canceled' || status === 'waived'
 
 export const STATUT_PAIEMENT: Record<string, StatutPaiement> = { pending: 'en_attente', validated: 'valide', rejected: 'rejete', canceled: 'rejete' }
 export const STATUT_PAIEMENT_INVERSE: Record<StatutPaiement, string> = { en_attente: 'pending', valide: 'validated', rejete: 'rejected' }

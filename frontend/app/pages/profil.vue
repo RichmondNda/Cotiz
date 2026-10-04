@@ -5,7 +5,6 @@
   rappels d'échéance SMS / email (V2) ; mot de passe, aide (revoir la présentation), déconnexion.
 -->
 <script setup lang="ts">
-import type { Souscripteur } from '~~/types'
 import { formatTelephone, pluriel } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })

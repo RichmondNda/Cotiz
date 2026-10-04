@@ -15,8 +15,7 @@
     "test": "vitest run",
     "e2e": "node tests/e2e/parcours.mjs",
     "a11y": "node tests/e2e/accessibilite.mjs",
-    "coherence": "node tests/e2e/coherence.mjs",
-    "contrat-api": "node scripts/generer-contrat-api.mjs"
+    "coherence": "node tests/e2e/coherence.mjs"
   },
   "dependencies": {
     "@cotiz/api-client": "workspace:*",

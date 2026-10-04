@@ -48,7 +48,7 @@ const PEOPLE: Person[] = [
   { ...pick('moussa'), key: 'moussa-diarra', address: 'Yopougon, Abidjan' },
   { ...pick('fatou'), key: 'fatou-traore', status: 'pending_activation', address: 'Yopougon, Abidjan' },
   { ...pick('jean'), key: 'jean-kouassi' },
-  { ...pick('richy'), key: 'richy', lastName: '[Nom]' },
+  pick('richy'),
   // Souscripteurs des listes des maquettes (DONNEES-REFERENCE « autres souscripteurs ») : téléphone non fourni.
   { key: 'koffi-brou', firstName: 'Koffi', lastName: 'Brou' },
   { key: 'kadiatou-sanogo', firstName: 'Kadiatou', lastName: 'Sanogo' },
@@ -523,8 +523,9 @@ export function buildDb(): MockDb {
     events: events(),
     unlisted: structuredClone(UNLISTED),
     // Maquettes : toutes les fonctionnalités visibles, sauf les aperçus « Bientôt disponible » de la V0
-    // (facturation globale, personnel plateforme, graphiques avancés des rapports).
-    features: ['payments', 'activation_codes', 'password_reset_manual', 'realtime', 'web_push', 'contracts', 'imports', 'auto_reminders', 'team', 'exports', 'usage_stats', 'mfa'],
+    // (facturation globale, personnel plateforme). Graphiques avancés des rapports (`analytics`) : visibles en
+    // nominal (MgProjetRapports__nominal), retirés par le scénario `graphiques-bientot-disponibles`.
+    features: ['payments', 'activation_codes', 'password_reset_manual', 'realtime', 'web_push', 'contracts', 'imports', 'auto_reminders', 'team', 'exports', 'usage_stats', 'mfa', 'analytics'],
     permissions: {
       platform: ['authenticated', 'platform.requests.manage', 'platform.associations.read', 'platform.associations.manage', 'platform.plans.manage', 'platform.billing.manage', 'platform.staff.manage', 'platform.audit.read'],
       association: ['authenticated', 'association.read', 'association.settings.manage', 'association.team.manage', 'projects.manage', 'members.manage', 'payments.review', 'reminders.send', 'reports.read', 'reports.export'],

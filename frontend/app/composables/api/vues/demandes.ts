@@ -1,12 +1,10 @@
 // Demandes de création : AssociationRequestSummary / Detail du contrat → `Demande` / `DemandeDetaillee` de l'interface.
+import type { CallOutput } from '@cotiz/api-client'
 import type { AssociationRequestDetail } from '@cotiz/contracts'
 import type { Demande, DemandeDetaillee, EvenementDemande, NouvelleDemande, TypeAssociation } from '~~/types'
 import { email, jour, local, STATUT_DEMANDE, tel, trancheProjets, TRANCHES_PROJETS, TRANCHES_SOUSCRIPTEURS, versE164 } from './communs'
 
-type Resume = {
-  id: string, reference: string, status: string, associationName: string, associationType: string, city: string, country: string
-  contact: { firstName: string, lastName: string, email: string }, estimatedSubscribers: string, desiredPlan: { id: string } | null, createdAt: string
-}
+type Resume = CallOutput<'pf.req.list', 'list'>['items'][number]
 
 /** Motifs de refus de la modale (MOTIFS_REFUS_DEMANDE) ↔ code stable envoyé au contrat. */
 export const MOTIFS_REFUS: Record<string, string> = {
