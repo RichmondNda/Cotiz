@@ -29,11 +29,27 @@ const rendus = Object.entries(ROUTES).flatMap(([role, routes]) => routes
   .filter(route => !filtre.length || filtre.includes(route))
   .flatMap(route => [['web', 1440, 900], ['mobile', 390, 844]].map(([vue, width, height]) => ({ role, route, vue, width, height }))))
 
+/**
+ * Navigation avec un seul nouvel essai sur délai dépassé (serveur de dev qui compile les pages à la première visite,
+ * runner de CI chargé) ; le nouvel essai est signalé pour qu'un vrai blocage reste visible.
+ */
+async function naviguer(page, route, vue) {
+  const url = new URL(routeMock(route), BASE).toString()
+  try {
+    return await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 })
+  }
+  catch (e) {
+    if (e.name !== 'TimeoutError') throw e
+    console.log(`… ${route} (${vue}) : délai dépassé, nouvel essai`)
+    return page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 })
+  }
+}
+
 async function auditer({ role, route, vue, width, height }) {
   const ctx = await browser.newContext({ viewport: { width, height }, isMobile: vue === 'mobile', hasTouch: vue === 'mobile' })
   if (role !== 'null') await ctx.addCookies([{ name: 'cotiz_role', value: role, url: BASE }])
   const page = await ctx.newPage()
-  const reponse = await page.goto(new URL(routeMock(route), BASE).toString(), { waitUntil: 'networkidle', timeout: 60_000 })
+  const reponse = await naviguer(page, route, vue)
   await page.waitForTimeout(700)
   // Une route mal traduite (slug au lieu d'UUID) auditerait la page « introuvable » sans rien signaler : échec.
   if (!reponse || reponse.status() >= 400 || /introuvable/i.test(await page.locator('main, body').first().innerText())) {

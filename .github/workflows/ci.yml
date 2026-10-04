@@ -105,6 +105,9 @@ jobs:
       - run: pnpm --filter frontend e2e
       - run: pnpm --filter frontend coherence
       - run: pnpm --filter frontend a11y
+        env:
+          # Runner à 2 cœurs : 4 pages en parallèle sur le serveur de dev dépassaient le délai de navigation.
+          A11Y_PARALLELE: '2'
       - name: Captures et journal du serveur
         if: always()
         uses: actions/upload-artifact@v4
