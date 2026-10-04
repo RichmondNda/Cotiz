@@ -1,8 +1,13 @@
-// Parcours complets de la V0 (lot 09), rejoués sur le serveur de dev (`npm run dev` lancé).
+// Parcours de fumée de la V0 (lots 09 et 0.3), rejoués sur le serveur de dev (mocks Nitro conformes au contrat).
 //   node tests/e2e/parcours.mjs            → les 4 parcours
 //   node tests/e2e/parcours.mjs plateforme → un seul (public | souscripteur | gestionnaire | plateforme)
 // Captures de chaque étape : .verif/e2e/<parcours>/. Code de sortie 1 si une étape échoue.
+import { ID, uid } from '../../server/mocks/ids.ts'
 import { assert, contient, parcours, texte } from './outils.mjs'
+
+// Les routes portent les UUID déterministes du jeu simulé (server/mocks/ids.ts), plus des slugs.
+const PAIEMENT_AWA = uid('payment', 'pm-awa-kone')
+const DEMANDE_TONTINE = uid('request', 'tontine-commercantes-adjame')
 
 let compteurAvant = 0
 
@@ -11,6 +16,17 @@ async function compteurMenu(page, entree) {
   const lien = page.getByRole('navigation').getByRole('link', { name: new RegExp(`^${entree}`) }).first()
   const n = (await texte(lien)).match(/\d+/)
   return n ? Number(n[0]) : 0
+}
+
+/** Attend (10 s max) que le compteur du menu satisfasse `condition` ; renvoie la dernière valeur lue. */
+async function attendreCompteur(page, entree, condition) {
+  let n = 0
+  for (let i = 0; i < 20; i++) {
+    n = await compteurMenu(page, entree)
+    if (condition(n)) return n
+    await page.waitForTimeout(500)
+  }
+  return n
 }
 
 const PARCOURS = {
@@ -64,13 +80,13 @@ const PARCOURS = {
     }],
     ['accueil', async (page) => {
       await page.getByRole('link', { name: /Centre communautaire/ }).first().click()
-      await page.waitForURL('**/projets/centre-communautaire')
+      await page.waitForURL(`**/projets/${ID.centre}`)
     }],
     ['projet-en-retard', async (page) => {
       await contient(page, '325 000 F', 'Reste à payer du projet')
       await contient(page, 'En retard', 'Statut de retard du projet')
       await page.getByRole('main').getByRole('link', { name: 'Déclarer un paiement' }).click()
-      await page.waitForURL('**/paiements/declarer?projet=centre-communautaire')
+      await page.waitForURL(`**/paiements/declarer?projet=${ID.centre}`)
     }],
     ['declarer-montant', async (page) => {
       const projet = page.getByRole('radio', { name: /Centre communautaire/ })
@@ -79,6 +95,12 @@ const PARCOURS = {
         await page.getByRole('button', { name: 'Continuer' }).click()
       }
       await page.getByRole('button', { name: /3 mois/ }).click()
+      // 75 000 F répartis par le domaine sur les 3 plus anciennes échéances ouvertes : août et septembre (en retard), octobre.
+      await contient(page, '75 000', 'Montant du raccourci « 3 mois »')
+      await contient(page, 'Total affecté 75 000 F', 'Répartition proposée : total affecté')
+      const cochees = await page.getByRole('checkbox', { checked: true }).evaluateAll(els => els.map(e => e.closest('label, li, div')?.innerText.split('\n')[0].trim()))
+      await assert(cochees.length === 3 && ['Août 2026', 'Septembre 2026', 'Octobre 2026'].every(m => cochees.some(c => c?.includes(m))),
+        `Échéances couvertes : ${JSON.stringify(cochees)} (attendu : août, septembre, octobre 2026)`)
       await page.getByRole('button', { name: 'Continuer' }).click()
     }],
     ['declarer-preuve', async (page) => {
@@ -87,6 +109,7 @@ const PARCOURS = {
       await page.getByRole('button', { name: 'Continuer' }).click()
     }],
     ['confirmation', async (page) => {
+      await contient(page, '75 000 F', 'Récapitulatif : montant déclaré')
       await page.getByRole('button', { name: 'Envoyer ma déclaration' }).click()
       await page.getByRole('heading', { name: 'Déclaration envoyée !' }).waitFor()
     }],
@@ -112,24 +135,25 @@ const PARCOURS = {
       await page.waitForURL('**/asso/paiements**')
     }],
     ['file', async (page) => {
-      compteurAvant = await compteurMenu(page, 'Paiements')
+      compteurAvant = await attendreCompteur(page, 'Paiements', n => n > 0)
+      await assert(compteurAvant > 0, 'Compteur « Paiements » du menu : aucun paiement à valider affiché')
       await page.getByRole('link', { name: 'Ouvrir le détail complet →' }).first().click()
-      await page.waitForURL('**/asso/paiements/pm-awa-kone')
+      await page.waitForURL(`**/asso/paiements/${PAIEMENT_AWA}`)
     }],
     ['valider', async (page) => {
       await page.getByRole('button', { name: 'Valider le paiement' }).click()
       await page.getByRole('button', { name: 'Oui, valider' }).click()
-      await page.waitForTimeout(1500)
-      const apres = await compteurMenu(page, 'Paiements')
+      await contient(page, 'Paiement validé', 'Message de confirmation de la validation')
+      const apres = await attendreCompteur(page, 'Paiements', n => n === compteurAvant - 1)
       await assert(apres === compteurAvant - 1, `Compteur « Paiements » du menu : ${compteurAvant} → ${apres} (attendu ${compteurAvant - 1})`)
     }],
     ['grille-projet', async (page) => {
       await page.getByRole('navigation').getByRole('link', { name: 'Projets' }).first().click()
       await page.waitForURL('**/asso/projets')
       await page.getByRole('main').getByRole('link', { name: /Centre communautaire/ }).first().click()
-      await page.waitForURL('**/asso/projets/centre-communautaire')
+      await page.waitForURL(`**/asso/projets/${ID.centre}`)
       await page.getByRole('main').getByRole('link', { name: /^Paiements/ }).first().click()
-      await page.waitForURL('**/asso/projets/centre-communautaire/paiements**')
+      await page.waitForURL(`**/asso/projets/${ID.centre}/paiements**`)
       const septembre = page.locator('[aria-label^="Awa Koné — Septembre 2026"]').first()
       await septembre.waitFor()
       const etiquette = await septembre.getAttribute('aria-label')
@@ -152,7 +176,7 @@ const PARCOURS = {
     ['tableau-de-bord', async (page) => {
       await contient(page, '4 demandes à traiter')
       await page.getByRole('link', { name: 'Examiner' }).first().click()
-      await page.waitForURL('**/plateforme/demandes/tontine-commercantes-adjame')
+      await page.waitForURL(`**/plateforme/demandes/${DEMANDE_TONTINE}`)
     }],
     ['approbation', async (page) => {
       await page.getByRole('button', { name: 'Approuver et créer l’espace' }).click()

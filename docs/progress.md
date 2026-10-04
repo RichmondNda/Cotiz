@@ -12,7 +12,7 @@ Tous les écrans de la maquette sur mocks Nitro, lots 00 à 09 fusionnés sur `m
 |---|---|---|---|---|---|---|---|
 | 0.1 | Monorepo, CI et environnements | terminé | — | 2026-10-01 | 4 | — | PR #9 ; CI complète en 5 min ; bascule de `sys.health` reportée au lot 0.3 (registre et proxy créés à son étape 4, aucun écran ni mock concerné) ; ClamAV local `unhealthy` à surveiller au lot 0.5 |
 | 0.2 | Contrats et logique métier partagée | terminé | — | 2026-10-01 | 10 | — | 8 étapes ; 107 ids de `endpoints.yaml` au registre ; `packages/domain` couvert à 100 % ; casse de compilation vérifiée côté back, côté front reportée au lot 0.3 (le front n'importe pas encore `@cotiz/contracts`) |
-| 0.3 | Aligner la V0 du front sur le contrat | en cours | 6 | — | 8 | — | Étapes 1 à 5 sur une seule PR (#11, vers `backend`) au lieu d'une PR par étape |
+| 0.3 | Aligner la V0 du front sur le contrat | en cours | clôture | — | 8 | — | Étapes 1 à 5 sur une seule PR (#11, vers `backend`) au lieu d'une PR par étape |
 | 0.4 | Base de données, isolation et contexte tenant | à faire | — | — | 7 | — | |
 | 0.5 | Socle transverse : outbox, stockage, audit, idempotence | à faire | — | — | 8 | — | |
 | 0.6 | Observabilité minimale | à faire | — | — | 3 | — | |

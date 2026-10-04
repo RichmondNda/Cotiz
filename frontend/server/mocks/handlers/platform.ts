@@ -71,6 +71,10 @@ export function requestApprove(ctx: MockContext<'pf.req.approve', 'approve'>) {
       defaultGraceDays: 5, onboardingCompletedAt: null, planId: ctx.body.planId, managerSeatsOverride: ctx.body.managerSeats,
       createdAt: now, lastActivityAt: now, suspendedAt: null, suspensionReason: null, statusBeforeSuspension: null, version: 1,
     })
+    db.subscriptions.push({
+      id: uid('subscription', r.key), associationId, planId: ctx.body.planId, billingPeriod: ctx.body.billingPeriod ?? 'monthly',
+      status: 'active', currentPeriodStart: ctx.body.subscriptionStartsOn, currentPeriodEnd: null, trialEndsOn: null,
+    })
     db.users.push({ id: ownerId, key: `owner-${r.key}`, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone, email: r.contact.email, status: 'pending_activation', locale: 'fr-CI', address: null, city: null, passwordChangedAt: null, lastLoginAt: null, version: 1 })
     db.memberships.push({ associationId, userId: ownerId, role: 'owner', status: 'invited', title: r.contact.title, joinedAt: now })
   }

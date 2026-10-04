@@ -344,6 +344,13 @@ describe('GET /me : droits et fonctionnalités (usePermissions, FeatureGate)', (
 })
 
 describe('mutations : état en mémoire', () => {
+  it('approuver une demande : la fiche de l’association créée se lit (abonnement compris)', async () => {
+    const { associationId } = await call('pf.req.approve', 'approve', WRITES['pf.req.approve approve']!()) as { associationId: string }
+    const fiche = await call('pf.asso.get', 'get', { params: { id: associationId } }) as { subscription: { plan: { id: string }, currentPeriodStart: string } }
+    expect(fiche.subscription.plan.id).toBe(uid('plan', 'essentiel'))
+    expect(fiche.subscription.currentPeriodStart).toBe('2026-10-01')
+  })
+
   it('déclarer puis valider : les échéances d’août et septembre de Moussa passent payées', async () => {
     const declared = await call('me.declare', 'declare', WRITES['me.declare declare']!()) as { id: string, status: string }
     expect(declared.status).toBe('pending')

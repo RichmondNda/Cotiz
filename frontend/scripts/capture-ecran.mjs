@@ -22,7 +22,7 @@
 
 import { chromium } from 'playwright'
 import { existsSync, mkdirSync } from 'node:fs'
-import { uid } from '../server/mocks/ids.ts'
+import { routeMock } from './route-mock.mjs'
 
 const args = process.argv.slice(2)
 const route = args.find(a => a.startsWith('/'))
@@ -55,16 +55,7 @@ if (etat) {
   }
 }
 
-// Segment qui suit `projets/`, `souscripteurs/`… → UUID du type correspondant (sauf s'il en est déjà un, ou une sous-page).
-const TYPES = { projets: 'project', souscripteurs: 'user', associations: 'association', paiements: 'payment', demandes: 'request' }
-const SOUS_PAGES = new Set(['nouveau', 'nouvelle', 'declarer', 'import'])
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/
-const [chemin, requete] = route.split('?')
-const segments = chemin.split('/').map((seg, i, tous) => {
-  const type = TYPES[tous[i - 1]]
-  return type && seg && !UUID.test(seg) && !SOUS_PAGES.has(seg) ? uid(type, seg) : seg
-})
-const url = new URL(segments.join('/') + (requete ? `?${requete}` : ''), base)
+const url = new URL(routeMock(route), base)
 if (scenario) url.searchParams.set('scenario', scenario)
 
 mkdirSync('.verif', { recursive: true })
