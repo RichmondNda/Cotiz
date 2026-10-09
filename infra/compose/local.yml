@@ -14,6 +14,8 @@ services:
       - '127.0.0.1:${COTIZ_PG_PORT:-5432}:5432'
     volumes:
       - postgres:/var/lib/postgresql/data
+      # Rôles cotiz_migrator, cotiz_app, cotiz_platform, cotiz_readonly (premier démarrage seulement ; voir le script).
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U cotiz -d cotiz']
       interval: 5s
@@ -21,13 +23,14 @@ services:
       retries: 20
 
   # Mode transaction : le contexte tenant passe par SET LOCAL (architecture/02).
-  # L'api et le worker passent par PgBouncer ; les migrations se connectent directement à PostgreSQL.
+  # L'api et le worker passent par PgBouncer en cotiz_app ; les migrations se connectent directement à PostgreSQL
+  # en cotiz_migrator (`pnpm db:migrate`).
   pgbouncer:
     image: edoburu/pgbouncer:v1.24.1-p1
     environment:
       DB_HOST: postgres
-      DB_USER: cotiz
-      DB_PASSWORD: cotiz
+      DB_USER: cotiz_app
+      DB_PASSWORD: cotiz-app-local
       AUTH_TYPE: scram-sha-256
       POOL_MODE: transaction
       MAX_PREPARED_STATEMENTS: '100'
@@ -39,7 +42,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U cotiz']
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U cotiz_app']
       interval: 5s
       timeout: 3s
       retries: 20

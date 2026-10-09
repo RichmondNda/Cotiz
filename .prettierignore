@@ -9,3 +9,5 @@ graphify-out/
 **/*.md
 pnpm-lock.yaml
 coverage/
+# Journal et instantanés générés par drizzle-kit (réécrits à chaque migration).
+packages/db/migrations/meta
