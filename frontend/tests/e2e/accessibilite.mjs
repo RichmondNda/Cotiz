@@ -7,6 +7,7 @@ import { chromium } from 'playwright'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { BASE } from './outils.mjs'
+import { routeMock } from '../../scripts/route-mock.mjs'
 
 const axe = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
 
@@ -28,12 +29,34 @@ const rendus = Object.entries(ROUTES).flatMap(([role, routes]) => routes
   .filter(route => !filtre.length || filtre.includes(route))
   .flatMap(route => [['web', 1440, 900], ['mobile', 390, 844]].map(([vue, width, height]) => ({ role, route, vue, width, height }))))
 
+/**
+ * Navigation avec un seul nouvel essai sur délai dépassé (serveur de dev qui compile les pages à la première visite,
+ * runner de CI chargé) ; le nouvel essai est signalé pour qu'un vrai blocage reste visible.
+ */
+async function naviguer(page, route, vue) {
+  const url = new URL(routeMock(route), BASE).toString()
+  try {
+    return await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 })
+  }
+  catch (e) {
+    if (e.name !== 'TimeoutError') throw e
+    console.log(`… ${route} (${vue}) : délai dépassé, nouvel essai`)
+    return page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 })
+  }
+}
+
 async function auditer({ role, route, vue, width, height }) {
   const ctx = await browser.newContext({ viewport: { width, height }, isMobile: vue === 'mobile', hasTouch: vue === 'mobile' })
   if (role !== 'null') await ctx.addCookies([{ name: 'cotiz_role', value: role, url: BASE }])
   const page = await ctx.newPage()
-  await page.goto(new URL(route, BASE).toString(), { waitUntil: 'networkidle' })
+  const reponse = await naviguer(page, route, vue)
   await page.waitForTimeout(700)
+  // Une route mal traduite (slug au lieu d'UUID) auditerait la page « introuvable » sans rien signaler : échec.
+  if (!reponse || reponse.status() >= 400 || /introuvable/i.test(await page.locator('main, body').first().innerText())) {
+    const e = violations.get('page-introuvable') ?? { impact: 'critical', aide: 'La route doit afficher son écran, pas une page d’erreur', occurrences: new Set() }
+    e.occurrences.add(`${route} (${vue}) : HTTP ${reponse?.status() ?? '?'}`)
+    violations.set('page-introuvable', e)
+  }
   await page.addScriptTag({ content: axe })
   const res = await page.evaluate(() => window.axe.run(document, {
     runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },

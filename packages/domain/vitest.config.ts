@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
+    // Tests de propriétés (fast-check, 10 000 cas) : 5 s ne suffisent pas quand `pnpm verify` lance tous les paquets en parallèle.
+    testTimeout: 30_000,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

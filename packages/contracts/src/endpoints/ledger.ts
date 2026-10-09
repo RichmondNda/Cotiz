@@ -179,7 +179,13 @@ export const lgPayValidate = defineEndpoint({
   id: 'lg.pay.validate',
   space: 'association',
   permission: review,
-  errors: ['payment_already_reviewed', 'allocation_mismatch', 'amount_exceeds_remaining', 'version_conflict'],
+  errors: [
+    'payment_already_reviewed',
+    'allocation_mismatch',
+    'allocation_exceeds_remaining',
+    'amount_exceeds_remaining',
+    'version_conflict',
+  ],
   flags: { idempotencyKey: true, ifMatch: true, rateLimited: false, audited: true },
   operations: {
     validate: {

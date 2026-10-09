@@ -31,7 +31,6 @@ Jusque-là, le front se lance depuis `frontend/` avec npm.
   `seed-reference.yaml`, `ui-deviations.md`.
 - `docs/architecture/` : le pourquoi et le comment. `docs/ui/` : fiches des écrans. `docs/decisions.md` : décisions à trancher.
 - Rendu des écrans : `design/` (captures > HTML > CSS), sauf les écarts de `docs/specs/ui-deviations.md`.
-- `docs/api-v0.md` : contrat **transitoire** de la V0 (chemins français) ; la cible est `endpoints.yaml` (alignement au lot 0.3).
 - Conflit : `docs/specs/` > `docs/architecture/` > le reste. Une contradiction trouvée → **s'arrêter et la signaler** au lieu de choisir.
 - Le dossier `backend data/` (s'il existe encore) est la source brute de cette documentation : ne pas s'en servir.
 

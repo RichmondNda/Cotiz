@@ -1,8 +1,64 @@
-import type { CompteursNavigation, UtilisateurSession } from '~~/types'
+// Session et navigation : utilisateur connecté (`GET /me`), droits et fonctionnalités, compteurs des menus.
+import type { Feature, Permission } from '@cotiz/contracts'
+import type { ApiClient } from './client'
+import type { CompteursNavigation, Role, UtilisateurSession } from '~~/types'
+import { initiales } from '~/utils/format'
+import { useSession } from '~/composables/useSession'
 
-/** Utilisateur de la session mockée. */
-export const useMoi = () => useApi<UtilisateurSession>('/session/moi', { cle: 'session-moi' })
+const ROLE: Record<string, Role> = { subscriber: 'souscripteur', association: 'gestionnaire', platform: 'superadmin' }
+const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
 
-/** Compteurs des menus (paiements à valider, notifications non lues, demandes à traiter). */
-export const useCompteursNavigation = () =>
-  useApi<CompteursNavigation>('/navigation/compteurs', { cle: 'compteurs-navigation' })
+/** Association courante du gestionnaire connecté (`Me.currentAssociationId`). */
+export async function associationCourante(client: ApiClient): Promise<string> {
+  const me = await client.call('me', 'get')
+  if (!me.currentAssociationId) throw createError({ statusCode: 403, statusMessage: 'Aucune association courante' })
+  return me.currentAssociationId
+}
+
+/** Utilisateur de la session : identité, association courante (nom, plan), droits et fonctionnalités. */
+export const useMoi = () => useLecture<UtilisateurSession>('session-moi', async (client) => {
+  const me = await client.call('me', 'get')
+  const role = ROLE[me.space]!
+  const courante = me.memberships.find(x => x.association.id === me.currentAssociationId)
+  const sub = courante ? await client.call('bl.sub', 'get', { params: { aid: courante.association.id } }) : null
+  return {
+    id: me.user.id,
+    role,
+    prenom: me.user.firstName,
+    nom: me.user.lastName || undefined,
+    fonction: role === 'souscripteur' ? 'Souscripteur' : courante?.title ? majuscule(courante.title) : undefined,
+    associationId: courante?.association.id,
+    association: courante && sub
+      ? { id: courante.association.id, nom: courante.association.name, sigle: initiales(courante.association.name), plan: sub.plan.name }
+      : undefined,
+    permissions: me.permissions,
+    features: me.features,
+  }
+})
+
+/** Compteurs des menus, recomposés selon l'espace (plus de route dédiée : docs/specs/v0-mapping.md). */
+export const useCompteursNavigation = () => {
+  const { role } = useSession()
+  return useLecture<CompteursNavigation>(() => `compteurs-navigation:${role.value}`, async (client) => {
+    const compteurs: CompteursNavigation = { paiementsAValider: 0, notificationsNonLues: 0, souscripteursEnRetard: 0, demandesATraiter: 0 }
+    if (!role.value) return compteurs
+    compteurs.notificationsNonLues = (await client.call('nt.list', 'unreadCount')).count
+    if (role.value === 'gestionnaire') {
+      const tdb = await client.call('as.dashboard', 'get', { params: { aid: await associationCourante(client) } })
+      compteurs.paiementsAValider = tdb.paymentsToReview.count
+      compteurs.souscripteursEnRetard = tdb.lateSubscribers.count
+    }
+    if (role.value === 'superadmin') compteurs.demandesATraiter = (await client.call('pf.dashboard', 'get')).pendingRequests
+    return compteurs
+  })
+}
+
+/** Droits et fonctionnalités de la session (`GET /me`) : le front masque, le back refuse. */
+export function usePermissions() {
+  const { data: moi } = useMoi()
+  return {
+    peut: (permission: Permission) => Boolean(moi.value?.permissions.includes(permission)),
+    active: (feature: Feature) => Boolean(moi.value?.features.includes(feature)),
+    pret: computed(() => Boolean(moi.value)),
+  }
+}

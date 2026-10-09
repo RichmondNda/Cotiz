@@ -6,6 +6,7 @@ import {
   MemberStanding,
   MembershipRole,
   NotificationChannel,
+  PaymentMethodKind,
   PlatformRole,
   ProjectStatus,
   SessionSpace,
@@ -48,6 +49,8 @@ export const Me = z.object({
     z.object({
       association: AssociationRef.extend({ slug: z.string(), status: AssociationStatus }),
       role: MembershipRole,
+      /** Fonction affichée sous le nom (« Trésorière ») ; `null` si non renseignée. */
+      title: z.string().nullable(),
     }),
   ),
   platformRole: PlatformRole.nullable(),
@@ -176,6 +179,8 @@ export const SubscriberPayment = z
     amountReceived: Money.nullable(),
     paidOn: IsoDate,
     declaredAt: Instant,
+    /** Moyen choisi ; `null` si non précisé. */
+    paymentMethodKind: PaymentMethodKind.nullable(),
     project: ProjectRef,
     association: AssociationRef,
     covered: z.array(CoveredInstallment),
@@ -311,6 +316,7 @@ export const meDeclare = defineEndpoint({
   errors: [
     'amount_exceeds_remaining',
     'allocation_mismatch',
+    'allocation_exceeds_remaining',
     'proof_required',
     'file_not_clean',
     'signature_required',

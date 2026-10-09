@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AllocationState, InstallmentKind, InstallmentStatus, PaymentStatus } from './enums.js';
+import { AllocationState, InstallmentKind, InstallmentStatus, PaymentMethodKind, PaymentStatus } from './enums.js';
 import { PersonRef } from './people.js';
 import { ProjectRef } from './project.js';
 import { Instant, IsoDate, Money, Uuid } from './scalars.js';
@@ -45,6 +45,9 @@ export type AllocationInput = z.infer<typeof AllocationInput>;
 export const PaymentProof = z
   .object({
     fileId: Uuid.nullable(),
+    /** Nom du fichier déposé et type vérifié (image ou PDF) ; `null` sans fichier. */
+    fileName: z.string().nullable(),
+    mimeType: z.string().nullable(),
     transactionReference: z.string().nullable(),
   })
   .meta({ id: 'PaymentProof' });
@@ -58,6 +61,8 @@ export const PaymentSummary = z
     amountReceived: Money.nullable(),
     paidOn: IsoDate,
     declaredAt: Instant,
+    /** Moyen choisi par le souscripteur ; `null` si non précisé. */
+    paymentMethodKind: PaymentMethodKind.nullable(),
     member: PersonRef,
     project: ProjectRef,
     covered: z.array(CoveredInstallment),

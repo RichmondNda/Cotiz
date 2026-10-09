@@ -297,17 +297,18 @@ function recharger() {
           v-if="!rapport"
           :hauteur="160"
         />
-        <div
-          v-else-if="!rapport.graphiquesDisponibles"
-          class="rapports__bientot"
-        >
-          <CzSoon />
-          <span>Graphiques avancés en V2</span>
-        </div>
-        <CourbeRecouvrement
+        <FeatureGate
           v-else
-          :points="pointsTaux"
-        />
+          feature="analytics"
+        >
+          <CourbeRecouvrement :points="pointsTaux" />
+          <template #indisponible>
+            <div class="rapports__bientot">
+              <CzSoon />
+              <span>Graphiques avancés en V2</span>
+            </div>
+          </template>
+        </FeatureGate>
       </CzCard>
       <CzCard
         tag="section"
@@ -320,49 +321,50 @@ function recharger() {
           v-if="!rapport"
           :hauteur="100"
         />
-        <div
-          v-else-if="!rapport.graphiquesDisponibles"
-          class="rapports__bientot rapports__bientot--court"
-        >
-          <CzSoon />
-        </div>
-        <AnneauStatuts
+        <FeatureGate
           v-else
-          :segments="segments"
-        />
+          feature="analytics"
+        >
+          <AnneauStatuts :segments="segments" />
+          <template #indisponible>
+            <div class="rapports__bientot rapports__bientot--court">
+              <CzSoon />
+            </div>
+          </template>
+        </FeatureGate>
       </CzCard>
     </div>
 
     <!-- Graphique : mobile -->
-    <CzCard
-      v-if="rapport && !rapport.graphiquesDisponibles"
-      class="rapports__bientot-mobile cz-mobile"
-    >
-      <CzSoon>V2</CzSoon>
-      <span>Graphiques détaillés bientôt disponibles.</span>
-    </CzCard>
-    <CzCard
-      v-else
-      tag="section"
-      class="rapports__carte cz-mobile"
-    >
-      <h2 class="rapports__titre">
-        Collecté par mois (F)
-      </h2>
-      <CzSkeleton
-        v-if="!synthese"
-        :hauteur="120"
-      />
-      <BarresEcheances
-        v-else-if="barresMobile.length"
-        :barres="barresMobile"
-        etiquettes="toutes"
-        label="Collecté par mois"
-      />
-      <p class="rapports__note">
-        Montants mensuels : [MONTANT] F
-      </p>
-    </CzCard>
+    <FeatureGate feature="analytics">
+      <CzCard
+        tag="section"
+        class="rapports__carte cz-mobile"
+      >
+        <h2 class="rapports__titre">
+          Collecté par mois (F)
+        </h2>
+        <CzSkeleton
+          v-if="!synthese"
+          :hauteur="120"
+        />
+        <BarresEcheances
+          v-else-if="barresMobile.length"
+          :barres="barresMobile"
+          etiquettes="toutes"
+          label="Collecté par mois"
+        />
+        <p class="rapports__note">
+          Montants mensuels : [MONTANT] F
+        </p>
+      </CzCard>
+      <template #indisponible>
+        <CzCard class="rapports__bientot-mobile cz-mobile">
+          <CzSoon>V2</CzSoon>
+          <span>Graphiques détaillés bientôt disponibles.</span>
+        </CzCard>
+      </template>
+    </FeatureGate>
 
     <!-- Tableau : desktop -->
     <CzTable

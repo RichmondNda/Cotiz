@@ -8,7 +8,7 @@ async function saisir(page, motDePasse) {
 }
 
 async function soumettre(page) {
-  const reponse = page.waitForResponse('**/api/session/connexion')
+  const reponse = page.waitForResponse('**/api/v1/auth/login')
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await reponse
 }
@@ -28,7 +28,7 @@ export default {
     for (let i = 0; i < 5; i++) await soumettre(page)
   },
   'chargement': async (page) => {
-    await page.route('**/api/session/connexion', () => new Promise(() => {}))
+    await page.route('**/api/v1/auth/login', () => new Promise(() => {}))
     await saisir(page, 'motdepasse')
     await page.getByRole('button', { name: 'Se connecter' }).click()
   },

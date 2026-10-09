@@ -1,13 +1,16 @@
-// Échéancier d'un projet à partir de ses paramètres (création de projet, aperçu, handler `POST /api/projets`).
-// Fonctions pures, sans dépendance à Vue : importées aussi par les mocks Nitro.
-import type { Frequence, MontantFCFA } from '~~/types'
+// Échéancier d'un projet à partir de ses paramètres (création de projet, aperçu, ajout d'un souscripteur).
+// Les dates et montants viennent de `generateSchedule` de @cotiz/domain (règle n° 2) ; ce fichier ne fait que
+// traduire les termes de l'interface et mettre en forme. Fonctions pures, sans dépendance à Vue.
+import { DomainError, generateSchedule, Money } from '@cotiz/domain'
+import type { Frequency, ScheduleLine } from '@cotiz/domain'
+import type { Frequence, MontantFCFA, TypeCalendrier } from '~~/types'
 
-/** Pas entre deux échéances, en mois (hebdomadaire : traité à part, en semaines). */
-const PAS_MOIS: Record<Exclude<Frequence, 'hebdomadaire'>, number> = {
-  mensuelle: 1,
-  trimestrielle: 3,
-  semestrielle: 6,
-  annuelle: 12,
+const FREQUENCES_DOMAINE: Record<Frequence, Frequency> = {
+  hebdomadaire: 'weekly',
+  mensuelle: 'monthly',
+  trimestrielle: 'quarterly',
+  semestrielle: 'semiannual',
+  annuelle: 'annual',
 }
 
 /** Unité affichée après le montant : « 25 000 F / mois ». */
@@ -30,11 +33,6 @@ export const LIBELLES_FREQUENCE: Record<Frequence, string> = {
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
-function lire(isoDate: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate)
-  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null
-}
-
 /** `05/03/2026` → `2026-03-05` ; `null` si la saisie n'est pas une date valide. */
 export function lireDateSaisie(saisie: string): string | null {
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(saisie.trim())
@@ -50,34 +48,64 @@ export function formatSaisieDate(saisie: string): string {
   return [c.slice(0, 2), c.slice(2, 4), c.slice(4)].filter(Boolean).join('/')
 }
 
-/** Date de la n-ième échéance (0 = première), au jour d'échéance donné. */
-export function dateEcheance(debut: string, frequence: Frequence, n: number, jour?: number): string | null {
-  const d = lire(debut)
-  if (!d) return null
-  if (frequence === 'hebdomadaire') {
-    d.setDate(d.getDate() + 7 * n)
-    return iso(d)
+/** Termes d'un projet tels que l'interface les saisit ou les affiche. */
+export interface TermesEcheancier {
+  fondsEntree: MontantFCFA | null
+  montantEcheance: MontantFCFA
+  frequence: Frequence
+  /** Jour du mois ; hebdomadaire sans jour saisi : jour de la semaine de la date de début. */
+  jourEcheance?: number
+  typeCalendrier: TypeCalendrier
+  dateDebut: string
+  /** Dates fixes uniquement. */
+  dateFin?: string | null
+  /** Cycle roulant : nombre d'échéances générées (12 par défaut). */
+  horizon?: number | null
+}
+
+/** Jour ISO (1 = lundi … 7 = dimanche) d'une date `AAAA-MM-JJ`. */
+const jourIso = (date: string) => ((new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7) + 1
+
+/** Lignes de l'échéancier (fonds d'entrée compris) ; termes incomplets ou invalides (saisie en cours) : aucune ligne. */
+export function lignesEcheancier(t: TermesEcheancier): ScheduleLine[] {
+  try {
+    return generateSchedule({
+      installmentAmount: t.montantEcheance,
+      entryFeeAmount: t.fondsEntree,
+      frequency: FREQUENCES_DOMAINE[t.frequence],
+      dueDay: t.jourEcheance ?? (t.frequence === 'hebdomadaire' ? jourIso(t.dateDebut) : Number(t.dateDebut.slice(8, 10))),
+      scheduleType: t.typeCalendrier === 'dates_fixes' ? 'fixed' : 'rolling',
+      startDate: t.dateDebut,
+      endDate: t.dateFin ?? null,
+      horizon: t.horizon ?? null,
+    })
   }
-  const cible = new Date(d.getFullYear(), d.getMonth() + PAS_MOIS[frequence] * n, 1)
-  const dernierJour = new Date(cible.getFullYear(), cible.getMonth() + 1, 0).getDate()
-  cible.setDate(Math.min(jour ?? d.getDate(), dernierJour))
-  return iso(cible)
+  catch (e) {
+    if (e instanceof DomainError) return []
+    throw e
+  }
 }
 
-/** Nombre d'échéances entre deux dates incluses (dates fixes) : mars 2026 → août 2027, mensuel = 18. */
-export function nbEcheancesEntre(debut: string, fin: string, frequence: Frequence): number | null {
-  const a = lire(debut)
-  const b = lire(fin)
-  if (!a || !b || b < a) return null
-  if (frequence === 'hebdomadaire') return Math.floor((b.getTime() - a.getTime()) / (7 * 86_400_000)) + 1
-  const mois = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth())
-  return Math.floor(mois / PAS_MOIS[frequence]) + 1
+/** Nombre d'échéances (hors fonds d'entrée) d'un projet à dates fixes : mars 2026 → août 2027, mensuel = 18. */
+export function nbEcheances(t: TermesEcheancier): number | null {
+  if (t.typeCalendrier !== 'dates_fixes') return null
+  const n = lignesEcheancier(t).filter(l => l.kind === 'periodic').length
+  return n || null
 }
 
-/** Engagement total par souscripteur : fonds d'entrée + n × échéance (dates fixes uniquement). */
-export function totalParSouscripteur(fondsEntree: MontantFCFA | null, montantEcheance: MontantFCFA, nb: number | null): MontantFCFA | null {
-  if (nb === null) return null
-  return (fondsEntree ?? 0) + nb * montantEcheance
+/** Engagement total par souscripteur (dates fixes) : somme des lignes de l'échéancier. */
+export function totalParSouscripteur(t: TermesEcheancier): MontantFCFA | null {
+  if (t.typeCalendrier !== 'dates_fixes') return null
+  const lignes = lignesEcheancier(t)
+  if (!lignes.length) return null
+  try {
+    // Somme contrôlée du domaine : au-delà des entiers sûrs (saisie démesurée) → pas de total plutôt qu'une erreur au rendu.
+    return Money.sum(lignes.map(l => Money.of(l.amountDue, 'XOF')), 'XOF').amount
+  }
+  catch (e) {
+    if (e instanceof DomainError) return null
+    throw e
+  }
 }
 
 export interface LigneEcheancier {
@@ -88,25 +116,12 @@ export interface LigneEcheancier {
   estFondsEntree: boolean
 }
 
-/**
- * Premières lignes de l'échéancier (récapitulatif) : fonds d'entrée à la date de début,
- * puis « Échéance 1 », « Échéance 2 »… ; `limite` lignes au plus, fonds d'entrée compris.
- */
-export function premieresEcheances(p: {
-  fondsEntree: MontantFCFA | null
-  montantEcheance: MontantFCFA
-  frequence: Frequence
-  jourEcheance?: number
-  dateDebut: string
-  nbEcheances: number | null
-}, limite = 12): LigneEcheancier[] {
-  const lignes: LigneEcheancier[] = []
-  if (p.fondsEntree) lignes.push({ libelle: 'Fonds d’entrée', date: p.dateDebut, montant: p.fondsEntree, estFondsEntree: true })
-  const nb = p.nbEcheances ?? Number.POSITIVE_INFINITY
-  for (let i = 0; lignes.length < limite && i < nb; i++) {
-    const date = dateEcheance(p.dateDebut, p.frequence, i, p.jourEcheance)
-    if (!date) break
-    lignes.push({ libelle: `Échéance ${i + 1}`, date, montant: p.montantEcheance, estFondsEntree: false })
-  }
-  return lignes
+/** Premières lignes de l'échéancier (récapitulatif) : « Fonds d’entrée », puis « Échéance 1 »… ; `limite` lignes au plus. */
+export function premieresEcheances(t: TermesEcheancier, limite = 12): LigneEcheancier[] {
+  return lignesEcheancier(t).slice(0, limite).map(l => ({
+    libelle: l.kind === 'entry_fee' ? 'Fonds d’entrée' : `Échéance ${l.sequence}`,
+    date: l.dueDate,
+    montant: l.amountDue,
+    estFondsEntree: l.kind === 'entry_fee',
+  }))
 }

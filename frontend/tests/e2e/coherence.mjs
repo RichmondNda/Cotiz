@@ -3,6 +3,7 @@
 //   node tests/e2e/coherence.mjs
 import { chromium } from 'playwright'
 import { BASE, texte } from './outils.mjs'
+import { routeMock } from '../../scripts/route-mock.mjs'
 
 const F = n => `${n.toLocaleString('fr-FR').replace(/\s/g, ' ')} F`
 
@@ -27,7 +28,8 @@ const ATTENDUS = [
   // Plateforme : 132 à jour + 15 impayées = 147 actives ; + 1 en onboarding = 148 associations.
   ['superadmin', '/plateforme', ['147', 'sur 147 associations', '132 abonnements à jour']],
   ['superadmin', '/plateforme/associations', ['Toutes · 148', 'Actives · 132', 'Impayées · 15', 'Onboarding · 1', '148 au total']],
-  ['superadmin', '/plateforme/associations/ressortissants-man', ['5', '5 / 5']],
+  // Limites du plan Pro de seed-reference.yaml (projets illimités, 500 souscripteurs) : écart R1 de docs/specs/v0-mapping.md.
+  ['superadmin', '/plateforme/associations/ressortissants-man', ['5', 'Projets 5 / illimité', 'Souscripteurs 142 / 500']],
 ]
 
 const browser = await chromium.launch()
@@ -37,7 +39,7 @@ for (const [role, route, attendus] of ATTENDUS) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   if (role !== 'null') await ctx.addCookies([{ name: 'cotiz_role', value: role, url: BASE }])
   const page = await ctx.newPage()
-  await page.goto(new URL(route, BASE).toString(), { waitUntil: 'networkidle' })
+  await page.goto(new URL(routeMock(route), BASE).toString(), { waitUntil: 'networkidle' })
   await page.waitForTimeout(800)
   const corps = await texte(page.locator('body'))
   const manquants = attendus.filter(a => !corps.includes(a.replace(/\s/g, ' ')))

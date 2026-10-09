@@ -143,6 +143,8 @@ export const UploadTicket = z.object({
 export const StoredFile = z.object({
   id: Uuid,
   purpose: FilePurpose,
+  /** Nom transmis au dépôt (affichage seulement). */
+  fileName: z.string(),
   mimeType: z.string(),
   sizeBytes: z.int().min(1),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),

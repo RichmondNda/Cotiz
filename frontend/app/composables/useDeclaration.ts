@@ -20,6 +20,11 @@ export interface EtatDeclaration {
   preuve: { nom: string, taille: number } | null
   reference: string
   commentaire: string
+  /**
+   * Clé d'idempotence du dernier envoi et empreinte du contenu envoyé : un nouvel essai du même contenu (réponse perdue)
+   * réutilise la clé, le back rejoue la même déclaration au lieu d'en créer une seconde ; contenu modifié → nouvelle clé.
+   */
+  envoi: { cle: string, empreinte: string } | null
 }
 
 function etatInitial(): EtatDeclaration {
@@ -33,6 +38,7 @@ function etatInitial(): EtatDeclaration {
     preuve: null,
     reference: '',
     commentaire: '',
+    envoi: null,
   }
 }
 
@@ -49,9 +55,16 @@ export function useDeclaration() {
     etat.value = { ...etat.value, projetId, montant: null, repartition: null, moyen: null }
   }
 
+  /** Clé d'idempotence de l'envoi de ce contenu (réutilisée tant qu'il ne change pas). */
+  function cleEnvoi(contenu: unknown): string {
+    const empreinte = JSON.stringify(contenu)
+    if (etat.value.envoi?.empreinte !== empreinte) etat.value.envoi = { cle: crypto.randomUUID(), empreinte }
+    return etat.value.envoi.cle
+  }
+
   function reinitialiser() {
     etat.value = etatInitial()
   }
 
-  return { etat, commencer, choisirProjet, reinitialiser }
+  return { etat, commencer, choisirProjet, cleEnvoi, reinitialiser }
 }

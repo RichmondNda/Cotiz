@@ -6,7 +6,7 @@
 -->
 <script setup lang="ts">
 import type { ProfilPlateforme } from '~~/types'
-import { codeErreur } from '~/composables/api/useApi'
+import { codeErreur } from '~/composables/api/client'
 import { emailValide } from '~/utils/validation'
 import { ROLES_PLATEFORME } from '~/utils/statuts'
 

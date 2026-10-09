@@ -1,7 +1,7 @@
 # Jeu de données de référence — identique dans les maquettes, les mocks (frontend/server/mocks),
 # les seeds de recette (packages/db/seeds) et les tests.
 # Les échéances ne sont pas listées : elles sont générées par generateSchedule().
-today: "2026-09-29"   # date « du jour » des maquettes et des mocks
+today: "2026-09-25"   # date « du jour » des maquettes et des mocks (vendredi 25 septembre 2026, captures figées à cette date)
 associations:
   - key: entraide-yopougon
     name: Entraide Yopougon
@@ -27,7 +27,7 @@ plans:
   - { code: decouverte, name: Découverte, priceMonthly: 0, maxProjects: 1, maxSubscribers: 20, maxManagers: 1 }
   - { code: essentiel, name: Essentiel, priceMonthly: 10000, maxProjects: 5, maxSubscribers: 100, maxManagers: 2 }
   - { code: pro, name: Pro, priceMonthly: 25000, maxProjects: null, maxSubscribers: 500, maxManagers: 5 }
-projects:   # tous chez entraide-yopougon
+projects:   # chez entraide-yopougon, sauf mutuelle-sante
   - key: centre-communautaire
     name: Centre communautaire
     scheduleType: fixed
@@ -59,12 +59,24 @@ projects:   # tous chez entraide-yopougon
     endDate: "2027-05-31"      # 12 mois
     status: active
     contractRequired: true     # à partir du lot 4.1
+  - key: mutuelle-sante        # projet de Moussa chez ressortissants-man (tableau de bord souscripteur, historique)
+    association: ressortissants-man
+    name: Mutuelle santé
+    scheduleType: fixed
+    entryFeeAmount: 20000
+    installmentAmount: 10000
+    frequency: monthly
+    dueDay: 5
+    startDate: "2026-07-01"
+    endDate: "2027-04-30"      # 10 mensualités : 20 000 + 10 × 10 000 = 120 000 F
+    graceDays: 5
+    status: active
 people:
-  - { key: awa, firstName: Awa, lastName: Koné, phone: "+2250708091011", email: awa.kone@entraide-yopougon.ci, roles: ["entraide-yopougon:owner"], note: "Trésorière, utilisatrice des maquettes gestionnaire" }
+  - { key: awa, firstName: Awa, lastName: Koné, phone: "+2250708091011", email: awa@entraide.ci, roles: ["entraide-yopougon:owner"], note: "Trésorière, utilisatrice des maquettes gestionnaire" }
   - { key: aminata, firstName: Aminata, lastName: Konaté, email: aminata.konate@entraide-yopougon.ci, roles: ["entraide-yopougon:manager"], note: "Apparaît comme « validé par »" }
   - { key: moussa, firstName: Moussa, lastName: Diarra, phone: "+2250544218790", roles: ["entraide-yopougon:subscriber", "ressortissants-man:subscriber"], note: "Centre communautaire : 2 échéances en retard (août et septembre). Contrat Voyage solidaire à signer." }
   - { key: fatou, firstName: Fatou, lastName: Traoré, phone: "+2250122334455", roles: ["entraide-yopougon:subscriber"], note: "Souscriptrice récente, signature attendue ; compte non activé (code à remettre)" }
-  - { key: jean, firstName: Jean, lastName: Kouassi, phone: "+2250755667788", roles: ["entraide-yopougon:subscriber"], note: "Paiement partiel de 10 000 F en août" }
+  - { key: jean, firstName: Jean, lastName: Kouassi, phone: "+2250755667788", roles: ["entraide-yopougon:subscriber"], note: "Août payé en partie (12 500 F), solde de 12 500 F déclaré" }
   - { key: richy, firstName: Richy, email: richy@cotiz.app, roles: ["platform:owner"], note: "Super-admin des maquettes" }
 expected:   # chiffres que les mocks et le seed de démonstration doivent reproduire
   managerDashboard: { collectedThisMonth: 1240000, expectedThisMonth: 1300000, paymentsToReview: 6, oldestPendingDays: 3, lateSubscribers: 14, totalSubscribers: 52, recoveryRate: 0.82 }

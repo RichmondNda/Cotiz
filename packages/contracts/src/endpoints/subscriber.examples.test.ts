@@ -68,7 +68,9 @@ describe('espace souscripteur', () => {
       },
       space: 'subscriber',
       currentAssociationId: null,
-      memberships: [{ association: { ...entraide, slug: 'entraide-yopougon', status: 'active' }, role: 'subscriber' }],
+      memberships: [
+        { association: { ...entraide, slug: 'entraide-yopougon', status: 'active' }, role: 'subscriber', title: null },
+      ],
       platformRole: null,
       permissions: ['subscriber.self', 'authenticated'],
       features: ['payments', 'activation_codes'],

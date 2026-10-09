@@ -15,15 +15,19 @@
     "test": "vitest run",
     "e2e": "node tests/e2e/parcours.mjs",
     "a11y": "node tests/e2e/accessibilite.mjs",
-    "coherence": "node tests/e2e/coherence.mjs",
-    "contrat-api": "node scripts/generer-contrat-api.mjs"
+    "coherence": "node tests/e2e/coherence.mjs"
   },
   "dependencies": {
+    "@cotiz/api-client": "workspace:*",
+    "@cotiz/contracts": "workspace:*",
+    "@cotiz/domain": "workspace:*",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/poppins": "^5.3.0",
+    "h3": "1.15.11",
     "nuxt": "^4.5.2",
     "vue": "^3.5.43",
-    "vue-router": "^5.3.1"
+    "vue-router": "^5.3.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
@@ -32,6 +36,7 @@
     "playwright": "^1.63.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.2",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.11",
+    "yaml": "^2.9.1"
   }
 }

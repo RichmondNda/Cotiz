@@ -4,7 +4,8 @@
 import type { InjectionKey, Ref } from 'vue'
 import type { Association, Frequence, ModalitePaiement, MoyenPaiement, NouveauProjet, Projet, TypeCalendrier } from '~~/types'
 import { formatDate, formatFCFA, formatMois } from '~/utils/format'
-import { lireDateSaisie, nbEcheancesEntre, premieresEcheances, totalParSouscripteur, UNITES_FREQUENCE } from '~/utils/echeancier'
+import { lireDateSaisie, nbEcheances as compterEcheances, premieresEcheances, totalParSouscripteur, UNITES_FREQUENCE } from '~/utils/echeancier'
+import type { TermesEcheancier } from '~/utils/echeancier'
 
 export const ETAPES_PROJET = ['Informations', 'Financement', 'Calendrier', 'Paiement', 'Contrat', 'Récapitulatif'] as const
 
@@ -104,20 +105,20 @@ export function creerFormulaireProjet(
   const debutIso = computed(() => lireDateSaisie(etat.dateDebut))
   const finIso = computed(() => lireDateSaisie(etat.dateFin))
   const fondsEntree = computed(() => (etat.fondsEntreeActif ? etat.fondsEntree : null))
-  const nbEcheances = computed(() => (etat.typeCalendrier === 'dates_fixes' && debutIso.value && finIso.value
-    ? nbEcheancesEntre(debutIso.value, finIso.value, etat.frequence)
-    : null))
-  const total = computed(() => (etat.montantEcheance ? totalParSouscripteur(fondsEntree.value, etat.montantEcheance, nbEcheances.value) : null))
-  const echeancier = computed(() => (debutIso.value && etat.montantEcheance
-    ? premieresEcheances({
+  const termes = computed((): TermesEcheancier | null => (debutIso.value && etat.montantEcheance
+    ? {
         fondsEntree: fondsEntree.value,
         montantEcheance: etat.montantEcheance,
         frequence: etat.frequence,
         jourEcheance: etat.frequence === 'hebdomadaire' ? undefined : etat.jourEcheance,
+        typeCalendrier: etat.typeCalendrier,
         dateDebut: debutIso.value,
-        nbEcheances: nbEcheances.value,
-      })
-    : []))
+        dateFin: finIso.value,
+      }
+    : null))
+  const nbEcheances = computed(() => (termes.value ? compterEcheances(termes.value) : null))
+  const total = computed(() => (termes.value ? totalParSouscripteur(termes.value) : null))
+  const echeancier = computed(() => (termes.value ? premieresEcheances(termes.value) : []))
 
   const unite = computed(() => UNITES_FREQUENCE[etat.frequence])
   const moyensChoisis = computed(() => MOYENS_ORDRE.filter(m => etat.moyens[m]))

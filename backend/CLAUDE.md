@@ -5,7 +5,7 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Deux points d'entrée : `src/main.ts` (HTTP, port 4000, préfixe `/api/v1`) et `src/worker.ts` (relais outbox, files BullMQ,
   tâches planifiées). Même image Docker. Configuration validée au démarrage par Zod (`src/config.ts`).
 - Le contrat : `docs/specs/endpoints.yaml` → `@cotiz/contracts`. Les chemins, permissions, erreurs et drapeaux
-  (`idempotencyKey`, `ifMatch`) viennent de là, pas de `docs/api-v0.md` (contrat transitoire de la V0 du front).
+  (`idempotencyKey`, `ifMatch`) viennent de là.
 - Un module = `src/modules/<module>/` avec `http/`, `application/`, `domain/`, `infra/`, `events/` et `<module>.public.ts`
   (seule surface importable par les autres modules). Voir `docs/architecture/01-modules.md`.
 - Un cas d'usage par fichier `<verbe>-<objet>.use-case.ts`, méthode `execute(input, ctx)`, **une transaction** obtenue de

@@ -23,7 +23,7 @@ export default {
   },
   // Envoi valide, réponse de l'API retenue : bouton « Création… ».
   'envoi-en-cours': async (page) => {
-    await page.route('**/api/associations', route => (route.request().method() === 'POST' ? new Promise(() => {}) : route.continue()))
+    await page.route('**/api/v1/platform/associations', route => (route.request().method() === 'POST' ? new Promise(() => {}) : route.continue()))
     await remplir(page, { email: 'contact@jeunesse.ci', telephone: '07 12 34 56 78' })
     await page.getByRole('button', { name: 'Créer l’association' }).click()
   },

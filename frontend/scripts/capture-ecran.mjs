@@ -14,11 +14,15 @@
 // `--scenario` force un état de données (propagé aux mocks). `--etat` rejoue un parcours d'interface
 // (remplir, cliquer…) décrit dans scripts/parcours/<route>.mjs (`/connexion/association` → connexion_association.mjs).
 //
+// Les routes de l'inventaire portent des slugs (`/asso/projets/centre-communautaire`) : ils sont traduits en UUID des mocks
+// (server/mocks/ids.ts) pour la navigation ; le nom de sortie et le fichier de parcours gardent le slug.
+//
 // Sortie : .verif/<nom>__web.png et .verif/<nom>__mobile.png (pages entières).
 // Prérequis : npm i -D playwright && npx playwright install chromium ; serveur `npm run dev` lancé.
 
 import { chromium } from 'playwright'
 import { existsSync, mkdirSync } from 'node:fs'
+import { routeMock } from './route-mock.mjs'
 
 const args = process.argv.slice(2)
 const route = args.find(a => a.startsWith('/'))
@@ -51,7 +55,7 @@ if (etat) {
   }
 }
 
-const url = new URL(route, base)
+const url = new URL(routeMock(route), base)
 if (scenario) url.searchParams.set('scenario', scenario)
 
 mkdirSync('.verif', { recursive: true })

@@ -5,7 +5,7 @@
   barre d'actions fixe en bas (« Enregistrer le brouillon », « Retour », « Continuer » / « Créer le projet »).
   Mobile : en-tête avec retour, progression en segments, barre d'action fixe (précédent + continuer), sans navigation basse.
   Validation par étape ; quitter avec des modifications non enregistrées → confirmation ;
-  création → écran « Projet créé ! » (ajouter des souscripteurs / voir le projet). `POST /api/projets`.
+  création → écran « Projet créé ! » (ajouter des souscripteurs / voir le projet). `pr.create`.
 -->
 <script setup lang="ts">
 import type { Projet } from '~~/types'

@@ -5,7 +5,6 @@
   rappels d'échéance SMS / email (V2) ; mot de passe, aide (revoir la présentation), déconnexion.
 -->
 <script setup lang="ts">
-import type { Souscripteur } from '~~/types'
 import { formatTelephone, pluriel } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
@@ -15,7 +14,7 @@ const { data: profil, pending, error, refresh } = useMonProfil()
 const { data: contrats } = useContrats({ statut: 'a_signer' })
 const { data: compteurs } = useCompteursNavigation()
 const { deconnecter } = useSession()
-const appeler = useAppelApi()
+const modifierProfil = useModificationMonProfil()
 
 const nom = computed(() => (profil.value ? `${profil.value.prenom} ${profil.value.nom}` : ''))
 const aSigner = computed(() => contrats.value?.length ?? 0)
@@ -34,7 +33,7 @@ async function enregistrerEmail() {
   }
   erreurEmail.value = undefined
   try {
-    profil.value = await appeler<Souscripteur>('/moi', { method: 'PATCH', body: { email: valeur } })
+    profil.value = await modifierProfil({ email: valeur })
   }
   catch {
     erreurEmail.value = 'L’adresse n’a pas pu être enregistrée. Réessayez.'

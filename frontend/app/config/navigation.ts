@@ -1,5 +1,5 @@
 // Menus de chaque espace, construits à partir de cette configuration (barres latérales, navigations basses).
-// `compteur` : clé des compteurs de navigation servis par l'API (`/api/navigation/compteurs`).
+// `compteur` : clé des compteurs de navigation servis par l'API (`GET /me`, `as.dashboard`, `pf.dashboard`, `nt.list` : useCompteursNavigation).
 import type { NomIcone } from '~/utils/icons'
 
 export type CleCompteur = 'paiementsAValider' | 'notificationsNonLues' | 'demandesATraiter' | 'souscripteursEnRetard'

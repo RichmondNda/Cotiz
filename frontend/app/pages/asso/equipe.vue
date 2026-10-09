@@ -10,7 +10,7 @@
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
 import type { ElementMenu } from '~/components/cz/CzMenu.vue'
 import type { Gestionnaire, InvitationGestionnaire } from '~~/types'
-import { codeErreur } from '~/composables/api/useApi'
+import { codeErreur } from '~/composables/api/client'
 import { formatDate, joursDepuis, lireDate } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-gestionnaire', layout: 'backoffice', espace: 'gestionnaire', titre: 'Équipe' })

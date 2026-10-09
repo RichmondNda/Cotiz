@@ -4,7 +4,7 @@ Mis à jour par `/fin-lot`. Statuts : `à faire` · `en cours` · `terminé` · 
 
 ## Front V0 (lots front, `prompts/`) — terminé
 
-Tous les écrans de la maquette sur mocks Nitro, lots 00 à 09 fusionnés sur `main` (PR #1 à #7) : `frontend/`, CI (`.github/workflows/ci.yml`), contrat V0 `docs/api-v0.md`, placeholders `docs/placeholders-v0.md`.
+Tous les écrans de la maquette sur mocks Nitro, lots 00 à 09 fusionnés sur `main` (PR #1 à #7) : `frontend/`, CI (`.github/workflows/ci.yml`), contrat V0 `docs/api-v0.md` (retiré au lot 0.3), placeholders `docs/placeholders-v0.md`.
 
 ## Back-end et intégration (lots `docs/lots/`)
 
@@ -12,7 +12,7 @@ Tous les écrans de la maquette sur mocks Nitro, lots 00 à 09 fusionnés sur `m
 |---|---|---|---|---|---|---|---|
 | 0.1 | Monorepo, CI et environnements | terminé | — | 2026-10-01 | 4 | — | PR #9 ; CI complète en 5 min ; bascule de `sys.health` reportée au lot 0.3 (registre et proxy créés à son étape 4, aucun écran ni mock concerné) ; ClamAV local `unhealthy` à surveiller au lot 0.5 |
 | 0.2 | Contrats et logique métier partagée | terminé | — | 2026-10-01 | 10 | — | 8 étapes ; 107 ids de `endpoints.yaml` au registre ; `packages/domain` couvert à 100 % ; casse de compilation vérifiée côté back, côté front reportée au lot 0.3 (le front n'importe pas encore `@cotiz/contracts`) |
-| 0.3 | Aligner la V0 du front sur le contrat | à faire | — | — | 8 | — | |
+| 0.3 | Aligner la V0 du front sur le contrat | terminé | — | 2026-10-09 | 8 | — | PR #11 (vers `backend`), 6 étapes sur une seule PR ; 113 opérations simulées sous `/api/v1` contrôlées par leur schéma ; `sys.health` seul en réel (aucun écran ne l'appelle) ; `docs/api-v0.md` retiré ; `frontend/types` réduit aux types d'interface ; exception d'audit temporaire (ADR 0016, réexamen au plus tard le 2026-11-09) |
 | 0.4 | Base de données, isolation et contexte tenant | à faire | — | — | 7 | — | |
 | 0.5 | Socle transverse : outbox, stockage, audit, idempotence | à faire | — | — | 8 | — | |
 | 0.6 | Observabilité minimale | à faire | — | — | 3 | — | |

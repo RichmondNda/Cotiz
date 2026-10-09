@@ -47,9 +47,10 @@ En cas de conflit entre la capture et la spec : **la capture gagne**, et tu le s
 
 - Nuxt 4 (4.5), TypeScript strict, `<script setup lang="ts">`.
 - Commandes : **depuis `frontend/`** (`npm run …`) jusqu'au lot 0.1, puis `pnpm --filter frontend <script>` depuis la racine.
-  Scripts : `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `test`, `capture`, `e2e`, `a11y`, `coherence`, `contrat-api` (jusqu'au lot 0.3).
+  Scripts : `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `test`, `capture`, `e2e`, `a11y`, `coherence`.
   Depuis `frontend/`, les références de la maquette sont sous `../design/`.
-- Types : `frontend/types/` (import via `~~/types`) en V0 ; remplacés par `@cotiz/contracts` au lot 0.3.
+- Types d'API : `@cotiz/contracts` (réponses typées par `CallOutput<id, opération>` de `@cotiz/api-client`). `frontend/types/`
+  (import via `~~/types`) ne garde que les types d'interface des écrans, produits par `composables/api/vues/*`.
 - Styles du DS : copies **non modifiées** de `design/css/` dans `frontend/app/assets/css/` (seule exception : l'`@import`
   Google Fonts en tête de `bundle.css`, retiré au lot 0.1), plus `app.css` (reset léger, fond `var(--page)`).
   Polices : auto-hébergées via `@fontsource` (`css` de `nuxt.config`), aucun appel à un service tiers. Logos copiés dans
@@ -66,15 +67,15 @@ app/
     layout/              PublicHeader, PublicFooter, BackofficeSidebar, BackofficeTopbar, MemberNav, ManagerMobileNav, ProjetHeader
   layouts/               public.vue, auth.vue, backoffice.vue (super-admin + gestionnaire), souscripteur.vue
   pages/                 une page par route de design/INVENTAIRE.md
-  composables/api/       seul point d'accès aux données (useApi + un fichier par ressource)
+  composables/api/       seul point d'accès aux données (client.ts : @cotiz/api-client ; un fichier par ressource ; vues/ : contrat → interface)
   utils/                 format.ts (formatFCFA, dates en français), icons.ts
   middleware/            espace-*.ts (contrôle du rôle de la session)
 server/
-  api/                   handlers Nitro simulés (V0 : chemins français ; lot 0.3 : api/v1/** conformes au contrat)
+  api/                   v1/** : handlers Nitro simulés, un par opération du contrat ; _dev/ : outils de développement
   mocks/                 jeu de référence + store en mémoire pour les mutations
   bascule/               real-endpoints.ts + proxy vers NestJS (lot 0.3)
-types/                   types V0 (Projet, Souscripteur, Echeance, Paiement…)
-scripts/, tests/         capture d'écran, contrat V0, tests unitaires, parcours e2e, cohérence, accessibilité
+types/                   types d'interface des écrans (Projet, Souscripteur, Echeance, Paiement…)
+scripts/, tests/         capture d'écran, tests unitaires (dont conformité des mocks), parcours e2e, cohérence, accessibilité
 ```
 
 ## Données : mocks, contrat et bascule
@@ -93,6 +94,9 @@ scripts/, tests/         capture d'écran, contrat V0, tests unitaires, parcours
   puis supprimer son handler simulé en fin de lot.
 - Droits et fonctionnalités (à partir du lot 0.3) : `usePermissions()` et `<FeatureGate feature="…">` alimentés par `GET /me`.
   Le front masque, le back refuse.
+- Nouveau handler simulé : `defineContractHandler()` (entrée et réponse contrôlées par le schéma) ; les routes à slug
+  passent par `scripts/route-mock.mjs` (slug → UUID déterministe), partagé par les e2e et `capture-ecran.mjs`.
+- Comparer deux captures `.verif/` au pixel près : en `nuxt dev`, seul le badge de Nuxt devtools (temps en ms) varie.
 
 ## Session et routes
 

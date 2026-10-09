@@ -27,8 +27,7 @@ Avec le serveur de dev lancé :
 | `pnpm --filter frontend a11y` | Audit axe-core (WCAG 2.1 A/AA) de toutes les routes en 1440 et 390 px |
 | `pnpm --filter frontend capture <route>` | Capture d'un écran à comparer avec `design/screens/` |
 
-Sans serveur : `typecheck`, `lint`, `test` (tests unitaires) et `contrat-api`, qui régénère `../docs/api-v0.md`, le contrat
-d'API transitoire de la V0.
+Sans serveur : `typecheck`, `lint`, `test` (tests unitaires, dont la conformité des mocks au contrat `@cotiz/contracts`).
 
 ## Production
 

@@ -52,6 +52,8 @@ export const Project = FinancialTerms.extend({
   name: z.string(),
   description: z.string(),
   coverFileId: Uuid.nullable(),
+  /** Nom du fichier de couverture déposé (affichage). */
+  coverFileName: z.string().nullable(),
   status: ProjectStatus,
   /** `null` = sans limite. */
   requiredSubscribers: z.int().min(1).nullable(),

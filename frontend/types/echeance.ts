@@ -17,6 +17,8 @@ export interface Echeance {
   montant: MontantFCFA
   montantPaye: MontantFCFA // validé ; < montant si partielle
   statut: StatutEcheance
+  /** Annulée ou dispensée : affichée selon `statut`, mais n'accepte plus de paiement. */
+  fermee?: boolean
 }
 
 /** Affectation d'une partie d'un paiement à une échéance (sélecteur d'échéances couvertes). */

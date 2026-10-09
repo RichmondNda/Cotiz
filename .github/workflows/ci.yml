@@ -24,14 +24,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Inclut les tests d'intégration du back (Testcontainers : Docker est disponible sur le runner).
       - run: pnpm verify
+      # Exceptions temporaires (pnpm.auditConfig.ignoreGhsas de package.json) : ADR 0016,
+      # outils de dev/build de Nuxt absents de .output. Réexamen au plus tard le 2026-11-09.
       - name: Audit des dépendances de production
         run: pnpm audit --prod
       - run: pnpm build
-      # Le contrat d'API committé doit correspondre aux handlers de mocks.
-      - name: Contrat d'API à jour
-        run: |
-          pnpm --filter frontend contrat-api
-          git diff --exit-code -- docs/api-v0.md || { echo "::error::docs/api-v0.md n'est pas à jour : lancer « pnpm --filter frontend contrat-api »"; exit 1; }
 
   # Contrat d'API : un changement cassant de openapi.json par rapport à la branche cible fait échouer la PR.
   contrat-openapi:
@@ -110,6 +107,9 @@ jobs:
       - run: pnpm --filter frontend e2e
       - run: pnpm --filter frontend coherence
       - run: pnpm --filter frontend a11y
+        env:
+          # Runner à 2 cœurs : 4 pages en parallèle sur le serveur de dev dépassaient le délai de navigation.
+          A11Y_PARALLELE: '2'
       - name: Captures et journal du serveur
         if: always()
         uses: actions/upload-artifact@v4

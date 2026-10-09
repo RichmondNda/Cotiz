@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { formatMoney } from '@cotiz/domain'
 import {
   formatDate,
   formatFCFA,
@@ -19,15 +20,19 @@ describe('formatFCFA', () => {
     expect(formatFCFA(1240000)).toBe(`1${FINE}240${FINE}000${INSEC}F`)
   })
 
-  it('n\'affiche pas de décimales (arrondi)', () => {
-    expect(formatFCFA(12500.4)).toBe(`12${FINE}500${INSEC}F`)
-    expect(formatFCFA(999.6)).toBe(`1${FINE}000${INSEC}F`)
+  it('délègue à formatMoney de @cotiz/domain (même rendu, montant entier ou Money)', () => {
+    for (const n of [0, 500, 25000, 1240000, -25000]) expect(formatFCFA(n)).toBe(formatMoney(n, 'XOF'))
+    expect(formatFCFA({ amount: 75000, currency: 'XOF' })).toBe(`75${FINE}000${INSEC}F`)
   })
 
-  it('gère zéro, les petits montants et les négatifs', () => {
-    expect(formatFCFA(0)).toBe(`0${INSEC}F`)
-    expect(formatFCFA(500)).toBe(`500${INSEC}F`)
-    expect(formatFCFA(-25000)).toBe(`−25${FINE}000${INSEC}F`)
+  it('garde la devise d\'un Money : XAF → « F », GNF → « FG »', () => {
+    expect(formatFCFA({ amount: 25000, currency: 'XAF' })).toBe('25\u202F000\u00A0F')
+    expect(formatFCFA({ amount: 25000, currency: 'GNF' })).toBe('25\u202F000\u00A0FG')
+    expect(formatFCFA({ amount: 25000, currency: 'GNF' }, { unite: false })).toBe('25\u202F000')
+  })
+
+  it('refuse un montant décimal (argent en entiers, jamais de flottant)', () => {
+    expect(() => formatFCFA(12500.4)).toThrow()
   })
 
   it('peut omettre l\'unité (champ suffixé « F CFA »)', () => {

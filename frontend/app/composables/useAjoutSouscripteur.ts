@@ -4,7 +4,7 @@
 import type { InjectionKey } from 'vue'
 import type { Projet, ResultatRechercheSouscripteur, SouscriptionAvecSouscripteur } from '~~/types'
 import { maintenant } from '~/utils/date-reference'
-import { dateEcheance, formatSaisieDate, lireDateSaisie } from '~/utils/echeancier'
+import { formatSaisieDate, lignesEcheancier, lireDateSaisie } from '~/utils/echeancier'
 import { formatDate, formatMois } from '~/utils/format'
 import { telephoneValide } from '~/utils/validation'
 
@@ -33,10 +33,9 @@ export function creerAjoutSouscripteur(projet: () => Projet, onInscrit: (s: Sous
   const calendrier = computed(() => {
     const p = projet()
     if (!/^\d{4}-\d{2}-\d{2}$/.test(p.dateDebut) || !p.nbEcheances) return []
-    return Array.from({ length: p.nbEcheances }, (_, i) => ({
-      rang: (p.fondsEntree ? 1 : 0) + i,
-      date: dateEcheance(p.dateDebut, p.frequence, i, p.jourEcheance)!,
-    }))
+    return lignesEcheancier({ ...p, horizon: p.nbEcheances })
+      .filter(l => l.kind === 'periodic')
+      .map(l => ({ rang: l.sequence, date: l.dueDate }))
   })
   const debutMois = computed(() => {
     const d = maintenant()

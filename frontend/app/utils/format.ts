@@ -1,36 +1,37 @@
 // Formats d'affichage Cotiz (montants, dates, téléphones), en français.
-// Montant : `25 000 F` — espace fine insécable (U+202F) entre les milliers, pas de décimales,
-// espace insécable (U+00A0) avant l'unité pour que le montant ne soit jamais coupé.
+// Montant : `25 000 F` — rendu par `formatMoney` de @cotiz/domain : espace fine insécable (U+202F) entre les milliers,
+// pas de décimales, espace insécable (U+00A0) avant l'unité pour que le montant ne soit jamais coupé.
 
+import { formatMoney } from '@cotiz/domain'
+import type { Money } from '@cotiz/contracts'
 import { maintenant } from './date-reference'
 
 export const ESPACE_FINE = '\u202F'
 export const ESPACE_INSECABLE = '\u00A0'
 
-/** Sépare les milliers d'un entier positif avec une espace fine insécable. */
-function milliers(n: number): string {
-  return Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ESPACE_FINE)
-}
+/** Chiffres saisis au plus (reste un entier sûr). */
+const CHIFFRES_MAX = 15
 
 /**
- * 25000 → `25 000 F`. Les placeholders de la maquette (`[MONTANT]`) passent tels quels : `[MONTANT] F`.
+ * 25000 (F CFA, XOF) ou `{ amount, currency }` → `25 000 F`. Montant entier uniquement (sinon erreur du domaine).
+ * Les placeholders de la maquette (`[MONTANT]`) passent tels quels : `[MONTANT] F`.
  * `unite: false` → `25 000` (champs avec suffixe « F CFA »).
  */
-export function formatFCFA(n: number | string, options: { unite?: boolean } = {}): string {
-  const unite = options.unite === false ? '' : `${ESPACE_INSECABLE}F`
-  if (typeof n === 'string') return n + unite
-  return (n < 0 ? '−' : '') + milliers(n) + unite
+export function formatFCFA(n: number | Money | string, options: { unite?: boolean } = {}): string {
+  if (typeof n === 'string') return options.unite === false ? n : `${n}${ESPACE_INSECABLE}F`
+  const texte = typeof n === 'number' ? formatMoney(n, 'XOF') : formatMoney(n)
+  return options.unite === false ? texte.slice(0, texte.lastIndexOf(ESPACE_INSECABLE)) : texte
 }
 
 /** Saisie d'un montant : garde les chiffres, reformate les milliers (`75000` → `75 000`). */
 export function formatSaisieMontant(saisie: string): string {
-  const chiffres = saisie.replace(/\D/g, '')
-  return chiffres ? milliers(Number(chiffres)) : ''
+  const montant = lireMontant(saisie)
+  return montant === null ? '' : formatFCFA(montant, { unite: false })
 }
 
 /** Inverse de formatSaisieMontant : `75 000` → 75000, vide → null. */
 export function lireMontant(saisie: string): number | null {
-  const chiffres = saisie.replace(/\D/g, '')
+  const chiffres = saisie.replace(/\D/g, '').slice(0, CHIFFRES_MAX)
   return chiffres ? Number(chiffres) : null
 }
 

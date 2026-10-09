@@ -1,4 +1,4 @@
-// Espace plateforme (super-admin) : formes des réponses de l'API propres à cet espace.
+// Espace plateforme (super-admin) : types d'interface des écrans, produits par composables/api/vues/* (réf. : ids du contrat).
 // Les chiffres globaux (147 associations, 15 impayés…) sont illustratifs dans la maquette : servis tels quels.
 import type { DateISO, Identifiant, MontantFCFA, Quota } from './commun'
 import type { Association, TypeAssociation } from './association'
@@ -21,7 +21,7 @@ export interface EvenementPlateforme {
 /** Valeur chiffrée ou placeholder de la maquette (`[N]`, `[MONTANT]`). */
 export type ChiffreOuPlaceholder = number | '[N]' | '[MONTANT]'
 
-/** `GET /api/plateforme/tableau-de-bord` (SaDashboard). */
+/** `pf.dashboard › get` (SaDashboard). */
 export interface TableauDeBordPlateforme {
   demandesATraiter: number
   /** Les 3 plus anciennes demandes à traiter. */
@@ -63,10 +63,10 @@ export interface EvenementDemande {
   ton: TonEvenement
 }
 
-/** `GET /api/demandes/:id` : la demande et sa frise. */
+/** `pf.req.get › get` : la demande et sa frise. */
 export type DemandeDetaillee = Demande & { historique: EvenementDemande[] }
 
-/** Corps de `POST /api/demandes/:id/approbation`. */
+/** Corps de `pf.req.approve › approve`. */
 export interface ApprobationDemande {
   planId: Identifiant
   comptesGestionnaires: number
@@ -75,7 +75,7 @@ export interface ApprobationDemande {
   messagePersonnalise?: string
 }
 
-/** Corps de `POST /api/demandes/:id/refus`. */
+/** Corps de `pf.req.reject › reject`. */
 export interface RefusDemande {
   motif: string
   precisions?: string
@@ -97,7 +97,7 @@ export interface CompteursAssociations {
   onboarding: number
 }
 
-/** `GET /api/associations` côté plateforme. */
+/** `pf.asso.list › list` côté plateforme. */
 export interface ListeAssociations {
   associations: AssociationListe[]
   compteurs: CompteursAssociations
@@ -110,7 +110,7 @@ export interface QuotaUtilise {
   pourcentage: number
 }
 
-/** `GET /api/associations/:id/fiche` (SaAssociation). */
+/** `pf.asso.get › get + pf.asso.sub › projects + pf.invoices › list?associationId=` (SaAssociation). */
 export interface FicheAssociationPlateforme {
   association: Association
   plan: Plan
@@ -127,7 +127,7 @@ export interface FicheAssociationPlateforme {
   suspendueLe?: DateISO
 }
 
-/** Corps de `POST /api/associations` (création directe). */
+/** Corps de `pf.asso.create › create` (création directe). */
 export interface NouvelleAssociationPlateforme {
   association: { nom: string, type: TypeAssociation, numeroEnregistrement?: string, ville: string, pays: string, description?: string }
   gestionnaire: { prenom: string, nom: string, email: string, telephone: string }
@@ -135,12 +135,12 @@ export interface NouvelleAssociationPlateforme {
   envoyerIdentifiants: boolean
 }
 
-/** Corps de `POST /api/associations/:id/suspension`. */
+/** Corps de `pf.asso.suspend › suspend`. */
 export interface SuspensionAssociation {
   motif: string
 }
 
-/** Corps de `POST /api/plans` et `PATCH /api/plans/:id`. */
+/** Corps de `pf.plan.write › create` et `pf.plan.write › patch`. */
 export type ModificationPlan = Pick<Plan, 'nom' | 'description' | 'prixMensuel' | 'prixAnnuel' | 'quotas' | 'fonctionnalites' | 'misEnAvant' | 'statut'>
 
 // ---------------------------------------------------------------- V2 (aperçus)
@@ -158,7 +158,7 @@ export interface FacturePlateforme {
   statut: StatutFacture
 }
 
-/** `GET /api/plateforme/factures` (aperçu V2). */
+/** `pf.invoices › list` (aperçu V2). */
 export interface FacturationPlateforme {
   kpi: { revenuMois: ChiffreOuPlaceholder, abonnements: number, encaisse: ChiffreOuPlaceholder, facturesPayees: number, enAttente: ChiffreOuPlaceholder, impaye: ChiffreOuPlaceholder, associationsImpayees: number }
   factures: FacturePlateforme[]
@@ -166,7 +166,7 @@ export interface FacturationPlateforme {
 
 export type RolePlateforme = 'proprietaire' | 'administrateur' | 'support'
 
-/** `GET /api/plateforme/utilisateurs` (aperçu V2). */
+/** `pf.staff › list` (aperçu V2). */
 export interface UtilisateurPlateforme {
   id: Identifiant
   nom: string
@@ -177,7 +177,7 @@ export interface UtilisateurPlateforme {
   statut: 'actif' | 'invite'
 }
 
-/** `GET /api/plateforme/profil` (SaProfil). */
+/** `me.profile › get + me.prefs › get` (SaProfil). */
 export interface ProfilPlateforme {
   prenom: string
   nom: string

@@ -59,6 +59,9 @@ export const AssociationRequestDetail = AssociationRequestSummary.extend({
     .nullable(),
   /** Note interne, jamais visible par l'association. */
   internalNote: z.string().nullable(),
+  /** Première ouverture par la plateforme (« Consultée par Richy ») ; `null` tant que personne ne l'a ouverte. */
+  viewedAt: Instant.nullable(),
+  viewedBy: PersonRef.nullable(),
   /** Frise : reçue, puis décision. */
   history: z.array(
     z.object({ type: z.enum(['received', 'approved', 'rejected']), at: Instant, by: PersonRef.nullable() }),
