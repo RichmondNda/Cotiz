@@ -563,6 +563,7 @@ Référentiel de tous les fichiers stockés dans MinIO.
 |---|---|---|
 | `id` | `bigserial PK` |  |
 | `association_id` | `uuid NULL` |  |
+| `actor_user_id` | `uuid NULL` | auteur de l'action (actorUserId de l'enveloppe) ; NULL pour une tâche système |
 | `event_type` | `text` | payment.validated |
 | `event_version` | `int` |  |
 | `aggregate_type / aggregate_id` | `text / uuid` |  |

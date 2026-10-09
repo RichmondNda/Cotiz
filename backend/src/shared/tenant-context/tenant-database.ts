@@ -54,6 +54,13 @@ export interface TenantDatabaseOptions {
   [WORKER_PROCESS]?: true;
 }
 
+/** Contexte de la transaction en cours, en lecture seule (`null` : requête sans contexte, espace `none`). */
+export function currentContext(): Readonly<TenantContext> | null {
+  const store = storage.getStore();
+  if (!store) throw new Error('currentContext() appelé hors contexte tenant');
+  return store.context;
+}
+
 /** Transaction du contexte en cours (requête HTTP ou tâche du worker). */
 export function currentTx(): Tx {
   const store = storage.getStore();

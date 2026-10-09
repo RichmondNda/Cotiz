@@ -33,6 +33,13 @@ module.exports = {
       to: { path: '^src/shared/tenant-context/worker\\.ts$' },
     },
     {
+      name: 'outbox-worker-only-in-worker',
+      comment: 'Relais outbox et traitement de la file events : processus worker seulement (src/worker.module.ts).',
+      severity: 'error',
+      from: { path: '^src/', pathNot: ['^src/worker\\.module\\.ts$', '^src/shared/outbox/'] },
+      to: { path: '^src/shared/outbox/(worker|outbox-relay|events\\.processor)\\.ts$' },
+    },
+    {
       name: 'no-unresolvable',
       comment: 'Un import non résolu échappe aux autres règles.',
       severity: 'error',

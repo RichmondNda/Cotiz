@@ -783,6 +783,7 @@ COMMENT ON COLUMN files.scan_status IS 'pending · clean · infected';
 CREATE TABLE outbox_events (
   id bigserial PRIMARY KEY,
   association_id uuid,
+  actor_user_id uuid,
   event_type text NOT NULL,
   event_version int NOT NULL DEFAULT 1,
   aggregate_type text NOT NULL,
@@ -794,6 +795,7 @@ CREATE TABLE outbox_events (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE outbox_events IS 'Événements de domaine en attente de publication.';
+COMMENT ON COLUMN outbox_events.actor_user_id IS 'auteur de l''action (actorUserId de l''enveloppe) ; NULL pour une tâche système';
 COMMENT ON COLUMN outbox_events.event_type IS 'payment.validated';
 
 -- audit_logs · module audit · V1 · lot 0.5
