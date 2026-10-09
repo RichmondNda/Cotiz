@@ -19,5 +19,7 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Actions sensibles : `@Audited('<action>')`.
 - Tests : `test/integration` (Testcontainers, vraie PostgreSQL), `test/isolation` (obligatoire pour tout endpoint tenant ou `/me`),
   unitaires à côté du code.
+- Isolation : partir de `test/isolation/harness.ts` (`asManagerOf`, `asSubscriber`, `asRollback`) ; chaque politique testée l'est aussi
+  affaiblie (`withPolicy`, `withoutPolicy`) pour prouver que le test échoue.
 - Un endpoint terminé est basculé côté front (`/bascule <id>`) : le front l'appelle via le proxy Nitro, même origine.
 - Scripts d'exploitation dans `src/cli.ts` (`pnpm --filter backend cli <commande>`).

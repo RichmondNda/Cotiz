@@ -7,3 +7,5 @@
 - Rôles : `cotiz_migrator` (migrations), `cotiz_app` (sans BYPASSRLS), `cotiz_platform` (BYPASSRLS, /platform), `cotiz_readonly`.
 - Seeds : `seeds/reference.ts` (depuis `docs/specs/seed-reference.yaml`), `seeds/demo.ts` (déclarations réalistes), `seeds/load.ts` (50 000 échéances pour les tests de performance).
 - `docs/specs/rls-smoke-test.sql` doit passer sur une base migrée.
+- Colonnes communes : `id()` (UUID v7 applicatif), `createdAt()`, `updatedAt()`, `version()` ; écriture versionnée par `updateWithVersion(tx, …)` seulement (`null` → 404, `VersionConflictError` → 412).
+- La RLS forcée s'applique aussi au propriétaire (`cotiz_migrator`) : les données de test se posent en superutilisateur.
