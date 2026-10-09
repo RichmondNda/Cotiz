@@ -18,6 +18,21 @@ module.exports = {
       },
     },
     {
+      name: 'tenant-context-entry-points',
+      comment:
+        'Hors de shared/tenant-context, seuls index.ts et worker.ts sont importables : FOR_REQUEST et WORKER_PROCESS restent internes.',
+      severity: 'error',
+      from: { path: '^src/', pathNot: '^src/shared/tenant-context/' },
+      to: { path: '^src/shared/tenant-context/', pathNot: '^src/shared/tenant-context/(index|worker)\\.ts$' },
+    },
+    {
+      name: 'worker-tenant-context-only-in-worker',
+      comment: 'L’espace system est réservé au processus worker : seul src/worker.module.ts importe ce point d’entrée.',
+      severity: 'error',
+      from: { path: '^src/', pathNot: ['^src/worker\\.module\\.ts$', '^src/shared/tenant-context/'] },
+      to: { path: '^src/shared/tenant-context/worker\\.ts$' },
+    },
+    {
       name: 'no-unresolvable',
       comment: 'Un import non résolu échappe aux autres règles.',
       severity: 'error',

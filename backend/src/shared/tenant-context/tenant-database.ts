@@ -29,6 +29,31 @@ interface Store {
 
 const storage = new AsyncLocalStorage<Store>();
 
+/**
+ * Marque toute la durée d'une requête HTTP : posé dès l'entrée par le middleware (gardes comprises), et par
+ * l'intercepteur (routes sans contexte comprises).
+ */
+const httpScope = new AsyncLocalStorage<true>();
+
+export function runInHttpScope<T>(fn: () => T): T {
+  return httpScope.run(true, fn);
+}
+
+/**
+ * Clés internes à shared/tenant-context (dependency-cruiser : hors du dossier, seuls index.ts et worker.ts
+ * sont importables). FOR_REQUEST : réservé à TenantContextInterceptor. WORKER_PROCESS : réservé à worker.ts,
+ * lui-même importable par src/worker.module.ts seulement.
+ */
+export const FOR_REQUEST = Symbol('forRequest');
+export const WORKER_PROCESS = Symbol('workerProcess');
+
+export interface TenantDatabaseOptions {
+  connectionString: string;
+  max: number;
+  /** Seul le processus worker peut poser l'espace system. */
+  [WORKER_PROCESS]?: true;
+}
+
 /** Transaction du contexte en cours (requête HTTP ou tâche du worker). */
 export function currentTx(): Tx {
   const store = storage.getStore();
@@ -64,14 +89,20 @@ function assertValid(context: TenantContext | null): void {
 }
 
 /**
- * Seul détenteur du pool PostgreSQL (règle dependency-cruiser). Chaque accès aux données passe par `run()` :
- * une transaction qui commence par poser le contexte, rendue disponible par `currentTx()`.
+ * Seul détenteur du pool PostgreSQL (règle dependency-cruiser). Chaque accès aux données passe par une transaction
+ * qui commence par poser le contexte, rendue disponible par `currentTx()` :
+ * - `[FOR_REQUEST]` : requête HTTP, appelé par TenantContextInterceptor uniquement ; jamais `system` ;
+ * - `withTenantContext()` : tâches (worker), jamais pendant une requête HTTP ; `system` dans le worker seulement.
+ *   En espace system, `associationId` est indicatif : les politiques system_access ouvrent toutes les lignes.
  */
 export class TenantDatabase implements OnModuleDestroy {
   private readonly pool: pg.Pool;
   private readonly db: NodePgDatabase;
+  private readonly worker: boolean;
 
-  constructor(connectionString: string, max: number) {
+  constructor(options: TenantDatabaseOptions) {
+    const { connectionString, max } = options;
+    this.worker = options[WORKER_PROCESS] === true;
     this.pool = new pg.Pool({ connectionString, max, connectionTimeoutMillis: 5_000 });
     // Une connexion inactive qui tombe ne doit pas arrêter le processus. Jamais l'URL dans le journal.
     this.pool.on('error', (error) => {
@@ -80,7 +111,27 @@ export class TenantDatabase implements OnModuleDestroy {
     this.db = drizzle({ client: this.pool });
   }
 
-  async run<T>(context: TenantContext | null, fn: () => Promise<T>): Promise<T> {
+  /** Transaction d'une requête HTTP ; `null` = aucun contexte (espace `none`). */
+  [FOR_REQUEST]<T>(context: TenantContext | null, fn: () => Promise<T>): Promise<T> {
+    if (context?.space === 'system') return Promise.reject(new Error('espace system interdit depuis une requête HTTP'));
+    return this.run(context, fn);
+  }
+
+  /** Transaction d'une tâche : `withTenantContext({ associationId, userId, space }, fn)`. */
+  withTenantContext<T>(context: TenantContext, fn: () => Promise<T>): Promise<T> {
+    if (!(context as TenantContext | null)) return Promise.reject(new Error('withTenantContext() : contexte requis'));
+    if (httpScope.getStore()) {
+      return Promise.reject(
+        new Error('withTenantContext() est réservé aux tâches : interdit pendant une requête HTTP'),
+      );
+    }
+    if (context.space === 'system' && !this.worker) {
+      return Promise.reject(new Error('espace system réservé au worker'));
+    }
+    return this.run(context, fn);
+  }
+
+  private async run<T>(context: TenantContext | null, fn: () => Promise<T>): Promise<T> {
     if (storage.getStore()) throw new Error('contexte tenant imbriqué : une requête ou une tâche = une transaction');
     assertValid(context);
     return this.db.transaction(async (tx) => {

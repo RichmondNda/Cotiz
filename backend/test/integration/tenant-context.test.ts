@@ -1,6 +1,10 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
+  type ArgumentsHost,
   type CanActivate,
+  Catch,
+  type ExceptionFilter,
+  HttpException,
   Controller,
   type ExecutionContext,
   Get,
@@ -10,7 +14,7 @@ import {
   NotFoundException,
   Post,
 } from '@nestjs/common';
-import { APP_GUARD, NestFactory } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, NestFactory } from '@nestjs/core';
 import { runMigrations } from '@cotiz/db/migrate';
 import { ROLE_PASSWORDS, startTestDatabase, type TestDatabase } from '@cotiz/db/testing';
 import { sql } from 'drizzle-orm';
@@ -35,8 +39,19 @@ const MOUSSA = '00000000-0000-7000-8000-000000000002';
 /** Remplace, pour le test, la garde d'authentification (lot 1.1) : contexte lu dans des en-têtes. */
 @Injectable()
 class HeaderContextGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(private readonly db: TenantDatabase) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<{ headers: Record<string, string | undefined> }>();
+    if (req.headers['x-test-guard-task']) {
+      // Une garde qui tenterait d'accéder à la base par une tâche, avec un contexte de son choix.
+      try {
+        await this.db.withTenantContext({ space: 'association', associationId: B }, () => Promise.resolve());
+        seen.guardError = null;
+      } catch (error) {
+        seen.guardError = (error as Error).message;
+      }
+    }
     const space = req.headers['x-test-space'];
     if (space) {
       setRequestContext(req, {
@@ -50,7 +65,27 @@ class HeaderContextGuard implements CanActivate {
 }
 
 /** Observations faites dans les contrôleurs, hors de la réponse HTTP. */
-const seen: { insertedBeforeThrow?: string; late?: string } = {};
+const seen: {
+  insertedBeforeThrow?: string;
+  late?: string;
+  traced?: boolean;
+  guardError?: string | null;
+  lastError?: string;
+} = {};
+
+/** Garde le message de la dernière erreur, que la réponse 500 ne montre pas. */
+@Catch()
+class RecordingFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost): void {
+    seen.lastError = exception instanceof Error ? exception.message : String(exception);
+    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+    host
+      .switchToHttp()
+      .getResponse<{ status(code: number): { json(body: unknown): void } }>()
+      .status(status)
+      .json({ statusCode: status });
+  }
+}
 
 async function countLabel(label: string): Promise<string | undefined> {
   const res = await currentTx().execute<{ n: string }>(
@@ -77,6 +112,42 @@ async function insertLabel(label: string): Promise<void> {
 
 @Controller('probe')
 class ProbeController {
+  constructor(private readonly db: TenantDatabase) {}
+
+  @Get('trace')
+  trace() {
+    seen.traced = true;
+    return { ok: true };
+  }
+
+  @Get('system-depuis-route')
+  @WithoutTenantContext()
+  async systemFromRoute() {
+    return this.attempt(() => this.db.withTenantContext({ space: 'system' }, () => Promise.resolve('exécuté')));
+  }
+
+  @Get('tache-sans-contexte')
+  @WithoutTenantContext()
+  async taskFromRouteWithoutContext() {
+    return this.attempt(() =>
+      this.db.withTenantContext({ space: 'association', associationId: B }, () => Promise.resolve('exécuté')),
+    );
+  }
+
+  @Get('tache-depuis-requete')
+  async taskFromRequest() {
+    return this.attempt(() =>
+      this.db.withTenantContext({ space: 'association', associationId: A }, () => Promise.resolve('exécuté')),
+    );
+  }
+
+  private async attempt(fn: () => Promise<string>) {
+    try {
+      return { result: await fn() };
+    } catch (error) {
+      return { error: (error as Error).message };
+    }
+  }
   @Get('rows')
   rows() {
     return readProbe();
@@ -213,7 +284,10 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
         module: TestRoot,
         imports: [AppModule.register(config)],
         controllers: [ProbeController],
-        providers: [{ provide: APP_GUARD, useClass: HeaderContextGuard }],
+        providers: [
+          { provide: APP_GUARD, useClass: HeaderContextGuard },
+          { provide: APP_FILTER, useClass: RecordingFilter },
+        ],
       },
       { logger: false },
     );
@@ -310,10 +384,67 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
     }
   });
 
+  describe('espace system : réservé au worker', () => {
+    it.each([
+      ['sans associationId', { 'x-test-space': 'system' }],
+      ['avec associationId', { 'x-test-space': 'system', 'x-test-aid': A }],
+    ])('une garde qui pose l’espace system (%s) fait échouer la requête avant le contrôleur', async (_n, headers) => {
+      seen.traced = false;
+      seen.lastError = undefined;
+      const res = await fetch(`${baseUrl}/probe/trace`, { headers });
+      expect(res.status).toBe(500);
+      expect(seen.lastError).toMatch(/espace system interdit depuis une requête HTTP/);
+      expect(seen.traced).toBe(false);
+    });
+
+    it('une garde ne peut pas ouvrir de tâche withTenantContext()', async () => {
+      seen.guardError = undefined;
+      await fetch(`${baseUrl}/probe/trace`, { headers: { 'x-test-guard-task': '1' } });
+      expect(seen.guardError).toMatch(/requête HTTP/);
+    });
+
+    it('withTenantContext() est refusé depuis une route sans contexte, même pour une association', async () => {
+      const res = await fetch(`${baseUrl}/probe/tache-sans-contexte`);
+      expect(await res.json()).toEqual({ error: expect.stringMatching(/requête HTTP/) as unknown });
+    });
+
+    it('withTenantContext({ space: system }) est refusé depuis un contrôleur HTTP', async () => {
+      const res = await fetch(`${baseUrl}/probe/system-depuis-route`);
+      expect(await res.json()).toEqual({ error: expect.stringMatching(/requête HTTP/) as unknown });
+    });
+
+    it('withTenantContext() est refusé depuis une requête HTTP, même pour une association', async () => {
+      const res = await fetch(`${baseUrl}/probe/tache-depuis-requete`, { headers: asManagerOf(A) });
+      expect(await res.json()).toEqual({ error: expect.stringMatching(/requête HTTP/) as unknown });
+    });
+
+    it('le processus api refuse l’espace system, même hors requête', async () => {
+      const tenantDb = app.get(TenantDatabase);
+      let called = false;
+      await expect(
+        tenantDb.withTenantContext({ space: 'system' }, () => {
+          called = true;
+          return Promise.resolve(1);
+        }),
+      ).rejects.toThrow(/réservé au worker/);
+      expect(called).toBe(false);
+    });
+  });
+
   describe('TenantDatabase', () => {
     it('refuse les contextes imbriqués', async () => {
       const tenantDb = app.get(TenantDatabase);
-      await expect(tenantDb.run(null, () => tenantDb.run(null, () => Promise.resolve(1)))).rejects.toThrow(/imbriqué/);
+      const ctx: TenantContext = { space: 'association', associationId: A };
+      await expect(
+        tenantDb.withTenantContext(ctx, () => tenantDb.withTenantContext(ctx, () => Promise.resolve(1))),
+      ).rejects.toThrow(/imbriqué/);
+    });
+
+    it('withTenantContext() exige un contexte', async () => {
+      const tenantDb = app.get(TenantDatabase);
+      await expect(
+        tenantDb.withTenantContext(null as unknown as TenantContext, () => Promise.resolve(1)),
+      ).rejects.toThrow(/contexte requis/);
     });
 
     it.each<[string, TenantContext, RegExp]>([
@@ -330,7 +461,7 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
       const tenantDb = app.get(TenantDatabase);
       let called = false;
       await expect(
-        tenantDb.run(context, () => {
+        tenantDb.withTenantContext(context, () => {
           called = true;
           return Promise.resolve(1);
         }),
@@ -341,11 +472,11 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
     it('des transactions réellement simultanées gardent chacune leur contexte', async () => {
       // Pool direct de 12 connexions : derrière PgBouncer (1 connexion serveur), les transactions s'enchaînent
       // au lieu de s'entrelacer.
-      const parallel = new TenantDatabase(db.urlFor('cotiz_app'), 12);
+      const parallel = new TenantDatabase({ connectionString: db.urlFor('cotiz_app'), max: 12 });
       try {
         const results = await Promise.all(
           Array.from({ length: 12 }, (_, i) =>
-            parallel.run({ space: 'association', associationId: i % 2 ? B : A }, readProbe),
+            parallel.withTenantContext({ space: 'association', associationId: i % 2 ? B : A }, readProbe),
           ),
         );
         results.forEach((r, i) => {
