@@ -16,8 +16,11 @@
     "test:isolation": "vitest run test/isolation"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1149.0",
+    "@aws-sdk/s3-request-presigner": "^3.1149.0",
     "@cotiz/contracts": "workspace:*",
     "@cotiz/db": "workspace:*",
+    "@cotiz/domain": "workspace:*",
     "@nestjs/common": "^12.1.2",
     "@nestjs/core": "^12.1.2",
     "@nestjs/platform-express": "^12.1.2",

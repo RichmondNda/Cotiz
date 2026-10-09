@@ -11,8 +11,24 @@ const ConfigSchema = z.object({
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
   S3_ENDPOINT: z.url({ protocol: /^https?$/ }),
+  /**
+   * Adresse de MinIO vue par le navigateur, pour signer les URL de dépôt et de lecture (S3_ENDPOINT s'il est absent).
+   * La signature porte sur l'hôte : elle doit être celle que le navigateur appelle.
+   */
+  S3_PUBLIC_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+  S3_REGION: z.string().min(1).default('us-east-1'),
+  /** Identifiants MinIO : exigés en production ; ailleurs, le stockage échoue à l'usage s'ils manquent. */
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   /** Intervalle du relais outbox du worker (jobs.yaml : chaque seconde) ; 0 le désactive (tests). */
   OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1_000),
+});
+
+const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
+  if (config.NODE_ENV !== 'production') return;
+  for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const) {
+    if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
+  }
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -22,11 +38,11 @@ export class ConfigError extends Error {
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
-  const result = ConfigSchema.safeParse(env);
+  const result = ConfigSchemaChecked.safeParse(env);
   if (result.success) return result.data;
   const lines = result.error.issues.map((issue) => {
     const variable = issue.path.join('.');
-    return issue.code === 'invalid_type' && env[variable] === undefined
+    return (issue.code === 'invalid_type' || issue.code === 'custom') && env[variable] === undefined
       ? `- ${variable} : manquante`
       : `- ${variable} : invalide (${issue.message})`;
   });

@@ -84,6 +84,18 @@ async function functions(url: string): Promise<Map<string, string>> {
   });
 }
 
+/** Types enum du schéma public et leurs valeurs, dans l'ordre. */
+async function enums(url: string): Promise<Map<string, string[]>> {
+  return withClient(url, async (c) => {
+    const { rows } = await c.query<{ name: string; labels: string[] }>(
+      `SELECT t.typname AS name, array_agg(e.enumlabel ORDER BY e.enumsortorder)::text[] AS labels
+         FROM pg_type t JOIN pg_enum e ON e.enumtypid = t.oid JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE n.nspname = 'public' GROUP BY t.typname`,
+    );
+    return new Map(rows.map((r) => [r.name, r.labels]));
+  });
+}
+
 describe('conformité des migrations au schéma cible (docs/specs/schema.sql)', () => {
   let db: TestDatabase;
   let migrated: string;
@@ -122,6 +134,11 @@ describe('conformité des migrations au schéma cible (docs/specs/schema.sql)', 
       const target = new Set(expected?.foreign_keys.map((k) => k.def));
       expect({ table, extra: actual?.foreign_keys.filter((k) => !target.has(k.def)) }).toEqual({ table, extra: [] });
     }
+  });
+
+  it('chaque type enum migré a les valeurs de sa définition cible, dans le même ordre', async () => {
+    const [actual, expected] = await Promise.all([enums(migrated), enums(spec)]);
+    for (const [name, labels] of actual) expect({ name, labels }).toEqual({ name, labels: expected.get(name) });
   });
 
   it('chaque fonction migrée est identique à sa définition cible', async () => {

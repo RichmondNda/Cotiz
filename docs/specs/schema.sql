@@ -762,10 +762,11 @@ CREATE TABLE files (
   original_name text NOT NULL,
   mime_type text NOT NULL,
   size_bytes bigint NOT NULL,
-  sha256 text NOT NULL,
+  sha256 text,
   scan_status files_scan_status NOT NULL DEFAULT 'pending',
   created_at timestamptz NOT NULL DEFAULT now(),
-  expires_at timestamptz
+  expires_at timestamptz,
+  CONSTRAINT files_sha256_when_scanned CHECK (scan_status = 'pending' OR sha256 IS NOT NULL)
 );
 COMMENT ON TABLE files IS 'Référentiel de tous les fichiers stockés dans MinIO.';
 COMMENT ON COLUMN files.association_id IS 'RLS';
@@ -775,7 +776,7 @@ COMMENT ON COLUMN files.object_key IS '{association_id}/{purpose}/{uuid}.{ext}';
 COMMENT ON COLUMN files.original_name IS 'nom du fichier déposé (affichage seulement, jamais utilisé comme clé)';
 COMMENT ON COLUMN files.mime_type IS 'vérifiés sur le contenu réel';
 COMMENT ON COLUMN files.size_bytes IS 'vérifiés sur le contenu réel';
-COMMENT ON COLUMN files.sha256 IS 'intégrité et preuve';
+COMMENT ON COLUMN files.sha256 IS 'intégrité et preuve ; calculé par le worker, NULL tant que scan_status = pending';
 COMMENT ON COLUMN files.scan_status IS 'pending · clean · infected';
 
 -- outbox_events · module outbox · V1 · lot 0.5
@@ -1406,14 +1407,18 @@ CREATE POLICY system_access ON deliveries
   WITH CHECK (app_space() = 'system');
 
 -- files
+-- owner_access : le souscripteur, dans son espace, sur sa preuve de paiement (seul usage qu'il dépose), avant et après
+-- son rattachement à l'association ; il ne la rattache jamais lui-même. En espace association, tenant_isolation suffit :
+-- un gestionnaire retiré ne garde aucun accès aux fichiers qu'il a déposés pour elle.
 ALTER TABLE files ENABLE ROW LEVEL SECURITY;
 ALTER TABLE files FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON files
   USING (association_id = app_association_id())
   WITH CHECK (association_id = app_association_id());
 CREATE POLICY owner_access ON files
-  USING (owner_user_id = app_user_id())
-  WITH CHECK (owner_user_id = app_user_id());
+  USING (app_space() = 'subscriber' AND owner_user_id = app_user_id() AND purpose = 'payment_proof')
+  WITH CHECK (app_space() = 'subscriber' AND owner_user_id = app_user_id() AND purpose = 'payment_proof'
+              AND association_id IS NULL);
 CREATE POLICY system_access ON files
   USING (app_space() = 'system')
   WITH CHECK (app_space() = 'system');

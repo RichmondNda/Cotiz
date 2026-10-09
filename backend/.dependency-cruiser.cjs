@@ -40,6 +40,13 @@ module.exports = {
       to: { path: '^src/shared/outbox/(worker|outbox-relay|events\\.processor)\\.ts$' },
     },
     {
+      name: 'no-test-code-in-src',
+      comment: 'Le code livré n’importe jamais test/ (garde d’authentification de test, conteneurs).',
+      severity: 'error',
+      from: { path: '^src/' },
+      to: { path: '^test/' },
+    },
+    {
       name: 'no-unresolvable',
       comment: 'Un import non résolu échappe aux autres règles.',
       severity: 'error',

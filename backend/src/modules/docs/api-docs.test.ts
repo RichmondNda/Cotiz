@@ -9,6 +9,9 @@ const env = (NODE_ENV: string) => ({
   DATABASE_URL: 'postgres://cotiz:cotiz@127.0.0.1:1/cotiz',
   REDIS_URL: 'redis://127.0.0.1:1',
   S3_ENDPOINT: 'http://127.0.0.1:1',
+  // Exigées en production (config.ts) ; jamais utilisées ici.
+  S3_ACCESS_KEY_ID: 'test',
+  S3_SECRET_ACCESS_KEY: 'test',
 });
 
 let app: INestApplication | undefined;

@@ -22,6 +22,13 @@
       "when": 1791584147647,
       "tag": "0002_audit_no_truncate",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791584695316,
+      "tag": "0003_files",
+      "breakpoints": true
     }
   ]
 }

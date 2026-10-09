@@ -20,6 +20,7 @@ export * from './common/ledger.js';
 export * from './common/member.js';
 export * from './common/tone.js';
 export * from './common/event.js';
+export * from './common/upload.js';
 export * from './system/health.js';
 export * from './registry.js';
 export * from './endpoints/sys.js';
