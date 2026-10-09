@@ -7,6 +7,8 @@ const ConfigSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
   /** Via PgBouncer (mode transaction) pour l'api et le worker. */
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  /** Connexions du pool du processus (shared/tenant-context), une transaction de contexte chacune. */
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
   S3_ENDPOINT: z.url({ protocol: /^https?$/ }),
 });

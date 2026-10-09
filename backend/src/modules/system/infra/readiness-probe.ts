@@ -1,28 +1,22 @@
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import type { HealthCheckStatus, HealthReadyResponse } from '@cotiz/contracts';
 import { Redis } from 'ioredis';
-import pg from 'pg';
 import { CONFIG, type Config } from '../../../config.js';
+import { TenantDatabase } from '../../../shared/tenant-context/index.js';
 
 /** Au-delà, une dépendance est considérée comme indisponible : la sonde ne doit jamais rester bloquée. */
 const PROBE_TIMEOUT_MS = 1_000;
 
-/** Vérifie PostgreSQL, Redis et MinIO avec des connexions dédiées, distinctes de celles des cas d'usage. */
+/** Vérifie PostgreSQL (pool du processus, sans transaction ni donnée), Redis et MinIO (connexions dédiées). */
 @Injectable()
 export class ReadinessProbe implements OnModuleDestroy {
-  private readonly pool: pg.Pool;
   private readonly redis: Redis;
   private readonly minioReadyUrl: string;
 
-  constructor(@Inject(CONFIG) config: Config) {
-    this.pool = new pg.Pool({
-      connectionString: config.DATABASE_URL,
-      max: 1,
-      connectionTimeoutMillis: PROBE_TIMEOUT_MS,
-      idleTimeoutMillis: 10_000,
-    });
-    // Une erreur de connexion inactive ne doit pas faire tomber le processus.
-    this.pool.on('error', () => undefined);
+  constructor(
+    @Inject(CONFIG) config: Config,
+    private readonly db: TenantDatabase,
+  ) {
     this.redis = new Redis(config.REDIS_URL, {
       lazyConnect: true,
       enableOfflineQueue: false,
@@ -35,7 +29,7 @@ export class ReadinessProbe implements OnModuleDestroy {
 
   async check(): Promise<HealthReadyResponse> {
     const [postgres, redis, minio] = await Promise.all([
-      probe(() => this.pool.query('SELECT 1')),
+      probe(() => this.db.ping()),
       probe(() => this.pingRedis()),
       probe(() => this.pingMinio()),
     ]);
@@ -43,9 +37,8 @@ export class ReadinessProbe implements OnModuleDestroy {
     return { status: ok ? 'ok' : 'unavailable', checks: { postgres, redis, minio } };
   }
 
-  async onModuleDestroy(): Promise<void> {
+  onModuleDestroy(): void {
     this.redis.disconnect();
-    await this.pool.end();
   }
 
   private async pingRedis(): Promise<void> {

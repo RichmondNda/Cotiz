@@ -4,13 +4,31 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./migrate": "./src/migrate.ts",
+    "./rls": "./src/rls.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "migrate": "node --env-file-if-exists=../../backend/.env.example --env-file-if-exists=../../backend/.env src/migrate.ts",
+    "rls": "node src/rls.ts"
   },
   "devDependencies": {
-    "@cotiz/config": "workspace:*"
+    "@cotiz/config": "workspace:*",
+    "@testcontainers/postgresql": "^12.2.0",
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11",
+    "testcontainers": "^12.2.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@cotiz/domain": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1"
   }
 }

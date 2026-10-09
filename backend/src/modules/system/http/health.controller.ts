@@ -1,9 +1,11 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import type { HealthLiveResponse, HealthReadyResponse } from '@cotiz/contracts';
+import { WithoutTenantContext } from '../../../shared/tenant-context/index.js';
 import { ReadinessProbe } from '../infra/readiness-probe.js';
 
-// sys.health — permission `public`.
+// sys.health — permission `public`. Aucune donnée lue : pas de transaction de contexte.
 @Controller('health')
+@WithoutTenantContext()
 export class HealthController {
   constructor(private readonly probe: ReadinessProbe) {}
 

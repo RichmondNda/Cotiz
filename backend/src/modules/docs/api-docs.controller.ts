@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { Controller, Get, Header } from '@nestjs/common';
+import { WithoutTenantContext } from '../../shared/tenant-context/index.js';
 
 // Documentation interne de l'API (Scalar), en développement uniquement (lot 0.2, étape 5).
 // Tout est servi localement : script Scalar depuis node_modules, contrat depuis @cotiz/contracts. La CSP interdit
@@ -57,6 +58,7 @@ function scalarBundlePath(): string {
   return path.join(path.dirname(require.resolve('@scalar/api-reference')), 'browser', 'standalone.js');
 }
 
+@WithoutTenantContext()
 @Controller('docs')
 export class ApiDocsController {
   @Get()

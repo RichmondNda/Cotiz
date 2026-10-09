@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import type { Config } from './config.js';
 import { ConfigModule } from './config.module.js';
+import { WorkerTenantContextModule } from './shared/tenant-context/worker.js';
 
 // Module racine du worker : relais outbox (lot 0.5), files BullMQ et tâches planifiées s'y ajoutent.
 @Module({})
@@ -8,7 +9,8 @@ export class WorkerModule {
   static register(config: Config): DynamicModule {
     return {
       module: WorkerModule,
-      imports: [ConfigModule.register(config)],
+      // Tâches : withTenantContext(), espace system autorisé dans ce processus seulement.
+      imports: [ConfigModule.register(config), WorkerTenantContextModule],
     };
   }
 }
