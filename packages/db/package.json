@@ -6,13 +6,15 @@
   "exports": {
     ".": "./src/index.ts",
     "./migrate": "./src/migrate.ts",
-    "./testing": "./src/testing/postgres.ts"
+    "./rls": "./src/rls.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "migrate": "node --env-file-if-exists=../../backend/.env.example --env-file-if-exists=../../backend/.env src/migrate.ts"
+    "migrate": "node --env-file-if-exists=../../backend/.env.example --env-file-if-exists=../../backend/.env src/migrate.ts",
+    "rls": "node src/rls.ts"
   },
   "devDependencies": {
     "@cotiz/config": "workspace:*",
