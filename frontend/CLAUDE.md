@@ -94,6 +94,9 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
   puis supprimer son handler simulé en fin de lot.
 - Droits et fonctionnalités (à partir du lot 0.3) : `usePermissions()` et `<FeatureGate feature="…">` alimentés par `GET /me`.
   Le front masque, le back refuse.
+- Nouveau handler simulé : `defineContractHandler()` (entrée et réponse contrôlées par le schéma) ; les routes à slug
+  passent par `scripts/route-mock.mjs` (slug → UUID déterministe), partagé par les e2e et `capture-ecran.mjs`.
+- Comparer deux captures `.verif/` au pixel près : en `nuxt dev`, seul le badge de Nuxt devtools (temps en ms) varie.
 
 ## Session et routes
 
