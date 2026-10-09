@@ -19,6 +19,8 @@ RUN pnpm --filter "backend..." run build
 RUN pnpm --filter backend deploy --legacy --prod /out
 
 FROM node:22-bookworm-slim AS runtime
+# Correctifs de sécurité Debian publiés après l'image de base (ex. pcre2, CVE-2026-103111).
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 # npm, npx et corepack ne servent qu'au build : les retirer supprime leurs vulnérabilités de l'image.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
     /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
