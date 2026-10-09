@@ -15,6 +15,13 @@
       "when": 1791575871766,
       "tag": "0001_outbox_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791584147647,
+      "tag": "0002_audit_no_truncate",
+      "breakpoints": true
     }
   ]
 }

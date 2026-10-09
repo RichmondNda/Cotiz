@@ -21,7 +21,8 @@ import {
  * Portage de docs/specs/rls-smoke-test.sql (6 scénarios), sur une base construite depuis docs/specs/schema.sql : les
  * tables utilisées arrivent aux lots 1.1 à 2.4. Chaque lot qui crée l'une d'elles bascule le scénario sur la base
  * migrée (startIsolationHarness('migrated')) ; le lot 2.4 retire la dépendance à schema.sql.
- * Scénarios 1 à 3 : rôle cotiz_app, contexte posé par TenantDatabase (le chemin de l'api). 4 à 6 : superutilisateur.
+ * Scénarios 1 à 3 : rôle cotiz_app, contexte posé par TenantDatabase (le chemin de l'api). 4 et 5 : superutilisateur.
+ * Scénario 6 (audit_logs, lot 0.5) : sur la base migrée, dans audit-append-only.test.ts.
  */
 const SMOKE_TEST = new URL('../../../docs/specs/rls-smoke-test.sql', import.meta.url);
 
@@ -195,19 +196,7 @@ describe('test de fumée de l’isolation et des invariants (docs/specs/rls-smok
     });
   });
 
-  it('6. le journal d’audit est en ajout seul', async () => {
-    const error = await h.superuserRollback(async (client) => {
-      await client.query(
-        `INSERT INTO audit_logs (occurred_at, actor_user_id, actor_role, action, entity_type, entity_id, before, after,
-                                 request_id, ip, user_agent)
-         VALUES (now(), $1, 'owner', 'test', 'x', $1, '{}', '{}', 'r', '127.0.0.1', 'psql')`,
-        [USERS.awa],
-      );
-      return errorOf(client.query('DELETE FROM audit_logs'));
-    });
-    expect(pgMessage(error)).toBe('append_only');
-    expect(pgCode(error)).toBe('P0001');
-  });
+  // 6. Journal d'audit en ajout seul : table migrée depuis le lot 0.5, scénario porté dans audit-append-only.test.ts.
 
   // « Retirer une politique la fait échouer » : chaque politique en jeu, retirée, fait échouer son scénario.
   // Exception : associations.tenant_self retirée, le gestionnaire (membre) voit encore son association par

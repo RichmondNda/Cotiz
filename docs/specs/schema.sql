@@ -1145,6 +1145,9 @@ CREATE FUNCTION forbid_mutation() RETURNS trigger LANGUAGE plpgsql AS
 $$ BEGIN RAISE EXCEPTION 'append_only' USING ERRCODE = 'P0001'; END $$;
 CREATE TRIGGER audit_append_only BEFORE UPDATE OR DELETE ON audit_logs FOR EACH ROW EXECUTE FUNCTION forbid_mutation();
 CREATE TRIGGER signatures_append_only BEFORE UPDATE OR DELETE ON contract_signatures FOR EACH ROW EXECUTE FUNCTION forbid_mutation();
+-- TRUNCATE ignore la RLS et les déclencheurs de ligne : refusé aussi au propriétaire et au superutilisateur.
+CREATE TRIGGER audit_no_truncate BEFORE TRUNCATE ON audit_logs FOR EACH STATEMENT EXECUTE FUNCTION forbid_mutation();
+CREATE TRIGGER signatures_no_truncate BEFORE TRUNCATE ON contract_signatures FOR EACH STATEMENT EXECUTE FUNCTION forbid_mutation();
 
 
 -- ---------------------------------------------------------------------

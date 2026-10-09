@@ -5,6 +5,7 @@ import { ConfigModule } from './config.module.js';
 import { ApiDocsModule } from './modules/docs/api-docs.module.js';
 import { SystemModule } from './modules/system/system.module.js';
 import { OutboxModule } from './shared/outbox/index.js';
+import { RequestInfoModule } from './shared/request-info/index.js';
 import { TenantContextInterceptor, TenantContextModule } from './shared/tenant-context/index.js';
 
 // Module racine de l'api. Les modules métier s'y ajoutent lot par lot.
@@ -15,6 +16,7 @@ export class AppModule {
       module: AppModule,
       imports: [
         ConfigModule.register(config),
+        RequestInfoModule,
         TenantContextModule,
         OutboxModule,
         SystemModule,
