@@ -53,7 +53,8 @@ describe('unions générées depuis docs/specs', () => {
     expect(STATUS_LABELS).toEqual(expected);
   });
 
-  it('src/generated/ est à jour (gen --check)', () => {
+  // Lance un processus Node : plus de 5 s sur un runner de CI chargé (tests Testcontainers en parallèle).
+  it('src/generated/ est à jour (gen --check)', { timeout: 30_000 }, () => {
     const script = fileURLToPath(new URL('../scripts/gen.mjs', import.meta.url));
     expect(() => execFileSync(process.execPath, [script, '--check'], { stdio: 'pipe' })).not.toThrow();
   });
