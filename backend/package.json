@@ -12,7 +12,8 @@
     "start:worker": "node dist/worker.js",
     "lint": "eslint . && depcruise src --config .dependency-cruiser.cjs",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:isolation": "vitest run test/isolation"
   },
   "dependencies": {
     "@cotiz/contracts": "workspace:*",
