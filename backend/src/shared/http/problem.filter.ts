@@ -1,8 +1,9 @@
-import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Logger } from '@nestjs/common';
+import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Logger, Optional } from '@nestjs/common';
 import { ERRORS, type ErrorCode, type Problem } from '@cotiz/contracts';
 import { VersionConflictError } from '@cotiz/db';
 import { serializeError, sqlErrorOf } from '../logging/index.js';
 import { currentRequestInfo } from '../request-info/index.js';
+import { ErrorReporter } from '../telemetry/index.js';
 import { DomainProblem, type ProblemDetails } from './domain-problem.js';
 
 interface HttpResponse {
@@ -33,6 +34,9 @@ function codeOfHttpStatus(status: number): ErrorCode {
 export class ProblemFilter implements ExceptionFilter {
   private readonly logger = new Logger(ProblemFilter.name);
 
+  /** Rapports GlitchTip (inactif sans DSN) ; absent des tests unitaires. */
+  constructor(@Optional() private readonly reporter?: ErrorReporter) {}
+
   catch(error: unknown, host: ArgumentsHost): void {
     const { code, details } = this.classify(error);
     const { http, message } = ERRORS[code];
@@ -45,6 +49,7 @@ export class ProblemFilter implements ExceptionFilter {
     } else if (http >= 500) {
       // Côté serveur seulement. Erreur SQL : SQLSTATE, table, contrainte et pile, jamais la requête ni ses paramètres.
       this.logger.error({ msg: 'erreur interne', err: serializeError(error) });
+      this.reporter?.capture(error);
     }
     const body: Problem = {
       type: `https://docs.cotiz.app/errors/${code}`,

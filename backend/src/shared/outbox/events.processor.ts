@@ -1,12 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationBootstrap,
+  type OnModuleDestroy,
+  Optional,
+} from '@nestjs/common';
 import { EventEnvelope } from '@cotiz/contracts';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { CONFIG, type Config } from '../../config.js';
 import { runWithLogContext } from '../logging/index.js';
 import { QUEUES, REDIS_PREFIX, redisConnection } from '../queues/index.js';
+import { ErrorReporter, traceJob } from '../telemetry/index.js';
 import { type TenantContext, TenantDatabase } from '../tenant-context/index.js';
 import { EventConsumers } from './event-consumers.js';
 
@@ -35,6 +43,7 @@ export class EventsProcessor implements OnApplicationBootstrap, OnModuleDestroy 
     private readonly db: TenantDatabase,
     private readonly consumers: EventConsumers,
     @Inject(CONFIG) private readonly config: Config,
+    @Optional() private readonly reporter?: ErrorReporter,
   ) {
     this.redis = new Redis(config.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 3 });
     // Lié au contexte du démarrage : une socket ouverte pendant un job garderait sinon le contexte de journal du job.
@@ -50,7 +59,7 @@ export class EventsProcessor implements OnApplicationBootstrap, OnModuleDestroy 
     const queue = QUEUES.events.name;
     this.worker = new Worker(
       queue,
-      (job) => runWithLogContext({ queue, jobId: job.id }, () => this.process(job.data)),
+      (job) => runWithLogContext({ queue, jobId: job.id }, () => traceJob(queue, job, () => this.process(job.data))),
       {
         connection: redisConnection(this.config.REDIS_URL),
         prefix: REDIS_PREFIX,
@@ -59,6 +68,12 @@ export class EventsProcessor implements OnApplicationBootstrap, OnModuleDestroy 
     );
     this.worker.on('error', (error) => {
       this.logger.warn(`file events : ${error.message}`);
+    });
+    // Dernière tentative épuisée : signalée à GlitchTip (inactif sans DSN).
+    this.worker.on('failed', (job, error) => {
+      if (job && job.attemptsMade >= QUEUES.events.jobOptions.attempts) {
+        this.reporter?.capture(error, { queue: QUEUES.events.name, jobId: job.id ?? '' });
+      }
     });
   }
 

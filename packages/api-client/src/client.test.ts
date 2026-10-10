@@ -109,6 +109,24 @@ describe('client typé', () => {
     expect((error as ApiError).code).toBe('amount_exceeds_remaining');
   });
 
+  it('requestId : celui du Problem, sinon l’en-tête X-Request-Id (rapports d’erreur du front)', async () => {
+    const problem = {
+      type: 'https://docs.cotiz.app/errors/internal_error',
+      title: 'Erreur',
+      status: 500,
+      code: 'internal_error',
+      requestId: 'req-body',
+    };
+    const withBody = setup(json(problem, 500, 'application/problem+json'));
+    const fromBody = (await withBody.client.call('sys.health', 'live').catch((e: unknown) => e)) as ApiError;
+    expect(fromBody.requestId).toBe('req-body');
+    const withHeader = setup(new Response('Bad gateway', { status: 502, headers: { 'x-request-id': 'req-header' } }));
+    const fromHeader = (await withHeader.client.call('sys.health', 'live').catch((e: unknown) => e)) as ApiError;
+    expect(fromHeader.requestId).toBe('req-header');
+    const none = setup(new Response('Bad gateway', { status: 502 }));
+    expect(((await none.client.call('sys.health', 'live').catch((e: unknown) => e)) as ApiError).requestId).toBeNull();
+  });
+
   it('erreur hors catalogue : ApiError sans Problem', async () => {
     const { client } = setup(new Response('Bad gateway', { status: 502 }));
     const error = (await client.call('sys.health', 'live').catch((e: unknown) => e)) as ApiError;

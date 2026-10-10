@@ -38,6 +38,11 @@ export default defineNuxtConfig({
     // Bascule mock → NestJS (server/middleware/bascule.ts) : NUXT_MOCKS=0 transmet tout `/api/v1` à NUXT_API_ORIGIN.
     mocks: true,
     apiOrigin: 'http://localhost:4000',
+    public: {
+      // GlitchTip (lot 0.6) : vide = inactif, raccordé au lot 7.1 (NUXT_PUBLIC_GLITCHTIP_DSN, NUXT_PUBLIC_APP_VERSION).
+      glitchtipDsn: '',
+      appVersion: 'dev',
+    },
   },
   compatibilityDate: '2025-07-15',
 

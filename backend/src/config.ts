@@ -44,6 +44,21 @@ const ConfigSchema = z.object({
   API_METRICS_PORT: z.coerce.number().int().min(0).max(65_535).optional(),
   WORKER_METRICS_PORT: z.coerce.number().int().min(0).max(65_535).optional(),
   METRICS_HOST: z.string().min(1).default('127.0.0.1'),
+  /**
+   * Traces OpenTelemetry (lot 0.6) : `none` (par défaut : traceId dans les journaux, rien d'exporté), `console`
+   * (local), `otlp` (Collector, raccordé au lot 7.1, OTEL_EXPORTER_OTLP_ENDPOINT exigée).
+   */
+  OTEL_TRACES_EXPORTER: z.enum(['none', 'console', 'otlp']).default('none'),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+  /**
+   * Part des traces enregistrées à la source (1 = toutes). La politique d'architecture/11 (10 %, 100 % des erreurs) est
+   * un échantillonnage en fin de trace, fait par le Collector (lot 7.1) : il faut lui envoyer toutes les traces.
+   */
+  OTEL_TRACES_SAMPLER_RATIO: z.coerce.number().min(0).max(1).default(1),
+  /** GlitchTip (SDK Sentry, auto-hébergé) : absent, aucun SDK initialisé, aucun envoi. Raccordé au lot 7.1. */
+  GLITCHTIP_DSN: z.url({ protocol: /^https?$/ }).optional(),
+  /** Version déployée (étiquette de l'image) : traces et rapports d'erreur. */
+  APP_VERSION: z.string().min(1).default('dev'),
   /** Niveau des journaux (pino). Absent : `info`, et `silent` sous vitest (les tests qui lisent les journaux le fixent). */
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
   /** Journaux lisibles (pino-pretty, dépendance de développement) au lieu du JSON. Absent : en développement seulement. */
@@ -58,6 +73,17 @@ const ConfigSchema = z.object({
 });
 
 const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
+  if (config.NODE_ENV === 'production' && config.OTEL_TRACES_EXPORTER === 'console') {
+    // Les spans partiraient sur la sortie standard, donc dans les journaux (ELK).
+    ctx.addIssue({ code: 'custom', path: ['OTEL_TRACES_EXPORTER'], message: 'console interdit en production' });
+  }
+  if (config.OTEL_TRACES_EXPORTER === 'otlp' && config.OTEL_EXPORTER_OTLP_ENDPOINT === undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['OTEL_EXPORTER_OTLP_ENDPOINT'],
+      message: 'exigée avec OTEL_TRACES_EXPORTER=otlp',
+    });
+  }
   if (config.NODE_ENV !== 'production') return;
   for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'CLAMAV_URL', 'LOG_PSEUDONYM_KEY'] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });

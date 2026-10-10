@@ -35,6 +35,20 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...valid, API_PORT: 'abc' })).toThrow(/API_PORT/);
   });
 
+  it('traces : refuse l’exportateur console en production, exige l’adresse du Collector avec otlp', () => {
+    const production = {
+      ...valid,
+      NODE_ENV: 'production',
+      S3_ACCESS_KEY_ID: 'cle',
+      S3_SECRET_ACCESS_KEY: 'secret-minio',
+      CLAMAV_URL: 'tcp://clamav:3310',
+      LOG_PSEUDONYM_KEY: 'cle-de-pseudonymisation-de-production-0001',
+    };
+    expect(() => loadConfig({ ...production, OTEL_TRACES_EXPORTER: 'console' })).toThrow(/OTEL_TRACES_EXPORTER/);
+    expect(loadConfig({ ...valid, OTEL_TRACES_EXPORTER: 'console' }).OTEL_TRACES_EXPORTER).toBe('console');
+    expect(() => loadConfig({ ...valid, OTEL_TRACES_EXPORTER: 'otlp' })).toThrow(/OTEL_EXPORTER_OTLP_ENDPOINT/);
+  });
+
   it('exige les identifiants MinIO, clamd et la clé de pseudonymisation en production seulement, sans recopier leur valeur', () => {
     expect(() => loadConfig({ ...valid, NODE_ENV: 'production' })).toThrow(
       /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante[\s\S]*LOG_PSEUDONYM_KEY : manquante/,

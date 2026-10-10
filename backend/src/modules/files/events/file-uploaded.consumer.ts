@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { CONFIG, type Config } from '../../../config.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
 import { QUEUES, REDIS_PREFIX, redisConnection } from '../../../shared/queues/index.js';
+import { withTraceContext } from '../../../shared/telemetry/index.js';
 
 const Payload = z.object({ fileId: z.uuid() });
 
@@ -31,7 +32,8 @@ export class FileUploadedConsumer implements OnModuleInit, OnModuleDestroy {
       handle: async (event) => {
         const { fileId } = Payload.parse(event.payload);
         // Un job par événement : l'analyse elle-même ignore un fichier déjà analysé.
-        await this.queue.add('scan', { fileId }, { jobId: `scan-${event.id}` });
+        // Le traitement de l'analyse poursuit la trace du traitement de l'événement.
+        await this.queue.add('scan', withTraceContext({ fileId }), { jobId: `scan-${event.id}` });
       },
     });
   }

@@ -78,6 +78,14 @@ describe('proxy de bascule (serveurs HTTP réels)', () => {
     expect(await (await fetch(`${front}/api/v1/public/plans`)).json()).toEqual({ from: 'mock' })
   })
 
+  it('le mock renvoie un X-Request-Id comme NestJS : repris s’il est valide, sinon généré', async () => {
+    real.clear()
+    const repris = await fetch(`${front}/api/v1/public/plans`, { headers: { 'x-request-id': 'req-front-1' } })
+    expect(repris.headers.get('x-request-id')).toBe('req-front-1')
+    const genere = await fetch(`${front}/api/v1/public/plans`, { headers: { 'x-request-id': 'pas valide !' } })
+    expect(genere.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/)
+  })
+
   it('avec l’id au registre : la requête est transmise à NestJS (chemin et paramètres conservés)', async () => {
     real.add('pub.plans')
     expect(await (await fetch(`${front}/api/v1/public/plans?x=1`)).json()).toEqual({ from: 'nest', url: '/api/v1/public/plans?x=1' })

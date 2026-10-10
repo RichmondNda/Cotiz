@@ -3,12 +3,16 @@ import type { INestApplication, NestApplicationOptions } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import type { Config } from './config.js';
-import { PinoNestLogger } from './shared/logging/index.js';
+import { type Logger, PinoNestLogger } from './shared/logging/index.js';
 
 /** Construit l'api HTTP (préfixe `/api/v1`) sans l'écouter : partagé par `main.ts` et les tests. */
-export async function createApp(config: Config, options: NestApplicationOptions = {}): Promise<INestApplication> {
+export async function createApp(
+  config: Config,
+  options: NestApplicationOptions = {},
+  modules: { logger?: Logger } = {},
+): Promise<INestApplication> {
   // Journaux du démarrage gardés jusqu'à ce que le logger pino soit en place (configureApp).
-  const app = await NestFactory.create(AppModule.register(config), { bufferLogs: true, ...options });
+  const app = await NestFactory.create(AppModule.register(config, modules), { bufferLogs: true, ...options });
   configureApp(app, config);
   app.enableShutdownHooks();
   return app;

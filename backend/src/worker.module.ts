@@ -8,6 +8,7 @@ import { OutboxWorkerModule } from './shared/outbox/worker.js';
 import { QueueMetricsModule } from './shared/queues/queue-metrics.js';
 import { SchedulerModule } from './shared/scheduler/index.js';
 import { StorageModule } from './shared/storage/index.js';
+import { TelemetryModule } from './shared/telemetry/index.js';
 import { WorkerTenantContextModule } from './shared/tenant-context/worker.js';
 
 // Module racine du worker : relais outbox, files events et files, tâches planifiées (lot 0.5) ; les lots suivants
@@ -22,6 +23,7 @@ export class WorkerModule {
         ConfigModule.register(config),
         LoggingModule.register(options.logger ?? createLogger(config, { name: 'worker' })),
         MetricsModule.register('worker'),
+        TelemetryModule.register('worker'),
         WorkerTenantContextModule,
         OutboxWorkerModule,
         QueueMetricsModule,

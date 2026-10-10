@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, type NestMiddleware } from '@nestjs/common';
+import { context, trace } from '@opentelemetry/api';
+import { getRPCMetadata } from '@opentelemetry/core';
 import { runWithRequestInfo } from './request-info.js';
 
 /** Identifiant de requête accepté du client : court, sans espace ni caractère de contrôle (journaux, en-têtes). */
@@ -33,6 +35,8 @@ export class RequestInfoMiddleware implements NestMiddleware {
     const requestId = requested !== undefined && REQUEST_ID.test(requested) ? requested : randomUUID();
     // Renvoyé dans la réponse (architecture/06), y compris en erreur : le front le cite au support.
     res.setHeader('X-Request-Id', requestId);
+    // Sur le span HTTP serveur (architecture/06 : propagé dans journaux et traces) : retrouver la trace d'un requestId.
+    (getRPCMetadata(context.active())?.span ?? trace.getActiveSpan())?.setAttribute('cotiz.request_id', requestId);
     runWithRequestInfo(
       {
         requestId,

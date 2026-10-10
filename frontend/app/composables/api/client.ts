@@ -27,7 +27,8 @@ export function useClient(): ApiClient {
 
 /** Erreur Nuxt équivalente (le `statusCode` sert aux écrans « introuvable » / « erreur »). */
 function versErreurNuxt(e: unknown): unknown {
-  if (e instanceof ApiError) return createError({ statusCode: e.status, statusMessage: e.problem?.title, data: e.problem ?? undefined })
+  // `cause` garde l'ApiError : son requestId est joint au rapport d'erreur même sans corps Problem.
+  if (e instanceof ApiError) return createError({ statusCode: e.status, statusMessage: e.problem?.title, data: e.problem ?? undefined, cause: e })
   return e
 }
 
