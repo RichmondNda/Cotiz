@@ -20,13 +20,17 @@ const ConfigSchema = z.object({
   /** Identifiants MinIO : exigés en production ; ailleurs, le stockage échoue à l'usage s'ils manquent. */
   S3_ACCESS_KEY_ID: z.string().min(1).optional(),
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  /** clamd en TCP (architecture/08), ex. tcp://clamav:3310 : exigé en production pour le worker. */
+  CLAMAV_URL: z.url({ protocol: /^tcp$/ }).optional(),
+  /** fl.upload › complete : attente du résultat de l'analyse avant de répondre `pending` (lot 0.5). */
+  FILE_SCAN_WAIT_MS: z.coerce.number().int().min(0).max(30_000).default(5_000),
   /** Intervalle du relais outbox du worker (jobs.yaml : chaque seconde) ; 0 le désactive (tests). */
   OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1_000),
 });
 
 const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
   if (config.NODE_ENV !== 'production') return;
-  for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'] as const) {
+  for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'CLAMAV_URL'] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
   }
 });

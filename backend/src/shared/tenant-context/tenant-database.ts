@@ -61,6 +61,21 @@ export function currentContext(): Readonly<TenantContext> | null {
   return store.context;
 }
 
+/**
+ * Transaction exposée aux cas d'usage : refusée dès la fin de son contexte. Sans cette garde, une transaction capturée
+ * dans une fermeture (suite afterCommit, promesse détachée) s'exécuterait sur une connexion rendue au pool, peut-être
+ * reprise par la transaction d'une autre association, avec son contexte.
+ */
+function guarded(tx: Tx, isClosed: () => boolean): Tx {
+  return new Proxy(tx, {
+    get(target, property) {
+      if (isClosed()) throw new Error('transaction de contexte terminée : repasser par currentTx() dans un contexte');
+      const value: unknown = Reflect.get(target, property, target);
+      return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+    },
+  });
+}
+
 /** Transaction du contexte en cours (requête HTTP ou tâche du worker). */
 export function currentTx(): Tx {
   const store = storage.getStore();
@@ -148,7 +163,7 @@ export class TenantDatabase implements OnModuleDestroy {
         set_config('app.association_id', ${context?.associationId ?? ''}, true),
         set_config('app.user_id', ${context?.userId ?? ''}, true),
         set_config('app.space', ${context?.space ?? ''}, true)`);
-      const store: Store = { tx, context, closed: false };
+      const store: Store = { tx: guarded(tx, () => store.closed), context, closed: false };
       try {
         return await storage.run(store, fn);
       } finally {

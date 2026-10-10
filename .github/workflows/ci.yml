@@ -30,6 +30,41 @@ jobs:
         run: pnpm audit --prod
       - run: pnpm build
 
+  # Analyse des fichiers contre un vrai clamd (lot 0.5) : hors de pnpm verify, signatures en cache entre exécutions.
+  antivirus:
+    name: Antivirus (clamd réel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Signatures ClamAV (cache)
+        uses: actions/cache@v4
+        with:
+          path: ~/clamav-db
+          key: clamav-db-${{ github.run_id }}
+          restore-keys: clamav-db-
+      - name: clamd
+        run: |
+          mkdir -p ~/clamav-db && sudo chmod -R a+rwX ~/clamav-db
+          docker run -d --name clamav -p 127.0.0.1:3310:3310 -v ~/clamav-db:/var/lib/clamav clamav/clamav:stable
+          for i in $(seq 1 120); do
+            docker exec clamav clamdcheck.sh >/dev/null 2>&1 && break
+            sleep 5
+          done
+          docker exec clamav clamdcheck.sh
+      - run: pnpm --filter backend test:clamav
+        env:
+          CLAMAV_URL: tcp://127.0.0.1:3310
+      - name: Signatures lisibles pour le cache
+        if: always()
+        run: sudo chmod -R a+rX ~/clamav-db
+
   # Contrat d'API : un changement cassant de openapi.json par rapport à la branche cible fait échouer la PR.
   contrat-openapi:
     name: Contrat OpenAPI (oasdiff)

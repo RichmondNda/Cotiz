@@ -16,6 +16,16 @@ export const QUEUES = {
       removeOnFail: { age: 7 * 24 * 3600 },
     },
   },
+  files: {
+    name: 'files',
+    concurrency: 4,
+    jobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 1_000 },
+      removeOnComplete: { age: 24 * 3600, count: 10_000 },
+      removeOnFail: { age: 7 * 24 * 3600 },
+    },
+  },
 } as const satisfies Record<string, { name: string; concurrency: number; jobOptions: DefaultJobOptions }>;
 
 /**

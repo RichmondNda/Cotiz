@@ -76,6 +76,8 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       S3_ENDPOINT: minio.endpoint,
       S3_ACCESS_KEY_ID: minio.accessKeyId,
       S3_SECRET_ACCESS_KEY: minio.secretAccessKey,
+      // Pas de worker ici (analyse : file-scan.test.ts) : la confirmation répond `pending` sans attendre.
+      FILE_SCAN_WAIT_MS: '0',
     });
     @Module({ imports: [AppModule.register(config)], providers: [{ provide: APP_GUARD, useClass: TestAuthGuard }] })
     class TestRoot {}

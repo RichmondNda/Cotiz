@@ -1,4 +1,12 @@
-import { GetObjectCommand, HeadObjectCommand, NotFound, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
+  NoSuchKey,
+  NotFound,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import type { DB_ENUMS } from '@cotiz/contracts';
@@ -77,6 +85,50 @@ export class StorageService implements OnModuleDestroy {
       if (error instanceof NotFound) return null;
       throw error;
     }
+  }
+
+  /**
+   * Contenu d'un objet (worker : analyse), `null` s'il n'existe pas. Au-delà de `maxBytes`, erreur : un objet ne peut
+   * dépasser la taille signée au dépôt, mais rien n'est lu en mémoire sans borne.
+   */
+  async getObject(bucket: string, key: string, maxBytes: number): Promise<Buffer | null> {
+    try {
+      const object = await this.s3().internal.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      const tooLarge = () => new Error(`stockage : objet de plus de ${String(maxBytes)} octets`);
+      if ((object.ContentLength ?? 0) > maxBytes) {
+        await object.Body?.transformToWebStream().cancel();
+        throw tooLarge();
+      }
+      // Compté sur le flux aussi : l'en-tête peut manquer ou mentir.
+      const reader = object.Body?.transformToWebStream().getReader();
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      for (;;) {
+        const chunk = await reader?.read();
+        if (!chunk || chunk.done) break;
+        total += (chunk.value as Uint8Array).length;
+        if (total > maxBytes) {
+          await reader?.cancel();
+          throw tooLarge();
+        }
+        chunks.push(chunk.value as Uint8Array);
+      }
+      return Buffer.concat(chunks);
+    } catch (error) {
+      if (error instanceof NoSuchKey || error instanceof NotFound) return null;
+      throw error;
+    }
+  }
+
+  async putObject(bucket: string, key: string, content: Buffer, contentType: string): Promise<void> {
+    await this.s3().internal.send(
+      new PutObjectCommand({ Bucket: bucket, Key: key, Body: content, ContentType: contentType }),
+    );
+  }
+
+  /** Supprime l'objet (sans erreur s'il n'existe déjà plus). */
+  async deleteObject(bucket: string, key: string): Promise<void> {
+    await this.s3().internal.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
   }
 
   /** URL de lecture (GET) de 5 min, servie en pièce jointe avec le nom d'origine et le type enregistré. */

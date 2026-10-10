@@ -9,9 +9,10 @@ import { UPLOAD_SPACE } from '../domain/upload-policy.js';
  * association, seulement ceux de cette association ; ailleurs, seulement les usages déposés depuis cet espace
  * (`null` → 404).
  */
-export async function findFile(actor: Actor, id: string, options: { forUpdate?: boolean } = {}) {
+export async function findFile(actor: Actor, id: string, options: { lock?: 'skip-locked' } = {}) {
   const query = currentTx().select().from(files).where(eq(files.id, id));
-  const [row] = await (options.forUpdate ? query.for('update') : query);
+  // SKIP LOCKED : une ligne verrouillée (analyse en cours) est absente du résultat, sans attente.
+  const [row] = await (options.lock === 'skip-locked' ? query.for('update', { skipLocked: true }) : query);
   if (!row) return null;
   if (actor.space === 'association' && row.associationId !== actor.associationId) return null;
   // Hors de l'espace association, seulement les usages déposés depuis cet espace (la preuve du souscripteur) : en

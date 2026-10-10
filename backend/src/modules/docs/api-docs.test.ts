@@ -12,6 +12,7 @@ const env = (NODE_ENV: string) => ({
   // Exigées en production (config.ts) ; jamais utilisées ici.
   S3_ACCESS_KEY_ID: 'test',
   S3_SECRET_ACCESS_KEY: 'test',
+  CLAMAV_URL: 'tcp://127.0.0.1:1',
 });
 
 let app: INestApplication | undefined;
