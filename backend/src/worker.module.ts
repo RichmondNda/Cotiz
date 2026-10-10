@@ -3,7 +3,9 @@ import type { Config } from './config.js';
 import { ConfigModule } from './config.module.js';
 import { FilesWorkerModule } from './modules/files/files-worker.module.js';
 import { createLogger, type Logger, LoggingModule } from './shared/logging/index.js';
+import { MetricsModule } from './shared/metrics/index.js';
 import { OutboxWorkerModule } from './shared/outbox/worker.js';
+import { QueueMetricsModule } from './shared/queues/queue-metrics.js';
 import { SchedulerModule } from './shared/scheduler/index.js';
 import { StorageModule } from './shared/storage/index.js';
 import { WorkerTenantContextModule } from './shared/tenant-context/worker.js';
@@ -19,8 +21,10 @@ export class WorkerModule {
       imports: [
         ConfigModule.register(config),
         LoggingModule.register(options.logger ?? createLogger(config, { name: 'worker' })),
+        MetricsModule.register('worker'),
         WorkerTenantContextModule,
         OutboxWorkerModule,
+        QueueMetricsModule,
         SchedulerModule,
         StorageModule,
         FilesWorkerModule,

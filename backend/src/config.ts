@@ -35,6 +35,15 @@ const ConfigSchema = z.object({
   RATE_LIMIT_ENDPOINT_PER_MIN: z.coerce.number().int().min(1).default(20),
   /** Intervalle du relais outbox du worker (jobs.yaml : chaque seconde) ; 0 le désactive (tests). */
   OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1_000),
+  /**
+   * Métriques Prometheus (`GET /metrics`) : serveur HTTP interne de chaque processus, jamais sous /api/v1 ni derrière le
+   * proxy public. 0 le désactive. Absent : 9464 (api) et 9465 (worker), désactivé sous vitest (les tests de métriques
+   * le fixent). En conteneur, METRICS_HOST=0.0.0.0 sur le réseau interne seulement, port jamais publié (lot 7.1) :
+   * le serveur n'a pas d'authentification.
+   */
+  API_METRICS_PORT: z.coerce.number().int().min(0).max(65_535).optional(),
+  WORKER_METRICS_PORT: z.coerce.number().int().min(0).max(65_535).optional(),
+  METRICS_HOST: z.string().min(1).default('127.0.0.1'),
   /** Niveau des journaux (pino). Absent : `info`, et `silent` sous vitest (les tests qui lisent les journaux le fixent). */
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
   /** Journaux lisibles (pino-pretty, dépendance de développement) au lieu du JSON. Absent : en développement seulement. */

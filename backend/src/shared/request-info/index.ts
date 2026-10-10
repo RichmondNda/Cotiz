@@ -6,3 +6,4 @@ export {
   setExpectedVersion,
 } from './request-info.js';
 export { RequestInfoModule } from './request-info.module.js';
+export { routeTemplate } from './route-template.js';

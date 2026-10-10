@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';
+import { routeTemplate } from '../request-info/index.js';
 import { runWithLogContext } from './log-context.js';
 import { type Logger, ROOT_LOGGER } from './logger.js';
 
@@ -40,9 +41,7 @@ export class AccessLogMiddleware implements NestMiddleware {
       'close',
       AsyncLocalStorage.bind(() => {
         const durationMs = Number((process.hrtime.bigint() - start) / 1000n) / 1000;
-        // Sans route du contrat (404), Express garde le joker des middlewares (`*path`) : `unmatched`.
-        const path = typeof req.route?.path === 'string' ? `${req.baseUrl ?? ''}${req.route.path}` : '*';
-        const route = path.includes('*') ? 'unmatched' : path;
+        const route = routeTemplate(req);
         const status = res.statusCode;
         const fields = {
           method: req.method,

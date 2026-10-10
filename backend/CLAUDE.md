@@ -27,3 +27,4 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Attendre un effet du worker : renvoyer `afterCommit(run)` ; ne jamais garder `currentTx()` dans une fermeture (refusée après la fin du contexte).
 - Journaux : jamais le message d'une erreur SQL (Drizzle y met requête et paramètres) ; analyse : faux clamd dans les tests, vrai via `pnpm --filter backend test:clamav`.
 - Journaux : `new Logger(Classe.name)` de Nest (branché sur pino, `shared/logging`) ; requestId, traceId, association et utilisateur pseudonymisé sont ajoutés seuls. Journaliser un objet (`{ msg, … }`) plutôt que concaténer ; dans le worker, `runWithLogContext` autour d'un job.
+- Métriques : registre du processus injecté par `METRICS_REGISTRY` (`shared/metrics`), noms dans `metric-names.ts` (préfixe `cotiz_`), jamais de valeur d'URL ni d'identifiant en étiquette ; servies sur le port interne (`API_METRICS_PORT`, `WORKER_METRICS_PORT`). Tableau : `infra/grafana/`.

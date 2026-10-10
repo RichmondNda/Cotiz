@@ -10,6 +10,7 @@ import { IdempotencyInterceptor } from './shared/http/idempotency.interceptor.js
 import { IfMatchInterceptor } from './shared/http/if-match.interceptor.js';
 import { RateLimitInterceptor } from './shared/http/rate-limit.interceptor.js';
 import { AccessLogModule, createLogger, type Logger, LoggingModule } from './shared/logging/index.js';
+import { HttpMetricsModule, MetricsModule } from './shared/metrics/index.js';
 import { OutboxModule } from './shared/outbox/index.js';
 import { RequestInfoModule } from './shared/request-info/index.js';
 import { StorageModule } from './shared/storage/index.js';
@@ -25,8 +26,10 @@ export class AppModule {
       imports: [
         ConfigModule.register(config),
         LoggingModule.register(options.logger ?? createLogger(config, { name: 'api' })),
+        MetricsModule.register('api'),
         RequestInfoModule,
         AccessLogModule,
+        HttpMetricsModule,
         HttpConventionsModule,
         TenantContextModule,
         OutboxModule,

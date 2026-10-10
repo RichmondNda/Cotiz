@@ -34,10 +34,18 @@ module.exports = {
     },
     {
       name: 'outbox-worker-only-in-worker',
-      comment: 'Relais outbox et traitement de la file events : processus worker seulement (src/worker.module.ts).',
+      comment:
+        'Relais outbox, traitement de la file events et métriques de l’outbox : processus worker seulement (src/worker.module.ts).',
       severity: 'error',
       from: { path: '^src/', pathNot: ['^src/worker\\.module\\.ts$', '^src/shared/outbox/'] },
-      to: { path: '^src/shared/outbox/(worker|outbox-relay|events\\.processor)\\.ts$' },
+      to: { path: '^src/shared/outbox/(worker|outbox-relay|outbox-metrics|events\\.processor)\\.ts$' },
+    },
+    {
+      name: 'queue-metrics-only-in-worker',
+      comment: 'Métriques des files BullMQ : processus worker seulement (src/worker.module.ts).',
+      severity: 'error',
+      from: { path: '^src/', pathNot: ['^src/worker\\.module\\.ts$', '^src/shared/queues/'] },
+      to: { path: '^src/shared/queues/queue-metrics\\.ts$' },
     },
     {
       name: 'no-test-code-in-src',
