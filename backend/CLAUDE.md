@@ -23,3 +23,6 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
   affaiblie (`withPolicy`, `withoutPolicy`) pour prouver que le test échoue.
 - Un endpoint terminé est basculé côté front (`/bascule <id>`) : le front l'appelle via le proxy Nitro, même origine.
 - Scripts d'exploitation dans `src/cli.ts` (`pnpm --filter backend cli <commande>`).
+- Chaque route déclare `@Endpoint('<id>', '<opération>')` : drapeaux du contrat (débit, `Idempotency-Key`, `If-Match`) ; `test/integration/routes.test.ts` vérifie méthode et chemin.
+- Attendre un effet du worker : renvoyer `afterCommit(run)` ; ne jamais garder `currentTx()` dans une fermeture (refusée après la fin du contexte).
+- Journaux : jamais le message d'une erreur SQL (Drizzle y met requête et paramètres) ; analyse : faux clamd dans les tests, vrai via `pnpm --filter backend test:clamav`.

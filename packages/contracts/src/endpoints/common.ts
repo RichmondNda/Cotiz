@@ -147,7 +147,11 @@ export const StoredFile = z.object({
   fileName: z.string(),
   mimeType: z.string(),
   sizeBytes: z.int().min(1),
-  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  /** SHA-256 du contenu final, calculé par le worker : `null` tant que l'analyse n'est pas faite. */
+  sha256: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .nullable(),
   /** Analyse du worker (type réel, antivirus, EXIF) : `pending` puis `clean` ou `infected`. */
   scanStatus: FileScanStatus,
   createdAt: Instant,

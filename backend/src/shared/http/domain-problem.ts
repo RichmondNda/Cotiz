@@ -1,0 +1,22 @@
+import type { ErrorCode } from '@cotiz/contracts';
+
+/** Détails publics d'une erreur : jamais de donnée personnelle ni de secret. */
+export interface ProblemDetails {
+  detail?: string;
+  /** `validation_failed` : chemin du champ → code de la règle. */
+  fields?: Record<string, string>;
+}
+
+/**
+ * Erreur métier attendue, rendue en `application/problem+json` avec son `code` (docs/specs/errors.yaml) et le statut
+ * HTTP du catalogue. Toute autre erreur reste une erreur serveur.
+ */
+export class DomainProblem extends Error {
+  constructor(
+    readonly code: ErrorCode,
+    readonly details: ProblemDetails = {},
+  ) {
+    super(code);
+    this.name = 'DomainProblem';
+  }
+}

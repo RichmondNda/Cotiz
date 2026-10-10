@@ -2,6 +2,7 @@
 
 /** Codes stables des erreurs `Problem`. */
 export const ERROR_CODES = [
+  'internal_error',
   'validation_failed',
   'not_found',
   'forbidden',
@@ -55,6 +56,7 @@ export type ErrorCode = (typeof ERROR_CODES)[number];
 
 /** Statut HTTP et message affichable de chaque code. */
 export const ERRORS = {
+  internal_error: { http: 500, message: 'Une erreur est survenue. Réessayez dans quelques instants.' },
   validation_failed: { http: 422, message: 'Certains champs sont invalides.' },
   not_found: { http: 404, message: 'Élément introuvable.' },
   forbidden: { http: 403, message: "Vous n'avez pas les droits pour cette action." },

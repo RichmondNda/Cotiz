@@ -1,0 +1,88 @@
+import { randomUUID } from 'node:crypto';
+import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+import { EventEnvelope } from '@cotiz/contracts';
+import { Worker } from 'bullmq';
+import { Redis } from 'ioredis';
+import { CONFIG, type Config } from '../../config.js';
+import { QUEUES, REDIS_PREFIX, redisConnection } from '../queues/index.js';
+import { type TenantContext, TenantDatabase } from '../tenant-context/index.js';
+import { EventConsumers } from './event-consumers.js';
+
+/** Durée de la mémoire de déduplication `{eventId}:{consumer}` (architecture/05). */
+const DEDUPE_TTL_SECONDS = 7 * 24 * 3600;
+/** Verrou d'un consommateur en cours : un même événement n'est jamais traité deux fois en parallèle. */
+const LOCK_TTL_MS = 5 * 60_000;
+
+/** Libère le verrou seulement s'il est encore le nôtre (expiré puis repris par un autre worker sinon). */
+const RELEASE_LOCK = `if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end`;
+
+export const dedupeKey = (eventId: string, consumer: string) => `${REDIS_PREFIX}:dedupe:${eventId}:${consumer}`;
+
+/**
+ * File `events` (jobs.yaml : concurrence 10, 5 tentatives, backoff exponentiel). Pour chaque consommateur abonné au
+ * type : déjà traité → ignoré ; sinon traitement dans une transaction du contexte de l'événement, puis marquage.
+ * Un consommateur en échec fait reprendre le job ; ceux qui ont réussi ne sont pas rejoués.
+ */
+@Injectable()
+export class EventsProcessor implements OnApplicationBootstrap, OnModuleDestroy {
+  private readonly logger = new Logger(EventsProcessor.name);
+  private readonly redis: Redis;
+  private worker: Worker | undefined;
+
+  constructor(
+    private readonly db: TenantDatabase,
+    private readonly consumers: EventConsumers,
+    @Inject(CONFIG) private readonly config: Config,
+  ) {
+    this.redis = new Redis(config.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 3 });
+    this.redis.on('error', (error) => {
+      this.logger.warn(`redis : ${error.message}`);
+    });
+  }
+
+  onApplicationBootstrap(): void {
+    this.worker = new Worker(QUEUES.events.name, (job) => this.process(job.data as unknown), {
+      connection: redisConnection(this.config.REDIS_URL),
+      prefix: REDIS_PREFIX,
+      concurrency: QUEUES.events.concurrency,
+    });
+    this.worker.on('error', (error) => {
+      this.logger.warn(`file events : ${error.message}`);
+    });
+  }
+
+  async process(raw: unknown): Promise<void> {
+    const event = EventEnvelope.parse(raw);
+    const context: TenantContext = event.associationId
+      ? { space: 'association', associationId: event.associationId }
+      : { space: 'system' };
+    const failures: unknown[] = [];
+    for (const consumer of this.consumers.for(event.type)) {
+      const done = dedupeKey(event.id, consumer.name);
+      if ((await this.redis.exists(done)) === 1) continue;
+      const lock = `${done}:lock`;
+      const token = randomUUID();
+      if ((await this.redis.set(lock, token, 'PX', LOCK_TTL_MS, 'NX')) !== 'OK') {
+        failures.push(new Error(`${consumer.name} : événement ${event.id} déjà en cours de traitement`));
+        continue;
+      }
+      try {
+        await this.db.withTenantContext(context, () => consumer.handle(event));
+        await this.redis.set(done, '1', 'EX', DEDUPE_TTL_SECONDS);
+      } catch (error) {
+        // Ni le contenu de l'événement ni ses identifiants personnels : type, id et consommateur suffisent.
+        this.logger.warn(`${consumer.name} : échec sur ${event.type} #${event.id} (${(error as Error).message})`);
+        failures.push(error);
+      } finally {
+        await this.redis.eval(RELEASE_LOCK, 1, lock, token);
+      }
+    }
+    if (failures.length === 1) throw failures[0];
+    if (failures.length > 1) throw new AggregateError(failures, `${String(failures.length)} consommateurs en échec`);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.worker?.close();
+    this.redis.disconnect();
+  }
+}

@@ -1,26 +1,23 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import {
-  type ArgumentsHost,
   type CanActivate,
-  Catch,
-  type ExceptionFilter,
-  HttpException,
   Controller,
   type ExecutionContext,
   Get,
   type INestApplication,
   Injectable,
+  Logger,
   Module,
   NotFoundException,
   Post,
 } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, NestFactory } from '@nestjs/core';
+import { APP_GUARD, NestFactory } from '@nestjs/core';
 import { runMigrations } from '@cotiz/db/migrate';
 import { ROLE_PASSWORDS, startTestDatabase, type TestDatabase } from '@cotiz/db/testing';
 import { sql } from 'drizzle-orm';
 import pg from 'pg';
 import { GenericContainer, Network, type StartedNetwork, type StartedTestContainer, Wait } from 'testcontainers';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../../src/app.module.js';
 import { loadConfig } from '../../src/config.js';
 import {
@@ -73,19 +70,10 @@ const seen: {
   lastError?: string;
 } = {};
 
-/** Garde le message de la dernière erreur, que la réponse 500 ne montre pas. */
-@Catch()
-class RecordingFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost): void {
-    seen.lastError = exception instanceof Error ? exception.message : String(exception);
-    const status = exception instanceof HttpException ? exception.getStatus() : 500;
-    host
-      .switchToHttp()
-      .getResponse<{ status(code: number): { json(body: unknown): void } }>()
-      .status(status)
-      .json({ statusCode: status });
-  }
-}
+/** Message de la dernière erreur 500 : la réponse ne le montre pas, ProblemFilter le journalise. */
+vi.spyOn(Logger.prototype, 'error').mockImplementation((message: unknown) => {
+  seen.lastError = String(message);
+});
 
 async function countLabel(label: string): Promise<string | undefined> {
   const res = await currentTx().execute<{ n: string }>(
@@ -284,10 +272,7 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
         module: TestRoot,
         imports: [AppModule.register(config)],
         controllers: [ProbeController],
-        providers: [
-          { provide: APP_GUARD, useClass: HeaderContextGuard },
-          { provide: APP_FILTER, useClass: RecordingFilter },
-        ],
+        providers: [{ provide: APP_GUARD, useClass: HeaderContextGuard }],
       },
       { logger: false },
     );

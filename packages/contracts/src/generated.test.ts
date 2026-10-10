@@ -3,7 +3,16 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { describe, expect, it } from 'vitest';
-import { ENDPOINT_IDS, ERRORS, ERROR_CODES, EVENT_TYPES, FEATURES, PERMISSIONS, STATUS_LABELS } from './index.js';
+import {
+  ENDPOINT_IDS,
+  ERRORS,
+  ERROR_CODES,
+  EVENTS,
+  EVENT_TYPES,
+  FEATURES,
+  PERMISSIONS,
+  STATUS_LABELS,
+} from './index.js';
 
 // Les unions de src/generated/ doivent refléter exactement docs/specs/*.yaml.
 const specs = (file: string): unknown =>
@@ -35,6 +44,11 @@ describe('unions générées depuis docs/specs', () => {
   it('EventType = types de events.yaml', () => {
     const { events } = specs('events.yaml') as { events: { type: string }[] };
     expect(sorted(EVENT_TYPES)).toEqual(sorted(events.map((e) => e.type)));
+  });
+
+  it('EVENTS = version et clés du payload de events.yaml', () => {
+    const { events } = specs('events.yaml') as { events: { type: string; version: number; payload: string[] }[] };
+    expect(EVENTS).toEqual(Object.fromEntries(events.map((e) => [e.type, { version: e.version, payload: e.payload }])));
   });
 
   it('STATUS_LABELS = libellés et tons de status-mapping.yaml', () => {

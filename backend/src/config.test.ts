@@ -34,4 +34,20 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...valid, API_PORT: '4100' }).API_PORT).toBe(4100);
     expect(() => loadConfig({ ...valid, API_PORT: 'abc' })).toThrow(/API_PORT/);
   });
+
+  it('exige les identifiants MinIO en production seulement, sans recopier leur valeur', () => {
+    expect(() => loadConfig({ ...valid, NODE_ENV: 'production' })).toThrow(
+      /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante/,
+    );
+    expect(loadConfig({ ...valid, NODE_ENV: 'development' }).S3_ACCESS_KEY_ID).toBeUndefined();
+    const config = loadConfig({
+      ...valid,
+      NODE_ENV: 'production',
+      S3_ACCESS_KEY_ID: 'cle',
+      S3_SECRET_ACCESS_KEY: 'secret-minio',
+      CLAMAV_URL: 'tcp://clamav:3310',
+    });
+    expect(config.S3_REGION).toBe('us-east-1');
+    expect(config.S3_PUBLIC_ENDPOINT).toBeUndefined();
+  });
 });

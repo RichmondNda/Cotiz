@@ -1,6 +1,7 @@
 import { type CallHandler, type ExecutionContext, Injectable, type NestInterceptor } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { defer, lastValueFrom, type Observable } from 'rxjs';
+import { AfterCommit } from './after-commit.js';
 import { getRequestContext, WITHOUT_TENANT_CONTEXT } from './request-context.js';
 import { FOR_REQUEST, runInHttpScope, TenantDatabase } from './tenant-database.js';
 
@@ -23,10 +24,28 @@ export class TenantContextInterceptor implements NestInterceptor {
       context.getClass(),
     ]);
     // Toute la requête est marquée HTTP : withTenantContext() (tâches, espace system) y est refusé.
-    if (skip) return defer(() => runInHttpScope(handle));
+    if (skip) {
+      return defer(() =>
+        runInHttpScope(async (): Promise<unknown> => {
+          const result: unknown = await handle();
+          // Sans transaction, une suite après COMMIT n'a pas de sens : erreur, jamais ignorée en silence.
+          if (result instanceof AfterCommit) throw new Error('afterCommit() sur une route @WithoutTenantContext()');
+          return result;
+        }),
+      );
+    }
     const tenant = getRequestContext(context.switchToHttp().getRequest<object>());
     // Transaction ouverte à l'abonnement ; le contrôleur s'exécute dans son contexte asynchrone.
     // Une réponse en flux serait lue après le COMMIT : lire les données avant de renvoyer le flux.
-    return defer(() => runInHttpScope(() => this.db[FOR_REQUEST](tenant, handle)));
+    return defer(() =>
+      runInHttpScope(async (): Promise<unknown> => {
+        const result: unknown = await this.db[FOR_REQUEST](tenant, handle);
+        // Validée : la suite éventuelle s'exécute dans de nouvelles transactions du même contexte.
+        if (result instanceof AfterCommit) {
+          return (result as AfterCommit<unknown>).run((fn) => this.db[FOR_REQUEST](tenant, fn));
+        }
+        return result;
+      }),
+    );
   }
 }

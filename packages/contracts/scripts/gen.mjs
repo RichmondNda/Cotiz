@@ -89,13 +89,18 @@ function render() {
         .map(([name, values]) => `  ${name}: [${values.map(str).join(', ')}],\n`)
         .join('')}} as const;\n` +
       `export type DbEnum = keyof typeof DB_ENUMS;\n`,
-    'event-types.ts': union(
-      'events.yaml',
-      'EVENT_TYPES',
-      'EventType',
-      events.map((e) => e.type),
-      "Types d'événements de domaine (outbox, webhooks sortants).",
-    ),
+    'event-types.ts':
+      union(
+        'events.yaml',
+        'EVENT_TYPES',
+        'EventType',
+        events.map((e) => e.type),
+        "Types d'événements de domaine (outbox, webhooks sortants).",
+      ) +
+      `\n/** Version courante et clés du payload de chaque type (enveloppe : architecture/05-events-jobs.md). */\n` +
+      `export const EVENTS = {\n${events
+        .map((e) => `  ${str(e.type)}: { version: ${e.version}, payload: [${e.payload.map(str).join(', ')}] },\n`)
+        .join('')}} as const satisfies Record<EventType, { version: number; payload: readonly string[] }>;\n`,
     'features.ts': union(
       'features.yaml',
       'FEATURES',

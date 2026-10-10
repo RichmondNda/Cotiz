@@ -551,7 +551,7 @@ Référentiel de tous les fichiers stockés dans MinIO.
 | `bucket / object_key` | `text` | {association_id}/{purpose}/{uuid}.{ext} |
 | `original_name` | `text` | nom du fichier déposé (affichage) |
 | `mime_type / size_bytes` | `text / bigint` | vérifiés sur le contenu réel |
-| `sha256` | `text` | intégrité et preuve |
+| `sha256` | `text NULL` | intégrité et preuve ; calculé par le worker, NULL tant que `scan_status = pending` (CHECK `files_sha256_when_scanned`) |
 | `scan_status` | `enum` | pending · clean · infected |
 | `created_at / expires_at` | `timestamptz` |  |
 
@@ -563,6 +563,7 @@ Référentiel de tous les fichiers stockés dans MinIO.
 |---|---|---|
 | `id` | `bigserial PK` |  |
 | `association_id` | `uuid NULL` |  |
+| `actor_user_id` | `uuid NULL` | auteur de l'action (actorUserId de l'enveloppe) ; NULL pour une tâche système |
 | `event_type` | `text` | payment.validated |
 | `event_version` | `int` |  |
 | `aggregate_type / aggregate_id` | `text / uuid` |  |

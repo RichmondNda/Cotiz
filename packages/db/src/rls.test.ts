@@ -65,6 +65,15 @@ describe('garde-fou RLS et droits (auditTenantSecurity)', () => {
     await loadSpecSchema(db.urlFor('cotiz_migrator', 'spec'));
     scratchUrl = db.urlFor('cotiz_migrator', 'scratch');
     await runMigrations(scratchUrl);
+    // Base de travail : fonctions et droits par défaut des migrations, sans leurs tables (les cas ci-dessous créent
+    // leurs propres audit_logs, payments… jetables).
+    await withClient(scratchUrl, (c) =>
+      c.query(`DO $$ DECLARE t text; BEGIN
+                 FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+                   EXECUTE format('DROP TABLE %I CASCADE', t);
+                 END LOOP;
+               END $$`),
+    );
   });
 
   afterAll(async () => {

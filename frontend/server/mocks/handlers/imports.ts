@@ -1,5 +1,6 @@
 // Fichiers déposés (fl.upload) et imports Excel (im.*, lot 4.4). Aucun fichier n'est lu : l'analyse simulée reprend la
 // maquette MgImport (53 lignes : 47 prêtes, 3 comptes existants, 2 erreurs, 1 doublon).
+import { uploadRejection } from '@cotiz/contracts'
 import type { MockContext } from '../http'
 import { nowInstant, problem } from '../http'
 import { uid } from '../ids'
@@ -9,19 +10,11 @@ import { page } from './list'
 /** Fichiers déposés pendant la session de dev (nom et type pour la preuve d'un paiement). */
 export const uploads = new Map<string, { fileName: string, mimeType: string, sizeBytes: number, purpose: string, createdAt: string }>()
 
-const ALLOWED: Record<string, RegExp> = {
-  payment_proof: /^(image\/(jpeg|png|webp|heic)|application\/pdf)$/,
-  import_source: /^(text\/csv|application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet|application\/vnd\.ms-excel)$/,
-  logo: /^image\//,
-  cover: /^image\//,
-}
-const MAX_BYTES = 10 * 1024 * 1024
-
 export function uploadCreate(ctx: MockContext<'fl.upload', 'create'> & { origin?: string }) {
   const b = ctx.body
-  if (b.sizeBytes > MAX_BYTES) problem('file_too_large')
-  const rule = ALLOWED[b.purpose]
-  if (rule && !rule.test(b.mimeType) && !(b.purpose === 'import_source' && /\.(csv|xlsx)$/i.test(b.fileName))) problem('file_type_not_allowed')
+  // Mêmes règles que le back (@cotiz/contracts : 5 Mo ; JPG, PNG, PDF ; CSV/XLSX pour les imports).
+  const rejection = uploadRejection(b)
+  if (rejection) problem(rejection)
   const id = uid('file', `${b.fileName}-${Date.now()}-${Math.random()}`)
   uploads.set(id, { fileName: b.fileName, mimeType: b.mimeType, sizeBytes: b.sizeBytes, purpose: b.purpose, createdAt: nowInstant() })
   return {

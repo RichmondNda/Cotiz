@@ -8,6 +8,27 @@
       "when": 1791534876059,
       "tag": "0000_foundations",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791575871766,
+      "tag": "0001_outbox_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791584147647,
+      "tag": "0002_audit_no_truncate",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791584695316,
+      "tag": "0003_files",
+      "breakpoints": true
     }
   ]
 }
