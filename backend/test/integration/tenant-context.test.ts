@@ -70,9 +70,9 @@ const seen: {
   lastError?: string;
 } = {};
 
-/** Message de la dernière erreur 500 : la réponse ne le montre pas, ProblemFilter le journalise. */
+/** Dernière erreur 500 : la réponse ne la montre pas, ProblemFilter la journalise (objet `{ msg, err }`). */
 vi.spyOn(Logger.prototype, 'error').mockImplementation((message: unknown) => {
-  seen.lastError = String(message);
+  seen.lastError = typeof message === 'string' ? message : JSON.stringify(message);
 });
 
 async function countLabel(label: string): Promise<string | undefined> {

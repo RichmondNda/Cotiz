@@ -26,3 +26,4 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Chaque route déclare `@Endpoint('<id>', '<opération>')` : drapeaux du contrat (débit, `Idempotency-Key`, `If-Match`) ; `test/integration/routes.test.ts` vérifie méthode et chemin.
 - Attendre un effet du worker : renvoyer `afterCommit(run)` ; ne jamais garder `currentTx()` dans une fermeture (refusée après la fin du contexte).
 - Journaux : jamais le message d'une erreur SQL (Drizzle y met requête et paramètres) ; analyse : faux clamd dans les tests, vrai via `pnpm --filter backend test:clamav`.
+- Journaux : `new Logger(Classe.name)` de Nest (branché sur pino, `shared/logging`) ; requestId, traceId, association et utilisateur pseudonymisé sont ajoutés seuls. Journaliser un objet (`{ msg, … }`) plutôt que concaténer ; dans le worker, `runWithLogContext` autour d'un job.

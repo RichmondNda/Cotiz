@@ -9,6 +9,7 @@ import { HttpConventionsModule, ProblemFilter } from './shared/http/index.js';
 import { IdempotencyInterceptor } from './shared/http/idempotency.interceptor.js';
 import { IfMatchInterceptor } from './shared/http/if-match.interceptor.js';
 import { RateLimitInterceptor } from './shared/http/rate-limit.interceptor.js';
+import { AccessLogModule, createLogger, type Logger, LoggingModule } from './shared/logging/index.js';
 import { OutboxModule } from './shared/outbox/index.js';
 import { RequestInfoModule } from './shared/request-info/index.js';
 import { StorageModule } from './shared/storage/index.js';
@@ -17,12 +18,15 @@ import { TenantContextInterceptor, TenantContextModule } from './shared/tenant-c
 // Module racine de l'api. Les modules métier s'y ajoutent lot par lot.
 @Module({})
 export class AppModule {
-  static register(config: Config): DynamicModule {
+  /** `logger` : logger racine (tests qui lisent les journaux) ; sinon créé depuis la configuration. */
+  static register(config: Config, options: { logger?: Logger } = {}): DynamicModule {
     return {
       module: AppModule,
       imports: [
         ConfigModule.register(config),
+        LoggingModule.register(options.logger ?? createLogger(config, { name: 'api' })),
         RequestInfoModule,
+        AccessLogModule,
         HttpConventionsModule,
         TenantContextModule,
         OutboxModule,

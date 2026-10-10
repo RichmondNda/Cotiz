@@ -35,11 +35,22 @@ const ConfigSchema = z.object({
   RATE_LIMIT_ENDPOINT_PER_MIN: z.coerce.number().int().min(1).default(20),
   /** Intervalle du relais outbox du worker (jobs.yaml : chaque seconde) ; 0 le désactive (tests). */
   OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1_000),
+  /** Niveau des journaux (pino). Absent : `info`, et `silent` sous vitest (les tests qui lisent les journaux le fixent). */
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
+  /** Journaux lisibles (pino-pretty, dépendance de développement) au lieu du JSON. Absent : en développement seulement. */
+  LOG_PRETTY: z.stringbool().optional(),
+  /** `stdout` (par défaut) ou chemin d'un fichier. L'envoi vers Logstash (ELK) est raccordé au lot 7.1. */
+  LOG_DESTINATION: z.string().min(1).default('stdout'),
+  /**
+   * Clé HMAC de pseudonymisation des utilisateurs dans les journaux (architecture/11) : exigée en production ; ailleurs,
+   * une clé de développement fixe (les journaux locaux ne sont pas des données personnelles à protéger).
+   */
+  LOG_PSEUDONYM_KEY: z.string().min(32).optional(),
 });
 
 const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
   if (config.NODE_ENV !== 'production') return;
-  for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'CLAMAV_URL'] as const) {
+  for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'CLAMAV_URL', 'LOG_PSEUDONYM_KEY'] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
   }
 });

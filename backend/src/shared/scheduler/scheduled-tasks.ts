@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { CONFIG, type Config } from '../../config.js';
+import { runWithLogContext } from '../logging/index.js';
 import { QUEUES, REDIS_PREFIX, redisConnection } from '../queues/index.js';
 
 /** Tâche planifiée (docs/specs/jobs.yaml, section scheduled). */
@@ -37,9 +39,13 @@ export class ScheduledTasks implements OnApplicationBootstrap, OnModuleDestroy {
 
   constructor(@Inject(CONFIG) private readonly config: Config) {
     this.redis = new Redis(config.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 3 });
-    this.redis.on('error', (error) => {
-      this.logger.warn(`redis : ${error.message}`);
-    });
+    // Lié au contexte du démarrage : une socket ouverte pendant une tâche garderait sinon son contexte de journal.
+    this.redis.on(
+      'error',
+      AsyncLocalStorage.bind((error: Error) => {
+        this.logger.warn(`redis : ${error.message}`);
+      }),
+    );
     this.queue = new Queue(QUEUE, {
       connection: redisConnection(config.REDIS_URL),
       prefix: REDIS_PREFIX,
@@ -62,7 +68,7 @@ export class ScheduledTasks implements OnApplicationBootstrap, OnModuleDestroy {
     this.worker = new Worker(
       QUEUE,
       async (job) => {
-        await this.executeWithLock(job.name);
+        await runWithLogContext({ queue: QUEUE, jobId: job.id, task: job.name }, () => this.executeWithLock(job.name));
       },
       {
         connection: redisConnection(this.config.REDIS_URL),
@@ -74,7 +80,7 @@ export class ScheduledTasks implements OnApplicationBootstrap, OnModuleDestroy {
       this.logger.warn(`file ${QUEUE} : ${error.message}`);
     });
     this.worker.on('failed', (job, error) => {
-      this.logger.error(`tâche ${job?.name ?? 'inconnue'} en échec : ${error.message}`);
+      this.logger.error({ msg: 'tâche planifiée en échec', task: job?.name ?? 'inconnue', err: error });
     });
   }
 

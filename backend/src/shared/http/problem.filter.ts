@@ -1,6 +1,7 @@
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Logger } from '@nestjs/common';
 import { ERRORS, type ErrorCode, type Problem } from '@cotiz/contracts';
 import { VersionConflictError } from '@cotiz/db';
+import { serializeError, sqlErrorOf } from '../logging/index.js';
 import { currentRequestInfo } from '../request-info/index.js';
 import { DomainProblem, type ProblemDetails } from './domain-problem.js';
 
@@ -21,36 +22,6 @@ function codeOfHttpStatus(status: number): ErrorCode {
   return 'internal_error';
 }
 
-interface PgError extends Error {
-  code: string;
-  table?: string;
-  constraint?: string;
-  column?: string;
-  routine?: string;
-}
-
-/** Erreur PostgreSQL d'origine (Drizzle l'enveloppe dans `cause`), reconnue à son code SQLSTATE. */
-function pgError(error: unknown): PgError | undefined {
-  for (let e = error; e instanceof Error; e = e.cause) {
-    if ('code' in e && typeof e.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code)) return e as PgError;
-  }
-  return undefined;
-}
-
-/** Cadres de la pile, sans les lignes de message (qui, pour Drizzle, contiennent la requête et ses paramètres). */
-const frames = (error: unknown) =>
-  error instanceof Error ? (error.stack ?? '').split('\n').filter((line) => /^\s+at /.test(line)) : [];
-
-/**
- * Ligne de journal d'une erreur SQL : SQLSTATE, table, contrainte, colonne, routine et pile. Jamais le message ni le
- * détail PostgreSQL, ni la requête, ni ses paramètres : ils peuvent citer des valeurs (téléphone, code, montant).
- */
-function describeSqlError(error: unknown, pg: PgError): string {
-  const fields = { table: pg.table, constraint: pg.constraint, column: pg.column, routine: pg.routine };
-  const known = Object.entries(fields).filter(([, v]) => v !== undefined);
-  return [`SQLSTATE ${pg.code}`, ...known.map(([k, v]) => `${k}=${String(v)}`), ...frames(error)].join(' ');
-}
-
 /**
  * Toute erreur d'une requête → `application/problem+json` (RFC 9457, architecture/06) avec un `code` stable de
  * docs/specs/errors.yaml et le `requestId`. Seuls les détails d'un DomainProblem sont publics :
@@ -66,18 +37,14 @@ export class ProblemFilter implements ExceptionFilter {
     const { code, details } = this.classify(error);
     const { http, message } = ERRORS[code];
     const requestId = currentRequestInfo()?.requestId ?? '-';
-    const pg = pgError(error);
+    const pg = sqlErrorOf(error);
+    // requestId, traceId, association et utilisateur pseudonymisé : ajoutés à chaque ligne par le logger (pino).
     if (pg?.code === '42501') {
       // Refus RLS ou droit absent : 404 pour le client, signalé à l'exploitation (le message ne cite que la table).
-      this.logger.warn(`${requestId} refus PostgreSQL 42501 traduit en 404 : ${pg.message}`);
+      this.logger.warn({ msg: 'refus PostgreSQL traduit en 404', sqlstate: pg.code, reason: pg.message });
     } else if (http >= 500) {
-      // Côté serveur seulement, avec le requestId pour retrouver la requête.
-      const detail = pg
-        ? describeSqlError(error, pg)
-        : error instanceof Error
-          ? (error.stack ?? error.message)
-          : 'valeur non-Error levée';
-      this.logger.error(`${requestId} ${detail}`);
+      // Côté serveur seulement. Erreur SQL : SQLSTATE, table, contrainte et pile, jamais la requête ni ses paramètres.
+      this.logger.error({ msg: 'erreur interne', err: serializeError(error) });
     }
     const body: Problem = {
       type: `https://docs.cotiz.app/errors/${code}`,
@@ -94,7 +61,7 @@ export class ProblemFilter implements ExceptionFilter {
     if (error instanceof DomainProblem) return { code: error.code, details: error.details };
     if (error instanceof VersionConflictError) return { code: 'version_conflict', details: {} };
     if (error instanceof HttpException) return { code: codeOfHttpStatus(error.getStatus()), details: {} };
-    if (pgError(error)?.code === '42501') return { code: 'not_found', details: {} };
+    if (sqlErrorOf(error)?.code === '42501') return { code: 'not_found', details: {} };
     return { code: 'internal_error', details: {} };
   }
 }

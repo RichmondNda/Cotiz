@@ -103,7 +103,10 @@ describe('ProblemFilter : toute erreur → application/problem+json avec un code
 
     const logged = (level: 'error' | 'warn') => {
       const spy = vi.spyOn(Logger.prototype, level).mockImplementation(() => undefined);
-      return () => spy.mock.calls.map((args) => args.map(String).join(' ')).join('\n');
+      return () =>
+        spy.mock.calls
+          .map((args) => args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '))
+          .join('\n');
     };
 
     it('erreur SQL : SQLSTATE et contrainte, jamais la requête, ses paramètres ni le message PostgreSQL', () => {
@@ -118,7 +121,6 @@ describe('ProblemFilter : toute erreur → application/problem+json avec un code
       const text = journal();
       expect(text).toContain('23505');
       expect(text).toContain('users_phone_e164_key');
-      expect(text).toContain('req-1');
       expect(text).not.toContain('2250700000011');
       expect(text).not.toContain('Failed query');
       expect(text).not.toContain('insert into');
@@ -135,7 +137,6 @@ describe('ProblemFilter : toute erreur → application/problem+json avec un code
       const res = render(pgError('42501', 'new row violates row-level security policy for table "files"'));
       expect(res.statusCode).toBe(404);
       expect(journal()).toContain('42501');
-      expect(journal()).toContain('req-1');
     });
   });
 });
