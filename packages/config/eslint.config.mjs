@@ -17,6 +17,22 @@ export const ignores = [
   'graphify-out/**',
 ];
 
+/** Tables de @cotiz/db réservées à leur module (users reste lisible partout : noms affichés). */
+const MODULE_TABLES = {
+  identity: ['credentials', 'sessions', 'oneTimeCodes', 'passwordResetRequests'],
+  access: ['platformStaff'],
+};
+
+function restrictedTables(modules) {
+  return {
+    paths: modules.map((module) => ({
+      name: '@cotiz/db',
+      importNames: MODULE_TABLES[module],
+      message: `table réservée au module ${module} : passer par src/modules/${module}/${module}.public.ts`,
+    })),
+  };
+}
+
 export default tseslint.config(
   { ignores },
   js.configs.recommended,
@@ -38,6 +54,23 @@ export default tseslint.config(
       // Modules NestJS : classes vides portant @Module.
       '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
     },
+  },
+  // Tables globales sans RLS (architecture/02) : accès limité à leur module, les autres passent par sa surface
+  // publique. Secrets d'authentification au module identity, personnel de la plateforme au module access.
+  {
+    files: ['backend/src/**/*.ts'],
+    ignores: ['backend/src/modules/identity/**', 'backend/src/**/*.test.ts'],
+    rules: { 'no-restricted-imports': ['error', restrictedTables(['identity'])] },
+  },
+  {
+    files: ['backend/src/**/*.ts'],
+    ignores: ['backend/src/modules/access/**', 'backend/src/**/*.test.ts'],
+    rules: { 'no-restricted-imports': ['error', restrictedTables(['access'])] },
+  },
+  {
+    files: ['backend/src/**/*.ts'],
+    ignores: ['backend/src/modules/identity/**', 'backend/src/modules/access/**', 'backend/src/**/*.test.ts'],
+    rules: { 'no-restricted-imports': ['error', restrictedTables(['identity', 'access'])] },
   },
   // Fichiers JavaScript (configurations, outils) : pas d'analyse de types.
   { files: ['**/*.{js,mjs,cjs}'], ...tseslint.configs.disableTypeChecked },

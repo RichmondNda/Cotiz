@@ -1081,6 +1081,7 @@ ALTER TABLE notifications ADD FOREIGN KEY (association_id) REFERENCES associatio
 ALTER TABLE message_templates ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE deliveries ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE files ADD FOREIGN KEY (association_id) REFERENCES associations(id);
+ALTER TABLE files ADD FOREIGN KEY (owner_user_id) REFERENCES users(id);
 ALTER TABLE export_jobs ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE export_jobs ADD FOREIGN KEY (requested_by) REFERENCES users(id);
 ALTER TABLE password_reset_requests ADD FOREIGN KEY (user_id) REFERENCES users(id);

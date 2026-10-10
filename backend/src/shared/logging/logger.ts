@@ -15,8 +15,8 @@ const DEVELOPMENT_PSEUDONYM_KEY = 'cotiz-cle-de-developpement-non-secrete';
 export const ROOT_LOGGER = Symbol('ROOT_LOGGER');
 
 export interface LoggerOptions {
-  /** `api` ou `worker` : champ `service` de chaque ligne. */
-  name: 'api' | 'worker';
+  /** `api`, `worker` ou `cli` : champ `service` de chaque ligne. */
+  name: 'api' | 'worker' | 'cli';
   /** Flux de sortie (tests) ; sinon LOG_DESTINATION. */
   destination?: DestinationStream;
 }

@@ -43,15 +43,16 @@ describe('loadConfig', () => {
       S3_SECRET_ACCESS_KEY: 'secret-minio',
       CLAMAV_URL: 'tcp://clamav:3310',
       LOG_PSEUDONYM_KEY: 'cle-de-pseudonymisation-de-production-0001',
+      APP_PUBLIC_URL: 'https://app.cotiz.app',
     };
     expect(() => loadConfig({ ...production, OTEL_TRACES_EXPORTER: 'console' })).toThrow(/OTEL_TRACES_EXPORTER/);
     expect(loadConfig({ ...valid, OTEL_TRACES_EXPORTER: 'console' }).OTEL_TRACES_EXPORTER).toBe('console');
     expect(() => loadConfig({ ...valid, OTEL_TRACES_EXPORTER: 'otlp' })).toThrow(/OTEL_EXPORTER_OTLP_ENDPOINT/);
   });
 
-  it('exige les identifiants MinIO, clamd et la clé de pseudonymisation en production seulement, sans recopier leur valeur', () => {
+  it('exige les identifiants MinIO, clamd, la clé de pseudonymisation et l’adresse du front en production seulement, sans recopier leur valeur', () => {
     expect(() => loadConfig({ ...valid, NODE_ENV: 'production' })).toThrow(
-      /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante[\s\S]*LOG_PSEUDONYM_KEY : manquante/,
+      /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante[\s\S]*LOG_PSEUDONYM_KEY : manquante[\s\S]*APP_PUBLIC_URL : manquante/,
     );
     expect(loadConfig({ ...valid, NODE_ENV: 'development' }).S3_ACCESS_KEY_ID).toBeUndefined();
     const config = loadConfig({
@@ -61,6 +62,7 @@ describe('loadConfig', () => {
       S3_SECRET_ACCESS_KEY: 'secret-minio',
       CLAMAV_URL: 'tcp://clamav:3310',
       LOG_PSEUDONYM_KEY: 'cle-de-pseudonymisation-de-production-0001',
+      APP_PUBLIC_URL: 'https://app.cotiz.app',
     });
     expect(config.S3_REGION).toBe('us-east-1');
     expect(config.S3_PUBLIC_ENDPOINT).toBeUndefined();

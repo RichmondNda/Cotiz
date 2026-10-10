@@ -116,9 +116,10 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       expect(`${url.protocol}//${url.host}`).toBe(minio.endpoint);
       expect(url.pathname).toBe(`/cotiz-proofs/quarantine/${ticket.fileId}`);
       expect(url.searchParams.get('X-Amz-Expires')).toBe('300');
-      const expiresIn = Date.parse(ticket.expiresAt) - before;
-      expect(expiresIn).toBeGreaterThan(290_000);
-      expect(expiresIn).toBeLessThanOrEqual(301_000);
+      // Entre l'envoi et la réponse (la machine de CI peut mettre plus d'une seconde à répondre).
+      const expiresAt = Date.parse(ticket.expiresAt);
+      expect(expiresAt).toBeGreaterThanOrEqual(before + 300_000 - 1_000);
+      expect(expiresAt).toBeLessThanOrEqual(Date.now() + 300_000 + 1_000);
 
       const { rows } = await h.superuser('SELECT * FROM files WHERE id = $1', [ticket.fileId]);
       expect(rows[0]).toMatchObject({

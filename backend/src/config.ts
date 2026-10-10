@@ -10,6 +10,11 @@ const ConfigSchema = z.object({
   /** Connexions du pool du processus (shared/tenant-context), une transaction de contexte chacune. */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
+  /**
+   * Adresse publique du front (liens d'activation des messages prêts à transmettre) : exigée en production ; ailleurs,
+   * le front de développement (http://localhost:3000).
+   */
+  APP_PUBLIC_URL: z.url({ protocol: /^https?$/ }).optional(),
   S3_ENDPOINT: z.url({ protocol: /^https?$/ }),
   /**
    * Adresse de MinIO vue par le navigateur, pour signer les URL de dépôt et de lecture (S3_ENDPOINT s'il est absent).
@@ -85,7 +90,13 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
     });
   }
   if (config.NODE_ENV !== 'production') return;
-  for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'CLAMAV_URL', 'LOG_PSEUDONYM_KEY'] as const) {
+  for (const key of [
+    'S3_ACCESS_KEY_ID',
+    'S3_SECRET_ACCESS_KEY',
+    'CLAMAV_URL',
+    'LOG_PSEUDONYM_KEY',
+    'APP_PUBLIC_URL',
+  ] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
   }
 });

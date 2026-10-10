@@ -14,6 +14,7 @@ const env = (NODE_ENV: string) => ({
   S3_SECRET_ACCESS_KEY: 'test',
   CLAMAV_URL: 'tcp://127.0.0.1:1',
   LOG_PSEUDONYM_KEY: 'cle-de-test-pseudonymisation-0123456789',
+  APP_PUBLIC_URL: 'https://app.cotiz.test',
 });
 
 let app: INestApplication | undefined;

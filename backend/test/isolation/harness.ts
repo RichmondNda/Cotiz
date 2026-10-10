@@ -269,7 +269,20 @@ export async function startIsolationHarness(schema: 'migrated' | 'spec'): Promis
   const db = await startTestDatabase();
   const migratorUrl = db.urlFor('cotiz_migrator');
   await (schema === 'migrated' ? runMigrations(migratorUrl) : loadSpecSchema(migratorUrl));
-  return new IsolationHarness(db);
+  const harness = new IsolationHarness(db);
+  if (schema === 'migrated') await seedUsers(harness);
+  return harness;
+}
+
+/** Personnes de USERS (clés étrangères vers users, lot 1.1), actives. Le schéma `spec` a ses propres données. */
+async function seedUsers(harness: IsolationHarness): Promise<void> {
+  const people = Object.entries(USERS);
+  await harness.superuser(
+    `INSERT INTO users (id, email, first_name, last_name, status)
+     SELECT id, key || '@test.cotiz.app', initcap(key), 'Test', 'active'
+       FROM unnest($1::uuid[], $2::text[]) AS p(id, key)`,
+    [people.map(([, id]) => id), people.map(([key]) => key)],
+  );
 }
 
 /**
