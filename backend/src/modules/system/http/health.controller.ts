@@ -1,5 +1,6 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Get, Res } from '@nestjs/common';
 import type { HealthLiveResponse, HealthReadyResponse } from '@cotiz/contracts';
+import { Endpoint } from '../../../shared/http/index.js';
 import { WithoutTenantContext } from '../../../shared/tenant-context/index.js';
 import { ReadinessProbe } from '../infra/readiness-probe.js';
 
@@ -10,15 +11,17 @@ export class HealthController {
   constructor(private readonly probe: ReadinessProbe) {}
 
   @Get('live')
+  @Endpoint('sys.health', 'live')
   live(): HealthLiveResponse {
     return { status: 'ok' };
   }
 
-  /** 200 si tout répond ; 503 avec le même corps sinon. */
+  /** 200 si tout répond ; 503 avec le même corps sinon (pas une erreur `Problem` : l'état de chaque dépendance). */
   @Get('ready')
-  async ready(): Promise<HealthReadyResponse> {
+  @Endpoint('sys.health', 'ready')
+  async ready(@Res({ passthrough: true }) res: { status(code: number): unknown }): Promise<HealthReadyResponse> {
     const result = await this.probe.check();
-    if (result.status !== 'ok') throw new ServiceUnavailableException(result);
+    if (result.status !== 'ok') res.status(503);
     return result;
   }
 }

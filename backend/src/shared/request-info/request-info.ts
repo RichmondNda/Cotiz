@@ -8,6 +8,8 @@ export interface RequestInfo {
   userAgent: string | null;
   /** Rôle de l'acteur (owner, manager, viewer, subscriber, platform_*) : posé par les gardes (lots 1.1, 1.2). */
   actorRole?: string;
+  /** Version attendue par `If-Match` (verrou optimiste) : posée par IfMatchInterceptor. */
+  expectedVersion?: number;
 }
 
 const storage = new AsyncLocalStorage<RequestInfo>();
@@ -27,4 +29,11 @@ export function setActorRole(role: string): void {
   const info = storage.getStore();
   if (!info) throw new Error('setActorRole() hors requête HTTP');
   info.actorRole = role;
+}
+
+/** Posé par IfMatchInterceptor pour les endpoints du contrat qui exigent If-Match. */
+export function setExpectedVersion(version: number): void {
+  const info = storage.getStore();
+  if (!info) throw new Error('setExpectedVersion() hors requête HTTP');
+  info.expectedVersion = version;
 }

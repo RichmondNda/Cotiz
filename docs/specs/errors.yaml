@@ -1,6 +1,10 @@
 # Généré depuis la spécification Cotiz. Normatif : packages/contracts et le code doivent s'y conformer.
 # Toute évolution passe par une modification de ce fichier (PR dédiée), puis du code.
 errors:
+- code: internal_error
+  http: 500
+  message: Une erreur est survenue. Réessayez dans quelques instants.
+  where: Toute erreur inattendue (jamais de détail ni de pile ; requestId pour le support)
 - code: validation_failed
   http: 422
   message: Certains champs sont invalides.

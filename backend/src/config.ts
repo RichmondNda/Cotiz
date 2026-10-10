@@ -24,6 +24,15 @@ const ConfigSchema = z.object({
   CLAMAV_URL: z.url({ protocol: /^tcp$/ }).optional(),
   /** fl.upload › complete : attente du résultat de l'analyse avant de répondre `pending` (lot 0.5). */
   FILE_SCAN_WAIT_MS: z.coerce.number().int().min(0).max(30_000).default(5_000),
+  /**
+   * Nombre de proxys de confiance devant l'api (répartiteur, Traefik…) : l'IP du client est lue dans X-Forwarded-For
+   * à cette profondeur. 0 : X-Forwarded-For ignoré. Jamais « tous » : le client choisirait son IP.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+  /** Limitation de débit, par minute (architecture/02) : par IP, par association, par utilisateur et endpoint. */
+  RATE_LIMIT_IP_PER_MIN: z.coerce.number().int().min(1).default(300),
+  RATE_LIMIT_ASSOCIATION_PER_MIN: z.coerce.number().int().min(1).default(600),
+  RATE_LIMIT_ENDPOINT_PER_MIN: z.coerce.number().int().min(1).default(20),
   /** Intervalle du relais outbox du worker (jobs.yaml : chaque seconde) ; 0 le désactive (tests). */
   OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1_000),
 });

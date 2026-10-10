@@ -11721,6 +11721,7 @@
                               {
                                 "type": "string",
                                 "enum": [
+                                  "internal_error",
                                   "validation_failed",
                                   "not_found",
                                   "forbidden",
@@ -18890,6 +18891,7 @@
           "code": {
             "type": "string",
             "enum": [
+              "internal_error",
               "validation_failed",
               "not_found",
               "forbidden",

@@ -2,6 +2,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { type INestApplication, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { StoredFile, UPLOAD_MAX_BYTES, UploadTicket } from '@cotiz/contracts';
+import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { AppModule } from '../../src/app.module.js';
@@ -28,6 +29,8 @@ const koffiManagerOfB = as({ space: 'association', associationId: B.id, userId: 
 describe('fl.upload et fl.get (MinIO réel)', () => {
   let h: IsolationHarness;
   let minio: TestMinio;
+  // fl.upload est limité en débit : sans Redis, il est refusé (jamais d'essais illimités).
+  let redis: StartedRedisContainer;
   let app: INestApplication;
   let base: string;
 
@@ -68,12 +71,18 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
     fetch(`${base}/files/${id}`, { headers, redirect: 'manual' });
 
   beforeAll(async () => {
-    [h, minio] = await Promise.all([startIsolationHarness('migrated'), startMinio()]);
+    [h, minio, redis] = await Promise.all([
+      startIsolationHarness('migrated'),
+      startMinio(),
+      new RedisContainer('redis:7-alpine').start(),
+    ]);
     const config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL: h.db.urlFor('cotiz_app'),
-      REDIS_URL: 'redis://127.0.0.1:1',
+      REDIS_URL: redis.getConnectionUrl(),
       S3_ENDPOINT: minio.endpoint,
+      // Dépôts nombreux du même souscripteur dans ce fichier.
+      RATE_LIMIT_ENDPOINT_PER_MIN: '1000',
       S3_ACCESS_KEY_ID: minio.accessKeyId,
       S3_SECRET_ACCESS_KEY: minio.secretAccessKey,
       // Pas de worker ici (analyse : file-scan.test.ts) : la confirmation répond `pending` sans attendre.
@@ -89,7 +98,7 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
 
   afterAll(async () => {
     await app.close();
-    await Promise.all([h.stop(), minio.stop()]);
+    await Promise.all([h.stop(), minio.stop(), redis.stop()]);
   });
 
   describe('POST /uploads', () => {

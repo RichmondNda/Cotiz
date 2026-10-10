@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Header, HttpCode, Param, Post, Redirect } from '@nestjs/common';
 import { IdParams, UploadRequest } from '@cotiz/contracts';
-import { parseInput } from '../../../shared/http/index.js';
+import { Endpoint, parseInput } from '../../../shared/http/index.js';
 import { CompleteUploadUseCase } from '../application/complete-upload.use-case.js';
 import { GetFileUseCase } from '../application/get-file.use-case.js';
 import { RequestUploadUseCase } from '../application/request-upload.use-case.js';
@@ -15,12 +15,14 @@ export class FilesController {
   ) {}
 
   @Post('uploads')
+  @Endpoint('fl.upload', 'create')
   @HttpCode(201)
   create(@Body() body: unknown) {
     return this.requestUpload.execute(parseInput(UploadRequest, body));
   }
 
   @Post('uploads/:id/complete')
+  @Endpoint('fl.upload', 'complete')
   @HttpCode(202)
   complete(@Param() params: unknown) {
     return this.completeUpload.execute(parseInput(IdParams, params).id);
@@ -28,6 +30,7 @@ export class FilesController {
 
   /** 302 vers une URL signée ; jamais mise en cache (elle expire en 5 min et dépend de l'acteur). */
   @Get('files/:id')
+  @Endpoint('fl.get', 'get')
   @Redirect()
   @Header('Cache-Control', 'no-store')
   async get(@Param() params: unknown) {
