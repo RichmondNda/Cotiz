@@ -1,10 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationBootstrap,
+  type OnModuleDestroy,
+  Optional,
+} from '@nestjs/common';
 import { EventEnvelope } from '@cotiz/contracts';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { CONFIG, type Config } from '../../config.js';
+import { runWithLogContext } from '../logging/index.js';
 import { QUEUES, REDIS_PREFIX, redisConnection } from '../queues/index.js';
+import { ErrorReporter, traceJob } from '../telemetry/index.js';
 import { type TenantContext, TenantDatabase } from '../tenant-context/index.js';
 import { EventConsumers } from './event-consumers.js';
 
@@ -33,26 +43,46 @@ export class EventsProcessor implements OnApplicationBootstrap, OnModuleDestroy 
     private readonly db: TenantDatabase,
     private readonly consumers: EventConsumers,
     @Inject(CONFIG) private readonly config: Config,
+    @Optional() private readonly reporter?: ErrorReporter,
   ) {
     this.redis = new Redis(config.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 3 });
-    this.redis.on('error', (error) => {
-      this.logger.warn(`redis : ${error.message}`);
-    });
+    // Lié au contexte du démarrage : une socket ouverte pendant un job garderait sinon le contexte de journal du job.
+    this.redis.on(
+      'error',
+      AsyncLocalStorage.bind((error: Error) => {
+        this.logger.warn(`redis : ${error.message}`);
+      }),
+    );
   }
 
   onApplicationBootstrap(): void {
-    this.worker = new Worker(QUEUES.events.name, (job) => this.process(job.data as unknown), {
-      connection: redisConnection(this.config.REDIS_URL),
-      prefix: REDIS_PREFIX,
-      concurrency: QUEUES.events.concurrency,
-    });
+    const queue = QUEUES.events.name;
+    this.worker = new Worker(
+      queue,
+      (job) => runWithLogContext({ queue, jobId: job.id }, () => traceJob(queue, job, () => this.process(job.data))),
+      {
+        connection: redisConnection(this.config.REDIS_URL),
+        prefix: REDIS_PREFIX,
+        concurrency: QUEUES.events.concurrency,
+      },
+    );
     this.worker.on('error', (error) => {
       this.logger.warn(`file events : ${error.message}`);
+    });
+    // Dernière tentative épuisée : signalée à GlitchTip (inactif sans DSN).
+    this.worker.on('failed', (job, error) => {
+      if (job && job.attemptsMade >= QUEUES.events.jobOptions.attempts) {
+        this.reporter?.capture(error, { queue: QUEUES.events.name, jobId: job.id ?? '' });
+      }
     });
   }
 
   async process(raw: unknown): Promise<void> {
     const event = EventEnvelope.parse(raw);
+    await runWithLogContext({ eventType: event.type, associationId: event.associationId }, () => this.dispatch(event));
+  }
+
+  private async dispatch(event: EventEnvelope): Promise<void> {
     const context: TenantContext = event.associationId
       ? { space: 'association', associationId: event.associationId }
       : { space: 'system' };
@@ -71,7 +101,7 @@ export class EventsProcessor implements OnApplicationBootstrap, OnModuleDestroy 
         await this.redis.set(done, '1', 'EX', DEDUPE_TTL_SECONDS);
       } catch (error) {
         // Ni le contenu de l'événement ni ses identifiants personnels : type, id et consommateur suffisent.
-        this.logger.warn(`${consumer.name} : échec sur ${event.type} #${event.id} (${(error as Error).message})`);
+        this.logger.warn({ msg: 'consommateur en échec', consumer: consumer.name, eventId: event.id, err: error });
         failures.push(error);
       } finally {
         await this.redis.eval(RELEASE_LOCK, 1, lock, token);

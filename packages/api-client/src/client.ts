@@ -56,11 +56,17 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly problem: Problem | null,
+    /** En-tête `X-Request-Id` de la réponse (toute erreur, même sans corps Problem). */
+    private readonly headerRequestId: string | null = null,
   ) {
     super(problem ? `${problem.code} : ${problem.title}` : `HTTP ${String(status)}`);
   }
   get code(): ErrorCode | null {
     return this.problem?.code ?? null;
+  }
+  /** Identifiant de la requête (architecture/06) : à citer au support, joint aux rapports d'erreur du front. */
+  get requestId(): string | null {
+    return this.problem?.requestId ?? this.headerRequestId;
   }
 }
 
@@ -109,11 +115,12 @@ function buildQuery(op: OperationDef, query: Record<string, unknown> | undefined
 
 async function toError(response: Response): Promise<ApiError> {
   const type = response.headers.get('content-type') ?? '';
+  const requestId = response.headers.get('x-request-id');
   if (type.includes('json')) {
     const parsed = Problem.safeParse(await response.json().catch(() => null));
-    if (parsed.success) return new ApiError(response.status, parsed.data);
+    if (parsed.success) return new ApiError(response.status, parsed.data, requestId);
   }
-  return new ApiError(response.status, null);
+  return new ApiError(response.status, null, requestId);
 }
 
 export function createClient(options: ClientOptions) {

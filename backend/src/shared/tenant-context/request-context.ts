@@ -1,4 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
+import { setLogIdentity } from '../logging/index.js';
 import type { TenantContext } from './tenant-database.js';
 
 const contexts = new WeakMap<object, TenantContext>();
@@ -9,6 +10,7 @@ const contexts = new WeakMap<object, TenantContext>();
  */
 export function setRequestContext(request: object, context: TenantContext): void {
   contexts.set(request, context);
+  setLogIdentity({ userId: context.userId, associationId: context.associationId });
 }
 
 export function getRequestContext(request: object): TenantContext | null {

@@ -32,7 +32,7 @@ export class Housekeeping implements OnModuleInit {
       try {
         await purge(now);
       } catch (error) {
-        this.logger.error(`purge ${name} en échec : ${(error as Error).message}`);
+        this.logger.error({ msg: 'purge en échec', purge: name, err: error });
         failures.push(error);
       }
     }

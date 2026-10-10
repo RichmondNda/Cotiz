@@ -120,7 +120,7 @@ export class OutboxRelay implements OnApplicationBootstrap, OnModuleDestroy {
            WHERE id = ANY(${idArray(ids)}::bigint[]) AND published_at IS NULL`),
       );
     } catch (error) {
-      this.logger.warn(`outbox : tentative non comptée (${(error as Error).message})`);
+      this.logger.warn({ msg: 'outbox : tentative non comptée', err: error });
     }
   }
 
@@ -132,7 +132,7 @@ export class OutboxRelay implements OnApplicationBootstrap, OnModuleDestroy {
       this.running = this.relayOnce().then(
         (count) => count,
         (error: unknown) => {
-          this.logger.error(`relais outbox en échec : ${(error as Error).message}`);
+          this.logger.error({ msg: 'relais outbox en échec', err: error });
           return 0;
         },
       );

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Global, Inject, Injectable, Logger, Module, type OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { CONFIG, type Config } from '../../config.js';
@@ -13,9 +14,14 @@ export class RedisClient implements OnModuleDestroy {
 
   constructor(@Inject(CONFIG) config: Config) {
     this.redis = new Redis(config.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1, commandTimeout: 500 });
-    this.redis.on('error', (error) => {
-      this.logger.warn(`redis : ${error.message}`);
-    });
+    // Lié au contexte du démarrage : la connexion (lazyConnect) s'ouvre pendant une requête, dont ses erreurs et
+    // reconnexions garderaient sinon le contexte (requestId, association, utilisateur d'une autre requête).
+    this.redis.on(
+      'error',
+      AsyncLocalStorage.bind((error: Error) => {
+        this.logger.warn(`redis : ${error.message}`);
+      }),
+    );
   }
 
   onModuleDestroy(): void {

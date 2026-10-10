@@ -126,10 +126,14 @@ export class TenantDatabase implements OnModuleDestroy {
     const { connectionString, max } = options;
     this.worker = options[WORKER_PROCESS] === true;
     this.pool = new pg.Pool({ connectionString, max, connectionTimeoutMillis: 5_000 });
-    // Une connexion inactive qui tombe ne doit pas arrêter le processus. Jamais l'URL dans le journal.
-    this.pool.on('error', (error) => {
-      Logger.warn(`connexion PostgreSQL perdue : ${error.message}`, 'TenantDatabase');
-    });
+    // Une connexion inactive qui tombe ne doit pas arrêter le processus. Jamais l'URL dans le journal. Lié au contexte
+    // du démarrage : une connexion ouverte pendant une requête ou un job en garderait sinon le contexte de journal.
+    this.pool.on(
+      'error',
+      AsyncLocalStorage.bind((error: Error) => {
+        Logger.warn(`connexion PostgreSQL perdue : ${error.message}`, 'TenantDatabase');
+      }),
+    );
     this.db = drizzle({ client: this.pool });
   }
 

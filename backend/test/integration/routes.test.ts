@@ -7,10 +7,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../src/app.module.js';
 import { loadConfig } from '../../src/config.js';
 import { ApiDocsController } from '../../src/modules/docs/api-docs.controller.js';
+import { DebugController } from '../../src/modules/system/http/debug.controller.js';
 import { endpointMetadata } from '../../src/shared/http/index.js';
 
-/** Routes hors contrat : la documentation interne (jamais en production). */
-const OUTSIDE_CONTRACT = new Set<unknown>([ApiDocsController]);
+/** Routes hors contrat : la documentation interne (jamais en production), l'erreur de démonstration (développement). */
+const OUTSIDE_CONTRACT = new Set<unknown>([ApiDocsController, DebugController]);
 
 interface Route {
   controller: string;
