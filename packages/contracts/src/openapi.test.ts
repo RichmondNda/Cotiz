@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { ENDPOINTS } from './index.js';
+import { ENDPOINTS, ERROR_CODES } from './index.js';
 import type { EndpointDef } from './index.js';
 import { buildOpenApi } from './openapi.js';
 
@@ -15,6 +15,15 @@ const op = (path: string, method: string) => (doc.paths?.[path] as Record<string
 describe('OpenAPI 3.1 généré depuis le registre', () => {
   it('openapi.json est à jour (pnpm --filter contracts openapi)', () => {
     expect(committed).toEqual(JSON.parse(JSON.stringify(doc)));
+  });
+
+  it('Problem.code : énumération extensible (un nouveau code d’erreur n’est pas un changement cassant)', () => {
+    const problem = (doc.components?.schemas as Record<string, { properties: Record<string, Record<string, unknown>> }>)
+      .Problem;
+    expect(problem?.properties.code).toEqual({ type: 'string', 'x-extensible-enum': [...ERROR_CODES] });
+    // Nulle part le catalogue en `enum` fermé (ex. codes d'erreur par ligne d'un import).
+    const closed = JSON.stringify(doc).match(/"enum":\["internal_error"/g);
+    expect(closed).toBeNull();
   });
 
   it('une opération par opération du registre, avec un operationId stable', () => {

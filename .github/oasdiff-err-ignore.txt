@@ -1,0 +1,8 @@
+# Changements cassants acceptés par décision explicite (lus par oasdiff --err-ignore dans .github/workflows/ci.yml).
+# Une ligne par changement : méthode, chemin et texte du changement tel qu'oasdiff le rapporte. Retirer une ligne dès
+# que la base de comparaison la contient (elle ne sert plus).
+#
+# Lot 0.5 (PR #13) : StoredFile.sha256 nullable tant que le fichier n'est pas analysé (schema.sql, décision validée).
+# Aucun consommateur réel : fl.upload n'est basculé qu'au lot 1.1, seul le mock Nitro l'appelait.
+POST /api/v1/uploads/{id}/complete response property `sha256` list-of-types was widened by adding types `null` to media type `application/json` of response `202`
+POST /api/v1/uploads/{id}/complete the `sha256` response's property pattern `^[0-9a-f]{64}$` was removed for the status `202`

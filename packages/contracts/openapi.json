@@ -11720,7 +11720,7 @@
                             "anyOf": [
                               {
                                 "type": "string",
-                                "enum": [
+                                "x-extensible-enum": [
                                   "internal_error",
                                   "validation_failed",
                                   "not_found",
@@ -18890,7 +18890,7 @@
           },
           "code": {
             "type": "string",
-            "enum": [
+            "x-extensible-enum": [
               "internal_error",
               "validation_failed",
               "not_found",
