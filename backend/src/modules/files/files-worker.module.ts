@@ -1,5 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, type OnModuleInit } from '@nestjs/common';
 import { CONFIG, type Config } from '../../config.js';
+import { Housekeeping } from '../../shared/scheduler/index.js';
+import { PurgeOrphanFilesUseCase } from './application/purge-orphan-files.use-case.js';
 import { ScanFileUseCase } from './application/scan-file.use-case.js';
 import { VIRUS_SCANNER, type VirusScanner } from './domain/virus-scanner.js';
 import { FileUploadedConsumer } from './events/file-uploaded.consumer.js';
@@ -24,9 +26,19 @@ const missingScanner: VirusScanner = {
       },
     },
     ScanFileUseCase,
+    PurgeOrphanFilesUseCase,
     FileUploadedConsumer,
     FilesProcessor,
   ],
-  exports: [ScanFileUseCase],
+  exports: [ScanFileUseCase, PurgeOrphanFilesUseCase],
 })
-export class FilesWorkerModule {}
+export class FilesWorkerModule implements OnModuleInit {
+  constructor(
+    private readonly housekeeping: Housekeeping,
+    private readonly purgeOrphans: PurgeOrphanFilesUseCase,
+  ) {}
+
+  onModuleInit(): void {
+    this.housekeeping.register('files.orphans', (now) => this.purgeOrphans.execute(now));
+  }
+}

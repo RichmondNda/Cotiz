@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   NoSuchKey,
   NotFound,
   PutObjectCommand,
@@ -118,6 +119,22 @@ export class StorageService implements OnModuleDestroy {
       if (error instanceof NoSuchKey || error instanceof NotFound) return null;
       throw error;
     }
+  }
+
+  /** Objets sous un préfixe, avec leur date de dernière écriture (pagination comprise). */
+  async listObjects(bucket: string, prefix: string): Promise<{ key: string; lastModified: Date }[]> {
+    const objects: { key: string; lastModified: Date }[] = [];
+    let token: string | undefined;
+    do {
+      const page = await this.s3().internal.send(
+        new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, ContinuationToken: token }),
+      );
+      for (const object of page.Contents ?? []) {
+        if (object.Key && object.LastModified) objects.push({ key: object.Key, lastModified: object.LastModified });
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return objects;
   }
 
   async putObject(bucket: string, key: string, content: Buffer, contentType: string): Promise<void> {

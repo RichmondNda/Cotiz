@@ -26,6 +26,18 @@ export const QUEUES = {
       removeOnFail: { age: 7 * 24 * 3600 },
     },
   },
+  /** Tâches planifiées (jobs.yaml, section scheduled) : une purge en échec (MinIO absent…) est reprise. */
+  scheduled: {
+    name: 'scheduled',
+    concurrency: 1,
+    jobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 60_000 },
+      // Plus longtemps que la déduplication d'une échéance par son jobId (runNow).
+      removeOnComplete: { age: 7 * 24 * 3600 },
+      removeOnFail: { age: 30 * 24 * 3600 },
+    },
+  },
 } as const satisfies Record<string, { name: string; concurrency: number; jobOptions: DefaultJobOptions }>;
 
 /**
