@@ -4,14 +4,14 @@ import { jwtVerify, SignJWT } from 'jose';
 import { z } from 'zod';
 import { CONFIG, type Config } from '../../../config.js';
 import type { Space } from '../../../shared/tenant-context/index.js';
-import { ACCESS_TOKEN_TTL_MS } from '../domain/login-policy.js';
+import { ACCESS_TOKEN_TTL_MS, RESET_TOKEN_TTL_MS } from '../domain/login-policy.js';
 
 const ALG = 'EdDSA';
 const ISSUER = 'cotiz';
 const AUDIENCE = 'cotiz-api';
 /** Jeton de réinitialisation : autre audience, jamais accepté comme jeton d'accès (ni l'inverse). */
 const RESET_AUDIENCE = 'cotiz-reset';
-const RESET_TTL_SECONDS = 10 * 60;
+const RESET_TTL_SECONDS = RESET_TOKEN_TTL_MS / 1000;
 
 const ResetClaims = z.object({ sub: z.uuid(), cid: z.uuid() });
 /** Jeton de réinitialisation (auth.verify → auth.reset) : la personne et le code vérifié qu'il consommera. */

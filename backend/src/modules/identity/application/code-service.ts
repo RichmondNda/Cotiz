@@ -171,16 +171,22 @@ export class CodeService {
   }
 
   /**
-   * Code ré-affichable (forme affichée), tant qu'il n'est ni consommé ni expiré ; `null` sinon. Lève une erreur si le
+   * Code ré-affichable (forme affichée), tant qu'il n'est ni consommé, ni expiré, ni bloqué ; `null` sinon. Lève une erreur si le
    * chiffré n'est pas celui de cette ligne.
    */
   async reveal(codeId: string, now = new Date()): Promise<string | null> {
     const [code] = await currentTx()
-      .select({ purpose: oneTimeCodes.purpose, sealed: oneTimeCodes.codeEncrypted, expiresAt: oneTimeCodes.expiresAt })
+      .select({
+        purpose: oneTimeCodes.purpose,
+        sealed: oneTimeCodes.codeEncrypted,
+        expiresAt: oneTimeCodes.expiresAt,
+        attempts: oneTimeCodes.attempts,
+      })
       .from(oneTimeCodes)
       .where(and(eq(oneTimeCodes.id, codeId), isNull(oneTimeCodes.consumedAt)))
       .limit(1);
-    if (!code?.sealed || code.expiresAt <= now) return null;
+    // Un code expiré ou bloqué par ses 5 essais ne sert plus : rien à ré-afficher.
+    if (!code?.sealed || code.expiresAt <= now || code.attempts >= MAX_CODE_ATTEMPTS) return null;
     return displayCode(code.purpose, this.box.open(code.sealed, sealContext(codeId)));
   }
 }

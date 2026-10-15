@@ -122,6 +122,12 @@ describe('CodeService', () => {
     expect(await verify(issued.code, 'password_reset')).toEqual({ ok: false, problem: 'too_many_attempts' });
   });
 
+  it('code bloqué par ses 5 essais : plus rien à ré-afficher', async () => {
+    const issued = await issue('activation', USERS.aminata, true);
+    await h.superuser('UPDATE one_time_codes SET attempts = 5 WHERE id = $1', [issued.id]);
+    expect(await inAuth(() => codes.reveal(issued.id))).toBeNull();
+  });
+
   it('essais simultanés : jamais plus de 5 comptés', async () => {
     const issued = await issue('password_reset', USERS.fatou);
     const wrong = issued.code === '000000' ? '111111' : '000000';

@@ -6,6 +6,8 @@ export const MAX_FAILED_LOGINS = 5;
 export const LOGIN_LOCK_MS = 15 * 60_000;
 /** Jeton d'accès (JWT EdDSA). */
 export const ACCESS_TOKEN_TTL_MS = 15 * 60_000;
+/** Jeton de réinitialisation (auth.verify → auth.reset) : il peut survivre jusqu'à 10 min à son code. */
+export const RESET_TOKEN_TTL_MS = 10 * 60_000;
 /** Durée ABSOLUE d'une connexion : les rotations ne la prolongent pas (30 jours au plus après la connexion). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 86_400_000;
 
