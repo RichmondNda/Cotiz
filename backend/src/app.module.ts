@@ -1,12 +1,13 @@
 import { type DynamicModule, Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import type { Config } from './config.js';
 import { ConfigModule } from './config.module.js';
 import { ApiDocsModule } from './modules/docs/api-docs.module.js';
 import { FilesModule } from './modules/files/files.module.js';
+import { IdentityModule } from './modules/identity/identity.module.js';
 import { DebugModule } from './modules/system/http/debug.controller.js';
 import { SystemModule } from './modules/system/system.module.js';
-import { HttpConventionsModule, ProblemFilter } from './shared/http/index.js';
+import { ContractSpaceGuard, HttpConventionsModule, ProblemFilter } from './shared/http/index.js';
 import { IdempotencyInterceptor } from './shared/http/idempotency.interceptor.js';
 import { IfMatchInterceptor } from './shared/http/if-match.interceptor.js';
 import { RateLimitInterceptor } from './shared/http/rate-limit.interceptor.js';
@@ -39,6 +40,7 @@ export class AppModule {
         StorageModule,
         SystemModule,
         FilesModule,
+        IdentityModule,
         // Documentation interne (Scalar) : jamais en production.
         ...(config.NODE_ENV === 'production' ? [] : [ApiDocsModule]),
         // Erreur provoquée (démonstration de l'observabilité) : en développement seulement.
@@ -47,6 +49,8 @@ export class AppModule {
       // Intercepteurs globaux, dans cet ordre : débit et idempotence avant toute transaction (la réponse mémorisée
       // l'est après le COMMIT), puis If-Match/ETag, puis la transaction de contexte (sauf @WithoutTenantContext()).
       providers: [
+        // Espace auth / public tiré du contrat pour les endpoints sans acteur.
+        { provide: APP_GUARD, useClass: ContractSpaceGuard },
         { provide: APP_INTERCEPTOR, useExisting: RateLimitInterceptor },
         { provide: APP_INTERCEPTOR, useExisting: IdempotencyInterceptor },
         { provide: APP_INTERCEPTOR, useExisting: IfMatchInterceptor },
