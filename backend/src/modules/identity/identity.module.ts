@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CodeService } from './application/code-service.js';
 import { GetMeUseCase } from './application/get-me.use-case.js';
 import { LoginUseCase } from './application/login.use-case.js';
 import { LogoutUseCase } from './application/logout.use-case.js';
@@ -28,6 +29,7 @@ import { SecretHasher } from './infra/secret-hasher.js';
     RefreshSessionUseCase,
     LogoutUseCase,
     GetMeUseCase,
+    CodeService,
   ],
   // Garde d'authentification, enregistrée globalement par AppModule.
   exports: [JwtGuard],

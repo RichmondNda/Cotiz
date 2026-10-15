@@ -20,6 +20,7 @@ const env = (NODE_ENV: string) => ({
   APP_PUBLIC_URL: 'https://app.cotiz.test',
   JWT_PRIVATE_KEY: jwt.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
   JWT_PUBLIC_KEY: jwt.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+  CODES_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
 });
 
 let app: INestApplication | undefined;

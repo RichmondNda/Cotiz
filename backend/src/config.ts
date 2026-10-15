@@ -50,6 +50,16 @@ const ConfigSchema = z.object({
    * Absente : toute adresse (architecture/03 ; V2 : TOTP obligatoire, lot 4.7).
    */
   PLATFORM_ALLOWED_IPS: z.string().min(1).optional(),
+  /**
+   * Clé AES-256 (32 octets en base64) des codes d'activation ré-affichables (one_time_codes.code_encrypted) : exigée en
+   * production ; ailleurs, une clé de développement fixe.
+   */
+  CODES_ENCRYPTION_KEY: z
+    .string()
+    .refine((value) => Buffer.from(value, 'base64').length === 32 && /^[A-Za-z0-9+/]+={0,2}$/.test(value), {
+      message: '32 octets en base64 attendus',
+    })
+    .optional(),
   S3_ENDPOINT: z.url({ protocol: /^https?$/ }),
   /**
    * Adresse de MinIO vue par le navigateur, pour signer les URL de dépôt et de lecture (S3_ENDPOINT s'il est absent).
@@ -146,6 +156,7 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
     'APP_PUBLIC_URL',
     'JWT_PRIVATE_KEY',
     'JWT_PUBLIC_KEY',
+    'CODES_ENCRYPTION_KEY',
   ] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
   }

@@ -10,6 +10,7 @@ const pair = (type: 'ed25519' | 'ed448') => {
   };
 };
 const JWT = pair('ed25519');
+const CODES_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
 
 const valid = {
   DATABASE_URL: 'postgres://cotiz:secret@localhost:6432/cotiz',
@@ -55,6 +56,7 @@ describe('loadConfig', () => {
       LOG_PSEUDONYM_KEY: 'cle-de-pseudonymisation-de-production-0001',
       APP_PUBLIC_URL: 'https://app.cotiz.app',
       ...JWT,
+      CODES_ENCRYPTION_KEY,
     };
     expect(() => loadConfig({ ...production, OTEL_TRACES_EXPORTER: 'console' })).toThrow(/OTEL_TRACES_EXPORTER/);
     expect(loadConfig({ ...valid, OTEL_TRACES_EXPORTER: 'console' }).OTEL_TRACES_EXPORTER).toBe('console');
@@ -63,7 +65,7 @@ describe('loadConfig', () => {
 
   it('exige les identifiants MinIO, clamd, la clé de pseudonymisation et l’adresse du front en production seulement, sans recopier leur valeur', () => {
     expect(() => loadConfig({ ...valid, NODE_ENV: 'production' })).toThrow(
-      /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante[\s\S]*LOG_PSEUDONYM_KEY : manquante[\s\S]*APP_PUBLIC_URL : manquante[\s\S]*JWT_PRIVATE_KEY : manquante[\s\S]*JWT_PUBLIC_KEY : manquante/,
+      /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante[\s\S]*LOG_PSEUDONYM_KEY : manquante[\s\S]*APP_PUBLIC_URL : manquante[\s\S]*JWT_PRIVATE_KEY : manquante[\s\S]*JWT_PUBLIC_KEY : manquante[\s\S]*CODES_ENCRYPTION_KEY : manquante/,
     );
     expect(loadConfig({ ...valid, NODE_ENV: 'development' }).S3_ACCESS_KEY_ID).toBeUndefined();
     const config = loadConfig({
@@ -75,6 +77,7 @@ describe('loadConfig', () => {
       LOG_PSEUDONYM_KEY: 'cle-de-pseudonymisation-de-production-0001',
       APP_PUBLIC_URL: 'https://app.cotiz.app',
       ...JWT,
+      CODES_ENCRYPTION_KEY,
     });
     expect(config.S3_REGION).toBe('us-east-1');
     expect(config.S3_PUBLIC_ENDPOINT).toBeUndefined();
@@ -115,5 +118,19 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...valid, PLATFORM_ALLOWED_IPS: '10.0.0.0/8, bureau' })).toThrow(
       /PLATFORM_ALLOWED_IPS : invalide/,
     );
+  });
+
+  it('CODES_ENCRYPTION_KEY : 32 octets en base64, jamais recopiée dans le message', () => {
+    expect(loadConfig({ ...valid, CODES_ENCRYPTION_KEY }).CODES_ENCRYPTION_KEY).toBe(CODES_ENCRYPTION_KEY);
+    for (const key of [Buffer.alloc(16, 7).toString('base64'), 'pas-du-base64-secret!!']) {
+      let message = '';
+      try {
+        loadConfig({ ...valid, CODES_ENCRYPTION_KEY: key });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toMatch(/CODES_ENCRYPTION_KEY : invalide/);
+      expect(message).not.toContain(key);
+    }
   });
 });

@@ -20,6 +20,7 @@ import { AccessLogModule, createLogger, type Logger, LoggingModule } from './sha
 import { HttpMetricsModule, MetricsModule } from './shared/metrics/index.js';
 import { OutboxModule } from './shared/outbox/index.js';
 import { RequestInfoModule } from './shared/request-info/index.js';
+import { CryptoModule } from './shared/crypto/index.js';
 import { StorageModule } from './shared/storage/index.js';
 import { TelemetryModule } from './shared/telemetry/index.js';
 import { TenantContextInterceptor, TenantContextModule } from './shared/tenant-context/index.js';
@@ -58,6 +59,7 @@ export class AppModule {
         TenantContextModule,
         OutboxModule,
         StorageModule,
+        CryptoModule,
         SystemModule,
         FilesModule,
         IdentityModule,

@@ -17,6 +17,7 @@ const production = loadConfig({
   APP_PUBLIC_URL: 'https://app.cotiz.test',
   JWT_PRIVATE_KEY: jwt.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
   JWT_PUBLIC_KEY: jwt.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+  CODES_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   LOG_LEVEL: 'silent',
 });
 
