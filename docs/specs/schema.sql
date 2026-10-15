@@ -141,12 +141,14 @@ CREATE TABLE sessions (
   created_at timestamptz NOT NULL DEFAULT now(),
   last_used_at timestamptz,
   expires_at timestamptz NOT NULL,
-  revoked_at timestamptz
+  revoked_at timestamptz,
+  remember_me boolean NOT NULL DEFAULT false
 );
 COMMENT ON TABLE sessions IS 'Sessions de connexion (jetons de rafraîchissement).';
 COMMENT ON COLUMN sessions.refresh_token_hash IS 'SHA-256 du jeton, jamais le jeton lui-même';
 COMMENT ON COLUMN sessions.family_id IS 'détection de réutilisation : toute la famille est révoquée';
 COMMENT ON COLUMN sessions.space IS 'platform · association · subscriber';
+COMMENT ON COLUMN sessions.remember_me IS '« Rester connecté » : cookie de renouvellement persistant (30 jours) sinon de session, recopié à chaque rotation';
 
 -- one_time_codes · module identity · V1 · lot 1.1
 -- Codes d'activation, de réinitialisation et d'invitation. Sans fournisseur : le code est remis par une personne (gestionnaire, super-admin).
@@ -1168,6 +1170,9 @@ CREATE INDEX notifications_unread ON notifications (user_id, created_at DESC) WH
 CREATE INDEX outbox_unpublished ON outbox_events (id) WHERE published_at IS NULL;
 CREATE INDEX users_name_trgm ON users USING gin ((first_name || ' ' || last_name) gin_trgm_ops);
 CREATE INDEX audit_entity ON audit_logs (association_id, entity_type, entity_id, occurred_at DESC);
+CREATE UNIQUE INDEX sessions_refresh_token ON sessions (refresh_token_hash);
+CREATE INDEX sessions_family ON sessions (family_id);
+CREATE INDEX sessions_user_active ON sessions (user_id) WHERE revoked_at IS NULL;
 CREATE INDEX codes_pending ON one_time_codes (association_id, purpose) WHERE consumed_at IS NULL;
 CREATE INDEX resets_pending ON password_reset_requests (association_id, created_at) WHERE status = 'pending';
 CREATE INDEX reminder_queue ON reminder_runs (association_id, run_date) WHERE status = 'to_handle';

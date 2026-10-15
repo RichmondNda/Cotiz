@@ -1,14 +1,12 @@
 import { randomBytes } from 'node:crypto';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { SessionSpace } from '@cotiz/contracts';
 import { credentials, sessions, users } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
-import { CONFIG, type Config } from '../../../config.js';
-import { platformRoleOf } from '../../access/access.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
-import { canonicalIp, parseIpAllowList } from '../../../shared/net/index.js';
+import { canonicalIp } from '../../../shared/net/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentRequestInfo } from '../../../shared/request-info/index.js';
 import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant-context/index.js';
@@ -17,6 +15,7 @@ import { AccessTokenSigner } from '../infra/access-token-signer.js';
 import { type LoginSubject, LoginThrottle } from '../infra/login-throttle.js';
 import { newRefreshToken } from '../infra/refresh-token.js';
 import { SecretHasher } from '../infra/secret-hasher.js';
+import { SpaceAccess } from './space-access.js';
 
 type Space = z.infer<typeof SessionSpace>;
 
@@ -34,6 +33,8 @@ export interface OpenedSession {
   space: Space;
   refreshToken: string;
   rememberMe: boolean;
+  /** Fin de la connexion : durée du cookie persistant (« rester connecté »). */
+  refreshMaxAgeMs: number;
 }
 
 /** Navigateur enregistré avec la session : borné, l'en-tête vient du client. */
@@ -52,18 +53,15 @@ const USER_AGENT_MAX = 512;
 export class LoginUseCase {
   /** Haché d'un secret aléatoire inconnu de tous : ne correspond à aucun mot de passe. */
   private readonly decoyHash: Promise<string>;
-  private readonly platformIpAllowed: ((ip: string | null) => boolean) | null;
 
   constructor(
     private readonly hasher: SecretHasher,
     private readonly throttle: LoginThrottle,
     private readonly signer: AccessTokenSigner,
     private readonly outbox: OutboxService,
-    @Inject(CONFIG) config: Config,
+    private readonly spaceAccess: SpaceAccess,
   ) {
     this.decoyHash = hasher.hash(randomBytes(32).toString('base64url'));
-    this.platformIpAllowed =
-      config.PLATFORM_ALLOWED_IPS === undefined ? null : parseIpAllowList(config.PLATFORM_ALLOWED_IPS);
   }
 
   async execute(input: LoginInput, now = new Date()): Promise<OpenedSession | AfterCommit<never>> {
@@ -109,7 +107,7 @@ export class LoginUseCase {
 
     // Mot de passe juste : les essais sont effacés, et wrong_space ne révèle plus rien.
     await this.throttle.succeed(subjects);
-    if (!(await this.hasRoleIn(account.id, input.space))) throw new DomainProblem('wrong_space');
+    if (!(await this.spaceAccess.allows(account.id, input.space))) throw new DomainProblem('wrong_space');
 
     await tx
       .update(credentials)
@@ -129,6 +127,7 @@ export class LoginUseCase {
       ip: request?.ip ? canonicalIp(request.ip) : null,
       userAgent: request?.userAgent?.slice(0, USER_AGENT_MAX) ?? null,
       expiresAt: new Date(now.getTime() + REFRESH_TOKEN_TTL_MS),
+      rememberMe: input.rememberMe,
     });
     await this.outbox.publish(tx, {
       type: 'user.logged_in',
@@ -145,16 +144,7 @@ export class LoginUseCase {
       space: input.space,
       refreshToken: refresh.token,
       rememberMe: input.rememberMe,
+      refreshMaxAgeMs: REFRESH_TOKEN_TTL_MS,
     };
-  }
-
-  /**
-   * Rôle actif dans l'espace demandé. Plateforme : personnel de la plateforme, depuis une adresse autorisée
-   * (PLATFORM_ALLOWED_IPS). Association et souscripteur : appartenances (`memberships`), au lot 1.2 ; aucune avant.
-   */
-  private async hasRoleIn(userId: string, space: Space): Promise<boolean> {
-    if (space !== 'platform') return false;
-    if (this.platformIpAllowed && !this.platformIpAllowed(currentRequestInfo()?.ip ?? null)) return false;
-    return (await platformRoleOf(userId)) !== null;
   }
 }

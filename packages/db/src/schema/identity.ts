@@ -1,5 +1,17 @@
 import { sql } from 'drizzle-orm';
-import { boolean, customType, index, inet, integer, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  customType,
+  index,
+  inet,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { createdAt, id, updatedAt, version } from '../columns.js';
 
 // Module identity (docs/specs/schema.sql, lot 1.1 ; migration 0004). Valeurs des enums : celles du schéma cible
@@ -59,21 +71,33 @@ export const credentials = pgTable('credentials', {
 });
 
 /** Sessions de connexion : le jeton de rafraîchissement n'y est jamais, seulement son SHA-256. */
-export const sessions = pgTable('sessions', {
-  id: id(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  refreshTokenHash: text('refresh_token_hash').notNull(),
-  familyId: uuid('family_id').notNull(),
-  space: sessionsSpace('space').notNull(),
-  ip: inet('ip'),
-  userAgent: text('user_agent'),
-  createdAt: createdAt(),
-  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  revokedAt: timestamp('revoked_at', { withTimezone: true }),
-});
+export const sessions = pgTable(
+  'sessions',
+  {
+    id: id(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    refreshTokenHash: text('refresh_token_hash').notNull(),
+    familyId: uuid('family_id').notNull(),
+    space: sessionsSpace('space').notNull(),
+    ip: inet('ip'),
+    userAgent: text('user_agent'),
+    createdAt: createdAt(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    /** « Rester connecté » : cookie persistant sinon de session, recopié à chaque rotation. */
+    rememberMe: boolean('remember_me').notNull().default(false),
+  },
+  (t) => [
+    uniqueIndex('sessions_refresh_token').on(t.refreshTokenHash),
+    index('sessions_family').on(t.familyId),
+    index('sessions_user_active')
+      .on(t.userId)
+      .where(sql`${t.revokedAt} IS NULL`),
+  ],
+);
 
 /** Codes remis par une personne (architecture/03-auth.md). RLS : association émettrice, espaces auth et system. */
 export const oneTimeCodes = pgTable(

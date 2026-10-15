@@ -6,7 +6,7 @@ export const MAX_FAILED_LOGINS = 5;
 export const LOGIN_LOCK_MS = 15 * 60_000;
 /** Jeton d'accès (JWT EdDSA). */
 export const ACCESS_TOKEN_TTL_MS = 15 * 60_000;
-/** Jeton de renouvellement (session). */
+/** Durée ABSOLUE d'une connexion : les rotations ne la prolongent pas (30 jours au plus après la connexion). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 86_400_000;
 
 /**
