@@ -5,6 +5,10 @@ import {
   CreatePlatformOwnerUseCase,
   EmailAlreadyUsedError,
 } from '../modules/identity/application/create-platform-owner.use-case.js';
+import {
+  IssueResetCodeUseCase,
+  ResetNotAllowedError,
+} from '../modules/identity/application/issue-reset-code.use-case.js';
 import { TenantDatabase } from '../shared/tenant-context/index.js';
 
 /**
@@ -17,7 +21,7 @@ export interface CliStreams {
   err: NodeJS.WritableStream;
 }
 
-const USAGE = ['Commandes :', '  create-platform-owner <email> <prénom> <nom>'].join('\n');
+const USAGE = ['Commandes :', '  create-platform-owner <email> <prénom> <nom>', '  reset-password <email>'].join('\n');
 
 const DATE = new Intl.DateTimeFormat('fr-FR', {
   dateStyle: 'long',
@@ -30,6 +34,7 @@ export async function runCli(app: INestApplicationContext, argv: string[], io: C
   const [command, ...args] = argv;
   try {
     if (command === 'create-platform-owner') return await createPlatformOwner(app, args, io);
+    if (command === 'reset-password') return await resetPassword(app, args, io);
   } catch (error) {
     // Jamais le message brut : celui d'une erreur SQL contient requête, paramètres et valeurs (email…).
     const pg = pgError(error);
@@ -75,6 +80,39 @@ async function createPlatformOwner(app: INestApplicationContext, args: string[],
     // Deux exécutions simultanées : la seconde bute sur l'unicité de users.email (et seulement elle).
     if (error instanceof EmailAlreadyUsedError || isUniqueViolation(error, 'users_email_key')) {
       io.err.write('Cette adresse est déjà utilisée par un compte.\n');
+      return 1;
+    }
+    throw error;
+  }
+}
+
+const TIME = new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short', timeZone: 'Africa/Abidjan' });
+
+/** Code de réinitialisation du personnel plateforme (super-admin : pas de rôle supérieur pour traiter sa demande). */
+async function resetPassword(app: INestApplicationContext, args: string[], io: CliStreams): Promise<number> {
+  const email = Email.safeParse((args[0] ?? '').trim().toLowerCase());
+  if (args.length !== 1 || !email.success) {
+    io.err.write('Usage : reset-password <email>\n');
+    return 1;
+  }
+  try {
+    const issued = await app
+      .get(TenantDatabase)
+      .withTenantContext({ space: 'auth' }, () =>
+        app.get(IssueResetCodeUseCase).execute({ email: email.data, operator: operator() }),
+      );
+    io.out.write(
+      [
+        `Code de réinitialisation : ${issued.code} (valable 15 minutes, jusqu’à ${TIME.format(issued.expiresAt)}, heure d’Abidjan)`,
+        'À saisir sur la page « Mot de passe oublié » avec l’adresse email, puis choisir un nouveau mot de passe.',
+        'Ce code ne sera plus affiché : remettez-le directement à la personne.',
+        '',
+      ].join('\n'),
+    );
+    return 0;
+  } catch (error) {
+    if (error instanceof ResetNotAllowedError) {
+      io.err.write('Aucun membre actif du personnel plateforme avec cette adresse.\n');
       return 1;
     }
     throw error;

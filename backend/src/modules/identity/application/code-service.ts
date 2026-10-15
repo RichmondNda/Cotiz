@@ -36,7 +36,8 @@ export interface IssuedCode {
 /**
  * Résultat d'une vérification : l'appelant lève l'erreur APRÈS le COMMIT (l'essai compté doit être validé).
  * `already_used` : le code saisi est le dernier code, déjà consommé (preuve, ex. `already_activated`).
- * `uncounted` : aucun code de cet usage en base, l'essai n'a pu y être compté (l'appelant le compte ailleurs).
+ * `uncounted` : aucun code utilisable de cet usage en base (absent ou consommé), l'essai n'a pu y être compté :
+ * l'appelant le compte ailleurs, pour que too_many_attempts arrive au même essai qu'avec un vrai code.
  */
 export type CodeCheck =
   | { ok: true; codeId: string }
@@ -134,9 +135,10 @@ export class CodeService {
       return { ok: false, problem: 'invalid_code', uncounted: true };
     }
     if (code.consumedAt !== null) {
-      // Même coût : comparé à son propre haché, il ne prouve que la connaissance du code déjà utilisé.
+      // Même coût : comparé à son propre haché, il ne prouve que la connaissance du code déjà utilisé. Essai non compté
+      // en base (le code ne sert plus) : l'appelant le compte, comme pour une personne sans code.
       const same = await this.hasher.verify(code.codeHash, normalizeCode(input.purpose, input.code));
-      return { ok: false, problem: same ? 'already_used' : 'invalid_code' };
+      return { ok: false, problem: same ? 'already_used' : 'invalid_code', uncounted: true };
     }
     // Même coût que les autres branches : le temps de réponse ne dit pas si un code existe.
     if (code.attempts >= MAX_CODE_ATTEMPTS || code.expiresAt <= now) {

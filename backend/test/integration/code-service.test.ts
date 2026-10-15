@@ -97,10 +97,12 @@ describe('CodeService', () => {
     expect(await inAuth(() => codes.consume(issued.id))).toBe(true);
     expect(await inAuth(() => codes.consume(issued.id))).toBe(false);
     // Consommé : le même code est reconnu (preuve), un autre non.
-    expect(await verify(issued.code)).toEqual({ ok: false, problem: 'already_used' });
+    // Consommé : essai non compté en base (l'appelant le compte, comme pour une personne sans code).
+    expect(await verify(issued.code)).toEqual({ ok: false, problem: 'already_used', uncounted: true });
     expect(await verify(issued.code === 'ABCD-EFGH' ? 'HGFE-DCBA' : 'ABCD-EFGH')).toEqual({
       ok: false,
       problem: 'invalid_code',
+      uncounted: true,
     });
   });
 

@@ -9,6 +9,13 @@ import { ACCESS_TOKEN_TTL_MS } from '../domain/login-policy.js';
 const ALG = 'EdDSA';
 const ISSUER = 'cotiz';
 const AUDIENCE = 'cotiz-api';
+/** Jeton de réinitialisation : autre audience, jamais accepté comme jeton d'accès (ni l'inverse). */
+const RESET_AUDIENCE = 'cotiz-reset';
+const RESET_TTL_SECONDS = 10 * 60;
+
+const ResetClaims = z.object({ sub: z.uuid(), cid: z.uuid() });
+/** Jeton de réinitialisation (auth.verify → auth.reset) : la personne et le code vérifié qu'il consommera. */
+export type ResetClaims = z.infer<typeof ResetClaims>;
 
 /** Claims du jeton d'accès (architecture/03) : `aid` en espace association seulement, et toujours (lot 1.2). */
 const AccessClaims = z
@@ -61,6 +68,31 @@ export class AccessTokenSigner {
       .setExpirationTime(expiresAt)
       .sign(this.privateKey);
     return { token, expiresAt };
+  }
+
+  /** Jeton de réinitialisation de 10 min, lié au code vérifié (architecture/03). */
+  async signResetToken(claims: ResetClaims, now = new Date()): Promise<{ token: string; expiresAt: Date }> {
+    const issuedAt = Math.floor(now.getTime() / 1000);
+    const expiresAt = new Date((issuedAt + RESET_TTL_SECONDS) * 1000);
+    const token = await new SignJWT({ cid: claims.cid })
+      .setProtectedHeader({ alg: ALG, typ: 'JWT' })
+      .setSubject(claims.sub)
+      .setIssuer(ISSUER)
+      .setAudience(RESET_AUDIENCE)
+      .setIssuedAt(issuedAt)
+      .setExpirationTime(expiresAt)
+      .sign(this.privateKey);
+    return { token, expiresAt };
+  }
+
+  /** Lève une erreur si le jeton n'est pas un jeton de réinitialisation valide. */
+  async verifyResetToken(token: string): Promise<ResetClaims> {
+    const { payload } = await jwtVerify(token, this.verifyKey, {
+      algorithms: [ALG],
+      issuer: ISSUER,
+      audience: RESET_AUDIENCE,
+    });
+    return ResetClaims.parse(payload);
   }
 
   /** Vérifie signature, algorithme, émetteur, audience, expiration et forme des claims ; lève une erreur sinon. */

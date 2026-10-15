@@ -5,7 +5,10 @@ import { GetMeUseCase } from './application/get-me.use-case.js';
 import { LoginUseCase } from './application/login.use-case.js';
 import { LogoutUseCase } from './application/logout.use-case.js';
 import { RefreshSessionUseCase } from './application/refresh-session.use-case.js';
+import { RequestPasswordResetUseCase } from './application/request-password-reset.use-case.js';
+import { ResetPasswordUseCase } from './application/reset-password.use-case.js';
 import { SessionFamilies } from './application/session-families.js';
+import { VerifyResetCodeUseCase } from './application/verify-reset-code.use-case.js';
 import { SessionOpener } from './application/session-opener.js';
 import { SpaceAccess } from './application/space-access.js';
 import { AuthController } from './http/auth.controller.js';
@@ -17,7 +20,7 @@ import { RevokedSessions } from './infra/revoked-sessions.js';
 import { SecretHasher } from './infra/secret-hasher.js';
 import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
 
-/** Module identity (lot 1.1) : connexion, renouvellement, déconnexion et `GET /me` ; activation et mot de passe oublié aux étapes suivantes. */
+/** Module identity (lot 1.1) : connexion, renouvellement, déconnexion, `GET /me`, activation et mot de passe oublié. */
 @Module({
   controllers: [AuthController, MeController],
   providers: [
@@ -36,6 +39,9 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     SessionOpener,
     ActivateAccountUseCase,
     UncountedCodeAttempts,
+    RequestPasswordResetUseCase,
+    VerifyResetCodeUseCase,
+    ResetPasswordUseCase,
   ],
   // Garde d'authentification, enregistrée globalement par AppModule.
   exports: [JwtGuard],

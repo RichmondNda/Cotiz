@@ -75,6 +75,13 @@ export class LoginThrottle {
     await this.client.redis.del(...subjects.map((subject) => this.redisKey('fail', subject)));
   }
 
+  /** Nouveau mot de passe (réinitialisation) : échecs et verrou effacés. */
+  async release(subjects: LoginSubject[]): Promise<void> {
+    await this.client.redis.del(
+      ...subjects.flatMap((subject) => [this.redisKey('fail', subject), this.redisKey('lock', subject)]),
+    );
+  }
+
   private async lock(subjects: LoginSubject[]): Promise<void> {
     const multi = this.client.redis.multi();
     for (const subject of subjects) {

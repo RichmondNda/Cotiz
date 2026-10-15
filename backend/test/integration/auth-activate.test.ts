@@ -146,6 +146,18 @@ describe('auth.activate', () => {
     expect(await codeOf(await activate({ identifier: 'owner-reuse@cotiz.test', code: other }))).toBe('invalid_code');
   });
 
+  it('compte déjà actif, mauvais code : mêmes réponses qu’un identifiant inconnu', async () => {
+    const { code } = await createOwner('owner-active-wrong@cotiz.test');
+    expect((await activate({ identifier: 'owner-active-wrong@cotiz.test', code })).status).toBe(200);
+    const wrong = code === 'ABCD-EFGH' ? 'HGFE-DCBA' : 'ABCD-EFGH';
+    const sequence = async (identifier: string) => {
+      const codes: (string | undefined)[] = [];
+      for (let i = 0; i < 6; i++) codes.push(await codeOf(await activate({ identifier, code: wrong })));
+      return codes;
+    };
+    expect(await sequence('owner-active-wrong@cotiz.test')).toEqual(await sequence('fantome-actif@cotiz.test'));
+  });
+
   it('code expiré : code_expired, compte toujours en attente', async () => {
     const { code, userId } = await createOwner('owner-expired@cotiz.test');
     await h.superuser(`UPDATE one_time_codes SET expires_at = now() - interval '1 second' WHERE user_id = $1`, [

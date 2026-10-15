@@ -58,10 +58,10 @@ export class ActivateAccountUseCase {
     if (!check.ok) {
       let problem: 'invalid_code' | 'code_expired' | 'too_many_attempts' | 'already_activated' =
         check.problem === 'already_used' ? 'invalid_code' : check.problem;
-      if (check.problem === 'already_used' && (await this.statusOf(user?.id)) === 'active')
+      if (check.problem === 'already_used' && (await this.statusOf(user?.id)) === 'active') {
         problem = 'already_activated';
-      // Sans code en base (identifiant inconnu…) : essais comptés dans Redis, too_many_attempts au même essai.
-      if (check.uncounted && (await this.uncounted.hit('activation', identifier.value)) >= MAX_CODE_ATTEMPTS) {
+      } else if (check.uncounted && (await this.uncounted.hit('activation', identifier.value)) >= MAX_CODE_ATTEMPTS) {
+        // Sans code utilisable en base (identifiant inconnu, code consommé…) : essais comptés dans Redis.
         problem = 'too_many_attempts';
       }
       return afterCommit(() => Promise.reject(new DomainProblem(problem)));
