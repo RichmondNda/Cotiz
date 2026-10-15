@@ -33,9 +33,18 @@ export interface IssuedCode {
   expiresAt: Date;
 }
 
-/** Résultat d'une vérification : l'appelant lève l'erreur APRÈS le COMMIT (l'essai compté doit être validé). */
+/**
+ * Résultat d'une vérification : l'appelant lève l'erreur APRÈS le COMMIT (l'essai compté doit être validé).
+ * `already_used` : le code saisi est le dernier code, déjà consommé (preuve, ex. `already_activated`).
+ * `uncounted` : aucun code de cet usage en base, l'essai n'a pu y être compté (l'appelant le compte ailleurs).
+ */
 export type CodeCheck =
-  { ok: true; codeId: string } | { ok: false; problem: 'invalid_code' | 'code_expired' | 'too_many_attempts' };
+  | { ok: true; codeId: string }
+  | {
+      ok: false;
+      problem: 'invalid_code' | 'code_expired' | 'too_many_attempts' | 'already_used';
+      uncounted?: true;
+    };
 
 /** Données associées du chiffré : il ne se déchiffre que sur sa ligne. */
 const sealContext = (codeId: string) => `one_time_codes:${codeId}`;
@@ -91,6 +100,9 @@ export class CodeService {
       associationId: input.associationId,
       codeEncrypted: redisplayable ? this.box.seal(code, sealContext(id)) : null,
       issuedBy: input.issuedBy,
+      // Heure réelle de l'insertion, après le verrou : `now()` (début de transaction) classerait une émission qui a
+      // attendu avant celle qu'elle invalide, et « le dernier code » serait le mauvais.
+      createdAt: sql`clock_timestamp()`,
     });
     return { id, code: displayCode(input.purpose, code), expiresAt };
   }
@@ -117,9 +129,14 @@ export class CodeService {
           .for('update')
       : [];
 
-    if (code?.consumedAt !== null) {
+    if (!code) {
       await this.hasher.verify(await this.decoyHash, input.code);
-      return { ok: false, problem: 'invalid_code' };
+      return { ok: false, problem: 'invalid_code', uncounted: true };
+    }
+    if (code.consumedAt !== null) {
+      // Même coût : comparé à son propre haché, il ne prouve que la connaissance du code déjà utilisé.
+      const same = await this.hasher.verify(code.codeHash, normalizeCode(input.purpose, input.code));
+      return { ok: false, problem: same ? 'already_used' : 'invalid_code' };
     }
     // Même coût que les autres branches : le temps de réponse ne dit pas si un code existe.
     if (code.attempts >= MAX_CODE_ATTEMPTS || code.expiresAt <= now) {

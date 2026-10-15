@@ -1,8 +1,10 @@
 import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
-import { type AccessToken, LoginRequest, type LoginResponse } from '@cotiz/contracts';
+import { type AccessToken, ActivateRequest, LoginRequest, type LoginResponse } from '@cotiz/contracts';
 import { Can, Endpoint, parseInput } from '../../../shared/http/index.js';
 import { AfterCommit } from '../../../shared/tenant-context/index.js';
-import { LoginUseCase, type OpenedSession } from '../application/login.use-case.js';
+import { ActivateAccountUseCase } from '../application/activate-account.use-case.js';
+import { LoginUseCase } from '../application/login.use-case.js';
+import type { OpenedSession } from '../application/session-opener.js';
 import { LogoutUseCase } from '../application/logout.use-case.js';
 import { RefreshSessionUseCase } from '../application/refresh-session.use-case.js';
 import { authenticatedSession } from './jwt.guard.js';
@@ -21,6 +23,7 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly refreshUseCase: RefreshSessionUseCase,
     private readonly logoutUseCase: LogoutUseCase,
+    private readonly activateUseCase: ActivateAccountUseCase,
   ) {}
 
   @Post('login')
@@ -45,6 +48,19 @@ export class AuthController {
     @Res({ passthrough: true }) res: CookieResponse,
   ): Promise<AccessToken | AfterCommit<never>> {
     const result = await this.refreshUseCase.execute(readRefreshCookie(req.headers.cookie));
+    return result instanceof AfterCommit ? result : opened(res, result);
+  }
+
+  /** Code consommé, compte actif et connecté directement (cookie de session : pas de « rester connecté » ici). */
+  @Post('activate')
+  @Endpoint('auth.activate', 'activate')
+  @Can('public')
+  @HttpCode(200)
+  async activate(
+    @Body() body: unknown,
+    @Res({ passthrough: true }) res: CookieResponse,
+  ): Promise<AccessToken | AfterCommit<never>> {
+    const result = await this.activateUseCase.execute(parseInput(ActivateRequest, body));
     return result instanceof AfterCommit ? result : opened(res, result);
   }
 

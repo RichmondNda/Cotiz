@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { ActivateAccountUseCase } from './application/activate-account.use-case.js';
 import { CodeService } from './application/code-service.js';
 import { GetMeUseCase } from './application/get-me.use-case.js';
 import { LoginUseCase } from './application/login.use-case.js';
 import { LogoutUseCase } from './application/logout.use-case.js';
 import { RefreshSessionUseCase } from './application/refresh-session.use-case.js';
 import { SessionFamilies } from './application/session-families.js';
+import { SessionOpener } from './application/session-opener.js';
 import { SpaceAccess } from './application/space-access.js';
 import { AuthController } from './http/auth.controller.js';
 import { MeController } from './http/me.controller.js';
@@ -13,6 +15,7 @@ import { AccessTokenSigner } from './infra/access-token-signer.js';
 import { LoginThrottle } from './infra/login-throttle.js';
 import { RevokedSessions } from './infra/revoked-sessions.js';
 import { SecretHasher } from './infra/secret-hasher.js';
+import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
 
 /** Module identity (lot 1.1) : connexion, renouvellement, déconnexion et `GET /me` ; activation et mot de passe oublié aux étapes suivantes. */
 @Module({
@@ -30,6 +33,9 @@ import { SecretHasher } from './infra/secret-hasher.js';
     LogoutUseCase,
     GetMeUseCase,
     CodeService,
+    SessionOpener,
+    ActivateAccountUseCase,
+    UncountedCodeAttempts,
   ],
   // Garde d'authentification, enregistrée globalement par AppModule.
   exports: [JwtGuard],

@@ -96,7 +96,12 @@ describe('CodeService', () => {
     expect(check).toEqual({ ok: true, codeId: issued.id });
     expect(await inAuth(() => codes.consume(issued.id))).toBe(true);
     expect(await inAuth(() => codes.consume(issued.id))).toBe(false);
-    expect(await verify(issued.code)).toEqual({ ok: false, problem: 'invalid_code' });
+    // Consommé : le même code est reconnu (preuve), un autre non.
+    expect(await verify(issued.code)).toEqual({ ok: false, problem: 'already_used' });
+    expect(await verify(issued.code === 'ABCD-EFGH' ? 'HGFE-DCBA' : 'ABCD-EFGH')).toEqual({
+      ok: false,
+      problem: 'invalid_code',
+    });
   });
 
   it('5 essais : invalid_code puis too_many_attempts, même avec le bon code ensuite', async () => {
@@ -149,8 +154,9 @@ describe('CodeService', () => {
       return original(hashed, secret);
     };
     try {
-      expect(await verify('K7M4-P9QX', 'activation', null)).toEqual({ ok: false, problem: 'invalid_code' });
-      expect(await verify('K7M4-P9QX', 'activation', USERS.awa)).toEqual({ ok: false, problem: 'invalid_code' });
+      const uncounted = { ok: false, problem: 'invalid_code', uncounted: true };
+      expect(await verify('K7M4-P9QX', 'activation', null)).toEqual(uncounted);
+      expect(await verify('K7M4-P9QX', 'activation', USERS.awa)).toEqual(uncounted);
       expect(calls).toHaveLength(2);
       expect(calls.every((hashed) => hashed.startsWith('$argon2id$'))).toBe(true);
     } finally {

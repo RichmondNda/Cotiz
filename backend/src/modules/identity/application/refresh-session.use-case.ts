@@ -9,7 +9,7 @@ import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant
 import { AccessTokenSigner } from '../infra/access-token-signer.js';
 import { hashRefreshToken, newRefreshToken } from '../infra/refresh-token.js';
 import { RevokedSessions } from '../infra/revoked-sessions.js';
-import type { OpenedSession } from './login.use-case.js';
+import type { OpenedSession } from './session-opener.js';
 import { SessionFamilies } from './session-families.js';
 import { SpaceAccess } from './space-access.js';
 

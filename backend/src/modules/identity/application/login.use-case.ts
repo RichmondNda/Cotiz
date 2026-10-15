@@ -1,20 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import type { SessionSpace } from '@cotiz/contracts';
-import { credentials, sessions, users } from '@cotiz/db';
-import { newId } from '@cotiz/domain';
+import { credentials, users } from '@cotiz/db';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { DomainProblem } from '../../../shared/http/index.js';
-import { canonicalIp } from '../../../shared/net/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
-import { currentRequestInfo } from '../../../shared/request-info/index.js';
 import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant-context/index.js';
-import { canonicalIdentifier, LOGIN_LOCK_MS, REFRESH_TOKEN_TTL_MS } from '../domain/login-policy.js';
-import { AccessTokenSigner } from '../infra/access-token-signer.js';
+import { canonicalIdentifier, LOGIN_LOCK_MS } from '../domain/login-policy.js';
 import { type LoginSubject, LoginThrottle } from '../infra/login-throttle.js';
-import { newRefreshToken } from '../infra/refresh-token.js';
 import { SecretHasher } from '../infra/secret-hasher.js';
+import { type OpenedSession, SessionOpener } from './session-opener.js';
 import { SpaceAccess } from './space-access.js';
 
 type Space = z.infer<typeof SessionSpace>;
@@ -25,20 +21,6 @@ export interface LoginInput {
   password: string;
   rememberMe: boolean;
 }
-
-/** Session ouverte : jeton d'accès pour le corps, jeton de renouvellement pour le cookie (jamais dans le corps). */
-export interface OpenedSession {
-  accessToken: string;
-  expiresAt: Date;
-  space: Space;
-  refreshToken: string;
-  rememberMe: boolean;
-  /** Fin de la connexion : durée du cookie persistant (« rester connecté »). */
-  refreshMaxAgeMs: number;
-}
-
-/** Navigateur enregistré avec la session : borné, l'en-tête vient du client. */
-const USER_AGENT_MAX = 512;
 
 /**
  * auth.login (architecture/03-auth.md), espace auth. Aucune fuite d'existence de compte :
@@ -57,7 +39,7 @@ export class LoginUseCase {
   constructor(
     private readonly hasher: SecretHasher,
     private readonly throttle: LoginThrottle,
-    private readonly signer: AccessTokenSigner,
+    private readonly sessions: SessionOpener,
     private readonly outbox: OutboxService,
     private readonly spaceAccess: SpaceAccess,
   ) {
@@ -114,20 +96,10 @@ export class LoginUseCase {
       .where(eq(credentials.userId, account.id));
     await tx.update(users).set({ lastLoginAt: now }).where(eq(users.id, account.id));
 
-    const request = currentRequestInfo();
-    const sessionId = newId();
-    const refresh = newRefreshToken();
-    await tx.insert(sessions).values({
-      id: sessionId,
-      userId: account.id,
-      refreshTokenHash: refresh.hash,
-      familyId: newId(),
-      space: input.space,
-      ip: request?.ip ? canonicalIp(request.ip) : null,
-      userAgent: request?.userAgent?.slice(0, USER_AGENT_MAX) ?? null,
-      expiresAt: new Date(now.getTime() + REFRESH_TOKEN_TTL_MS),
-      rememberMe: input.rememberMe,
-    });
+    const session = await this.sessions.open(
+      { userId: account.id, space: input.space, rememberMe: input.rememberMe },
+      now,
+    );
     await this.outbox.publish(tx, {
       type: 'user.logged_in',
       associationId: null,
@@ -136,14 +108,6 @@ export class LoginUseCase {
       payload: { userId: account.id, space: input.space },
     });
 
-    const access = await this.signer.sign({ sub: account.id, space: input.space, sid: sessionId }, now);
-    return {
-      accessToken: access.token,
-      expiresAt: access.expiresAt,
-      space: input.space,
-      refreshToken: refresh.token,
-      rememberMe: input.rememberMe,
-      refreshMaxAgeMs: REFRESH_TOKEN_TTL_MS,
-    };
+    return session;
   }
 }

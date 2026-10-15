@@ -1299,7 +1299,14 @@
         "tags": ["auth"],
         "x-endpoint-id": "auth.activate",
         "x-permission": "public",
-        "x-errors": ["invalid_code", "code_expired", "too_many_attempts", "weak_password", "already_activated"],
+        "x-errors": [
+          "invalid_code",
+          "code_expired",
+          "too_many_attempts",
+          "weak_password",
+          "already_activated",
+          "wrong_space"
+        ],
         "x-rate-limited": true,
         "x-audited": true,
         "parameters": [],
