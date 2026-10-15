@@ -8,7 +8,7 @@ import { AppModule } from '../../src/app.module.js';
 import { loadConfig } from '../../src/config.js';
 import { ApiDocsController } from '../../src/modules/docs/api-docs.controller.js';
 import { DebugController } from '../../src/modules/system/http/debug.controller.js';
-import { endpointMetadata } from '../../src/shared/http/index.js';
+import { canMetadata, endpointMetadata } from '../../src/shared/http/index.js';
 
 /** Routes hors contrat : la documentation interne (jamais en production), l'erreur de démonstration (développement). */
 const OUTSIDE_CONTRACT = new Set<unknown>([ApiDocsController, DebugController]);
@@ -19,6 +19,7 @@ interface Route {
   method: string;
   path: string;
   endpoint: ReturnType<typeof endpointMetadata>;
+  can: ReturnType<typeof canMetadata>;
 }
 
 const join = (...parts: (string | undefined)[]) =>
@@ -58,6 +59,7 @@ describe('routes de l’api ↔ contrat (docs/specs/endpoints.yaml)', () => {
           method: RequestMethod[Reflect.getMetadata(METHOD_METADATA, handler) as RequestMethod],
           path: join('api/v1', base, path).replace(/:(\w+)/g, '{$1}'),
           endpoint: endpointMetadata(handler),
+          can: canMetadata(handler),
         });
       }
     }
@@ -82,6 +84,15 @@ describe('routes de l’api ↔ contrat (docs/specs/endpoints.yaml)', () => {
       const actual = `${r.method} ${r.path}`;
       const expected = operation ? `${operation.method} ${operation.path}` : 'opération absente du contrat';
       return actual === expected ? [] : [`${r.endpoint.id}.${r.endpoint.operation} : ${actual} ≠ ${expected}`];
+    });
+    expect(mismatches).toEqual([]);
+  });
+
+  it('chaque route déclare @Can() avec exactement la permission de son endpoint (permissions.yaml)', () => {
+    const mismatches = routes.flatMap((r) => {
+      if (!r.endpoint) return [];
+      const expected = (ENDPOINTS[r.endpoint.id] as EndpointDef).permission;
+      return r.can === expected ? [] : [`${r.controller}.${r.handler} : @Can(${r.can ?? 'absent'}) ≠ ${expected}`];
     });
     expect(mismatches).toEqual([]);
   });

@@ -1,6 +1,6 @@
 import { Writable } from 'node:stream';
 import { Body, Controller, Get, HttpCode, type INestApplication, Logger, Module, Post, Query } from '@nestjs/common';
-import { APP_GUARD, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { DrizzleQueryError } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { configureApp } from '../../src/app.js';
@@ -94,9 +94,13 @@ describe('journaux (pino)', () => {
       },
     });
     @Module({
-      imports: [AppModule.register(config, { logger: createLogger(config, { name: 'api', destination }) })],
+      imports: [
+        AppModule.register(config, {
+          logger: createLogger(config, { name: 'api', destination }),
+          guards: [TestAuthGuard],
+        }),
+      ],
       controllers: [LoginProbeController],
-      providers: [{ provide: APP_GUARD, useClass: TestAuthGuard }],
     })
     class LoggingRoot {}
     app = await NestFactory.create(LoggingRoot, { logger: false });

@@ -1,11 +1,11 @@
-import { Body, Controller, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req, Res } from '@nestjs/common';
 import { type AccessToken, LoginRequest, type LoginResponse } from '@cotiz/contracts';
-import { Endpoint, parseInput } from '../../../shared/http/index.js';
+import { Can, Endpoint, parseInput } from '../../../shared/http/index.js';
 import { AfterCommit } from '../../../shared/tenant-context/index.js';
 import { LoginUseCase, type OpenedSession } from '../application/login.use-case.js';
 import { LogoutUseCase } from '../application/logout.use-case.js';
 import { RefreshSessionUseCase } from '../application/refresh-session.use-case.js';
-import { authenticatedSession, JwtGuard } from './jwt.guard.js';
+import { authenticatedSession } from './jwt.guard.js';
 import { clearRefreshCookie, type CookieResponse, readRefreshCookie, setRefreshCookie } from './refresh-cookie.js';
 
 /** Corps de la réponse d'une session ouverte ; le jeton de renouvellement part dans le cookie. */
@@ -25,6 +25,7 @@ export class AuthController {
 
   @Post('login')
   @Endpoint('auth.login', 'login')
+  @Can('public')
   @HttpCode(200)
   async login(
     @Body() body: unknown,
@@ -37,6 +38,7 @@ export class AuthController {
 
   @Post('refresh')
   @Endpoint('auth.refresh', 'refresh')
+  @Can('public')
   @HttpCode(200)
   async refresh(
     @Req() req: { headers: { cookie?: string } },
@@ -48,7 +50,7 @@ export class AuthController {
 
   @Post('logout')
   @Endpoint('auth.logout', 'logout')
-  @UseGuards(JwtGuard)
+  @Can('authenticated')
   @HttpCode(204)
   async logout(@Req() req: object, @Res({ passthrough: true }) res: CookieResponse): Promise<AfterCommit<void>> {
     const session = authenticatedSession(req);

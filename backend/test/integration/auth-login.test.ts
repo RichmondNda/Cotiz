@@ -169,9 +169,7 @@ describe('auth.login', () => {
     });
 
     it('remet le compteur d’échecs à zéro', async () => {
-      await login(platform(OWNER.email, 'mauvais'));
-      await login(platform(OWNER.email, 'mauvais'));
-      expect((await credentialsOf(OWNER.id)).failed_attempts).toBe(2);
+      for (let i = 0; i < 4; i++) await login(platform(OWNER.email, 'mauvais'));
       expect((await login(platform(OWNER.email))).status).toBe(200);
       expect(await credentialsOf(OWNER.id)).toEqual({ failed_attempts: 0, locked_until: null });
       // Le compteur Redis aussi : 4 nouveaux échecs ne verrouillent pas.
@@ -180,13 +178,13 @@ describe('auth.login', () => {
   });
 
   describe('échecs, sans fuite d’existence', () => {
-    it('mauvais mot de passe : 401 invalid_credentials, échec compté (validé malgré l’erreur)', async () => {
+    it('mauvais mot de passe : 401 invalid_credentials, compté dans Redis sans écriture en base (comme un inconnu)', async () => {
       const res = await login(platform(OWNER.email, 'mauvais'));
       expect(res.status).toBe(401);
       expect(res.headers.get('content-type')).toMatch(/application\/problem\+json/);
       expect(await codeOf(res)).toBe('invalid_credentials');
       expect(res.headers.getSetCookie()).toEqual([]);
-      expect(await credentialsOf(OWNER.id)).toEqual({ failed_attempts: 1, locked_until: null });
+      expect(await credentialsOf(OWNER.id)).toEqual({ failed_attempts: 0, locked_until: null });
     });
 
     it('compte inconnu : même réponse', async () => {

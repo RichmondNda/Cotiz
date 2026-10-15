@@ -1,7 +1,7 @@
 import { Reflector } from '@nestjs/core';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../../../config.js';
-import { DomainProblem, Endpoint } from '../../../shared/http/index.js';
+import { Can, DomainProblem, Endpoint } from '../../../shared/http/index.js';
 import { type FakeRequest, httpContext, routeHandler } from '../../../shared/http/testing.js';
 import { getRequestContext } from '../../../shared/tenant-context/index.js';
 import { AccessTokenSigner } from '../infra/access-token-signer.js';
@@ -14,11 +14,13 @@ const AID = '00000000-0000-7000-8000-00000000a001';
 
 class Routes {
   @Endpoint('auth.logout', 'logout')
+  @Can('authenticated')
   logout(): void {
     // Route de test : seules ses métadonnées comptent.
   }
 
   @Endpoint('fl.get', 'get')
+  @Can('authenticated')
   file(): void {
     // Route de test : seules ses métadonnées comptent.
   }
@@ -55,7 +57,7 @@ describe('JwtGuard', () => {
     expect(authenticatedSession(request)).toMatchObject({ sub: USER, sid: SID, aid: AID });
   });
 
-  it('hors espace auth : aucun contexte posé (SpaceGuard et MembershipGuard, étape 4)', async () => {
+  it('hors espace auth : aucun contexte posé ici (SpaceGuard et MembershipGuard)', async () => {
     const { token } = await signer.sign({ sub: USER, space: 'platform', sid: SID });
     expect(getRequestContext(await run('file', `Bearer ${token}`))).toBeNull();
   });

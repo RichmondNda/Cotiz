@@ -26,5 +26,7 @@ import { SecretHasher } from './infra/secret-hasher.js';
     RefreshSessionUseCase,
     LogoutUseCase,
   ],
+  // Garde d'authentification, enregistrée globalement par AppModule.
+  exports: [JwtGuard],
 })
 export class IdentityModule {}

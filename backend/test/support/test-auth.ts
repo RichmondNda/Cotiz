@@ -3,8 +3,9 @@ import { setActorRole } from '../../src/shared/request-info/index.js';
 import { SPACES, type Space, setRequestContext } from '../../src/shared/tenant-context/index.js';
 
 /**
- * Garde d'authentification de TEST (lot 0.5 : l'authentification arrive au lot 1.1). Jamais importée par src/ :
- * seuls les modules racines des tests l'enregistrent (APP_GUARD). Lit le contexte dans des en-têtes :
+ * Garde d'authentification de TEST : remplace la chaîne des vraies gardes (`AppModule.register(config, { guards:
+ * [TestAuthGuard] })`) pour éprouver des espaces qu'elles n'ouvrent pas encore (association : lot 1.2). Jamais
+ * importée par src/. Lit le contexte dans des en-têtes :
  * x-test-space, x-test-user, x-test-association, x-test-role. Sans x-test-space : requête anonyme.
  */
 @Injectable()

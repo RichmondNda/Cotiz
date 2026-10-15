@@ -334,4 +334,48 @@ describe('auth.refresh et auth.logout', () => {
       expect(await codeOf(await logout(stale.token))).toBe('session_expired');
     });
   });
+
+  describe('gardes globales (étape 4), de bout en bout', () => {
+    const FILE = '00000000-0000-7000-8000-00000000f001';
+    const getFile = (headers: Record<string, string> = {}) =>
+      fetch(`${base}/files/${FILE}`, { headers, redirect: 'manual' });
+
+    it('route protégée : 401 sans jeton ; jeton plateforme réel → gardes passées (404 du cas d’usage)', async () => {
+      const none = await getFile();
+      expect(none.status).toBe(401);
+      expect(await codeOf(none)).toBe('session_expired');
+
+      const { accessToken } = await login();
+      const res = await getFile({ authorization: `Bearer ${accessToken}` });
+      expect(res.status).toBe(404);
+      expect(await codeOf(res)).toBe('not_found');
+    });
+
+    it('jeton d’une connexion fermée : refusé partout (liste noire)', async () => {
+      const { accessToken } = await login();
+      expect((await logout(accessToken)).status).toBe(204);
+      expect(await codeOf(await getFile({ authorization: `Bearer ${accessToken}` }))).toBe('session_revoked');
+    });
+
+    it('ordre réel des gardes : jeton association → 404 (appartenance, lot 1.2), mais déconnexion possible', async () => {
+      const signer = app.get(AccessTokenSigner);
+      const { token } = await signer.sign({
+        sub: OWNER.id,
+        space: 'association',
+        sid: '00000000-0000-7000-8000-00000000c0de',
+        aid: '00000000-0000-7000-8000-00000000a001',
+      });
+      const file = await getFile({ authorization: `Bearer ${token}` });
+      expect(file.status).toBe(404);
+      expect(await codeOf(file)).toBe('not_found');
+      expect((await logout(token)).status).toBe(204);
+      // Déconnecté : le sid est en liste noire.
+      expect(await codeOf(await getFile({ authorization: `Bearer ${token}` }))).toBe('session_revoked');
+    });
+
+    it('route publique : aucun jeton exigé, un jeton invalide est ignoré', async () => {
+      expect((await fetch(`${base}/health/live`)).status).toBe(200);
+      expect((await fetch(`${base}/health/live`, { headers: { authorization: 'Bearer faux' } })).status).toBe(200);
+    });
+  });
 });

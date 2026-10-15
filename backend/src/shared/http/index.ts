@@ -7,4 +7,5 @@ export { Endpoint, endpointMetadata, endpointOf, type EndpointRef } from './endp
 export { HttpConventionsModule } from './http-conventions.module.js';
 export { expectedVersion } from './if-match.interceptor.js';
 export { ProblemFilter } from './problem.filter.js';
+export { Can, canMetadata, type RouteAccess, routeAccess } from './route-access.js';
 export { parseInput } from './validation.js';

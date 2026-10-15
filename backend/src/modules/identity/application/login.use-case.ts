@@ -92,13 +92,12 @@ export class LoginUseCase {
     const passwordMatches = await this.hasher.verify(passwordHash ?? (await this.decoyHash), input.password);
     if (!account || passwordHash === null || !passwordMatches || account.status !== 'active') {
       const locked = await this.throttle.fail(subjects, attempt);
-      if (account) {
+      // Le compteur vit dans Redis, pour tout identifiant. La base ne reçoit que le verrou (5e échec) : écrire à chaque
+      // échec d'un compte connu, et jamais pour un inconnu, ferait un écart de temps mesurable (fuite d'existence).
+      if (account && locked) {
         await tx
           .update(credentials)
-          .set({
-            failedAttempts: attempt.attempts,
-            lockedUntil: locked ? new Date(now.getTime() + LOGIN_LOCK_MS) : null,
-          })
+          .set({ failedAttempts: attempt.attempts, lockedUntil: new Date(now.getTime() + LOGIN_LOCK_MS) })
           .where(eq(credentials.userId, account.id));
       }
       const problem = new DomainProblem(locked ? 'account_locked' : 'invalid_credentials');

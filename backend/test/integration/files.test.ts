@@ -1,4 +1,3 @@
-import { APP_GUARD } from '@nestjs/core';
 import { type INestApplication, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { StoredFile, UPLOAD_MAX_BYTES, UploadTicket } from '@cotiz/contracts';
@@ -88,7 +87,7 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       // Pas de worker ici (analyse : file-scan.test.ts) : la confirmation répond `pending` sans attendre.
       FILE_SCAN_WAIT_MS: '0',
     });
-    @Module({ imports: [AppModule.register(config)], providers: [{ provide: APP_GUARD, useClass: TestAuthGuard }] })
+    @Module({ imports: [AppModule.register(config, { guards: [TestAuthGuard] })] })
     class TestRoot {}
     app = await NestFactory.create(TestRoot, { logger: false });
     app.setGlobalPrefix('api/v1');

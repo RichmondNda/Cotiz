@@ -44,6 +44,20 @@ function render() {
   const { statuses } = specs('status-mapping.yaml');
   const dbEnums = schemaEnums(readFileSync(new URL('schema.sql', specsDir), 'utf8'));
 
+  // Rôles de permissions.yaml : une faute de frappe refuserait la permission en silence.
+  const knownRoles = new Set([
+    '*',
+    '*authenticated',
+    'subscriber',
+    ...dbEnums.platform_staff_role.map((role) => `platform:${role}`),
+    ...dbEnums.memberships_role.filter((role) => role !== 'subscriber').map((role) => `association:${role}`),
+  ]);
+  for (const { permission, roles } of permissions) {
+    const unknown = roles.filter((role) => !knownRoles.has(role));
+    if (unknown.length > 0)
+      throw new Error(`permissions.yaml : rôle inconnu pour ${permission} : ${unknown.join(', ')}`);
+  }
+
   const errorEntries = errors.map((e) => `  ${e.code}: { http: ${e.http}, message: ${str(e.message)} },\n`).join('');
 
   return {
@@ -64,13 +78,19 @@ function render() {
       endpoints.map((e) => e.id),
       "Identifiants d'endpoint (une ressource, une ou plusieurs opérations HTTP).",
     ),
-    'permissions.ts': union(
-      'permissions.yaml',
-      'PERMISSIONS',
-      'Permission',
-      permissions.map((p) => p.permission),
-      'Permissions vérifiées par les gardes du back et `usePermissions()` du front.',
-    ),
+    'permissions.ts':
+      union(
+        'permissions.yaml',
+        'PERMISSIONS',
+        'Permission',
+        permissions.map((p) => p.permission),
+        'Permissions vérifiées par les gardes du back et `usePermissions()` du front.',
+      ) +
+      `\n/**\n * Rôles qui détiennent chaque permission : \`platform:<rôle>\`, \`association:<rôle>\`, \`subscriber\`, \`*\` (tout le monde),\n` +
+      ` * \`*authenticated\` (toute personne connectée).\n */\n` +
+      `export const PERMISSION_ROLES = {\n${permissions
+        .map((p) => `  ${str(p.permission)}: [${p.roles.map(str).join(', ')}],\n`)
+        .join('')}} as const satisfies Record<Permission, readonly string[]>;\n`,
     'status-labels.ts':
       header('status-mapping.yaml') +
       `/** Libellé affiché et ton (couleur fonctionnelle) de chaque statut, par famille \`table.colonne\`. */\n` +

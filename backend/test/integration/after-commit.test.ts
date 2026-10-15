@@ -1,5 +1,5 @@
 import { Controller, Get, type INestApplication, Module } from '@nestjs/common';
-import { APP_GUARD, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../../src/app.module.js';
@@ -109,8 +109,7 @@ describe('shared/tenant-context : afterCommit()', () => {
       S3_ENDPOINT: 'http://127.0.0.1:1',
     });
     @Module({
-      imports: [AppModule.register(config), ProbeModule],
-      providers: [{ provide: APP_GUARD, useClass: TestAuthGuard }],
+      imports: [AppModule.register(config, { guards: [TestAuthGuard] }), ProbeModule],
     })
     class TestRoot {}
     app = await NestFactory.create(TestRoot, { logger: false });
