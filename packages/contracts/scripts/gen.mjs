@@ -121,13 +121,23 @@ function render() {
       `export const EVENTS = {\n${events
         .map((e) => `  ${str(e.type)}: { version: ${e.version}, payload: [${e.payload.map(str).join(', ')}] },\n`)
         .join('')}} as const satisfies Record<EventType, { version: number; payload: readonly string[] }>;\n`,
-    'features.ts': union(
-      'features.yaml',
-      'FEATURES',
-      'Feature',
-      features.map((f) => f.key),
-      'Fonctionnalités exposées par `GET /me` (`features`).',
-    ),
+    'features.ts':
+      union(
+        'features.yaml',
+        'FEATURES',
+        'Feature',
+        features.map((f) => f.key),
+        'Fonctionnalités exposées par `GET /me` (`features`).',
+      ) +
+      `\n/** Lot qui livre chaque fonctionnalité ; \`planGated\` : dépend aussi du plan ; \`externalProvider\` : groupe 6. */\n` +
+      `export const FEATURE_SPECS = {\n${features
+        .map(
+          (f) =>
+            `  ${f.key}: { lot: ${str(f.lot)}, planGated: ${Boolean(f.planGated)}, externalProvider: ${Boolean(f.externalProvider)} },\n`,
+        )
+        .join(
+          '',
+        )}} as const satisfies Record<Feature, { lot: string; planGated: boolean; externalProvider: boolean }>;\n`,
   };
 }
 

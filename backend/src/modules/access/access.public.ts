@@ -20,3 +20,5 @@ export async function platformRoleOf(userId: string): Promise<PlatformRole | nul
     .limit(1);
   return staff?.role ?? null;
 }
+
+export { actorRoleOf, permissionsOf } from './domain/permission-policy.js';

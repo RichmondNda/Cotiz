@@ -3,15 +3,16 @@ import { Reflector } from '@nestjs/core';
 import { DomainProblem, routeAccess } from '../../../shared/http/index.js';
 import { setActorRole } from '../../../shared/request-info/index.js';
 import { type AccessClaims, authenticatedSession } from '../../identity/identity.public.js';
-import { holdsPermission } from '../domain/permission-policy.js';
+import { actorRoleOf, holdsPermission } from '../domain/permission-policy.js';
 
 /**
- * Rôle de l'acteur pour la matrice de permissions. Lot 1.1, sans accès base dans les gardes : le souscripteur
- * seulement. Rôles plateforme (`platform_staff`) et d'association (`memberships`) : lot 1.2 (`lookupAsSelf`) ; d'ici
- * là `null`, donc aucune permission de rôle (aucun endpoint de ces espaces n'est livré avant).
+ * Rôle de l'acteur (actorRoleOf, le même calcul que `GET /me`). Lot 1.1, gardes sans accès base (décision du lot) :
+ * rôles plateforme (`platform_staff`) et d'association (`memberships`) non lus, donc `null` et aucune permission de
+ * rôle. ÉCART CONNU : `GET /me`, cas d'usage avec base, annonce déjà les permissions plateforme. Aucun endpoint
+ * plateforme n'est livré avant le lot 1.2, qui lit ces rôles ici (`lookupAsSelf`) et referme l'écart.
  */
 function roleOf(claims: AccessClaims): string | null {
-  return claims.space === 'subscriber' ? 'subscriber' : null;
+  return actorRoleOf(claims.space, { platformRole: null, membershipRole: null });
 }
 
 /**

@@ -1,6 +1,6 @@
 import { PERMISSIONS } from '@cotiz/contracts';
 import { describe, expect, it } from 'vitest';
-import { holdsPermission } from './permission-policy.js';
+import { actorRoleOf, holdsPermission, permissionsOf } from './permission-policy.js';
 
 describe('holdsPermission (docs/specs/permissions.yaml)', () => {
   it('public : tout le monde, même anonyme', () => {
@@ -33,5 +33,37 @@ describe('holdsPermission (docs/specs/permissions.yaml)', () => {
   it('un rôle d’un espace ne vaut rien dans un autre (owner plateforme ≠ owner d’association)', () => {
     expect(holdsPermission('association.settings.manage', { role: 'platform:owner' })).toBe(false);
     expect(holdsPermission('platform.associations.manage', { role: 'association:owner' })).toBe(false);
+  });
+});
+
+describe('permissionsOf', () => {
+  it('owner plateforme : toutes les permissions plateforme, rien des autres espaces', () => {
+    const owned = permissionsOf('platform:owner');
+    expect(owned).toContain('platform.staff.manage');
+    expect(owned).toContain('platform.associations.read');
+    expect(owned).toContain('authenticated');
+    expect(owned).not.toContain('association.read');
+    expect(owned).not.toContain('subscriber.self');
+  });
+
+  it('support plateforme : lecture seulement', () => {
+    const support = permissionsOf('platform:support');
+    expect(support).toContain('platform.associations.read');
+    expect(support).not.toContain('platform.associations.manage');
+  });
+
+  it('rôle non résolu : seulement public et authenticated', () => {
+    expect(permissionsOf(null)).toEqual(['public', 'authenticated']);
+  });
+});
+
+describe('actorRoleOf', () => {
+  it('rôle de la matrice selon l’espace', () => {
+    expect(actorRoleOf('subscriber', { platformRole: 'owner' })).toBe('subscriber');
+    expect(actorRoleOf('platform', { platformRole: 'support' })).toBe('platform:support');
+    expect(actorRoleOf('platform', { platformRole: null })).toBeNull();
+    expect(actorRoleOf('association', { platformRole: 'owner', membershipRole: 'viewer' })).toBe('association:viewer');
+    expect(actorRoleOf('association', { platformRole: 'owner' })).toBeNull();
+    expect(actorRoleOf('auth', { platformRole: 'owner' })).toBeNull();
   });
 });
