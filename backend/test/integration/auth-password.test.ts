@@ -3,6 +3,7 @@ import type { INestApplication, INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { LoginResponse, ResetToken } from '@cotiz/contracts';
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
+import { decodeJwt } from 'jose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { CliModule } from '../../src/cli/cli.module.js';
@@ -181,8 +182,11 @@ describe('mot de passe oublié', () => {
       expect(issued.status).toBe(0);
       expect(issued.code).toMatch(/^\d{6}$/);
       expect(issued.out).toContain('15 minutes');
+      expect(issued.out).toContain('https://app.cotiz.test/mot-de-passe?profil=plateforme');
 
       const token = await tokenFor(email, issued.code);
+      // Espace de la demande : le proxy du front aiguille auth.reset d'après ce claim (bascule par espace).
+      expect(decodeJwt(token.resetToken)).toMatchObject({ sub: id, space: 'platform', aud: 'cotiz-reset' });
       expect(Date.parse(token.expiresAt)).toBeLessThanOrEqual(Date.now() + 10 * 60_000 + 1_000);
       expect((await reset(token.resetToken)).status).toBe(204);
 

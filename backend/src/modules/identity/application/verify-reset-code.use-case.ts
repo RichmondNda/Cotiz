@@ -23,7 +23,7 @@ export class VerifyResetCodeUseCase {
   ) {}
 
   async execute(
-    input: { identifier: string; code: string },
+    input: { space: 'platform' | 'association' | 'subscriber'; identifier: string; code: string },
     now = new Date(),
   ): Promise<{ resetToken: string; expiresAt: Date } | AfterCommit<never>> {
     const identifier = canonicalIdentifier(input.identifier);
@@ -44,7 +44,10 @@ export class VerifyResetCodeUseCase {
       return afterCommit(() => Promise.reject(new DomainProblem(problem)));
     }
     if (!userId) throw new Error('auth.verify : code valide sans personne active');
-    const { token, expiresAt } = await this.signer.signResetToken({ sub: userId, cid: check.codeId }, now);
+    const { token, expiresAt } = await this.signer.signResetToken(
+      { sub: userId, cid: check.codeId, space: input.space },
+      now,
+    );
     return { resetToken: token, expiresAt };
   }
 }

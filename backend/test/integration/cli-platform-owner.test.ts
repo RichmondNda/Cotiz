@@ -7,7 +7,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { CliModule } from '../../src/cli/cli.module.js';
 import { runCli } from '../../src/cli/commands.js';
 import { CreatePlatformOwnerUseCase } from '../../src/modules/identity/application/create-platform-owner.use-case.js';
-import { loadConfig } from '../../src/config.js';
+import { type Config, loadConfig } from '../../src/config.js';
+import {
+  DEV_PASSWORD,
+  SeedDevAccountsUseCase,
+} from '../../src/modules/identity/application/seed-dev-accounts.use-case.js';
+import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { type IsolationHarness, startIsolationHarness } from '../isolation/harness.js';
 
 /** `pnpm --filter backend cli create-platform-owner` : owner plateforme en attente d'activation, code remis à la main. */
@@ -39,6 +44,7 @@ describe('CLI : create-platform-owner', () => {
       REDIS_URL: 'redis://127.0.0.1:1',
       S3_ENDPOINT: 'http://127.0.0.1:1',
       APP_PUBLIC_URL: 'https://app.cotiz.test',
+      COTIZ_DEV_SEED: '1',
     });
     app = await NestFactory.createApplicationContext(CliModule.register(config), { logger: false });
   });
@@ -65,24 +71,26 @@ describe('CLI : create-platform-owner', () => {
 
   it('crée la personne, son rôle owner et un code d’activation de 72 h, haché', async () => {
     const before = Date.now();
-    const { status, out } = await run('create-platform-owner', 'Richy@Cotiz.app', 'Richy', 'Nda');
+    const { status, out } = await run('create-platform-owner', 'Owner@Cotiz.app', 'Richy', 'Nda');
     expect(status).toBe(0);
 
     const code = /Code d’activation : ([2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4})/.exec(out)?.[1] ?? '';
     expect(code).not.toBe('');
     // Le lien d'activation ne contient jamais le code, sous aucune forme.
     const link = out.split('\n').find((line) => line.startsWith('À saisir sur ')) ?? '';
-    expect(link).toBe('À saisir sur https://app.cotiz.test/activer avec l’adresse email et un nouveau mot de passe.');
+    expect(link).toBe(
+      'À saisir sur https://app.cotiz.test/activer?espace=plateforme avec l’adresse email et un nouveau mot de passe.',
+    );
 
     const { rows: users } = await h.superuser(
       `SELECT u.id, u.email::text AS email_text, u.first_name, u.last_name, u.status, u.must_change_password, c.password_hash, p.role
          FROM users u JOIN credentials c ON c.user_id = u.id JOIN platform_staff p ON p.user_id = u.id
-        WHERE u.email = 'richy@cotiz.app'`,
+        WHERE u.email = 'owner@cotiz.app'`,
     );
     expect(users).toEqual([
       expect.objectContaining({
         // Mis en minuscules (comparaison sur le texte, citext ignorant la casse).
-        email_text: 'richy@cotiz.app',
+        email_text: 'owner@cotiz.app',
         first_name: 'Richy',
         last_name: 'Nda',
         status: 'pending_activation',
@@ -220,5 +228,50 @@ describe('CLI : create-platform-owner', () => {
     expect(unknown.status).toBe(1);
     expect(unknown.err).toContain('create-platform-owner <email> <prénom> <nom>');
     expect(await footprint('x@cotiz.app')).toEqual({ users: 0, credentials: 0, staff: 0, codes: 0, audit: 0 });
+  });
+
+  describe('seed-dev (développement)', () => {
+    /** Identifiant de Richy dans les données simulées du front (frontend/server/mocks/ids.ts). */
+    const RICHY = '55d091c5-ae9c-5331-a1cf-20b860c9ad5f';
+
+    it('crée Richy, owner plateforme actif au mot de passe connu ; une seconde exécution ne change rien', async () => {
+      for (let i = 0; i < 2; i++) {
+        const { status, out } = await run('seed-dev');
+        expect(status).toBe(0);
+        expect(out).toContain(`richy@cotiz.app / ${DEV_PASSWORD}`);
+      }
+      const { rows } = await h.superuser(
+        `SELECT u.id, u.status, c.password_hash, p.role FROM users u
+           JOIN credentials c ON c.user_id = u.id JOIN platform_staff p ON p.user_id = u.id
+          WHERE u.email = 'richy@cotiz.app'`,
+      );
+      expect(rows).toHaveLength(1);
+      const richy = rows[0] as { id: string; status: string; password_hash: string; role: string };
+      expect(richy).toMatchObject({ id: RICHY, status: 'active', role: 'owner' });
+      expect(await verify(richy.password_hash, DEV_PASSWORD)).toBe(true);
+    });
+
+    it('refusée hors développement et test, ou sans COTIZ_DEV_SEED=1', async () => {
+      for (const config of [
+        { NODE_ENV: 'production', COTIZ_DEV_SEED: true },
+        { NODE_ENV: 'development', COTIZ_DEV_SEED: false },
+      ]) {
+        const useCase = new SeedDevAccountsUseCase(new SecretHasher(), config as Config);
+        await expect(useCase.execute()).rejects.toThrow(/COTIZ_DEV_SEED/);
+      }
+    });
+
+    it('ne reprend jamais un compte créé autrement (son mot de passe resterait public)', async () => {
+      await h.superuser(`UPDATE users SET email = 'richy-dev@cotiz.app' WHERE email = 'richy@cotiz.app'`);
+      try {
+        expect((await run('create-platform-owner', 'richy@cotiz.app', 'Richy', 'Nda')).status).toBe(0);
+        const { status, err } = await run('seed-dev');
+        expect(status).toBe(1);
+        expect(err).toContain('existe déjà');
+      } finally {
+        await h.superuser(`UPDATE users SET email = 'richy-autre@cotiz.app' WHERE email = 'richy@cotiz.app'`);
+        await h.superuser(`UPDATE users SET email = 'richy@cotiz.app' WHERE email = 'richy-dev@cotiz.app'`);
+      }
+    });
   });
 });

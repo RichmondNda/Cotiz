@@ -1,6 +1,7 @@
 import { userInfo } from 'node:os';
 import { type INestApplicationContext, Logger } from '@nestjs/common';
 import { Email } from '@cotiz/contracts';
+import { CONFIG, type Config } from '../config.js';
 import {
   CreatePlatformOwnerUseCase,
   EmailAlreadyUsedError,
@@ -9,6 +10,10 @@ import {
   IssueResetCodeUseCase,
   ResetNotAllowedError,
 } from '../modules/identity/application/issue-reset-code.use-case.js';
+import {
+  SeedDevAccountsUseCase,
+  SeedRefusedError,
+} from '../modules/identity/application/seed-dev-accounts.use-case.js';
 import { TenantDatabase } from '../shared/tenant-context/index.js';
 
 /**
@@ -21,7 +26,12 @@ export interface CliStreams {
   err: NodeJS.WritableStream;
 }
 
-const USAGE = ['Commandes :', '  create-platform-owner <email> <prénom> <nom>', '  reset-password <email>'].join('\n');
+const USAGE = [
+  'Commandes :',
+  '  create-platform-owner <email> <prénom> <nom>',
+  '  reset-password <email>',
+  '  seed-dev                (développement : comptes à mot de passe connu)',
+].join('\n');
 
 const DATE = new Intl.DateTimeFormat('fr-FR', {
   dateStyle: 'long',
@@ -35,6 +45,7 @@ export async function runCli(app: INestApplicationContext, argv: string[], io: C
   try {
     if (command === 'create-platform-owner') return await createPlatformOwner(app, args, io);
     if (command === 'reset-password') return await resetPassword(app, args, io);
+    if (command === 'seed-dev') return await seedDev(app, io);
   } catch (error) {
     // Jamais le message brut : celui d'une erreur SQL contient requête, paramètres et valeurs (email…).
     const pg = pgError(error);
@@ -104,7 +115,7 @@ async function resetPassword(app: INestApplicationContext, args: string[], io: C
     io.out.write(
       [
         `Code de réinitialisation : ${issued.code} (valable 15 minutes, jusqu’à ${TIME.format(issued.expiresAt)}, heure d’Abidjan)`,
-        'À saisir sur la page « Mot de passe oublié » avec l’adresse email, puis choisir un nouveau mot de passe.',
+        `À saisir sur ${resetPage(app)} avec l’adresse email, puis choisir un nouveau mot de passe.`,
         'Ce code ne sera plus affiché : remettez-le directement à la personne.',
         '',
       ].join('\n'),
@@ -117,6 +128,35 @@ async function resetPassword(app: INestApplicationContext, args: string[], io: C
     }
     throw error;
   }
+}
+
+/** Comptes de développement (jamais en production) : espaces déjà basculés vers le vrai back. */
+async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<number> {
+  try {
+    const accounts = await app
+      .get(TenantDatabase)
+      .withTenantContext({ space: 'auth' }, () => app.get(SeedDevAccountsUseCase).execute());
+    io.out.write(
+      [
+        'Comptes de développement prêts (mot de passe connu, jamais en production) :',
+        ...accounts.map((a) => `  ${a.email} / ${a.password}`),
+        '',
+      ].join('\n'),
+    );
+    return 0;
+  } catch (error) {
+    if (error instanceof SeedRefusedError) {
+      io.err.write(`Refusé : ${error.message}.\n`);
+      return 1;
+    }
+    throw error;
+  }
+}
+
+/** Page « Mot de passe oublié » de l'espace plateforme (étapes code et nouveau mot de passe). */
+function resetPage(app: INestApplicationContext): string {
+  const base = app.get<Config>(CONFIG).APP_PUBLIC_URL ?? 'http://localhost:3000';
+  return `${new URL('/mot-de-passe', base).href}?profil=plateforme`;
 }
 
 /** Compte système qui lance le script, pour l'audit. */

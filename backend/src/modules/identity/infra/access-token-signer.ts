@@ -13,7 +13,12 @@ const AUDIENCE = 'cotiz-api';
 const RESET_AUDIENCE = 'cotiz-reset';
 const RESET_TTL_SECONDS = RESET_TOKEN_TTL_MS / 1000;
 
-const ResetClaims = z.object({ sub: z.uuid(), cid: z.uuid() });
+const ResetClaims = z.object({
+  sub: z.uuid(),
+  cid: z.uuid(),
+  /** Espace de la demande : le proxy du front aiguille auth.reset vers ce back (bascule par espace). */
+  space: z.enum(['platform', 'association', 'subscriber']),
+});
 /** Jeton de réinitialisation (auth.verify → auth.reset) : la personne et le code vérifié qu'il consommera. */
 export type ResetClaims = z.infer<typeof ResetClaims>;
 
@@ -74,7 +79,7 @@ export class AccessTokenSigner {
   async signResetToken(claims: ResetClaims, now = new Date()): Promise<{ token: string; expiresAt: Date }> {
     const issuedAt = Math.floor(now.getTime() / 1000);
     const expiresAt = new Date((issuedAt + RESET_TTL_SECONDS) * 1000);
-    const token = await new SignJWT({ cid: claims.cid })
+    const token = await new SignJWT({ cid: claims.cid, space: claims.space })
       .setProtectedHeader({ alg: ALG, typ: 'JWT' })
       .setSubject(claims.sub)
       .setIssuer(ISSUER)

@@ -120,6 +120,11 @@ const ConfigSchema = z.object({
    * une clé de développement fixe (les journaux locaux ne sont pas des données personnelles à protéger).
    */
   LOG_PSEUDONYM_KEY: z.string().min(32).optional(),
+  /**
+   * CLI `seed-dev` (comptes de développement au mot de passe connu) : accord explicite, en plus de NODE_ENV
+   * development ou test. Jamais en recette ni en production.
+   */
+  COTIZ_DEV_SEED: z.stringbool().default(false),
 });
 
 const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {

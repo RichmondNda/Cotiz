@@ -80,7 +80,8 @@ export class CreatePlatformOwnerUseCase {
       userId,
       code: activation.code,
       expiresAt: activation.expiresAt,
-      activationUrl: new URL('/activer', base).href,
+      // Page d'activation, espace plateforme (sans le code, jamais).
+      activationUrl: `${new URL('/activer', base).href}?espace=plateforme`,
     };
   }
 }
