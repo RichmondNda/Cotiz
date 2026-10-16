@@ -92,6 +92,7 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
   `[DATE]`, `[PRIX]`…, inventaire dans `docs/placeholders-v0.md`) restent tels quels : ne pas inventer de valeur.
 - Bascule d'un endpoint vers NestJS : ajouter son id à `frontend/server/bascule/real-endpoints.ts` (commande `/bascule`),
   puis supprimer son handler simulé en fin de lot.
+- Bascule par espace (lot 1.1) : `server/bascule/real-endpoints.ts` = « id → all | espaces » ; espace basculé = jeton d'accès en mémoire (`useJetonAcces`), pages en `ssr: false`, connexion de test par `scripts/session-test.mjs` (compte `COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev`).
 - Droits et fonctionnalités (à partir du lot 0.3) : `usePermissions()` et `<FeatureGate feature="…">` alimentés par `GET /me`.
   Le front masque, le back refuse.
 - Nouveau handler simulé : `defineContractHandler()` (entrée et réponse contrôlées par le schéma) ; les routes à slug
@@ -133,3 +134,4 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
 - [ ] Uniquement des tokens et des classes du DS ; aucune couleur inventée.
 - [ ] Montants via `formatFCFA`, vocabulaire respecté, cibles tactiles ≥ 44 px.
 - [ ] Données issues de `composables/api`, identiques aux données de référence.
+
