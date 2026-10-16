@@ -3,6 +3,8 @@ import type { Feature, Permission } from '@cotiz/contracts'
 import type { ApiClient } from './client'
 import type { CompteursNavigation, Role, UtilisateurSession } from '~~/types'
 import { initiales } from '~/utils/format'
+import { espaceBascule, lotsBascules } from '~/utils/bascule'
+import { fonctionnalitesActives } from '~/utils/fonctionnalites'
 import { useSession } from '~/composables/useSession'
 
 const ROLE: Record<string, Role> = { subscriber: 'souscripteur', association: 'gestionnaire', platform: 'superadmin' }
@@ -32,7 +34,8 @@ export const useMoi = () => useLecture<UtilisateurSession>('session-moi', async 
       ? { id: courante.association.id, nom: courante.association.name, sigle: initiales(courante.association.name), plan: sub.plan.name }
       : undefined,
     permissions: me.permissions,
-    features: me.features,
+    // Espace basculé : les écrans encore simulés gardent leurs fonctionnalités (transition, lot 1.1).
+    features: espaceBascule(me.space) ? fonctionnalitesActives(me.features, lotsBascules(me.space)) : me.features,
   }
 })
 

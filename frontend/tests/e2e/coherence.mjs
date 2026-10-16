@@ -4,6 +4,7 @@
 import { chromium } from 'playwright'
 import { BASE, texte } from './outils.mjs'
 import { routeMock } from '../../scripts/route-mock.mjs'
+import { ouvrirSession } from '../../scripts/session-test.mjs'
 
 const F = n => `${n.toLocaleString('fr-FR').replace(/\s/g, ' ')} F`
 
@@ -37,7 +38,7 @@ await fetch(new URL('/api/_dev/reinitialiser', BASE), { method: 'POST' })
 let ok = true
 for (const [role, route, attendus] of ATTENDUS) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
-  if (role !== 'null') await ctx.addCookies([{ name: 'cotiz_role', value: role, url: BASE }])
+  await ouvrirSession(ctx, role, BASE)
   const page = await ctx.newPage()
   await page.goto(new URL(routeMock(route), BASE).toString(), { waitUntil: 'networkidle' })
   await page.waitForTimeout(800)

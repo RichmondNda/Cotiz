@@ -71,13 +71,16 @@ function render() {
       ) +
       `\n/** Statut HTTP et message affichable de chaque code. */\n` +
       `export const ERRORS = {\n${errorEntries}} as const satisfies Record<ErrorCode, { http: number; message: string }>;\n`,
-    'endpoint-ids.ts': union(
-      'endpoints.yaml',
-      'ENDPOINT_IDS',
-      'EndpointId',
-      endpoints.map((e) => e.id),
-      "Identifiants d'endpoint (une ressource, une ou plusieurs opérations HTTP).",
-    ),
+    'endpoint-ids.ts':
+      union(
+        'endpoints.yaml',
+        'ENDPOINT_IDS',
+        'EndpointId',
+        endpoints.map((e) => e.id),
+        "Identifiants d'endpoint (une ressource, une ou plusieurs opérations HTTP).",
+      ) +
+      `\n/** Lot qui livre chaque endpoint (bascule progressive du front : architecture/10). */\n` +
+      `export const ENDPOINT_LOTS = {\n${endpoints.map((e) => `  ${str(e.id)}: ${str(e.lot)},\n`).join('')}} as const satisfies Record<EndpointId, string>;\n`,
     'permissions.ts':
       union(
         'permissions.yaml',

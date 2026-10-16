@@ -1,7 +1,7 @@
 # Identifiants mockés des écrans de connexion
 
 Chaque état d'erreur de `design/INVENTAIRE.md` est atteignable avec les saisies ci-dessous.
-Logique : `server/mocks/handlers/session.ts` (`auth.*`). Le cookie `cotiz_role` reste la session mockée jusqu'au lot 1.1.
+Logique : `server/mocks/handlers/session.ts` (`auth.*`). Le cookie `cotiz_role` reste la session mockée des espaces gestionnaire et souscripteur jusqu'au lot 1.2.
 
 ## Souscripteur — `/connexion`
 
@@ -27,12 +27,25 @@ la session mockée reste celle de Moussa Diarra.
 
 État « chargement » : pendant l’envoi. `?scenario=chargement` sur la page allonge la latence à 10 s.
 
-## Super-admin — `/connexion/plateforme`
+## Super-admin — `/connexion/plateforme` (vrai back depuis le lot 1.1)
+
+L'espace plateforme est basculé vers NestJS (`server/bascule/real-endpoints.ts`) : plus de mock pour sa connexion.
+Prérequis : `docker compose -f infra/compose/local.yml up -d`, `pnpm db:migrate`, `pnpm dev` (api + web), puis le
+compte de développement :
+
+```bash
+COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev   # richy@cotiz.app, owner plateforme (développement seulement)
+```
 
 | Email | Mot de passe | Résultat |
 |---|---|---|
-| richy@cotiz.app | `motdepasse` | étape « Code de vérification » ; code `481902` → `/plateforme` |
-| autre | — | « Email ou mot de passe incorrect » |
+| richy@cotiz.app | `Plateau-Dev-Cotiz-2026` | connexion → `/plateforme` (pas de second facteur avant le lot 4.7) |
+| richy@cotiz.app | autre | « Identifiants incorrects » ; au 5ᵉ échec, blocage 15 min |
+| autre | — | « Identifiants incorrects » |
+
+Nouveau compte plateforme, sans fournisseur : `pnpm --filter backend cli create-platform-owner <email> <prénom> <nom>`
+affiche un code à remettre et le lien `/activer?espace=plateforme`. Mot de passe perdu : `pnpm --filter backend cli
+reset-password <email>` affiche un code à 6 chiffres, à saisir sur `/mot-de-passe?profil=plateforme`.
 
 ## Mot de passe oublié — `/mot-de-passe`
 

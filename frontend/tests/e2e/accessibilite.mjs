@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { BASE } from './outils.mjs'
 import { routeMock } from '../../scripts/route-mock.mjs'
+import { ouvrirSession } from '../../scripts/session-test.mjs'
 
 const axe = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
 
@@ -47,7 +48,7 @@ async function naviguer(page, route, vue) {
 
 async function auditer({ role, route, vue, width, height }) {
   const ctx = await browser.newContext({ viewport: { width, height }, isMobile: vue === 'mobile', hasTouch: vue === 'mobile' })
-  if (role !== 'null') await ctx.addCookies([{ name: 'cotiz_role', value: role, url: BASE }])
+  await ouvrirSession(ctx, role, BASE)
   const page = await ctx.newPage()
   const reponse = await naviguer(page, route, vue)
   await page.waitForTimeout(700)
