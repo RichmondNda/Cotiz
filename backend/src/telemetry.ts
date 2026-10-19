@@ -5,7 +5,11 @@ import { register } from 'node:module';
 import { loadConfig } from './config.js';
 import { startTracing } from './shared/telemetry/tracing.js';
 
-register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
+// Hook limité aux bibliothèques instrumentées (tracing.ts) : envelopper tous les modules expose une concurrence
+// d'import-in-the-middle (`export *` résolu contre un autre module, ERR_MODULE_NOT_FOUND au démarrage).
+register('@opentelemetry/instrumentation/hook.mjs', import.meta.url, {
+  data: { include: ['http', 'https', 'express', 'pg', 'ioredis'] },
+});
 
 const service = /worker\.[jt]s$/.test(process.argv[1] ?? '') ? 'worker' : 'api';
 let config;
