@@ -258,6 +258,25 @@ describe('isolation : associations, association_payment_methods, memberships (ba
       });
     });
 
+    it('jeton association hors route d’association (personne sans association) : rien, même ses appartenances', async () => {
+      // Awa : owner de A, souscriptrice de B. Sur /me ou une route commune, MembershipGuard ne pose que la personne.
+      await h.as({ space: 'association', userId: USERS.awa }, async (tx) => {
+        expect(await associations(tx)).toEqual([]);
+        expect(await memberships(tx)).toEqual([]);
+        expect(await methods(tx)).toEqual([]);
+      });
+    });
+
+    it('le test précédent échoue si self_read perd sa condition d’espace', async () => {
+      const seen = await h.withPolicy(
+        'memberships',
+        'self_read',
+        { using: 'user_id = app_user_id()', withCheck: null },
+        () => h.as({ space: 'association', userId: USERS.awa }, memberships),
+      );
+      expect(seen).toEqual([MEMBERSHIPS.awaOwnerA, MEMBERSHIPS.awaB]);
+    });
+
     it('sans contexte, ou sans aucune variable app.* : rien', async () => {
       for (const table of ['associations', 'memberships', 'association_payment_methods']) {
         expect({ table, n: await h.count(null, table) }).toEqual({ table, n: 0 });

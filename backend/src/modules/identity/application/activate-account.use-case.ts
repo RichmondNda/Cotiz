@@ -71,7 +71,10 @@ export class ActivateAccountUseCase {
     if (!user || status === undefined) throw new Error('auth.activate : code valide sans personne');
     if (status === 'active') throw new DomainProblem('already_activated');
     if (status !== 'pending_activation') throw new DomainProblem('invalid_code');
-    if (!(await this.spaceAccess.allows(user.id, input.space))) throw new DomainProblem('wrong_space');
+    // Activer son compte : l'appartenance peut n'être qu'une invitation (choix du lot 1.2) ; jamais retirée.
+    if (!(await this.spaceAccess.allows(user.id, input.space, ['active', 'invited']))) {
+      throw new DomainProblem('wrong_space');
+    }
     // Deux activations simultanées avec le même code : une seule consomme.
     if (!(await this.codes.consume(check.codeId, now))) throw new DomainProblem('already_activated');
 

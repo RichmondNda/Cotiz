@@ -9,7 +9,7 @@ import { createApp } from '../../src/app.js';
 import { CliModule } from '../../src/cli/cli.module.js';
 import { runCli } from '../../src/cli/commands.js';
 import { type Config, loadConfig } from '../../src/config.js';
-import { type IsolationHarness, startIsolationHarness } from '../isolation/harness.js';
+import { A, type IsolationHarness, seedAssociations, startIsolationHarness } from '../isolation/harness.js';
 
 /**
  * auth.activate (lot 1.1, étape 7) : identifiant + code remis à la main + nouveau mot de passe → compte actif et
@@ -83,6 +83,7 @@ describe('auth.activate', () => {
     await api.listen(0, '127.0.0.1');
     base = `${await api.getUrl()}/api/v1`;
     cli = await NestFactory.createApplicationContext(CliModule.register(config), { logger: false });
+    await seedAssociations(h);
   });
 
   afterAll(async () => {
@@ -239,5 +240,34 @@ describe('auth.activate', () => {
     expect(await codeOf(res)).toBe('wrong_space');
     expect(await state(userId)).toMatchObject({ status: 'pending_activation', consumed_at: null });
     expect((await activate({ identifier: 'owner-space@cotiz.test', code })).status).toBe(200);
+  });
+
+  // Lot 1.2 : l'activation accepte une appartenance invitée (la connexion exige une appartenance active).
+  const joinA = (userId: string, status: 'invited' | 'removed') =>
+    h.superuser(
+      `INSERT INTO memberships (id, association_id, user_id, role, status, removed_at)
+       VALUES (gen_random_uuid(), $1, $2, 'subscriber', $3::memberships_status, CASE WHEN $3::text = 'removed' THEN now() END)`,
+      [A.id, userId, status],
+    );
+
+  it('souscripteur invité, bon code : activé et connecté dans l’espace subscriber', async () => {
+    const { code, userId } = await createOwner('subscriber-invited@cotiz.test');
+    await joinA(userId, 'invited');
+    const res = await activate({ identifier: 'subscriber-invited@cotiz.test', code, space: 'subscriber' });
+    expect(res.status).toBe(200);
+    const body = AccessToken.parse(await res.json());
+    expect(body.space).toBe('subscriber');
+    expect(decodeJwt(body.accessToken)).toMatchObject({ sub: userId, space: 'subscriber' });
+    expect(decodeJwt(body.accessToken)).not.toHaveProperty('aid');
+    expect(await state(userId)).toMatchObject({ status: 'active' });
+  });
+
+  it('appartenance retirée, bon code : wrong_space, sans consommer le code ni activer', async () => {
+    const { code, userId } = await createOwner('subscriber-removed@cotiz.test');
+    await joinA(userId, 'removed');
+    const res = await activate({ identifier: 'subscriber-removed@cotiz.test', code, space: 'subscriber' });
+    expect(res.status).toBe(401);
+    expect(await codeOf(res)).toBe('wrong_space');
+    expect(await state(userId)).toMatchObject({ status: 'pending_activation', consumed_at: null });
   });
 });

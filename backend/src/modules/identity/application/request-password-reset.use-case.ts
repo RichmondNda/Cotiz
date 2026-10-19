@@ -3,8 +3,9 @@ import { Injectable } from '@nestjs/common';
 import type { ResetRequestSpace } from '@cotiz/contracts';
 import { passwordResetRequests, users } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, count, eq, gt, sql } from 'drizzle-orm';
+import { and, countDistinct, eq, gt, sql } from 'drizzle-orm';
 import type { z } from 'zod';
+import { activeMembershipsOf } from '../../access/access.public.js';
 import { canonicalIp } from '../../../shared/net/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentRequestInfo } from '../../../shared/request-info/index.js';
@@ -26,7 +27,8 @@ const RESPONSE_FLOOR_MS = 250;
  * auth.forgot (architecture/03), espace auth : la réponse est toujours la même (202), que le compte existe ou non.
  * Une demande n'est créée que pour un compte actif qui a un rôle dans l'espace, 3 fois par 24 h au plus ; le rôle
  * supérieur la traite hors ligne (écrans aux lots 1.4 et 3.1). Gestionnaires et personnel plateforme : demande
- * traitée par la plateforme (`association_id` NULL) ; souscripteurs : par leur association (lot 1.2).
+ * traitée par la plateforme (`association_id` NULL) ; souscripteurs : une demande (et un événement) par association
+ * où la personne est souscriptrice active, traitée par cette association (lot 1.2).
  */
 @Injectable()
 export class RequestPasswordResetUseCase {
@@ -62,8 +64,9 @@ export class RequestPasswordResetUseCase {
     // Demandes simultanées de la même personne : comptées une à une (jamais plus de 3).
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`password_reset_requests:${user.id}`}, 0))`);
 
+    // Une demande = les lignes écrites ensemble (même created_at, heure de la transaction).
     const [recent] = await tx
-      .select({ n: count() })
+      .select({ n: countDistinct(passwordResetRequests.createdAt) })
       .from(passwordResetRequests)
       .where(
         and(
@@ -74,21 +77,32 @@ export class RequestPasswordResetUseCase {
     if ((recent?.n ?? 0) >= MAX_REQUESTS_PER_DAY) return;
 
     const request = currentRequestInfo();
-    const requestId = newId();
-    await tx.insert(passwordResetRequests).values({
-      id: requestId,
-      userId: user.id,
-      associationId: null,
-      space: input.space,
-      ip: request?.ip ? canonicalIp(request.ip) : null,
-      userAgent: request?.userAgent?.slice(0, USER_AGENT_MAX) ?? null,
-    });
-    await this.outbox.publish(tx, {
-      type: 'password_reset.requested',
-      associationId: null,
-      actorUserId: user.id,
-      aggregate: { type: 'password_reset_request', id: requestId },
-      payload: { requestId, userId: user.id, associationIds: [], space: input.space },
-    });
+    const handlers: (string | null)[] =
+      input.space === 'subscriber'
+        ? (await activeMembershipsOf(user.id)).filter((m) => m.role === 'subscriber').map((m) => m.association.id)
+        : [null];
+    for (const associationId of handlers) {
+      const requestId = newId();
+      await tx.insert(passwordResetRequests).values({
+        id: requestId,
+        userId: user.id,
+        associationId,
+        space: input.space,
+        ip: request?.ip ? canonicalIp(request.ip) : null,
+        userAgent: request?.userAgent?.slice(0, USER_AGENT_MAX) ?? null,
+      });
+      await this.outbox.publish(tx, {
+        type: 'password_reset.requested',
+        associationId,
+        actorUserId: user.id,
+        aggregate: { type: 'password_reset_request', id: requestId },
+        payload: {
+          requestId,
+          userId: user.id,
+          associationIds: associationId ? [associationId] : [],
+          space: input.space,
+        },
+      });
+    }
   }
 }

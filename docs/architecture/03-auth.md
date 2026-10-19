@@ -12,7 +12,7 @@ Un seul endpoint `POST /auth/login` avec `space` : `platform`, `association` ou 
 ## Jetons
 | Élément | Choix |
 |---|---|
-| Accès | JWT EdDSA (Ed25519), 15 min, en mémoire côté front. Claims : `sub`, `space`, `sid`, `aid?` |
+| Accès | JWT EdDSA (Ed25519), 15 min, en mémoire côté front. Claims : `sub`, `space`, `sid` (aucune association : `MembershipGuard` vérifie le `{aid}` de l’URL en base, lot 1.2) |
 | Rafraîchissement | Opaque 256 bits, cookie `HttpOnly; Secure; SameSite=Lax; Path=/api/v1/auth`, stocké haché (SHA-256) dans `sessions`. Durée **absolue** de 30 jours depuis la connexion, jamais prolongée par les rotations. « Rester connecté » (`sessions.remember_me`) : cookie persistant jusqu'à cette échéance ; sinon cookie de session |
 | Rotation | Chaque `POST /auth/refresh` émet un nouveau jeton et révoque l'ancien, avec la même échéance. Réutilisation d'un jeton révoqué = vol présumé : **toute la famille** (`family_id`) est révoquée. Le droit à l'espace est revérifié à chaque rotation. Le front ne lance qu'un renouvellement à la fois, tous onglets confondus |
 | Déconnexion | Session révoquée ; `sid` en liste noire Redis jusqu'à expiration du JWT |

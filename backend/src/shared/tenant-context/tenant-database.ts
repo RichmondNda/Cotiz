@@ -21,10 +21,14 @@ export type Tx = Parameters<Parameters<NodePgDatabase['transaction']>[0]>[0];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Store {
+  /** Transaction brute, partagée par les contextes « de soi » ouverts dessus (asSelf). */
+  raw: Tx;
   tx: Tx;
   context: TenantContext | null;
   /** Posé à la fin de `run()` : une continuation détachée ne doit jamais réutiliser une connexion rendue au pool. */
   closed: boolean;
+  /** Posé pendant un `asSelf()` : la connexion est alors dans l'espace auth, le contexte d'avant n'est plus vrai. */
+  suspended: boolean;
 }
 
 const storage = new AsyncLocalStorage<Store>();
@@ -46,6 +50,8 @@ export function runInHttpScope<T>(fn: () => T): T {
  */
 export const FOR_REQUEST = Symbol('forRequest');
 export const WORKER_PROCESS = Symbol('workerProcess');
+/** Réservé au module access, par self.ts (dependency-cruiser) : lecture « de soi » des gardes. */
+export const LOOKUP_AS_SELF = Symbol('lookupAsSelf');
 
 export interface TenantDatabaseOptions {
   connectionString: string;
@@ -66,10 +72,13 @@ export function currentContext(): Readonly<TenantContext> | null {
  * dans une fermeture (suite afterCommit, promesse détachée) s'exécuterait sur une connexion rendue au pool, peut-être
  * reprise par la transaction d'une autre association, avec son contexte.
  */
-function guarded(tx: Tx, isClosed: () => boolean): Tx {
+function guarded(tx: Tx, store: () => Store): Tx {
   return new Proxy(tx, {
     get(target, property) {
-      if (isClosed()) throw new Error('transaction de contexte terminée : repasser par currentTx() dans un contexte');
+      if (store().closed) {
+        throw new Error('transaction de contexte terminée : repasser par currentTx() dans un contexte');
+      }
+      if (store().suspended) throw new Error('transaction de contexte suspendue pendant une lecture « de soi »');
       const value: unknown = Reflect.get(target, property, target);
       return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(target) : value;
     },
@@ -85,6 +94,7 @@ export function currentTx(): Tx {
     );
   }
   if (store.closed) throw new Error('currentTx() appelé après la fin de la transaction de contexte');
+  if (store.suspended) throw new Error('currentTx() appelé pendant une lecture « de soi » (asSelf)');
   return store.tx;
 }
 
@@ -99,14 +109,69 @@ function assertValid(context: TenantContext | null): void {
   }
   // Cohérence espace / identifiants : tenant_isolation ne regarde pas app_space(), un associationId posé hors de
   // l'espace association (ou d'une tâche system) ouvrirait toutes les lignes de l'association.
-  if (context.space === 'association' && context.associationId === undefined) {
-    throw new Error('contexte tenant : associationId requis en espace association');
+  // Jeton association hors d'une route d'association (/me, routes communes) : la personne, sans association (aucune
+  // ligne d'association visible).
+  if (context.space === 'association' && context.associationId === undefined && context.userId === undefined) {
+    throw new Error('contexte tenant : associationId ou userId requis en espace association');
   }
   if (context.space === 'subscriber' && context.userId === undefined) {
     throw new Error('contexte tenant : userId requis en espace subscriber');
   }
   if (context.associationId !== undefined && context.space !== 'association' && context.space !== 'system') {
     throw new Error(`contexte tenant : associationId interdit en espace ${context.space}`);
+  }
+}
+
+/**
+ * Lecture « de soi » (appartenances, rôles) dans la transaction en cours : `fn` voit la base dans l'espace auth avec la
+ * personne `userId` (politiques self_read et member_read : ses propres appartenances, ses associations), puis le
+ * contexte d'avant est rétabli. L'espace auth ouvre aussi les tables auth_access (codes, demandes de réinitialisation)
+ * de toutes les associations : réservé au module access (self.ts, dependency-cruiser), qui n'y lit que des
+ * appartenances et des rôles. `userId` : une personne authentifiée (jeton vérifié) ou trouvée par le serveur
+ * (connexion, activation), jamais une valeur reçue du client. Pendant `fn`, la transaction d'avant est suspendue (toute
+ * requête par elle est refusée) et un second asSelf() concurrent est refusé. Hors transaction (gardes) :
+ * `TenantDatabase[LOOKUP_AS_SELF]()`.
+ */
+export async function asSelf<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+  const store = storage.getStore();
+  if (!store) throw new Error('asSelf() appelé hors contexte tenant');
+  if (store.closed) throw new Error('asSelf() appelé après la fin de la transaction de contexte');
+  if (store.suspended) throw new Error('asSelf() concurrent sur la même transaction : refusé');
+  if (store.context?.space === 'auth' && store.context.userId === userId) return fn();
+  const self: TenantContext = { space: 'auth', userId };
+  assertValid(self);
+  const previous = store.context;
+  const set = (context: TenantContext | null) =>
+    store.raw.execute(sql`SELECT
+      set_config('app.association_id', ${context?.associationId ?? ''}, true),
+      set_config('app.user_id', ${context?.userId ?? ''}, true),
+      set_config('app.space', ${context?.space ?? ''}, true)`);
+  store.suspended = true;
+  const inner: Store = {
+    raw: store.raw,
+    tx: guarded(store.raw, () => inner),
+    context: self,
+    closed: false,
+    suspended: false,
+  };
+  let failed = false;
+  try {
+    await set(self);
+    return await storage.run(inner, fn);
+  } catch (error) {
+    failed = true;
+    throw error;
+  } finally {
+    inner.closed = true;
+    try {
+      await set(previous);
+      store.suspended = false;
+    } catch (restoreError) {
+      // Contexte d'avant non rétabli : la transaction n'est plus utilisable. L'erreur d'origine prime.
+      store.closed = true;
+      // eslint-disable-next-line no-unsafe-finally
+      if (!failed) throw restoreError;
+    }
   }
 }
 
@@ -143,6 +208,15 @@ export class TenantDatabase implements OnModuleDestroy {
     return this.run(context, fn);
   }
 
+  /**
+   * Lecture « de soi » pour les gardes (avant la transaction de la requête) : transaction courte dans l'espace auth avec
+   * la personne du jeton vérifié ; dans une transaction en cours, comme `asSelf()`. Réservé au module access (self.ts).
+   */
+  [LOOKUP_AS_SELF]<T>(userId: string, fn: () => Promise<T>): Promise<T> {
+    if (storage.getStore()) return asSelf(userId, fn);
+    return this.run({ space: 'auth', userId }, fn);
+  }
+
   /** Transaction d'une tâche : `withTenantContext({ associationId, userId, space }, fn)`. */
   withTenantContext<T>(context: TenantContext, fn: () => Promise<T>): Promise<T> {
     if (!(context as TenantContext | null)) return Promise.reject(new Error('withTenantContext() : contexte requis'));
@@ -167,7 +241,7 @@ export class TenantDatabase implements OnModuleDestroy {
         set_config('app.association_id', ${context?.associationId ?? ''}, true),
         set_config('app.user_id', ${context?.userId ?? ''}, true),
         set_config('app.space', ${context?.space ?? ''}, true)`);
-      const store: Store = { tx: guarded(tx, () => store.closed), context, closed: false };
+      const store: Store = { raw: tx, tx: guarded(tx, () => store), context, closed: false, suspended: false };
       try {
         return await storage.run(store, fn);
       } finally {

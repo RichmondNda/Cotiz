@@ -32,6 +32,8 @@ export interface FakeRequest {
   ip?: string;
   headers: Record<string, string | undefined>;
   body?: unknown;
+  /** Paramètres de chemin (`{aid}`…), comme Express les expose. */
+  params?: Record<string, string | undefined>;
 }
 
 /** Méthode de route d'une classe de test, comme Nest la passe au contexte (pour ses métadonnées). */

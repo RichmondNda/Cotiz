@@ -357,13 +357,12 @@ describe('auth.refresh et auth.logout', () => {
       expect(await codeOf(await getFile({ authorization: `Bearer ${accessToken}` }))).toBe('session_revoked');
     });
 
-    it('ordre réel des gardes : jeton association → 404 (appartenance, lot 1.2), mais déconnexion possible', async () => {
+    it('ordre réel des gardes : jeton association sur une route commune → la personne seule, rien de visible (404) ; déconnexion possible', async () => {
       const signer = app.get(AccessTokenSigner);
       const { token } = await signer.sign({
         sub: OWNER.id,
         space: 'association',
         sid: '00000000-0000-7000-8000-00000000c0de',
-        aid: '00000000-0000-7000-8000-00000000a001',
       });
       const file = await getFile({ authorization: `Bearer ${token}` });
       expect(file.status).toBe(404);
