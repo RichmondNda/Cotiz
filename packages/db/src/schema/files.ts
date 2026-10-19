@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { bigint, check, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigint, check, pgEnum, pgTable, text, timestamp, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { associations } from './tenancy.js';
 
 // Valeurs de docs/specs/schema.sql (conformance.test.ts compare les types enum migrés au schéma cible).
 export const filesPurpose = pgEnum('files_purpose', [
@@ -20,7 +21,7 @@ export const files = pgTable(
   {
     /** UUID v7 généré par l'application ; aussi le nom de l'objet (jamais le nom d'origine). */
     id: uuid('id').primaryKey(),
-    associationId: uuid('association_id'),
+    associationId: uuid('association_id').references((): AnyPgColumn => associations.id),
     ownerUserId: uuid('owner_user_id').notNull(),
     purpose: filesPurpose('purpose').notNull(),
     bucket: text('bucket').notNull(),

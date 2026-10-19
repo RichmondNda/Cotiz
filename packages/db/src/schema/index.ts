@@ -3,4 +3,5 @@ export * from './audit.js';
 export * from './outbox.js';
 export * from './files.js';
 export * from './identity.js';
+export * from './tenancy.js';
 export * from './access.js';

@@ -1202,7 +1202,7 @@ CREATE POLICY tenant_isolation ON memberships
   USING (association_id = app_association_id())
   WITH CHECK (association_id = app_association_id());
 CREATE POLICY self_read ON memberships FOR SELECT
-  USING (user_id = app_user_id());
+  USING (user_id = app_user_id() AND app_space() IN ('subscriber', 'auth'));
 
 -- association_requests
 ALTER TABLE association_requests ENABLE ROW LEVEL SECURITY;
@@ -1217,7 +1217,7 @@ CREATE POLICY tenant_self ON associations
   USING (id = app_association_id())
   WITH CHECK (id = app_association_id());
 CREATE POLICY member_read ON associations FOR SELECT
-  USING (EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = associations.id AND m.user_id = app_user_id() AND m.status = 'active'));
+  USING (app_space() IN ('subscriber', 'auth') AND EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = associations.id AND m.user_id = app_user_id() AND m.status = 'active'));
 CREATE POLICY system_read ON associations FOR SELECT
   USING (app_space() = 'system');
 
@@ -1228,7 +1228,7 @@ CREATE POLICY tenant_isolation ON association_payment_methods
   USING (association_id = app_association_id())
   WITH CHECK (association_id = app_association_id());
 CREATE POLICY member_read ON association_payment_methods FOR SELECT
-  USING (EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = association_payment_methods.association_id AND m.user_id = app_user_id() AND m.status = 'active'));
+  USING (app_space() IN ('subscriber', 'auth') AND EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = association_payment_methods.association_id AND m.user_id = app_user_id() AND m.status = 'active'));
 
 -- subscriptions
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;

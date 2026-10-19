@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { AppModule } from '../../src/app.module.js';
 import { loadConfig } from '../../src/config.js';
-import { A, B, type IsolationHarness, startIsolationHarness, USERS } from '../isolation/harness.js';
+import { A, B, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
 import { startMinio, type TestMinio } from '../support/minio.js';
 import { as, TestAuthGuard } from '../support/test-auth.js';
 
@@ -75,6 +75,7 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       startMinio(),
       new RedisContainer('redis:7-alpine').start(),
     ]);
+    await seedAssociations(h);
     const config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL: h.db.urlFor('cotiz_app'),

@@ -10,7 +10,7 @@ import type { z } from 'zod';
 import { AppModule } from '../../src/app.module.js';
 import { type Config, loadConfig } from '../../src/config.js';
 import { WorkerModule } from '../../src/worker.module.js';
-import { A, type IsolationHarness, startIsolationHarness, USERS } from '../isolation/harness.js';
+import { A, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
 import { EICAR, type FakeClamd, startFakeClamd } from '../support/fake-clamd.js';
 import { startMinio, type TestMinio } from '../support/minio.js';
 import { as, TestAuthGuard } from '../support/test-auth.js';
@@ -83,6 +83,7 @@ describe('analyse des fichiers (worker, file files)', () => {
       startMinio(),
       startFakeClamd(),
     ]);
+    await seedAssociations(h);
     const env = {
       NODE_ENV: 'test',
       DATABASE_URL: h.db.urlFor('cotiz_app'),

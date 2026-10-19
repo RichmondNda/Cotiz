@@ -11,8 +11,10 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { createdAt, id, updatedAt, version } from '../columns.js';
+import { associations } from './tenancy.js';
 
 // Module identity (docs/specs/schema.sql, lot 1.1 ; migration 0004). Valeurs des enums : celles du schéma cible
 // (conformance.test.ts les compare).
@@ -115,7 +117,7 @@ export const oneTimeCodes = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     consumedAt: timestamp('consumed_at', { withTimezone: true }),
     /** Association émettrice ; `null` si émis par la plateforme. */
-    associationId: uuid('association_id'),
+    associationId: uuid('association_id').references((): AnyPgColumn => associations.id),
     /** Activation d'un souscripteur seulement (AES-256-GCM) ; effacé à la consommation ou l'expiration. */
     codeEncrypted: bytea('code_encrypted'),
     issuedBy: uuid('issued_by').references(() => users.id),
@@ -138,7 +140,7 @@ export const passwordResetRequests = pgTable(
       .notNull()
       .references(() => users.id),
     /** Association qui traite la demande (souscripteur) ; `null` = plateforme (gestionnaires). */
-    associationId: uuid('association_id'),
+    associationId: uuid('association_id').references((): AnyPgColumn => associations.id),
     space: passwordResetRequestsSpace('space').notNull(),
     status: passwordResetRequestsStatus('status').notNull().default('pending'),
     codeId: uuid('code_id').references(() => oneTimeCodes.id),
