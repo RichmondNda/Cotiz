@@ -6,7 +6,7 @@
 //   renouvellement reste dans le contexte : chaque page rouvre la session sans se reconnecter.
 // Compte : CAPTURE_SUPERADMIN_EMAIL / CAPTURE_SUPERADMIN_PASSWORD (par défaut ceux de seed-dev, IDENTIFIANTS.md).
 
-const SUPERADMIN = {
+export const SUPERADMIN = {
   email: process.env.CAPTURE_SUPERADMIN_EMAIL ?? 'richy@cotiz.app',
   password: process.env.CAPTURE_SUPERADMIN_PASSWORD ?? 'Plateau-Dev-Cotiz-2026',
 }
