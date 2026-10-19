@@ -3,6 +3,7 @@
 //   node tests/e2e/parcours.mjs plateforme → un seul (public | souscripteur | gestionnaire | plateforme)
 // Captures de chaque étape : .verif/e2e/<parcours>/. Code de sortie 1 si une étape échoue.
 import { ID, uid } from '../../server/mocks/ids.ts'
+import { SUPERADMIN } from '../../scripts/session-test.mjs'
 import { assert, contient, parcours, texte } from './outils.mjs'
 
 // Les routes portent les UUID déterministes du jeu simulé (server/mocks/ids.ts), plus des slugs.
@@ -166,11 +167,10 @@ const PARCOURS = {
   plateforme: () => parcours('plateforme', {}, [
     ['connexion', async (page) => {
       await page.goto('/connexion/plateforme', { waitUntil: 'networkidle' })
-      await page.getByLabel('Email').fill('richy@cotiz.app')
-      await page.getByLabel('Mot de passe', { exact: true }).fill('motdepasse')
+      // Espace basculé (lot 1.1) : vraie connexion avec le compte de développement, sans second facteur (TOTP au lot 4.7).
+      await page.getByLabel('Email').fill(SUPERADMIN.email)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(SUPERADMIN.password)
       await page.getByRole('button', { name: 'Se connecter' }).click()
-      await page.getByLabel('Chiffre 1').fill('481902')
-      await page.getByRole('button', { name: 'Valider' }).click()
       await page.waitForURL(u => new URL(u).pathname === '/plateforme')
     }],
     ['tableau-de-bord', async (page) => {

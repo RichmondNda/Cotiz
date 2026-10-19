@@ -61,9 +61,14 @@ export type CodeErreurAuth
     | 'blocage'
     | 'code-incorrect'
     | 'code-expire'
+    | 'deja-active'
+    | 'mot-de-passe-faible'
 
-/** Mot de passe oublié : profil d'origine (le champ demandé en dépend). */
-export type ProfilMotDePasse = 'souscripteur' | 'gestionnaire'
+/**
+ * Mot de passe oublié : profil d'origine (le champ demandé en dépend). `plateforme` : personnel Cotiz, code remis par
+ * l'exploitant (CLI reset-password) ; profil non proposé dans le sélecteur, atteint par le lien de la CLI.
+ */
+export type ProfilMotDePasse = 'souscripteur' | 'gestionnaire' | 'plateforme'
 
 /** Réponse de `auth.forgot › forgot`. */
 export interface EnvoiCode {

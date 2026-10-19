@@ -1,0 +1,24 @@
+import { type DynamicModule, Module } from '@nestjs/common';
+import type { Config } from '../config.js';
+import { ConfigModule } from '../config.module.js';
+import { IdentityCliModule } from '../modules/identity/identity-cli.module.js';
+import { CryptoModule } from '../shared/crypto/index.js';
+import { createLogger, LoggingModule } from '../shared/logging/index.js';
+import { TenantContextModule } from '../shared/tenant-context/index.js';
+
+/** Contexte Nest des scripts d'exploitation (src/cli.ts) : configuration, journaux, base, cas d'usage. Pas de HTTP. */
+@Module({})
+export class CliModule {
+  static register(config: Config): DynamicModule {
+    return {
+      module: CliModule,
+      imports: [
+        ConfigModule.register(config),
+        LoggingModule.register(createLogger(config, { name: 'cli' })),
+        TenantContextModule,
+        CryptoModule,
+        IdentityCliModule,
+      ],
+    };
+  }
+}

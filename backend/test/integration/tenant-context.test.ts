@@ -11,7 +11,7 @@ import {
   NotFoundException,
   Post,
 } from '@nestjs/common';
-import { APP_GUARD, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { runMigrations } from '@cotiz/db/migrate';
 import { ROLE_PASSWORDS, startTestDatabase, type TestDatabase } from '@cotiz/db/testing';
 import { sql } from 'drizzle-orm';
@@ -270,9 +270,8 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
     app = await NestFactory.create(
       {
         module: TestRoot,
-        imports: [AppModule.register(config)],
+        imports: [AppModule.register(config, { guards: [HeaderContextGuard] })],
         controllers: [ProbeController],
-        providers: [{ provide: APP_GUARD, useClass: HeaderContextGuard }],
       },
       { logger: false },
     );

@@ -141,6 +141,16 @@ export async function auditTenantSecurity(client: Queryable): Promise<SecurityPr
     ) {
       add('tenant_isolation_altered');
     }
+    // tenant_manage (association émettrice, association_id nullable : one_time_codes, password_reset_requests) :
+    // même expression exacte que tenant_isolation, une variante élargie citant app_*() passerait sinon.
+    for (const policy of row.policies) {
+      if (
+        policy.name === 'tenant_manage' &&
+        (policy.qual !== TENANT_EXPRESSION || policy.with_check !== TENANT_EXPRESSION)
+      ) {
+        add('tenant_manage_altered');
+      }
+    }
     for (const policy of row.policies) {
       const contextFree = [policy.qual, policy.with_check].some(
         (expression) =>

@@ -44,6 +44,20 @@ function render() {
   const { statuses } = specs('status-mapping.yaml');
   const dbEnums = schemaEnums(readFileSync(new URL('schema.sql', specsDir), 'utf8'));
 
+  // Rôles de permissions.yaml : une faute de frappe refuserait la permission en silence.
+  const knownRoles = new Set([
+    '*',
+    '*authenticated',
+    'subscriber',
+    ...dbEnums.platform_staff_role.map((role) => `platform:${role}`),
+    ...dbEnums.memberships_role.filter((role) => role !== 'subscriber').map((role) => `association:${role}`),
+  ]);
+  for (const { permission, roles } of permissions) {
+    const unknown = roles.filter((role) => !knownRoles.has(role));
+    if (unknown.length > 0)
+      throw new Error(`permissions.yaml : rôle inconnu pour ${permission} : ${unknown.join(', ')}`);
+  }
+
   const errorEntries = errors.map((e) => `  ${e.code}: { http: ${e.http}, message: ${str(e.message)} },\n`).join('');
 
   return {
@@ -57,20 +71,29 @@ function render() {
       ) +
       `\n/** Statut HTTP et message affichable de chaque code. */\n` +
       `export const ERRORS = {\n${errorEntries}} as const satisfies Record<ErrorCode, { http: number; message: string }>;\n`,
-    'endpoint-ids.ts': union(
-      'endpoints.yaml',
-      'ENDPOINT_IDS',
-      'EndpointId',
-      endpoints.map((e) => e.id),
-      "Identifiants d'endpoint (une ressource, une ou plusieurs opérations HTTP).",
-    ),
-    'permissions.ts': union(
-      'permissions.yaml',
-      'PERMISSIONS',
-      'Permission',
-      permissions.map((p) => p.permission),
-      'Permissions vérifiées par les gardes du back et `usePermissions()` du front.',
-    ),
+    'endpoint-ids.ts':
+      union(
+        'endpoints.yaml',
+        'ENDPOINT_IDS',
+        'EndpointId',
+        endpoints.map((e) => e.id),
+        "Identifiants d'endpoint (une ressource, une ou plusieurs opérations HTTP).",
+      ) +
+      `\n/** Lot qui livre chaque endpoint (bascule progressive du front : architecture/10). */\n` +
+      `export const ENDPOINT_LOTS = {\n${endpoints.map((e) => `  ${str(e.id)}: ${str(e.lot)},\n`).join('')}} as const satisfies Record<EndpointId, string>;\n`,
+    'permissions.ts':
+      union(
+        'permissions.yaml',
+        'PERMISSIONS',
+        'Permission',
+        permissions.map((p) => p.permission),
+        'Permissions vérifiées par les gardes du back et `usePermissions()` du front.',
+      ) +
+      `\n/**\n * Rôles qui détiennent chaque permission : \`platform:<rôle>\`, \`association:<rôle>\`, \`subscriber\`, \`*\` (tout le monde),\n` +
+      ` * \`*authenticated\` (toute personne connectée).\n */\n` +
+      `export const PERMISSION_ROLES = {\n${permissions
+        .map((p) => `  ${str(p.permission)}: [${p.roles.map(str).join(', ')}],\n`)
+        .join('')}} as const satisfies Record<Permission, readonly string[]>;\n`,
     'status-labels.ts':
       header('status-mapping.yaml') +
       `/** Libellé affiché et ton (couleur fonctionnelle) de chaque statut, par famille \`table.colonne\`. */\n` +
@@ -101,13 +124,23 @@ function render() {
       `export const EVENTS = {\n${events
         .map((e) => `  ${str(e.type)}: { version: ${e.version}, payload: [${e.payload.map(str).join(', ')}] },\n`)
         .join('')}} as const satisfies Record<EventType, { version: number; payload: readonly string[] }>;\n`,
-    'features.ts': union(
-      'features.yaml',
-      'FEATURES',
-      'Feature',
-      features.map((f) => f.key),
-      'Fonctionnalités exposées par `GET /me` (`features`).',
-    ),
+    'features.ts':
+      union(
+        'features.yaml',
+        'FEATURES',
+        'Feature',
+        features.map((f) => f.key),
+        'Fonctionnalités exposées par `GET /me` (`features`).',
+      ) +
+      `\n/** Lot qui livre chaque fonctionnalité ; \`planGated\` : dépend aussi du plan ; \`externalProvider\` : groupe 6. */\n` +
+      `export const FEATURE_SPECS = {\n${features
+        .map(
+          (f) =>
+            `  ${f.key}: { lot: ${str(f.lot)}, planGated: ${Boolean(f.planGated)}, externalProvider: ${Boolean(f.externalProvider)} },\n`,
+        )
+        .join(
+          '',
+        )}} as const satisfies Record<Feature, { lot: string; planGated: boolean; externalProvider: boolean }>;\n`,
   };
 }
 

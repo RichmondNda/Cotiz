@@ -220,6 +220,24 @@ describe('garde-fou RLS et droits (auditTenantSecurity)', () => {
     expect(problems).toEqual(expected.map((problem) => ({ table: 'widgets', problem })));
   });
 
+  it.each([
+    ['conforme', `USING ${TENANT} WITH CHECK ${TENANT}`, []],
+    [
+      'élargie',
+      `USING (${TENANT.slice(1, -1)} OR app_space() <> 'none') WITH CHECK ${TENANT}`,
+      ['tenant_manage_altered'],
+    ],
+    ['sans WITH CHECK identique', `USING ${TENANT} WITH CHECK (app_user_id() IS NOT NULL)`, ['tenant_manage_altered']],
+  ])('tenant_manage %s', async (_name, clause, expected) => {
+    const problems = await auditWith(
+      `CREATE TABLE widgets (id uuid PRIMARY KEY, association_id uuid);
+       ALTER TABLE widgets ENABLE ROW LEVEL SECURITY;
+       ALTER TABLE widgets FORCE ROW LEVEL SECURITY;
+       CREATE POLICY tenant_manage ON widgets ${clause};`,
+    );
+    expect(problems).toEqual(expected.map((problem) => ({ table: 'widgets', problem })));
+  });
+
   it('une seconde politique permissive sans contexte annule l’isolation : signalée', async () => {
     const problems = await auditWith(`${TENANT_TABLE}\n${enableTenantRls('widgets').split('\n').slice(2).join('\n')}
       CREATE POLICY debug ON widgets FOR SELECT USING (true);`);

@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, type INestApplication, Module, Patch, 
 import { updateWithVersion } from '@cotiz/db';
 import { sql } from 'drizzle-orm';
 import { integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
-import { APP_GUARD, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { Problem } from '@cotiz/contracts';
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -136,8 +136,7 @@ describe('conventions HTTP (AppModule, Redis réel)', () => {
       RATE_LIMIT_IP_PER_MIN: '1000',
     });
     @Module({
-      imports: [AppModule.register(config), ProbeModule],
-      providers: [{ provide: APP_GUARD, useClass: TestAuthGuard }],
+      imports: [AppModule.register(config, { guards: [TestAuthGuard] }), ProbeModule],
     })
     class TestRoot {}
     app = await NestFactory.create(TestRoot, { logger: false });

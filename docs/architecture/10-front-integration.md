@@ -14,26 +14,29 @@
 - `docs/api-v0.md` reste la trace de la V0 jusqu'à la fin du lot 0.3, puis est supprimé (avec le script `npm run contrat-api` et son contrôle en CI).
 
 ## Registre de bascule
-Fichier unique `frontend/server/bascule/real-endpoints.ts` :
+Fichier unique `frontend/server/bascule/real-endpoints.ts` : chaque id de `docs/specs/endpoints.yaml` servi par NestJS,
+pour **tous les espaces** (`all`) ou **certains** (liste d'espaces : une bascule progressive, espace par espace).
 ```ts
-// Identifiants de docs/specs/endpoints.yaml servis par le vrai back.
-// Ajouter un id = les requêtes de cet endpoint partent vers NestJS au lieu du mock.
-export const REAL_ENDPOINTS = new Set<EndpointId>([
-  'sys.health',
-  // lot 1.1 : 'auth.login', 'auth.refresh', 'auth.logout', 'me', …, 'fl.upload', 'fl.get'
-]);
+export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, 'all' | readonly BasculeSpace[]> = new Map([
+  ['sys.health', 'all'],
+  // lot 1.1 : espace plateforme seulement (gestionnaire et souscripteur au lot 1.2)
+  ['auth.login', ['platform']], ['me', ['platform']], ['fl.upload', ['platform']], …
+])
 ```
-- Middleware Nitro `frontend/server/middleware/bascule.ts` : pour une requête `/api/v1/**`, retrouve l'id d'endpoint (méthode + chemin, via le registre du contrat) ; si l'id est dans `REAL_ENDPOINTS` **ou** si `NUXT_MOCKS=0`, `proxyRequest()` vers `NUXT_API_ORIGIN` (NestJS, `http://localhost:4000` en local) ; sinon le handler simulé répond.
+- Middleware Nitro `frontend/server/middleware/bascule.ts` : pour une requête `/api/v1/**`, retrouve l'id d'endpoint (méthode + chemin, via le registre du contrat) ; si l'id est basculé pour l'espace de la requête **ou** si `NUXT_MOCKS=0`, `proxyRequest()` vers `NUXT_API_ORIGIN` (NestJS, `http://localhost:4000` en local) ; sinon le handler simulé répond.
+- Espace de la requête (aiguillage seulement, jamais une preuve : NestJS vérifie tout) : claim `space` du jeton `Bearer`, sinon `space` du corps JSON (connexion, activation, mot de passe oublié), sinon claim `space` du `resetToken` ; `auth.refresh` part vers NestJS dès que le cookie `cotiz_refresh` (posé par NestJS seul) est présent.
+- Session d'un espace basculé : jeton d'accès **en mémoire** (`app/utils/jeton-acces.ts`), renouvelé par le cookie et rejoué une fois sur une 401, un seul renouvellement à la fois tous onglets confondus (Web Locks) ; pages de l'espace rendues dans le navigateur (`routeRules … ssr: false` : au rendu serveur, aucune identité). Pendant la transition, le cookie simulé `cotiz_role` reste posé pour les écrans encore simulés, et `features` de `/me` garde les fonctionnalités des lots non basculés (`app/utils/fonctionnalites.ts`).
 - Le navigateur ne parle qu'à Nuxt (même origine : pas de CORS, cookies d'authentification sur le domaine du front).
 - En développement local : `NUXT_MOCKS=1`. Build de production (répété en local au lot 3.5, déployé en recette et en production au lot 7.1) : `NUXT_MOCKS=0` et les handlers simulés sont exclus du build (`nitro.ignore` conditionnel).
+- Comptes réels de développement (espaces basculés) : `COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev` (NODE_ENV development ou test seulement) ; le script de capture et les parcours e2e s'y connectent par la vraie page (`frontend/scripts/session-test.mjs`).
 
 ## Protocole par endpoint (à suivre dans chaque lot)
 1. **Figer le contrat** : schéma Zod relu ; toute modification = changement dans `packages/contracts`, front, back et mock dans la même PR.
 2. **Implémenter le back** avec les tests : nominal, erreurs du catalogue, isolation, permissions.
 3. **Test de conformité** : la réponse réelle (Testcontainers) et la réponse simulée passent le même schéma et exposent les mêmes codes d'erreur.
-4. **Basculer** : ajouter l'id à `REAL_ENDPOINTS`.
+4. **Basculer** : ajouter l'id à `REAL_ENDPOINTS` (`all`, ou les espaces déjà prêts).
 5. **Recette** de l'écran avec de vraies données (`/verifier-ecran` pour le rendu) ; parcours Playwright (`frontend/tests/e2e/`) mis à jour.
-6. **Retirer** le handler simulé de l'endpoint à la fin du lot.
+6. **Retirer** le handler simulé de l'endpoint à la fin du lot où il est basculé pour tous les espaces (`all`).
 
 ## En cas d'écart
 | Symptôme | Cause | Réponse |

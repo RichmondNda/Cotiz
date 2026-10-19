@@ -2,6 +2,7 @@ import { Controller, Get, type INestApplication, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { TestAuthGuard } from '../support/test-auth.js';
 import { AppModule } from '../../src/app.module.js';
 import { loadConfig } from '../../src/config.js';
 import { Audited, MASKED, recordAudit } from '../../src/shared/audit/index.js';
@@ -246,7 +247,8 @@ describe('shared/audit : @Audited', () => {
         REDIS_URL: 'redis://127.0.0.1:1',
         S3_ENDPOINT: 'http://127.0.0.1:1',
       });
-      @Module({ imports: [AppModule.register(config), ProbeModule] })
+      // Route de test hors contrat : la garde de test remplace la chaîne d'authentification (requête anonyme).
+      @Module({ imports: [AppModule.register(config, { guards: [TestAuthGuard] }), ProbeModule] })
       class TestRoot {}
       app = await NestFactory.create(TestRoot, { logger: false });
       app.setGlobalPrefix('api/v1');

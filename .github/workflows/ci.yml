@@ -131,6 +131,36 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter frontend exec playwright install --with-deps chromium
+      # Espace plateforme basculé (lot 1.1) : vraie connexion avec le compte de développement (seed-dev).
+      - name: PostgreSQL, PgBouncer et Redis
+        run: docker compose -f infra/compose/local.yml up -d --wait postgres pgbouncer redis
+      - name: Migrations et compte de développement
+        run: |
+          pnpm db:migrate
+          pnpm --filter backend cli seed-dev
+        env:
+          MIGRATION_DATABASE_URL: postgres://cotiz_migrator:cotiz-migrator-local@127.0.0.1:5432/cotiz
+          DATABASE_URL: postgres://cotiz_app:cotiz-app-local@127.0.0.1:6432/cotiz
+          REDIS_URL: redis://127.0.0.1:6379
+          S3_ENDPOINT: http://127.0.0.1:9000
+          NODE_ENV: development
+          COTIZ_DEV_SEED: '1'
+      - name: Api NestJS
+        working-directory: backend
+        run: |
+          nohup node --conditions=development --import @swc-node/register/esm-register src/main.ts > api.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -sf -o /dev/null http://localhost:4000/api/v1/health/live && exit 0
+            sleep 2
+          done
+          cat api.log
+          exit 1
+        env:
+          DATABASE_URL: postgres://cotiz_app:cotiz-app-local@127.0.0.1:6432/cotiz
+          REDIS_URL: redis://127.0.0.1:6379
+          S3_ENDPOINT: http://127.0.0.1:9000
+          NODE_ENV: development
+          LOG_PRETTY: 'false'
       - name: Serveur de dev (mocks Nitro)
         working-directory: frontend
         run: |
@@ -155,4 +185,5 @@ jobs:
           path: |
             frontend/.verif/e2e
             frontend/dev.log
+            backend/api.log
           if-no-files-found: ignore

@@ -7,7 +7,7 @@
 -->
 <script setup lang="ts">
 const props = defineProps<{
-  theme?: 'member' | 'manager'
+  theme?: 'member' | 'manager' | 'superadmin'
   retour?: { label: string, to: string }
   fond?: 'public' | 'espace'
 }>()

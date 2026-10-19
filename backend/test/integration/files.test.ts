@@ -1,4 +1,3 @@
-import { APP_GUARD } from '@nestjs/core';
 import { type INestApplication, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { StoredFile, UPLOAD_MAX_BYTES, UploadTicket } from '@cotiz/contracts';
@@ -88,7 +87,7 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       // Pas de worker ici (analyse : file-scan.test.ts) : la confirmation répond `pending` sans attendre.
       FILE_SCAN_WAIT_MS: '0',
     });
-    @Module({ imports: [AppModule.register(config)], providers: [{ provide: APP_GUARD, useClass: TestAuthGuard }] })
+    @Module({ imports: [AppModule.register(config, { guards: [TestAuthGuard] })] })
     class TestRoot {}
     app = await NestFactory.create(TestRoot, { logger: false });
     app.setGlobalPrefix('api/v1');
@@ -116,9 +115,10 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       expect(`${url.protocol}//${url.host}`).toBe(minio.endpoint);
       expect(url.pathname).toBe(`/cotiz-proofs/quarantine/${ticket.fileId}`);
       expect(url.searchParams.get('X-Amz-Expires')).toBe('300');
-      const expiresIn = Date.parse(ticket.expiresAt) - before;
-      expect(expiresIn).toBeGreaterThan(290_000);
-      expect(expiresIn).toBeLessThanOrEqual(301_000);
+      // Entre l'envoi et la réponse (la machine de CI peut mettre plus d'une seconde à répondre).
+      const expiresAt = Date.parse(ticket.expiresAt);
+      expect(expiresAt).toBeGreaterThanOrEqual(before + 300_000 - 1_000);
+      expect(expiresAt).toBeLessThanOrEqual(Date.now() + 300_000 + 1_000);
 
       const { rows } = await h.superuser('SELECT * FROM files WHERE id = $1', [ticket.fileId]);
       expect(rows[0]).toMatchObject({

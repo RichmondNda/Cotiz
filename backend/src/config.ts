@@ -1,4 +1,27 @@
+import { createPrivateKey, createPublicKey } from 'node:crypto';
 import { z } from 'zod';
+import { parseIpAllowList } from './shared/net/ip-allow-list.js';
+
+/** PEM sur une ligne (`\n` littéraux, fréquent dans les gestionnaires de secrets) → PEM multiligne. */
+const Pem = z
+  .string()
+  .min(1)
+  .transform((value) => value.replaceAll('\\n', '\n'))
+  .optional();
+
+/** Paire Ed25519 cohérente (la clé publique est celle de la clé privée). */
+function isEd25519Pair(privatePem: string, publicPem: string): boolean {
+  try {
+    const privateKey = createPrivateKey(privatePem);
+    const derived = createPublicKey(privateKey).export({ type: 'spki', format: 'der' });
+    return (
+      privateKey.asymmetricKeyType === 'ed25519' &&
+      derived.equals(createPublicKey(publicPem).export({ type: 'spki', format: 'der' }))
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Configuration validée au démarrage : une variable manquante ou invalide arrête le processus.
 // Les messages nomment les variables, jamais leurs valeurs (elles peuvent contenir des secrets).
@@ -10,6 +33,33 @@ const ConfigSchema = z.object({
   /** Connexions du pool du processus (shared/tenant-context), une transaction de contexte chacune. */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
+  /**
+   * Adresse publique du front (liens d'activation des messages prêts à transmettre) : exigée en production ; ailleurs,
+   * le front de développement (http://localhost:3000).
+   */
+  APP_PUBLIC_URL: z.url({ protocol: /^https?$/ }).optional(),
+  /**
+   * Clés Ed25519 des jetons d'accès (JWT EdDSA, architecture/03), en PEM (PKCS#8 et SPKI ; `\n` littéral accepté pour les
+   * retours à la ligne) : exigées en production ; ailleurs, absentes, une paire éphémère est générée au démarrage (les
+   * jetons ne survivent pas à un redémarrage).
+   */
+  JWT_PRIVATE_KEY: Pem,
+  JWT_PUBLIC_KEY: Pem,
+  /**
+   * Connexion à l'espace plateforme : adresses ou réseaux autorisés (`203.0.113.7, 10.0.0.0/8`, IPv4 ou IPv6).
+   * Absente : toute adresse (architecture/03 ; V2 : TOTP obligatoire, lot 4.7).
+   */
+  PLATFORM_ALLOWED_IPS: z.string().min(1).optional(),
+  /**
+   * Clé AES-256 (32 octets en base64) des codes d'activation ré-affichables (one_time_codes.code_encrypted) : exigée en
+   * production ; ailleurs, une clé de développement fixe.
+   */
+  CODES_ENCRYPTION_KEY: z
+    .string()
+    .refine((value) => Buffer.from(value, 'base64').length === 32 && /^[A-Za-z0-9+/]+={0,2}$/.test(value), {
+      message: '32 octets en base64 attendus',
+    })
+    .optional(),
   S3_ENDPOINT: z.url({ protocol: /^https?$/ }),
   /**
    * Adresse de MinIO vue par le navigateur, pour signer les URL de dépôt et de lecture (S3_ENDPOINT s'il est absent).
@@ -70,6 +120,11 @@ const ConfigSchema = z.object({
    * une clé de développement fixe (les journaux locaux ne sont pas des données personnelles à protéger).
    */
   LOG_PSEUDONYM_KEY: z.string().min(32).optional(),
+  /**
+   * CLI `seed-dev` (comptes de développement au mot de passe connu) : accord explicite, en plus de NODE_ENV
+   * development ou test. Jamais en recette ni en production.
+   */
+  COTIZ_DEV_SEED: z.stringbool().default(false),
 });
 
 const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
@@ -84,8 +139,30 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
       message: 'exigée avec OTEL_TRACES_EXPORTER=otlp',
     });
   }
+  if ((config.JWT_PRIVATE_KEY === undefined) !== (config.JWT_PUBLIC_KEY === undefined)) {
+    const missing = config.JWT_PRIVATE_KEY === undefined ? 'JWT_PRIVATE_KEY' : 'JWT_PUBLIC_KEY';
+    ctx.addIssue({ code: 'custom', path: [missing], message: 'exigée avec la seconde clé de la paire' });
+  } else if (
+    config.JWT_PRIVATE_KEY !== undefined &&
+    config.JWT_PUBLIC_KEY !== undefined &&
+    !isEd25519Pair(config.JWT_PRIVATE_KEY, config.JWT_PUBLIC_KEY)
+  ) {
+    ctx.addIssue({ code: 'custom', path: ['JWT_PRIVATE_KEY'], message: 'paire Ed25519 attendue' });
+  }
+  if (config.PLATFORM_ALLOWED_IPS !== undefined && parseIpAllowList(config.PLATFORM_ALLOWED_IPS) === null) {
+    ctx.addIssue({ code: 'custom', path: ['PLATFORM_ALLOWED_IPS'], message: 'adresse ou réseau invalide' });
+  }
   if (config.NODE_ENV !== 'production') return;
-  for (const key of ['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'CLAMAV_URL', 'LOG_PSEUDONYM_KEY'] as const) {
+  for (const key of [
+    'S3_ACCESS_KEY_ID',
+    'S3_SECRET_ACCESS_KEY',
+    'CLAMAV_URL',
+    'LOG_PSEUDONYM_KEY',
+    'APP_PUBLIC_URL',
+    'JWT_PRIVATE_KEY',
+    'JWT_PUBLIC_KEY',
+    'CODES_ENCRYPTION_KEY',
+  ] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
   }
 });

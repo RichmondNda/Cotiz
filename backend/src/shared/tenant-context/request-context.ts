@@ -1,4 +1,5 @@
-import { SetMetadata } from '@nestjs/common';
+import { type ExecutionContext, SetMetadata } from '@nestjs/common';
+import type { Reflector } from '@nestjs/core';
 import { setLogIdentity } from '../logging/index.js';
 import type { TenantContext } from './tenant-database.js';
 
@@ -21,3 +22,13 @@ export const WITHOUT_TENANT_CONTEXT = Symbol('withoutTenantContext');
 
 /** Route sans accès aux données (sondes, documentation) : pas de transaction, `currentTx()` y lève une erreur. */
 export const WithoutTenantContext = (): MethodDecorator & ClassDecorator => SetMetadata(WITHOUT_TENANT_CONTEXT, true);
+
+/** Route marquée `@WithoutTenantContext()` (méthode ou classe). */
+export function isWithoutTenantContext(reflector: Reflector, context: ExecutionContext): boolean {
+  return (
+    reflector.getAllAndOverride<boolean | undefined>(WITHOUT_TENANT_CONTEXT, [
+      context.getHandler(),
+      context.getClass(),
+    ]) === true
+  );
+}

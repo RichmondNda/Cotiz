@@ -48,7 +48,7 @@ errors:
 - code: wrong_space
   http: 401
   message: Identifiant ou mot de passe incorrect.
-  where: Même message que invalid_credentials (ne révèle rien)
+  where: Connexion et activation dans un espace sans rôle ; même message que invalid_credentials (ne révèle rien)
 - code: account_locked
   http: 423
   message: Compte bloqué pendant 15 minutes après plusieurs tentatives.

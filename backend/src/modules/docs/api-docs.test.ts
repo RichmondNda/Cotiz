@@ -1,7 +1,10 @@
+import { generateKeyPairSync } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../app.js';
 import { loadConfig } from '../../config.js';
+
+const jwt = generateKeyPairSync('ed25519');
 
 // Page de documentation interne (Scalar), servie par l'api en développement uniquement, sans aucune ressource externe.
 const env = (NODE_ENV: string) => ({
@@ -14,6 +17,10 @@ const env = (NODE_ENV: string) => ({
   S3_SECRET_ACCESS_KEY: 'test',
   CLAMAV_URL: 'tcp://127.0.0.1:1',
   LOG_PSEUDONYM_KEY: 'cle-de-test-pseudonymisation-0123456789',
+  APP_PUBLIC_URL: 'https://app.cotiz.test',
+  JWT_PRIVATE_KEY: jwt.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
+  JWT_PUBLIC_KEY: jwt.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
+  CODES_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
 });
 
 let app: INestApplication | undefined;

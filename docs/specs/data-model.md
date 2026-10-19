@@ -103,6 +103,7 @@ Sessions de connexion (jetons de rafraîchissement).
 | `space` | `enum` | platform · association · subscriber |
 | `ip / user_agent` | `inet / text` |  |
 | `created_at / last_used_at / expires_at / revoked_at` | `timestamptz` |  |
+| `remember_me` | `boolean` | « Rester connecté » : cookie de renouvellement persistant (30 jours) sinon de session, recopié à chaque rotation |
 
 ## `one_time_codes` — lot 1.1
 

@@ -2,10 +2,12 @@
 // Le navigateur ne parle qu'à Nuxt (même origine) : le middleware de bascule sert le mock ou transmet à NestJS.
 // - le `?scenario=` de la page part dans l'en-tête `x-cotiz-scenario` (états de données de l'inventaire, dev) ;
 // - au rendu serveur, l'appel vise l'origine de la requête et fait suivre le cookie de session ;
+// - espaces basculés : jeton d'accès en `Authorization` (mémoire de l'onglet), renouvelé puis rejoué sur une 401 ;
 // - une erreur `Problem` est convertie en erreur Nuxt (`statusCode`, `data` = Problem) pour les écrans d'erreur.
 import { ApiError, createClient } from '@cotiz/api-client'
 import type { ApiClient } from '@cotiz/api-client'
 import type { MaybeRefOrGetter } from 'vue'
+import { fetchAvecRenouvellement } from '~/utils/jeton-acces'
 
 export type { ApiClient }
 
@@ -13,11 +15,15 @@ export function useClient(): ApiClient {
   const route = useRoute()
   const cookie = import.meta.server ? useRequestHeaders(['cookie']) : {}
   const origin = import.meta.server ? useRequestURL().origin : ''
+  const jeton = useJetonAcces()
   return createClient({
     baseUrl: origin,
     credentials: 'same-origin',
+    ...(import.meta.client ? { fetch: fetchAvecRenouvellement(globalThis.fetch.bind(globalThis), jeton) } : {}),
     headers: () => {
       const headers: Record<string, string> = { ...cookie }
+      const acces = jeton.valeur()
+      if (acces) headers.authorization = `Bearer ${acces}`
       const scenario = route.query.scenario
       if (typeof scenario === 'string' && scenario) headers['x-cotiz-scenario'] = scenario
       return headers

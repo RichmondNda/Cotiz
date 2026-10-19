@@ -158,7 +158,7 @@ export const authActivate = defineEndpoint({
   id: 'auth.activate',
   space: 'auth',
   permission: 'public',
-  errors: ['invalid_code', 'code_expired', 'too_many_attempts', 'weak_password', 'already_activated'],
+  errors: ['invalid_code', 'code_expired', 'too_many_attempts', 'weak_password', 'already_activated', 'wrong_space'],
   flags: { ...noFlags, rateLimited: true, audited: true },
   operations: {
     /** Code consommé, compte actif et connecté directement. */

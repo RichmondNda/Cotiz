@@ -1,6 +1,8 @@
 <!--
-  Mot de passe oublié (/mot-de-passe?profil=souscripteur|gestionnaire) : 4 étapes dans une carte.
-  1. Profil (souscripteur → téléphone, gestionnaire → email) et « Recevoir un code ».
+  Mot de passe oublié (/mot-de-passe?profil=souscripteur|gestionnaire|plateforme) : 4 étapes dans une carte.
+  1. Profil (souscripteur → téléphone, gestionnaire → email) et « Recevoir un code ». Sans fournisseur
+     (ui-deviations.md, lot 1.1) : la demande est transmise à l'association (ou à l'équipe Cotiz), qui remet le code.
+     `plateforme` : personnel Cotiz, code remis par l'exploitant (CLI reset-password) ; absent du sélecteur.
   2. Code à 6 chiffres (passage automatique), « Renvoyer le code » après 60 s ; erreurs : code incorrect, code expiré.
   3. Nouveau mot de passe + confirmation, robustesse sur 4 segments et règles cochées.
   4. Succès, retour à la connexion du profil.
@@ -19,13 +21,18 @@ useHead({ title: 'Mot de passe oublié — Cotiz' })
 const route = useRoute()
 const { demanderCodeMotDePasse, verifierCodeMotDePasse, enregistrerMotDePasse } = useAuth()
 
-const profil = ref<ProfilMotDePasse>(route.query.profil === 'gestionnaire' ? 'gestionnaire' : 'souscripteur')
+const PROFIL_DEMANDE = { gestionnaire: 'gestionnaire', plateforme: 'plateforme' } as const
+const profil = ref<ProfilMotDePasse>(PROFIL_DEMANDE[route.query.profil as keyof typeof PROFIL_DEMANDE] ?? 'souscripteur')
 const PROFILS = [
   { valeur: 'souscripteur' as const, label: 'Je suis souscripteur' },
   { valeur: 'gestionnaire' as const, label: 'Je suis gestionnaire' },
 ]
-const theme = computed(() => (profil.value === 'souscripteur' ? 'member' : 'manager'))
-const connexion = computed(() => (profil.value === 'souscripteur' ? '/connexion' : '/connexion/association'))
+const THEME = { souscripteur: 'member', gestionnaire: 'manager', plateforme: 'superadmin' } as const
+const CONNEXION = { souscripteur: '/connexion', gestionnaire: '/connexion/association', plateforme: '/connexion/plateforme' } as const
+const theme = computed(() => THEME[profil.value])
+const connexion = computed(() => CONNEXION[profil.value])
+/** Qui remet le code (ui-deviations.md : aucun envoi automatique). */
+const remetteur = computed(() => (profil.value === 'souscripteur' ? 'votre association' : 'l’équipe Cotiz'))
 
 const etape = ref<1 | 2 | 3 | 4>(1)
 const envoi = ref(false)
@@ -148,8 +155,8 @@ async function enregistrer() {
     await enregistrerMotDePasse(nouveau.value)
     etape.value = 4
   }
-  catch {
-    erreurApi.value = 'reseau'
+  catch (e) {
+    erreurApi.value = codeErreur<CodeErreurAuth>(e) ?? 'reseau'
   }
   finally {
     envoi.value = false
@@ -193,9 +200,10 @@ async function enregistrer() {
             Mot de passe oublié
           </h1>
           <p class="mdp__texte">
-            Recevez un code pour choisir un nouveau mot de passe, sans passer par votre association.
+            Indiquez votre identifiant : votre demande est transmise à {{ remetteur }}, qui vous remettra un code.
           </p>
           <CzSegmented
+            v-if="profil !== 'plateforme'"
             v-model="profil"
             :options="PROFILS"
             label="Profil"
@@ -210,7 +218,6 @@ async function enregistrer() {
           <CzField
             v-if="profil === 'souscripteur'"
             label="Téléphone"
-            aide="Le code vous sera envoyé par SMS."
             :erreur="erreurIdentifiant"
           >
             <CzInput
@@ -224,7 +231,6 @@ async function enregistrer() {
           <CzField
             v-else
             label="Email"
-            aide="Le code vous sera envoyé par email."
             :erreur="erreurIdentifiant"
           >
             <CzInput
@@ -240,7 +246,7 @@ async function enregistrer() {
             taille="lg"
             bloc
             :chargement="envoi"
-            libelle-chargement="Envoi du code…"
+            libelle-chargement="Envoi de la demande…"
           >
             Recevoir un code
           </CzButton>
@@ -257,7 +263,8 @@ async function enregistrer() {
             Saisissez le code
           </h1>
           <p class="mdp__texte">
-            Code à 6 chiffres envoyé au <b>{{ destination }}</b>.
+            Votre demande est transmise à {{ remetteur }}. Elle vous remettra un code à 6 chiffres pour
+            <b>{{ destination }}</b>.
           </p>
           <CzAlert
             v-if="erreurApi === 'code-incorrect'"
@@ -319,7 +326,20 @@ async function enregistrer() {
             Nouveau mot de passe
           </h1>
           <CzAlert
-            v-if="erreurApi"
+            v-if="erreurApi === 'mot-de-passe-faible'"
+            ton="danger"
+          >
+            <b>Mot de passe trop faible.</b> 10 caractères minimum, et pas un mot de passe courant.
+          </CzAlert>
+          <CzAlert
+            v-else-if="erreurApi === 'code-expire'"
+            ton="warning"
+            icone="en-attente"
+          >
+            <b>Ce code n’est plus valable.</b> Recommencez avec un nouveau code.
+          </CzAlert>
+          <CzAlert
+            v-else-if="erreurApi"
             ton="danger"
           >
             <b>Le mot de passe n’a pas pu être enregistré.</b> Réessayez.

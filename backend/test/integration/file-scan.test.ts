@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { type INestApplication, type INestApplicationContext, Module } from '@nestjs/common';
-import { APP_GUARD, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { StoredFile, UploadTicket } from '@cotiz/contracts';
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import sharp from 'sharp';
@@ -93,7 +93,7 @@ describe('analyse des fichiers (worker, file files)', () => {
       CLAMAV_URL: clamd.url,
     };
     const config: Config = loadConfig(env);
-    @Module({ imports: [AppModule.register(config)], providers: [{ provide: APP_GUARD, useClass: TestAuthGuard }] })
+    @Module({ imports: [AppModule.register(config, { guards: [TestAuthGuard] })] })
     class TestRoot {}
     api = await NestFactory.create(TestRoot, { logger: false });
     api.setGlobalPrefix('api/v1');

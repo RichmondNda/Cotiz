@@ -153,7 +153,7 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
     expect(await exists(`unassigned/payment_proof/${FILES.clean}.pdf.thumb.webp`)).toBe(true);
   });
 
-  it('tâche planifiée une seule fois, quotidienne à 03:00, même enregistrée par deux workers', async () => {
+  it('tâches planifiées une seule fois (housekeeping quotidienne à 03:00), même enregistrées par deux workers', async () => {
     const queue = new Queue('scheduled', {
       connection: redisConnection(redis.getConnectionUrl()),
       prefix: REDIS_PREFIX,
@@ -161,11 +161,16 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
     try {
       // Enregistrement en arrière-plan au démarrage des workers.
       let schedulers = await queue.getJobSchedulers();
-      for (let i = 0; i < 50 && schedulers.length === 0; i++) {
+      for (let i = 0; i < 50 && schedulers.length < 2; i++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         schedulers = await queue.getJobSchedulers();
       }
-      expect(schedulers.map((s) => ({ id: s.key, pattern: s.pattern, tz: s.tz }))).toEqual([
+      // Chaque tâche du worker une seule fois (codes.expire : lot 1.1).
+      const byId = schedulers
+        .map((s) => ({ id: s.key, pattern: s.pattern, tz: s.tz }))
+        .sort((x, y) => x.id.localeCompare(y.id));
+      expect(byId).toEqual([
+        { id: 'codes.expire', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'housekeeping', pattern: '0 3 * * *', tz: 'Africa/Abidjan' },
       ]);
     } finally {
