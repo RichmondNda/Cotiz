@@ -50,6 +50,13 @@
       "when": 1792436788492,
       "tag": "0006_tenancy",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792440083744,
+      "tag": "0007_billing",
+      "breakpoints": true
     }
   ]
 }
