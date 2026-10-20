@@ -4,10 +4,11 @@ import { CreatePlanUseCase } from './application/create-plan.use-case.js';
 import { DuplicatePlanUseCase } from './application/duplicate-plan.use-case.js';
 import { ListPlansUseCase } from './application/list-plans.use-case.js';
 import { ListPublicPlansUseCase } from './application/list-public-plans.use-case.js';
+import { QuotaService } from './application/quota.service.js';
 import { UpdatePlanUseCase } from './application/update-plan.use-case.js';
 import { PlatformPlansController, PublicPlansController } from './http/plans.controller.js';
 
-/** Module billing (lot 1.2) : plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive). */
+/** Module billing (lot 1.2) : plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) et quotas. */
 @Module({
   controllers: [PublicPlansController, PlatformPlansController],
   providers: [
@@ -17,6 +18,8 @@ import { PlatformPlansController, PublicPlansController } from './http/plans.con
     UpdatePlanUseCase,
     ArchivePlanUseCase,
     DuplicatePlanUseCase,
+    QuotaService,
   ],
+  exports: [QuotaService],
 })
 export class BillingModule {}
