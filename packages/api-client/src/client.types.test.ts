@@ -25,6 +25,22 @@ describe('types du client', () => {
       void client.call('lg.pay.get', 'remove', { params: { aid, payId: aid } });
       // @ts-expect-error pas de corps sur une lecture
       void client.call('as.get', 'get', { params: { aid }, body: {} });
+      // @ts-expect-error If-Match exigé pour modifier un plan
+      void client.call('pf.plan.write', 'patch', { params: { id: aid }, body: { name: 'Pro' } });
+      // Création d'un plan : aucune version à fournir.
+      void client.call('pf.plan.write', 'create', {
+        body: {
+          code: 'pro',
+          name: 'Pro',
+          description: null,
+          priceMonthly: { amount: 0, currency: 'XOF' },
+          priceYearly: { amount: 0, currency: 'XOF' },
+          limits: { projects: null, subscribers: null, managers: 1 },
+          features: [],
+          isFeatured: false,
+          isActive: true,
+        },
+      });
     };
     expectTypeOf(appels).toBeFunction();
   });

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { Problem } from './common/problem.js';
 import { ERROR_CODES } from './generated/error-codes.js';
 import { ENDPOINTS } from './endpoints/index.js';
-import type { EndpointDef, OperationDef } from './registry.js';
+import { type EndpointDef, type OperationDef, requiresIfMatch } from './registry.js';
 
 // Document OpenAPI 3.1 généré depuis le registre : jamais écrit à la main (architecture/06-api-conventions.md).
 
@@ -15,7 +15,7 @@ function operation(def: EndpointDef, name: string, op: OperationDef): ZodOpenApi
   const writes = op.method !== 'GET';
   const headers: Record<string, z.ZodType> = {};
   if (writes && def.flags.idempotencyKey) headers['Idempotency-Key'] = IdempotencyKey;
-  if (writes && def.flags.ifMatch) headers['If-Match'] = IfMatch;
+  if (requiresIfMatch(def, op)) headers['If-Match'] = IfMatch;
 
   const contentType = op.response.contentType ?? 'application/json';
   const success = {

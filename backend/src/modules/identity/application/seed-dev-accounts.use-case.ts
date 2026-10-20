@@ -1,10 +1,10 @@
-import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { credentials, users } from '@cotiz/db';
 import { eq } from 'drizzle-orm';
 import { CONFIG, type Config } from '../../../config.js';
 import { grantPlatformRole, platformRoleOf } from '../../access/access.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
+import { assertDevSeedAllowed, mockId, SeedRefusedError } from '../../../shared/dev-seed/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { SecretHasher } from '../infra/secret-hasher.js';
 
@@ -14,23 +14,12 @@ import { SecretHasher } from '../infra/secret-hasher.js';
  */
 export const DEV_PASSWORD = 'Plateau-Dev-Cotiz-2026';
 
-/** Même identifiant que les données simulées du front (frontend/server/mocks/ids.ts : `uid('user', clé)`). */
-function mockUserId(key: string): string {
-  const h = createHash('sha1').update(`cotiz:user:${key}`).digest();
-  h[6] = ((h[6] ?? 0) & 0x0f) | 0x50;
-  h[8] = ((h[8] ?? 0) & 0x3f) | 0x80;
-  const x = h.subarray(0, 16).toString('hex');
-  return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`;
-}
-
 /** Comptes réels de développement (docs/specs/seed-reference.yaml) : ceux des espaces déjà basculés. */
 const ACCOUNTS = [
   { key: 'richy', email: 'richy@cotiz.app', firstName: 'Richy', lastName: '', platformRole: 'owner' },
 ] as const;
 
-export class SeedRefusedError extends Error {
-  override readonly name = 'SeedRefusedError';
-}
+export { SeedRefusedError } from '../../../shared/dev-seed/index.js';
 
 /**
  * CLI `seed-dev` (lot 1.1) : comptes actifs à mot de passe connu pour se connecter en local au vrai back (espace
@@ -46,17 +35,13 @@ export class SeedDevAccountsUseCase {
 
   @Audited('platform_staff.seed_dev')
   async execute(): Promise<{ email: string; password: string }[]> {
-    // Liste blanche : un environnement sans NODE_ENV vaut `development` ; l'accord explicite évite tout lancement
-    // par erreur en recette ou en production.
-    if (!['development', 'test'].includes(this.config.NODE_ENV) || !this.config.COTIZ_DEV_SEED) {
-      throw new SeedRefusedError('comptes de développement : NODE_ENV development ou test et COTIZ_DEV_SEED=1 exigés');
-    }
+    assertDevSeedAllowed(this.config);
     const tx = currentTx();
     const passwordHash = await this.hasher.hash(DEV_PASSWORD);
     for (const account of ACCOUNTS) {
       // Jamais un compte que la commande n'a pas créé (create-platform-owner…) : son mot de passe serait remplacé par
       // une valeur publique.
-      const id = mockUserId(account.key);
+      const id = mockId('user', account.key);
       const [existing] = await tx.select({ id: users.id }).from(users).where(eq(users.email, account.email)).limit(1);
       if (existing && existing.id !== id) {
         throw new SeedRefusedError(`${account.email} existe déjà, créé autrement que par seed-dev : non modifié`);

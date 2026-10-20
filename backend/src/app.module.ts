@@ -4,6 +4,7 @@ import type { Config } from './config.js';
 import { ConfigModule } from './config.module.js';
 import { ApiDocsModule } from './modules/docs/api-docs.module.js';
 import { AccessModule } from './modules/access/access.module.js';
+import { BillingModule } from './modules/billing/billing.module.js';
 import { MembershipGuard } from './modules/access/http/membership.guard.js';
 import { PermissionGuard } from './modules/access/http/permission.guard.js';
 import { SpaceGuard } from './modules/access/http/space.guard.js';
@@ -63,6 +64,7 @@ export class AppModule {
         SystemModule,
         FilesModule,
         IdentityModule,
+        BillingModule,
         AccessModule,
         // Documentation interne (Scalar) : jamais en production.
         ...(config.NODE_ENV === 'production' ? [] : [ApiDocsModule]),

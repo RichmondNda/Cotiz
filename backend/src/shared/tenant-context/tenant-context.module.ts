@@ -3,7 +3,10 @@ import { CONFIG, type Config } from '../../config.js';
 import { HttpScopeMiddleware } from './http-scope.middleware.js';
 import { TenantDatabase } from './tenant-database.js';
 
-/** Pool PostgreSQL unique du processus api, via PgBouncer en cotiz_app. L'espace system y est refusé. */
+/**
+ * Pools PostgreSQL du processus api : cotiz_app (via PgBouncer) ; cotiz_platform (BYPASSRLS) pour les routes /platform
+ * seulement (PLATFORM_DATABASE_URL, exigée en production ; absente, ces routes échouent). L'espace system y est refusé.
+ */
 @Global()
 @Module({
   providers: [
@@ -11,7 +14,12 @@ import { TenantDatabase } from './tenant-database.js';
       provide: TenantDatabase,
       inject: [CONFIG],
       useFactory: (config: Config) =>
-        new TenantDatabase({ connectionString: config.DATABASE_URL, max: config.DATABASE_POOL_MAX }),
+        new TenantDatabase({
+          connectionString: config.DATABASE_URL,
+          platformConnectionString: config.PLATFORM_DATABASE_URL,
+          max: config.DATABASE_POOL_MAX,
+          platformMax: config.PLATFORM_DATABASE_POOL_MAX,
+        }),
     },
   ],
   exports: [TenantDatabase],

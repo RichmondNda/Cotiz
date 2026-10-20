@@ -423,9 +423,11 @@ export const pfPlanWrite = defineEndpoint({
   errors: ['code_taken', 'version_conflict'],
   flags: { ...noFlags, ifMatch: true, audited: true },
   operations: {
+    /** Création : aucune version à vérifier (If-Match pour la seule modification). */
     create: {
       method: 'POST',
       path: '/api/v1/platform/plans',
+      ifMatch: false,
       request: { body: PlanInput },
       response: { status: 201, body: Plan },
     },

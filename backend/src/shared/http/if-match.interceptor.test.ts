@@ -17,9 +17,43 @@ class Routes {
   read(): void {
     // Route de test : seules ses métadonnées comptent.
   }
+
+  @Endpoint('pf.plan.write', 'create')
+  create(): void {
+    // Route de test : création (201) d'un endpoint qui porte ifMatch.
+  }
+
+  @Endpoint('ct.get', 'get')
+  contract(): void {
+    // Route de test : lecture (GET) d'un endpoint qui porte ifMatch.
+  }
+
+  @Endpoint('pf.plan.write', 'patch')
+  planPatch(): void {
+    // Route de test : modification d'un endpoint qui porte ifMatch.
+  }
+
+  @Endpoint('lg.pay.validate', 'validate')
+  validate(): void {
+    // Route de test : POST (200) d'un endpoint qui porte ifMatch, sur une ressource existante.
+  }
+
+  @Endpoint('ct.get', 'lock')
+  lock(): void {
+    // Route de test : POST d'action d'un endpoint qui porte ifMatch.
+  }
+
+  @Endpoint('pf.plan.write', 'pas-une-operation' as 'patch')
+  unknown(): void {
+    // Route de test : opération absente du contrat.
+  }
 }
 
-async function call(route: 'patch' | 'read', ifMatch: string | undefined, result: unknown = { id: 'a', version: 4 }) {
+async function call(
+  route: Exclude<keyof Routes, 'constructor'>,
+  ifMatch: string | undefined,
+  result: unknown = { id: 'a', version: 4 },
+) {
   const interceptor = new IfMatchInterceptor(new Reflector());
   const req = { method: 'PATCH', url: '/x', headers: { 'if-match': ifMatch } };
   const response = new FakeResponse();
@@ -43,6 +77,22 @@ async function call(route: 'patch' | 'read', ifMatch: string | undefined, result
 }
 
 describe('IfMatchInterceptor (If-Match exigé, ETag en réponse)', () => {
+  it('ifMatch ne s’applique ni à une création (201) ni à une lecture (GET) du même endpoint', async () => {
+    expect((await call('create', undefined)).calls).toBe(1);
+    expect((await call('contract', undefined)).calls).toBe(1);
+    for (const route of ['planPatch', 'validate', 'lock'] as const) {
+      const refused = await call(route, undefined);
+      expect({ route, calls: refused.calls }).toEqual({ route, calls: 0 });
+      expect(refused.error).toBeInstanceOf(DomainProblem);
+    }
+  });
+
+  it('opération inconnue du contrat : erreur de configuration, jamais sans If-Match', async () => {
+    const res = await call('unknown', undefined);
+    expect(res.calls).toBe(0);
+    expect((res.error as Error).message).toMatch(/opération inconnue/);
+  });
+
   it.each([
     ['W/"3"', 3],
     ['"3"', 3],

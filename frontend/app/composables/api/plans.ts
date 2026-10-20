@@ -26,7 +26,7 @@ export function useActionsPlan() {
   const vue = async (id: string) => (await tous()).find(p => p.id === id)!
   return {
     creer: async (plan: ModificationPlan) => {
-      const cree = await client.call('pf.plan.write', 'create', { body: { ...versPlanInput(plan, await tous()), code: codePlan(plan.nom) }, ifMatch: 0 })
+      const cree = await client.call('pf.plan.write', 'create', { body: { ...versPlanInput(plan, await tous()), code: codePlan(plan.nom) } })
       return vue(cree.id)
     },
     modifier: async (id: string, plan: ModificationPlan) => {

@@ -133,6 +133,7 @@ describe('appartenances et connexion (association, souscripteur, plateforme)', (
     const config: Config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL: h.db.urlFor('cotiz_app'),
+      PLATFORM_DATABASE_URL: h.db.urlFor('cotiz_platform'),
       REDIS_URL: redis.getConnectionUrl(),
       S3_ENDPOINT: 'http://127.0.0.1:1',
       RATE_LIMIT_ENDPOINT_PER_MIN: '10000',

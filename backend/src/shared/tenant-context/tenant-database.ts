@@ -55,7 +55,14 @@ export const LOOKUP_AS_SELF = Symbol('lookupAsSelf');
 
 export interface TenantDatabaseOptions {
   connectionString: string;
+  /**
+   * Connexion cotiz_platform (BYPASSRLS) : routes `/platform` du contrat et scripts qui la demandent, dans l'espace
+   * platform seulement. Absente : ces transactions sont refusées (jamais de repli silencieux sur cotiz_app).
+   */
+  platformConnectionString?: string | undefined;
   max: number;
+  /** Taille du pool plateforme (super-admin seulement : petit). */
+  platformMax?: number;
   /** Seul le processus worker peut poser l'espace system. */
   [WORKER_PROCESS]?: true;
 }
@@ -183,29 +190,43 @@ export async function asSelf<T>(userId: string, fn: () => Promise<T>): Promise<T
  *   En espace system, `associationId` est indicatif : les politiques system_access ouvrent toutes les lignes.
  */
 export class TenantDatabase implements OnModuleDestroy {
-  private readonly pool: pg.Pool;
+  private readonly pools: pg.Pool[] = [];
   private readonly db: NodePgDatabase;
+  private readonly platformDb: NodePgDatabase | null;
   private readonly worker: boolean;
 
   constructor(options: TenantDatabaseOptions) {
-    const { connectionString, max } = options;
+    const { connectionString, platformConnectionString, max, platformMax = 3 } = options;
     this.worker = options[WORKER_PROCESS] === true;
-    this.pool = new pg.Pool({ connectionString, max, connectionTimeoutMillis: 5_000 });
+    this.db = this.open(connectionString, max);
+    this.platformDb = platformConnectionString ? this.open(platformConnectionString, platformMax) : null;
+  }
+
+  private open(connectionString: string, max: number): NodePgDatabase {
+    const pool = new pg.Pool({ connectionString, max, connectionTimeoutMillis: 5_000 });
     // Une connexion inactive qui tombe ne doit pas arrêter le processus. Jamais l'URL dans le journal. Lié au contexte
     // du démarrage : une connexion ouverte pendant une requête ou un job en garderait sinon le contexte de journal.
-    this.pool.on(
+    pool.on(
       'error',
       AsyncLocalStorage.bind((error: Error) => {
         Logger.warn(`connexion PostgreSQL perdue : ${error.message}`, 'TenantDatabase');
       }),
     );
-    this.db = drizzle({ client: this.pool });
+    this.pools.push(pool);
+    return drizzle({ client: pool });
   }
 
-  /** Transaction d'une requête HTTP ; `null` = aucun contexte (espace `none`). */
-  [FOR_REQUEST]<T>(context: TenantContext | null, fn: () => Promise<T>): Promise<T> {
+  /**
+   * Transaction d'une requête HTTP ; `null` = aucun contexte (espace `none`). `platformRoute` : route `/platform` du
+   * contrat (posé par SpaceGuard), seule à passer par la connexion plateforme.
+   */
+  [FOR_REQUEST]<T>(
+    context: TenantContext | null,
+    fn: () => Promise<T>,
+    options: { platformRoute?: boolean } = {},
+  ): Promise<T> {
     if (context?.space === 'system') return Promise.reject(new Error('espace system interdit depuis une requête HTTP'));
-    return this.run(context, fn);
+    return this.run(context, fn, options.platformRoute === true);
   }
 
   /**
@@ -217,8 +238,15 @@ export class TenantDatabase implements OnModuleDestroy {
     return this.run({ space: 'auth', userId }, fn);
   }
 
-  /** Transaction d'une tâche : `withTenantContext({ associationId, userId, space }, fn)`. */
-  withTenantContext<T>(context: TenantContext, fn: () => Promise<T>): Promise<T> {
+  /**
+   * Transaction d'une tâche : `withTenantContext({ associationId, userId, space }, fn)`. `platformConnection` : script
+   * de l'espace platform qui écrit ce que seul cotiz_platform peut écrire (plans de seed-dev).
+   */
+  withTenantContext<T>(
+    context: TenantContext,
+    fn: () => Promise<T>,
+    options: { platformConnection?: boolean } = {},
+  ): Promise<T> {
     if (!(context as TenantContext | null)) return Promise.reject(new Error('withTenantContext() : contexte requis'));
     if (httpScope.getStore()) {
       return Promise.reject(
@@ -228,13 +256,21 @@ export class TenantDatabase implements OnModuleDestroy {
     if (context.space === 'system' && !this.worker) {
       return Promise.reject(new Error('espace system réservé au worker'));
     }
-    return this.run(context, fn);
+    return this.run(context, fn, options.platformConnection === true);
   }
 
-  private async run<T>(context: TenantContext | null, fn: () => Promise<T>): Promise<T> {
+  private async run<T>(context: TenantContext | null, fn: () => Promise<T>, platform = false): Promise<T> {
     if (storage.getStore()) throw new Error('contexte tenant imbriqué : une requête ou une tâche = une transaction');
     assertValid(context);
-    return this.db.transaction(async (tx) => {
+    // BYPASSRLS : jamais hors de l'espace platform, quel que soit l'appelant.
+    if (platform && context?.space !== 'platform') {
+      throw new Error('connexion plateforme réservée à l’espace platform');
+    }
+    if (platform && !this.platformDb) {
+      throw new Error('connexion plateforme non configurée (PLATFORM_DATABASE_URL, rôle cotiz_platform)');
+    }
+    const db = platform && this.platformDb ? this.platformDb : this.db;
+    return db.transaction(async (tx) => {
       // Toujours les trois variables, '' si absentes, et seulement pour la transaction (is_local = true) :
       // PgBouncer en mode transaction ne réinitialise pas la session, un reste ne doit jamais être lu.
       await tx.execute(sql`SELECT
@@ -252,10 +288,10 @@ export class TenantDatabase implements OnModuleDestroy {
 
   /** Sonde de disponibilité : aucune donnée lue. Seule requête hors transaction de contexte (architecture/02). */
   async ping(): Promise<void> {
-    await this.pool.query('SELECT 1');
+    await Promise.all(this.pools.map((pool) => pool.query('SELECT 1')));
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await Promise.all(this.pools.map((pool) => pool.end()));
   }
 }

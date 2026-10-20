@@ -41,6 +41,7 @@ describe('CLI : create-platform-owner', () => {
     const config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL: h.db.urlFor('cotiz_app'),
+      PLATFORM_DATABASE_URL: h.db.urlFor('cotiz_platform'),
       REDIS_URL: 'redis://127.0.0.1:1',
       S3_ENDPOINT: 'http://127.0.0.1:1',
       APP_PUBLIC_URL: 'https://app.cotiz.test',
@@ -249,6 +250,71 @@ describe('CLI : create-platform-owner', () => {
       const richy = rows[0] as { id: string; status: string; password_hash: string; role: string };
       expect(richy).toMatchObject({ id: RICHY, status: 'active', role: 'owner' });
       expect(await verify(richy.password_hash, DEV_PASSWORD)).toBe(true);
+    });
+
+    it('crée les plans de référence (mêmes identifiants que les données simulées) ; une seconde exécution ne change rien', async () => {
+      const PLANS = {
+        decouverte: '565ad000-94c8-5b93-9921-423aa368ac67',
+        essentiel: '5d416c96-999f-5aec-86dc-d7c963b65c12',
+        pro: '1ad61d48-9b23-5d62-b8bb-8f21dfc6bdf5',
+      };
+      for (let i = 0; i < 2; i++) {
+        const { status, out } = await run('seed-dev');
+        expect(status).toBe(0);
+        expect(out).toContain('Plans de référence : decouverte, essentiel, pro');
+      }
+      const { rows } = await h.superuser(
+        `SELECT id, code, price_monthly::int AS monthly, price_yearly::int AS yearly, max_projects, max_subscribers,
+                max_managers, features, is_featured, is_active, version
+           FROM plans ORDER BY price_monthly`,
+      );
+      expect(rows).toEqual([
+        {
+          id: PLANS.decouverte,
+          code: 'decouverte',
+          monthly: 0,
+          yearly: 0,
+          max_projects: 1,
+          max_subscribers: 20,
+          max_managers: 1,
+          features: [],
+          is_featured: false,
+          is_active: true,
+          version: 1,
+        },
+        {
+          id: PLANS.essentiel,
+          code: 'essentiel',
+          monthly: 10000,
+          yearly: 120000,
+          max_projects: 5,
+          max_subscribers: 100,
+          max_managers: 2,
+          features: ['contracts', 'auto_reminders'],
+          is_featured: true,
+          is_active: true,
+          version: 1,
+        },
+        {
+          id: PLANS.pro,
+          code: 'pro',
+          monthly: 25000,
+          yearly: 300000,
+          max_projects: null,
+          max_subscribers: 500,
+          max_managers: 5,
+          features: ['contracts', 'auto_reminders', 'imports', 'analytics'],
+          is_featured: false,
+          is_active: true,
+          version: 1,
+        },
+      ]);
+      // Un événement par plan créé (cache des plans publics), aucun à la seconde exécution.
+      const { rows: events } = await h.superuser(
+        `SELECT count(*)::int AS n FROM outbox_events WHERE event_type = 'plan.updated' AND aggregate_id = ANY($1::uuid[])`,
+        [Object.values(PLANS)],
+      );
+      expect(events[0]).toEqual({ n: 3 });
     });
 
     it('refusée hors développement et test, ou sans COTIZ_DEV_SEED=1', async () => {

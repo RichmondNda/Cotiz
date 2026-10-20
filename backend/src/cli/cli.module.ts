@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import type { Config } from '../config.js';
 import { ConfigModule } from '../config.module.js';
+import { BillingCliModule } from '../modules/billing/billing-cli.module.js';
 import { IdentityCliModule } from '../modules/identity/identity-cli.module.js';
 import { CryptoModule } from '../shared/crypto/index.js';
 import { createLogger, LoggingModule } from '../shared/logging/index.js';
@@ -18,6 +19,7 @@ export class CliModule {
         TenantContextModule,
         CryptoModule,
         IdentityCliModule,
+        BillingCliModule,
       ],
     };
   }

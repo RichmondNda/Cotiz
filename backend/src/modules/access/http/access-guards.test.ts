@@ -5,7 +5,7 @@ import { type Config, loadConfig } from '../../../config.js';
 import { Can, DomainProblem, Endpoint } from '../../../shared/http/index.js';
 import { type FakeRequest, httpContext, routeHandler } from '../../../shared/http/testing.js';
 import { currentRequestInfo, runWithRequestInfo } from '../../../shared/request-info/index.js';
-import { getRequestContext, WithoutTenantContext } from '../../../shared/tenant-context/index.js';
+import { getRequestContext, isPlatformRoute, WithoutTenantContext } from '../../../shared/tenant-context/index.js';
 import {
   AccessTokenSigner,
   type AccessClaims,
@@ -152,7 +152,7 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       }
       req.headers['x-role'] = currentRequestInfo()?.actorRole;
     });
-    return { context: getRequestContext(req), role: req.headers['x-role'] };
+    return { context: getRequestContext(req), role: req.headers['x-role'], platformConnection: isPlatformRoute(req) };
   };
 
   const refusal = (promise: Promise<unknown>) =>
@@ -201,6 +201,15 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       });
     });
 
+    it('connexion plateforme (BYPASSRLS) : route /platform seulement, jamais /me ni une route commune', async () => {
+      platformRole = 'support';
+      const bearer = await token({ space: 'platform' });
+      expect((await chain('platformList', { bearer })).platformConnection).toBe(true);
+      expect((await chain('me', { bearer })).platformConnection).toBe(false);
+      expect((await chain('file', { bearer })).platformConnection).toBe(false);
+      expect((await chain('login')).platformConnection).toBe(false);
+    });
+
     it('jeton platform depuis une adresse hors PLATFORM_ALLOWED_IPS : refusé à chaque requête', async () => {
       const restricted = loadConfig({ ...env, PLATFORM_ALLOWED_IPS: '203.0.113.0/24' });
       const bearer = await token({ space: 'platform' });
@@ -216,6 +225,7 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       expect(await chain('associationGet', { bearer, aid: AID })).toEqual({
         context: { space: 'association', associationId: AID, userId: USER },
         role: 'association:manager',
+        platformConnection: false,
       });
     });
 
@@ -233,6 +243,7 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       expect(await chain('me', { bearer, aid: AID })).toEqual({
         context: { space: 'association', userId: USER },
         role: undefined,
+        platformConnection: false,
       });
       expect(await refusal(chain('dashboard', { bearer }))).toBe('forbidden');
     });
