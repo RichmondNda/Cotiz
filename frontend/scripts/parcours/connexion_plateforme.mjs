@@ -27,6 +27,8 @@ export default {
     await imposerReponse(page, LOGIN, { status: 'mfa_required', mfaToken: 'mfa.capture', expiresAt: new Date(Date.now() + 300_000).toISOString() })
     await saisir(page, COMPTES.superadmin.password)
     await soumettre(page)
+    // « Retour » s'affiche sous la souris restée sur « Se connecter » : pas d'état de survol dans la capture.
+    await page.mouse.move(0, 0)
     await page.getByLabel('Chiffre 1').fill('481')
   },
 }

@@ -5,17 +5,18 @@
 -->
 <script setup lang="ts">
 import type { Plan, Quota } from '~~/types'
-import { formatFCFA } from '~/utils/format'
+import { formatFCFA, pluriel } from '~/utils/format'
 
 const props = withDefaults(defineProps<{
   plan: Plan
   apercu?: boolean
 }>(), { apercu: false })
 
-const quota = (q: Quota, mot: string) => (q === null ? `${mot} illimités` : `${q} ${mot}`)
+const quota = (q: Quota, mot: string) =>
+  q === null ? `${mot}s illimités` : typeof q === 'number' ? pluriel(q, mot) : `${q} ${mot}s`
 const limites = computed(() => {
   const q = props.plan.quotas
-  return `${quota(q.projets, 'projets')} · ${quota(q.souscripteurs, 'souscripteurs')} · ${quota(q.gestionnaires, 'gestionnaires')}`
+  return `${quota(q.projets, 'projet')} · ${quota(q.souscripteurs, 'souscripteur')} · ${quota(q.gestionnaires, 'gestionnaire')}`
 })
 </script>
 
