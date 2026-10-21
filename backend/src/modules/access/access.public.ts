@@ -12,5 +12,6 @@ export {
   type MembershipSpace,
   type MembershipStatus,
 } from './application/memberships.js';
+export { SeedDevMembershipsUseCase } from './application/seed-dev-memberships.use-case.js';
 export { SelfRoles } from './application/self-roles.js';
 export { actorRoleOf, permissionsOf } from './domain/permission-policy.js';

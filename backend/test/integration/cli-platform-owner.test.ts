@@ -12,6 +12,7 @@ import {
   DEV_PASSWORD,
   SeedDevAccountsUseCase,
 } from '../../src/modules/identity/application/seed-dev-accounts.use-case.js';
+import type { CodeService } from '../../src/modules/identity/application/code-service.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { type IsolationHarness, startIsolationHarness } from '../isolation/harness.js';
 
@@ -317,12 +318,122 @@ describe('CLI : create-platform-owner', () => {
       expect(events[0]).toEqual({ n: 3 });
     });
 
+    it('crée associations, comptes, appartenances et abonnements de référence (identifiants des données simulées)', async () => {
+      // frontend/server/mocks/ids.ts : uid('association', slug), uid('user', clé).
+      const ASSOC = {
+        entraide: '32101f37-8d23-53ec-90a8-8e6bf20fe086',
+        man: 'def211c3-eb54-5284-9451-ef9307b1fe79',
+        bouake: '408f664e-89e0-54bd-a732-2fa83499d0d6',
+      };
+      const USER = {
+        awa: 'e46c9ff1-b973-58c0-a663-29c7750719af',
+        moussa: 'ba6d1860-ea09-5e51-9777-5b76740a4840',
+        fatou: '345ba988-a626-553e-905f-22e385ef7598',
+        jean: '0db8c984-945a-5e67-bb0d-1d5fb97b050d',
+      };
+      let lastCode = '';
+      for (let i = 0; i < 2; i++) {
+        const { status, out } = await run('seed-dev');
+        expect(status).toBe(0);
+        expect(out).toContain(`awa@entraide.ci / ${DEV_PASSWORD}`);
+        expect(out).toContain(`+2250544218790 / ${DEV_PASSWORD}`);
+        expect(out).toContain(`+2250755667788 / ${DEV_PASSWORD}`);
+        expect(out).toContain('Associations de référence : entraide-yopougon, ressortissants-man, jeunesse-bouake');
+        const code = /\+2250122334455 : code d’activation (\S+)/.exec(out)?.[1];
+        expect(code).toBeDefined();
+        expect(code).not.toBe(lastCode);
+        lastCode = code ?? '';
+      }
+
+      const { rows: assocs } = await h.superuser(
+        `SELECT a.id, a.slug, a.status, s.status AS subscription, p.code AS plan, s.manager_seats_override AS seats
+           FROM associations a
+           LEFT JOIN subscriptions s ON s.association_id = a.id
+           LEFT JOIN plans p ON p.id = s.plan_id
+          WHERE a.id = ANY($1::uuid[]) ORDER BY a.created_at`,
+        [Object.values(ASSOC)],
+      );
+      expect(assocs).toEqual([
+        {
+          id: ASSOC.entraide,
+          slug: 'entraide-yopougon',
+          status: 'active',
+          subscription: 'active',
+          plan: 'essentiel',
+          seats: 3,
+        },
+        {
+          id: ASSOC.man,
+          slug: 'ressortissants-man',
+          status: 'past_due',
+          subscription: 'past_due',
+          plan: 'pro',
+          seats: null,
+        },
+        {
+          id: ASSOC.bouake,
+          slug: 'jeunesse-bouake',
+          status: 'onboarding',
+          subscription: 'trialing',
+          plan: 'decouverte',
+          seats: null,
+        },
+      ]);
+      const { rows: methods } = await h.superuser(
+        `SELECT kind, label FROM association_payment_methods WHERE association_id = $1 ORDER BY position`,
+        [ASSOC.entraide],
+      );
+      expect(methods).toEqual([
+        { kind: 'mobile_money', label: 'Orange Money' },
+        { kind: 'bank_transfer', label: 'SGBCI' },
+      ]);
+
+      const { rows: people } = await h.superuser(
+        `SELECT u.id, u.status, u.email, u.phone_e164 AS phone, c.password_hash
+           FROM users u LEFT JOIN credentials c ON c.user_id = u.id
+          WHERE u.id = ANY($1::uuid[])`,
+        [Object.values(USER)],
+      );
+      const person = (id: string) =>
+        people.find((p) => (p as { id: string }).id === id) as Record<string, string | null>;
+      expect(person(USER.awa)).toMatchObject({ status: 'active', email: 'awa@entraide.ci', phone: '+2250708091011' });
+      expect(person(USER.moussa)).toMatchObject({ status: 'active', phone: '+2250544218790' });
+      expect(person(USER.jean)).toMatchObject({ status: 'active', phone: '+2250755667788' });
+      expect(person(USER.fatou)).toMatchObject({ status: 'pending_activation', phone: '+2250122334455' });
+      for (const key of ['awa', 'moussa', 'jean'] as const) {
+        expect(await verify(person(USER[key]).password_hash ?? '', DEV_PASSWORD)).toBe(true);
+      }
+      // Un seul code d'activation valable pour Fatou : celui de la dernière exécution.
+      const { rows: codes } = await h.superuser(
+        `SELECT count(*)::int AS n FROM one_time_codes
+          WHERE user_id = $1 AND purpose = 'activation' AND consumed_at IS NULL AND expires_at > now()`,
+        [USER.fatou],
+      );
+      expect(codes[0]).toEqual({ n: 1 });
+
+      const { rows: links } = await h.superuser(
+        `SELECT association_id AS aid, user_id AS uid, role, status FROM memberships
+          WHERE user_id = ANY($1::uuid[]) ORDER BY association_id, user_id, role`,
+        [Object.values(USER)],
+      );
+      const expected = [
+        { aid: ASSOC.entraide, uid: USER.awa, role: 'owner', status: 'active' },
+        { aid: ASSOC.entraide, uid: USER.awa, role: 'subscriber', status: 'active' },
+        { aid: ASSOC.entraide, uid: USER.moussa, role: 'subscriber', status: 'active' },
+        { aid: ASSOC.entraide, uid: USER.fatou, role: 'subscriber', status: 'active' },
+        { aid: ASSOC.entraide, uid: USER.jean, role: 'subscriber', status: 'active' },
+        { aid: ASSOC.man, uid: USER.moussa, role: 'subscriber', status: 'active' },
+      ];
+      expect(links).toEqual(expect.arrayContaining(expected));
+      expect(links).toHaveLength(expected.length);
+    });
+
     it('refusée hors développement et test, ou sans COTIZ_DEV_SEED=1', async () => {
       for (const config of [
         { NODE_ENV: 'production', COTIZ_DEV_SEED: true },
         { NODE_ENV: 'development', COTIZ_DEV_SEED: false },
       ]) {
-        const useCase = new SeedDevAccountsUseCase(new SecretHasher(), config as Config);
+        const useCase = new SeedDevAccountsUseCase(new SecretHasher(), {} as CodeService, config as Config);
         await expect(useCase.execute()).rejects.toThrow(/COTIZ_DEV_SEED/);
       }
     });

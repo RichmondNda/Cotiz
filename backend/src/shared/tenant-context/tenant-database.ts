@@ -240,7 +240,8 @@ export class TenantDatabase implements OnModuleDestroy {
 
   /**
    * Transaction d'une tâche : `withTenantContext({ associationId, userId, space }, fn)`. `platformConnection` : script
-   * de l'espace platform qui écrit ce que seul cotiz_platform peut écrire (plans de seed-dev).
+   * de l'espace platform qui écrit ce que seul cotiz_platform peut écrire (seed-dev : plans, associations, abonnements,
+   * appartenances de plusieurs associations ; ADR 0017).
    */
   withTenantContext<T>(
     context: TenantContext,
