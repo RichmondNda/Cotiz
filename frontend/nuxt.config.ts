@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { ROUTES_NAVIGATEUR } from './server/bascule/routes-navigateur'
+
 export default defineNuxtConfig({
   modules: ['@nuxt/eslint'],
 
@@ -45,12 +47,8 @@ export default defineNuxtConfig({
     },
   },
 
-  // Espaces basculés vers le vrai back (lot 1.1 : plateforme) : rendus dans le navigateur. Le jeton d'accès vit en
-  // mémoire et le cookie de renouvellement est limité à /api/v1/auth : au rendu serveur, aucune identité.
-  routeRules: {
-    '/plateforme': { ssr: false },
-    '/plateforme/**': { ssr: false },
-  },
+  // Espaces basculés : rendus dans le navigateur (server/bascule/routes-navigateur.ts).
+  routeRules: Object.fromEntries(ROUTES_NAVIGATEUR.map(route => [route, { ssr: false }])),
   compatibilityDate: '2025-07-15',
 
   // Build sans mocks (NUXT_MOCKS=0 au build : production, recette) : handlers simulés et outils de dev exclus.

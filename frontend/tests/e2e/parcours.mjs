@@ -3,7 +3,7 @@
 //   node tests/e2e/parcours.mjs plateforme → un seul (public | souscripteur | gestionnaire | plateforme)
 // Captures de chaque étape : .verif/e2e/<parcours>/. Code de sortie 1 si une étape échoue.
 import { ID, uid } from '../../server/mocks/ids.ts'
-import { SUPERADMIN } from '../../scripts/session-test.mjs'
+import { COMPTES } from '../../scripts/session-test.mjs'
 import { assert, contient, parcours, texte } from './outils.mjs'
 
 // Les routes portent les UUID déterministes du jeu simulé (server/mocks/ids.ts), plus des slugs.
@@ -74,8 +74,8 @@ const PARCOURS = {
   souscripteur: () => parcours('souscripteur', {}, [
     ['connexion', async (page) => {
       await page.goto('/connexion', { waitUntil: 'networkidle' })
-      await page.getByLabel('Téléphone').fill('0544218790')
-      await page.getByLabel('Mot de passe', { exact: true }).fill('motdepasse')
+      await page.getByLabel('Téléphone').fill(COMPTES.souscripteur.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.souscripteur.password)
       await page.getByRole('button', { name: 'Me connecter' }).click()
       await page.waitForURL('**/accueil')
     }],
@@ -126,8 +126,8 @@ const PARCOURS = {
   gestionnaire: () => parcours('gestionnaire', {}, [
     ['connexion', async (page) => {
       await page.goto('/connexion/association', { waitUntil: 'networkidle' })
-      await page.getByLabel('Email').fill('awa@entraide.ci')
-      await page.getByLabel('Mot de passe', { exact: true }).fill('motdepasse')
+      await page.getByLabel('Email').fill(COMPTES.gestionnaire.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.gestionnaire.password)
       await page.getByRole('button', { name: 'Se connecter' }).click()
       await page.waitForURL(u => new URL(u).pathname === '/asso')
     }],
@@ -168,8 +168,8 @@ const PARCOURS = {
     ['connexion', async (page) => {
       await page.goto('/connexion/plateforme', { waitUntil: 'networkidle' })
       // Espace basculé (lot 1.1) : vraie connexion avec le compte de développement, sans second facteur (TOTP au lot 4.7).
-      await page.getByLabel('Email').fill(SUPERADMIN.email)
-      await page.getByLabel('Mot de passe', { exact: true }).fill(SUPERADMIN.password)
+      await page.getByLabel('Email').fill(COMPTES.superadmin.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.superadmin.password)
       await page.getByRole('button', { name: 'Se connecter' }).click()
       await page.waitForURL(u => new URL(u).pathname === '/plateforme')
     }],

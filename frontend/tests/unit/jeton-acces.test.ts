@@ -91,6 +91,16 @@ describe('fonctionnalitesActives (transition, option 1)', () => {
     expect(fonctionnalitesActives([], new Set(['1.1', '3.3']))).not.toContain('payments')
     expect(fonctionnalitesActives(['payments'], new Set(['1.1', '3.3']))).toContain('payments')
   })
+
+  it('scénario de dev : retire une fonctionnalité encore simulée, jamais une fonctionnalité livrée', () => {
+    const lots = new Set(['1.1', '1.2'])
+    const nominal = fonctionnalitesActives([], lots)
+    const bientot = fonctionnalitesActives([], lots, 'graphiques-bientot-disponibles')
+    expect(nominal).toContain('analytics')
+    expect(bientot).toEqual(nominal.filter(f => f !== 'analytics'))
+    expect(fonctionnalitesActives([], lots, 'autre-scenario')).toEqual(nominal)
+    expect(fonctionnalitesActives(['analytics'], new Set(['5.2']), 'graphiques-bientot-disponibles')).toContain('analytics')
+  })
 })
 
 describe('fermerSession (déconnexion)', () => {

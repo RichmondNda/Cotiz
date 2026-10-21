@@ -25,8 +25,7 @@ const lien = (p: Plan) => `/plateforme/plans/${p.id}`
 const archive = ref<Plan | null>(null)
 async function archiverPlan(p: Plan) {
   try {
-    await archiver(p.id)
-    archive.value = p
+    archive.value = await archiver(p.id)
     await refresh()
   }
   catch {
@@ -35,7 +34,7 @@ async function archiverPlan(p: Plan) {
 }
 async function annulerArchivage() {
   if (!archive.value) return
-  await desarchiver(archive.value.id)
+  await desarchiver(archive.value.id, archive.value.version ?? 1)
   archive.value = null
   await refresh()
 }

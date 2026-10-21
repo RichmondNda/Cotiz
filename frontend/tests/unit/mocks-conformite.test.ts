@@ -85,10 +85,10 @@ const terms = { entryFee: money(50000), installmentAmount: money(10000), frequen
 
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
-  'me get': {}, 'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
-  'pub.plans list': {}, 'pf.req.list list': {}, 'pf.req.get get': { params: { id: uid('request', 'tontine-commercantes-adjame') } },
+  'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
+  'pf.req.list list': {}, 'pf.req.get get': { params: { id: uid('request', 'tontine-commercantes-adjame') } },
   'pf.asso.list list': {}, 'pf.asso.get get': { params: { id: aid } }, 'pf.asso.sub projects': { params: { id: aid } },
-  'pf.asso.sub members': { params: { id: aid } }, 'pf.plans list': {}, 'pf.dashboard get': {}, 'pf.invoices list': {}, 'pf.staff list': {},
+  'pf.asso.sub members': { params: { id: aid } }, 'pf.dashboard get': {}, 'pf.invoices list': {}, 'pf.staff list': {},
   'as.get get': { params: { aid } }, 'as.pm list': { params: { aid } }, 'as.dashboard get': { params: { aid } },
   'bl.sub get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P }, 'pr.list list': { params: { aid } }, 'pr.get get': { params: P },
@@ -105,13 +105,7 @@ const READS: Record<string, Call> = {
 
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
 const WRITES: Record<string, () => Call> = {
-  'auth.login login': () => ({ body: { space: 'subscriber', identifier: '+2250544218790', password: 'motdepasse' } }),
   'auth.mfa verify': () => ({ body: { mfaToken: 'mfa.x', code: '481902' } }),
-  'auth.activate activate': () => ({ body: { space: 'subscriber', identifier: '+2250544218790', code: 'K7M4-P9QX', newPassword: 'Cotiz2026!' } }),
-  'auth.forgot forgot': () => ({ body: { space: 'subscriber', identifier: '+2250544218790' } }),
-  'auth.verify verify': () => ({ body: { space: 'subscriber', identifier: '+2250544218790', code: '123456' } }),
-  'auth.reset reset': () => ({ body: { resetToken: 'reset.x', newPassword: 'Cotiz2026!' } }),
-  'auth.logout logout': () => ({ as: 'subscriber' }),
   'me.profile patch': () => ({ body: { email: 'moussa@exemple.ci' }, ifMatch: 1 }),
   'me.profile changePassword': () => ({ body: { currentPassword: 'motdepasse', newPassword: 'Cotiz2026!' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
@@ -133,10 +127,6 @@ const WRITES: Record<string, () => Call> = {
   'pf.asso.suspend suspend': () => ({ params: { id: aid }, body: { reason: 'Impayé', confirmName: 'Entraide Yopougon' } }),
   'pf.asso.suspend reactivate': () => ({ params: { id: aid }, setup: () => call('pf.asso.suspend', 'suspend', { params: { id: aid }, body: { reason: 'x', confirmName: 'x' } }) } as Call),
   'pf.asso.plan changePlan': () => ({ params: { id: aid }, body: { planId: uid('plan', 'pro'), effectiveOn: '2026-10-01' } }),
-  'pf.plan.write create': () => ({ body: { code: 'famille', name: 'Famille', description: null, priceMonthly: money(5000), priceYearly: money(50000), limits: { projects: 2, subscribers: 50, managers: 1 }, features: ['payments'], isFeatured: false, isActive: true } }),
-  'pf.plan.write patch': () => ({ params: { id: uid('plan', 'pro') }, body: { name: 'Pro+' }, ifMatch: 1 }),
-  'pf.plan.archive archive': () => ({ params: { id: uid('plan', 'pro') } }),
-  'pf.plan.archive duplicate': () => ({ params: { id: uid('plan', 'essentiel') } }),
   'as.patch patch': () => ({ params: { aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
   'as.pm replace': () => ({ params: { aid }, body: { items: [{ kind: 'cash', label: 'Espèces', details: {}, isActive: true }] } }),
   'as.onb complete': () => ({ params: { aid } }),
@@ -318,28 +308,6 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
     expect(await problem('pf.dashboard', 'get', { as: 'association' })).toBe('forbidden')
     expect(await problem('me.dash', 'get', { as: null })).toBe('session_expired')
-  })
-})
-
-describe('GET /me : droits et fonctionnalités (usePermissions, FeatureGate)', () => {
-  const moi = (as: keyof typeof ROLE, scenario?: string) =>
-    call('me', 'get', { as, scenario }) as Promise<{ permissions: string[], features: string[] }>
-
-  it('chaque espace reçoit ses permissions, et seulement les siennes', async () => {
-    const [plateforme, gestionnaire, souscripteur] = await Promise.all([moi('platform'), moi('association'), moi('subscriber')])
-    expect(plateforme.permissions).toContain('platform.associations.manage')
-    expect(plateforme.permissions).not.toContain('payments.review')
-    expect(gestionnaire.permissions).toContain('payments.review')
-    expect(gestionnaire.permissions.some(p => p.startsWith('platform.'))).toBe(false)
-    expect(souscripteur.permissions).toEqual(['authenticated', 'subscriber.self'])
-  })
-
-  it('analytics actif en nominal, retiré par graphiques-bientot-disponibles (sans toucher au reste)', async () => {
-    const nominal = await moi('association')
-    const bientot = await moi('association', 'graphiques-bientot-disponibles')
-    expect(nominal.features).toContain('analytics')
-    expect(bientot.features).not.toContain('analytics')
-    expect(bientot.features).toEqual(nominal.features.filter(f => f !== 'analytics'))
   })
 })
 

@@ -1,9 +1,4 @@
-// Espace gestionnaire : réservé au rôle « gestionnaire » de la session mockée ; sinon, page de connexion de l'espace.
-import { CONNEXION_PAR_ROLE, useSession } from '~/composables/useSession'
+// Espace gestionnaire : réservé à une session de l'espace (vraie session pour un espace basculé, utils/garde-espace.ts).
+import { gardeEspace } from '~/utils/garde-espace'
 
-export default defineNuxtRouteMiddleware((to) => {
-  const { role } = useSession()
-  if (role.value !== 'gestionnaire') {
-    return navigateTo({ path: CONNEXION_PAR_ROLE.gestionnaire, query: { redirection: to.fullPath } })
-  }
-})
+export default defineNuxtRouteMiddleware(to => gardeEspace('gestionnaire', to))

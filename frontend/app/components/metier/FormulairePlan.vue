@@ -48,6 +48,8 @@ const modifie = ref(false)
 watch(f, () => (modifie.value = true), { deep: true })
 
 const erreurNom = ref('')
+const erreurPrixMensuel = ref('')
+const erreurPrixAnnuel = ref('')
 const remise = computed(() => {
   const m = f.prixMensuel
   const a = f.prixAnnuel
@@ -81,15 +83,20 @@ const apercu = computed<Plan>(() => ({
 const envoi = ref(false)
 async function enregistrer() {
   erreurNom.value = f.nom.trim() ? '' : 'Le nom du plan est obligatoire'
-  if (erreurNom.value) return
+  erreurPrixMensuel.value = f.prixMensuel === null ? 'Indiquez le prix mensuel (0 pour un plan gratuit)' : ''
+  erreurPrixAnnuel.value = f.prixAnnuel === null ? 'Indiquez le prix annuel (0 pour un plan gratuit)' : ''
+  if (erreurNom.value || erreurPrixMensuel.value || erreurPrixAnnuel.value) return
   envoi.value = true
   try {
-    const enregistre = creation.value ? await creer(brouillon.value) : await modifier(props.plan!.id, brouillon.value)
+    const enregistre = creation.value
+      ? await creer(brouillon.value)
+      : await modifier(props.plan!.id, props.plan!.version ?? 1, brouillon.value)
     toast.succes(creation.value ? 'Plan créé' : 'Plan enregistré', { message: `« ${enregistre.nom} » est à jour sur la page Tarifs.` })
     await navigateTo('/plateforme/plans')
   }
-  catch {
-    toast.erreur('Enregistrement impossible', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    // Refus du back (code déjà pris, modifié entre-temps…) : son message (errors.yaml) ; sinon, la connexion.
+    toast.erreur('Enregistrement impossible', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     envoi.value = false
@@ -163,7 +170,10 @@ async function enregistrer() {
             Prix
           </h2>
           <div class="sa-plan__deux">
-            <CzField label="Prix mensuel">
+            <CzField
+              label="Prix mensuel"
+              :erreur="erreurPrixMensuel || undefined"
+            >
               <CzInput
                 v-model="f.prixMensuel"
                 type="montant"
@@ -173,6 +183,7 @@ async function enregistrer() {
             <CzField
               label="Prix annuel"
               :aide="remise"
+              :erreur="erreurPrixAnnuel || undefined"
             >
               <CzInput
                 v-model="f.prixAnnuel"

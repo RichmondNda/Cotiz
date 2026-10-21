@@ -2,14 +2,13 @@
 // Aucune règle métier ici : les chiffres viennent de ledger.ts (donc de @cotiz/domain).
 import type { z } from 'zod'
 import type {
-  Association, Enrollment, Installment, Me, Notification, PaymentDetail, PaymentMethod, PaymentSummary, PersonContact,
-  PersonRef, Plan, Project, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
+  Association, Enrollment, Installment, Notification, PaymentDetail, PaymentMethod, PaymentSummary, PersonContact,
+  PersonRef, Project, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
 } from '@cotiz/contracts'
 import { db } from './db'
 import type { AssociationRow, EnrollmentRow, NotificationRow, PaymentRow, PlanRow, ProjectRow, RequestRow, UserRow } from './db'
 import { enrollmentFigures, installmentView, projectFigures, projectById, today } from './ledger'
 import type { InstallmentView } from './ledger'
-import type { MockSession } from './http'
 import { problem } from './http'
 
 type In<T extends z.ZodType> = z.input<T>
@@ -57,9 +56,6 @@ export function publicPlan(p: PlanRow): In<typeof PublicPlan> {
     id: p.id, code: p.code, name: p.name, description: p.description, priceMonthly: money(p.priceMonthly),
     priceYearly: money(p.priceYearly), limits: { ...p.limits }, features: [...p.features], isFeatured: p.isFeatured,
   }
-}
-export function plan(p: PlanRow): In<typeof Plan> {
-  return { ...publicPlan(p), isActive: p.isActive, archivedAt: p.archivedAt, subscribersCount: p.subscribersCount, version: p.version }
 }
 
 // ---------------------------------------------------------------- Association
@@ -216,29 +212,6 @@ export function notification(n: NotificationRow): In<typeof Notification> {
   return {
     id: n.id, type: n.type, title: n.title, body: n.body, actionUrl: n.actionUrl,
     data: n.actionLabel ? { actionLabel: n.actionLabel } : {}, associationId: n.associationId, readAt: n.readAt, createdAt: n.createdAt,
-  }
-}
-
-// ---------------------------------------------------------------- Identité (`GET /me`)
-
-export function me(session: MockSession): In<typeof Me> {
-  const u = userRow(session.userId)
-  const role = session.space === 'subscriber' ? 'subscriber' : null
-  const memberships = db.memberships
-    .filter(m => m.userId === u.id && m.status !== 'removed' && (role ? m.role === 'subscriber' : m.role !== 'subscriber'))
-    .map((m) => {
-      const a = associationRow(m.associationId)
-      return { association: { ...associationRef(a), slug: a.slug, status: a.status }, role: m.role, title: m.title }
-    })
-  const staff = db.staff.find(s => s.userId === u.id)
-  return {
-    user: { id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, phone: u.phone, locale: u.locale },
-    space: session.space,
-    currentAssociationId: session.associationId,
-    memberships: session.space === 'platform' ? [] : memberships,
-    platformRole: session.space === 'platform' ? staff?.role ?? null : null,
-    permissions: [...db.permissions[session.space]],
-    features: [...db.features],
   }
 }
 

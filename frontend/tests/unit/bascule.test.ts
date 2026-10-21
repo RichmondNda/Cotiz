@@ -35,23 +35,27 @@ describe('decide', () => {
   const base = { mocks: true, apiOrigin: 'http://api' }
 
   it('mock par défaut, NestJS pour un id du registre', () => {
-    expect(decide('GET', '/api/v1/public/plans', base)).toBe('mock')
-    expect(decide('GET', '/api/v1/public/plans', { ...base, real: new Set(['pub.plans']) })).toBe('proxy')
+    expect(decide('GET', '/api/v1/me/dashboard', base)).toBe('mock')
+    expect(decide('GET', '/api/v1/me/dashboard', { ...base, real: new Set(['me.dash']) })).toBe('proxy')
     expect(decide('GET', '/api/v1/health/live', base)).toBe('proxy')
   })
 
   it('NUXT_MOCKS=0 : tout part vers NestJS', () => {
-    expect(decide('GET', '/api/v1/public/plans', { ...base, mocks: false })).toBe('proxy')
+    expect(decide('GET', '/api/v1/me/dashboard', { ...base, mocks: false })).toBe('proxy')
   })
 
   it('le registre contient sys.health (bascule du lot 0.1)', () => {
     expect(REAL_ENDPOINTS.get('sys.health')).toBe('all')
   })
 
-  it('lot 1.1 : endpoints d’authentification basculés pour l’espace plateforme seulement', () => {
-    for (const id of ['auth.login', 'auth.refresh', 'auth.logout', 'auth.activate', 'auth.forgot', 'auth.verify', 'auth.reset', 'me', 'fl.upload', 'fl.get'] as const) {
-      expect(REAL_ENDPOINTS.get(id), id).toEqual(['platform'])
+  it('lot 1.2 : authentification et /me pour tous les espaces ; fichiers pour la plateforme seulement ; plans', () => {
+    for (const id of ['auth.login', 'auth.refresh', 'auth.logout', 'auth.activate', 'auth.forgot', 'auth.verify', 'auth.reset', 'me'] as const) {
+      expect(REAL_ENDPOINTS.get(id), id).toBe('all')
     }
+    for (const id of ['fl.upload', 'fl.get'] as const) expect(REAL_ENDPOINTS.get(id), id).toEqual(['platform'])
+    for (const id of ['pub.plans', 'pf.plans', 'pf.plan.write', 'pf.plan.archive'] as const) expect(REAL_ENDPOINTS.get(id), id).toBe('all')
+    // Second facteur du super-admin : simulé jusqu'au lot 4.7.
+    expect(REAL_ENDPOINTS.has('auth.mfa')).toBe(false)
   })
 
   describe('bascule par espace', () => {

@@ -1,9 +1,4 @@
-// Espace souscripteur : réservé au rôle « souscripteur » de la session mockée ; sinon, page de connexion de l'espace.
-import { CONNEXION_PAR_ROLE, useSession } from '~/composables/useSession'
+// Espace souscripteur : réservé à une session de l'espace (vraie session pour un espace basculé, utils/garde-espace.ts).
+import { gardeEspace } from '~/utils/garde-espace'
 
-export default defineNuxtRouteMiddleware((to) => {
-  const { role } = useSession()
-  if (role.value !== 'souscripteur') {
-    return navigateTo({ path: CONNEXION_PAR_ROLE.souscripteur, query: { redirection: to.fullPath } })
-  }
-})
+export default defineNuxtRouteMiddleware(to => gardeEspace('souscripteur', to))

@@ -7,19 +7,28 @@ import type { EndpointId } from '@cotiz/contracts'
 export type BasculeSpace = 'platform' | 'association' | 'subscriber'
 export type BasculeRule = 'all' | readonly BasculeSpace[]
 
-/** Lot 1.1 : espace plateforme seulement ; gestionnaire et souscripteur au lot 1.2. */
+/**
+ * Dépôt et lecture de fichiers : espace plateforme seulement. Le dépôt d'un logo d'association (décision 24, lot 2.1)
+ * et de la preuve d'un souscripteur (lot 3.3) restent simulés avec les écrans qui s'en servent.
+ */
 const PLATFORM = ['platform'] as const
 
 export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<EndpointId, BasculeRule>([
   ['sys.health', 'all'],
-  ['auth.login', PLATFORM],
-  ['auth.refresh', PLATFORM],
-  ['auth.logout', PLATFORM],
-  ['auth.activate', PLATFORM],
-  ['auth.forgot', PLATFORM],
-  ['auth.verify', PLATFORM],
-  ['auth.reset', PLATFORM],
-  ['me', PLATFORM],
+  // Lot 1.1, ouverts aux trois espaces au lot 1.2 (appartenances réelles) : connexion, session et identité.
+  ['auth.login', 'all'],
+  ['auth.refresh', 'all'],
+  ['auth.logout', 'all'],
+  ['auth.activate', 'all'],
+  ['auth.forgot', 'all'],
+  ['auth.verify', 'all'],
+  ['auth.reset', 'all'],
+  ['me', 'all'],
   ['fl.upload', PLATFORM],
   ['fl.get', PLATFORM],
+  // Lot 1.2 : plans (tarifs publics, gestion par le super-admin).
+  ['pub.plans', 'all'],
+  ['pf.plans', 'all'],
+  ['pf.plan.write', 'all'],
+  ['pf.plan.archive', 'all'],
 ])
