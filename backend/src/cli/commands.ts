@@ -1,6 +1,7 @@
 import { userInfo } from 'node:os';
 import { type INestApplicationContext, Logger } from '@nestjs/common';
 import { Email } from '@cotiz/contracts';
+import { isUniqueViolation, pgErrorOf } from '@cotiz/db';
 import { CONFIG, type Config } from '../config.js';
 import {
   CreatePlatformOwnerUseCase,
@@ -14,6 +15,9 @@ import {
   SeedDevAccountsUseCase,
   SeedRefusedError,
 } from '../modules/identity/application/seed-dev-accounts.use-case.js';
+import { SeedDevMembershipsUseCase } from '../modules/access/access.public.js';
+import { SeedDevPlansUseCase, SeedDevSubscriptionsUseCase } from '../modules/billing/billing.public.js';
+import { SeedDevAssociationsUseCase } from '../modules/tenancy/tenancy.public.js';
 import { TenantDatabase } from '../shared/tenant-context/index.js';
 
 /**
@@ -30,7 +34,7 @@ const USAGE = [
   'Commandes :',
   '  create-platform-owner <email> <prénom> <nom>',
   '  reset-password <email>',
-  '  seed-dev                (développement : comptes à mot de passe connu)',
+  '  seed-dev                (développement : comptes, associations et plans de référence)',
 ].join('\n');
 
 const DATE = new Intl.DateTimeFormat('fr-FR', {
@@ -48,7 +52,7 @@ export async function runCli(app: INestApplicationContext, argv: string[], io: C
     if (command === 'seed-dev') return await seedDev(app, io);
   } catch (error) {
     // Jamais le message brut : celui d'une erreur SQL contient requête, paramètres et valeurs (email…).
-    const pg = pgError(error);
+    const pg = pgErrorOf(error);
     Logger.error(
       { msg: 'commande échouée', command, error: error instanceof Error ? error.name : 'inconnue', sqlState: pg?.code },
       'Cli',
@@ -130,19 +134,46 @@ async function resetPassword(app: INestApplicationContext, args: string[], io: C
   }
 }
 
-/** Comptes de développement (jamais en production) : espaces déjà basculés vers le vrai back. */
+/**
+ * Données de développement (jamais en production) : comptes à mot de passe connu (ou code d'activation à remettre),
+ * puis associations, plans, abonnements et appartenances de référence, aux identifiants des données simulées du front.
+ */
 async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<number> {
   try {
-    const accounts = await app
-      .get(TenantDatabase)
-      .withTenantContext({ space: 'auth' }, () => app.get(SeedDevAccountsUseCase).execute());
+    const db = app.get(TenantDatabase);
+    const accounts = await db.withTenantContext({ space: 'auth' }, () => app.get(SeedDevAccountsUseCase).execute());
     io.out.write(
       [
         'Comptes de développement prêts (mot de passe connu, jamais en production) :',
-        ...accounts.map((a) => `  ${a.email} / ${a.password}`),
+        ...accounts.map((a) =>
+          'password' in a
+            ? `  ${a.identifier} / ${a.password}`
+            : `  ${a.name}, ${a.identifier} : code d’activation ${a.activationCode} (valable jusqu’au ${DATE.format(a.expiresAt)}, heure d’Abidjan ; première connexion)`,
+        ),
         '',
       ].join('\n'),
     );
+    // Lignes de plusieurs associations et plans : écrits par cotiz_platform seulement (PLATFORM_DATABASE_URL).
+    if (app.get<Config>(CONFIG).PLATFORM_DATABASE_URL === undefined) {
+      io.err.write(
+        'Associations et plans de référence non créés : PLATFORM_DATABASE_URL manquante (rôle cotiz_platform).\n',
+      );
+      return 1;
+    }
+    const { slugs, codes } = await db.withTenantContext(
+      { space: 'platform' },
+      async () => {
+        const created = {
+          slugs: await app.get(SeedDevAssociationsUseCase).execute(),
+          codes: await app.get(SeedDevPlansUseCase).execute(),
+        };
+        await app.get(SeedDevSubscriptionsUseCase).execute();
+        await app.get(SeedDevMembershipsUseCase).execute();
+        return created;
+      },
+      { platformConnection: true },
+    );
+    io.out.write(`Plans de référence : ${codes.join(', ')}\nAssociations de référence : ${slugs.join(', ')}\n`);
     return 0;
   } catch (error) {
     if (error instanceof SeedRefusedError) {
@@ -166,18 +197,4 @@ function operator(): string {
   } catch {
     return 'cli:inconnu';
   }
-}
-
-/** Erreur PostgreSQL d'origine (Drizzle l'enveloppe dans `cause`) : SQLSTATE et contrainte en cause. */
-function pgError(error: unknown): { code: string; constraint?: unknown } | undefined {
-  for (let e = error; e instanceof Error; e = e.cause) {
-    if ('code' in e && typeof e.code === 'string') return e as Error & { code: string; constraint?: unknown };
-  }
-  return undefined;
-}
-
-/** Violation d'unicité (23505) de la contrainte nommée, et d'aucune autre. */
-export function isUniqueViolation(error: unknown, constraint: string): boolean {
-  const pg = pgError(error);
-  return pg?.code === '23505' && pg.constraint === constraint;
 }

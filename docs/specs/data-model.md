@@ -234,9 +234,10 @@ Formules d'abonnement gérées par le super-admin.
 | `price_monthly / price_yearly` | `bigint` | en XOF |
 | `currency` | `char(3)` |  |
 | `max_projects / max_subscribers / max_managers` | `int NULL` | NULL = illimité |
-| `features` | `text[]` | import_excel · auto_reminders · advanced_reports · e_signature |
+| `features` | `text[]` | clés planGated de features.yaml : contracts · imports · auto_reminders · team · exports · reconciliation · public_api · analytics |
 | `is_featured / is_active` | `boolean` |  |
 | `archived_at` | `timestamptz NULL` |  |
+| `version` | `int` | verrouillage optimiste |
 
 ## `subscriptions` — lot 1.2
 

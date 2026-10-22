@@ -14042,18 +14042,7 @@
         "x-errors": ["code_taken", "version_conflict"],
         "x-rate-limited": false,
         "x-audited": true,
-        "parameters": [
-          {
-            "in": "header",
-            "name": "If-Match",
-            "schema": {
-              "type": "string",
-              "description": "ETag de la ressource lue (`W/\"<version>\"`)."
-            },
-            "required": true,
-            "description": "ETag de la ressource lue (`W/\"<version>\"`)."
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {

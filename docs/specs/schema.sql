@@ -333,6 +333,7 @@ CREATE TABLE plans (
   is_featured boolean NOT NULL DEFAULT false,
   is_active boolean NOT NULL DEFAULT true,
   archived_at timestamptz,
+  version int NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE plans IS 'Formules d''abonnement gérées par le super-admin.';
@@ -341,7 +342,8 @@ COMMENT ON COLUMN plans.price_yearly IS 'en XOF';
 COMMENT ON COLUMN plans.max_projects IS 'NULL = illimité';
 COMMENT ON COLUMN plans.max_subscribers IS 'NULL = illimité';
 COMMENT ON COLUMN plans.max_managers IS 'NULL = illimité';
-COMMENT ON COLUMN plans.features IS 'import_excel · auto_reminders · advanced_reports · e_signature';
+COMMENT ON COLUMN plans.features IS 'clés planGated de features.yaml : contracts · imports · auto_reminders · team · exports · reconciliation · public_api · analytics';
+COMMENT ON COLUMN plans.version IS 'verrouillage optimiste';
 
 -- subscriptions · module billing · V1 · lot 1.2
 -- Abonnement en cours d'une association.
@@ -1202,7 +1204,7 @@ CREATE POLICY tenant_isolation ON memberships
   USING (association_id = app_association_id())
   WITH CHECK (association_id = app_association_id());
 CREATE POLICY self_read ON memberships FOR SELECT
-  USING (user_id = app_user_id());
+  USING (user_id = app_user_id() AND app_space() IN ('subscriber', 'auth'));
 
 -- association_requests
 ALTER TABLE association_requests ENABLE ROW LEVEL SECURITY;
@@ -1217,7 +1219,7 @@ CREATE POLICY tenant_self ON associations
   USING (id = app_association_id())
   WITH CHECK (id = app_association_id());
 CREATE POLICY member_read ON associations FOR SELECT
-  USING (EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = associations.id AND m.user_id = app_user_id() AND m.status = 'active'));
+  USING (app_space() IN ('subscriber', 'auth') AND EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = associations.id AND m.user_id = app_user_id() AND m.status = 'active'));
 CREATE POLICY system_read ON associations FOR SELECT
   USING (app_space() = 'system');
 
@@ -1228,7 +1230,7 @@ CREATE POLICY tenant_isolation ON association_payment_methods
   USING (association_id = app_association_id())
   WITH CHECK (association_id = app_association_id());
 CREATE POLICY member_read ON association_payment_methods FOR SELECT
-  USING (EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = association_payment_methods.association_id AND m.user_id = app_user_id() AND m.status = 'active'));
+  USING (app_space() IN ('subscriber', 'auth') AND EXISTS (SELECT 1 FROM memberships m WHERE m.association_id = association_payment_methods.association_id AND m.user_id = app_user_id() AND m.status = 'active'));
 
 -- subscriptions
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
@@ -1551,3 +1553,6 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO cotiz_app, cotiz_platform;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO cotiz_readonly;
 REVOKE UPDATE, DELETE ON audit_logs, contract_signatures FROM cotiz_app, cotiz_platform;
 REVOKE DELETE ON payments, allocations, installments, invoices FROM cotiz_app, cotiz_platform;
+-- plans : écrits par la plateforme seulement (cotiz_platform) ; plans et abonnements jamais supprimés (archivage, résiliation).
+REVOKE INSERT, UPDATE ON plans FROM cotiz_app;
+REVOKE DELETE ON plans, subscriptions FROM cotiz_app, cotiz_platform;

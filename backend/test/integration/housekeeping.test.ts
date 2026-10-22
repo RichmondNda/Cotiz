@@ -9,7 +9,7 @@ import { PurgeOrphanFilesUseCase } from '../../src/modules/files/application/pur
 import { REDIS_PREFIX, redisConnection } from '../../src/shared/queues/index.js';
 import { Housekeeping, ScheduledTasks } from '../../src/shared/scheduler/index.js';
 import { WorkerModule } from '../../src/worker.module.js';
-import { A, type IsolationHarness, startIsolationHarness, USERS } from '../isolation/harness.js';
+import { A, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
 import { startMinio, type TestMinio } from '../support/minio.js';
 
 /**
@@ -50,6 +50,7 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
       new RedisContainer('redis:7-alpine').start(),
       startMinio(),
     ]);
+    await seedAssociations(h);
     const config = loadConfig({
       NODE_ENV: 'test',
       DATABASE_URL: h.db.urlFor('cotiz_app'),

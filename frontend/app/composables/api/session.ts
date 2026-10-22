@@ -18,26 +18,31 @@ export async function associationCourante(client: ApiClient): Promise<string> {
 }
 
 /** Utilisateur de la session : identité, association courante (nom, plan), droits et fonctionnalités. */
-export const useMoi = () => useLecture<UtilisateurSession>('session-moi', async (client) => {
-  const me = await client.call('me', 'get')
-  const role = ROLE[me.space]!
-  const courante = me.memberships.find(x => x.association.id === me.currentAssociationId)
-  const sub = courante ? await client.call('bl.sub', 'get', { params: { aid: courante.association.id } }) : null
-  return {
-    id: me.user.id,
-    role,
-    prenom: me.user.firstName,
-    nom: me.user.lastName || undefined,
-    fonction: role === 'souscripteur' ? 'Souscripteur' : courante?.title ? majuscule(courante.title) : undefined,
-    associationId: courante?.association.id,
-    association: courante && sub
-      ? { id: courante.association.id, nom: courante.association.name, sigle: initiales(courante.association.name), plan: sub.plan.name }
-      : undefined,
-    permissions: me.permissions,
-    // Espace basculé : les écrans encore simulés gardent leurs fonctionnalités (transition, lot 1.1).
-    features: espaceBascule(me.space) ? fonctionnalitesActives(me.features, lotsBascules(me.space)) : me.features,
-  }
-})
+export const useMoi = () => {
+  const route = useRoute()
+  return useLecture<UtilisateurSession>('session-moi', async (client) => {
+    const me = await client.call('me', 'get')
+    const role = ROLE[me.space]!
+    const courante = me.memberships.find(x => x.association.id === me.currentAssociationId)
+    const sub = courante ? await client.call('bl.sub', 'get', { params: { aid: courante.association.id } }) : null
+    return {
+      id: me.user.id,
+      role,
+      prenom: me.user.firstName,
+      nom: me.user.lastName || undefined,
+      fonction: role === 'souscripteur' ? 'Souscripteur' : courante?.title ? majuscule(courante.title) : undefined,
+      associationId: courante?.association.id,
+      association: courante && sub
+        ? { id: courante.association.id, nom: courante.association.name, sigle: initiales(courante.association.name), plan: sub.plan.name }
+        : undefined,
+      permissions: me.permissions,
+      // Espace basculé : les écrans encore simulés gardent leurs fonctionnalités (transition, lot 1.1).
+      features: espaceBascule(me.space)
+        ? fonctionnalitesActives(me.features, lotsBascules(me.space), typeof route.query.scenario === 'string' ? route.query.scenario : undefined)
+        : me.features,
+    }
+  })
+}
 
 /** Compteurs des menus, recomposés selon l'espace (plus de route dédiée : docs/specs/v0-mapping.md). */
 export const useCompteursNavigation = () => {

@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import type { Config } from './config.js';
 import { ConfigModule } from './config.module.js';
+import { BillingWorkerModule } from './modules/billing/billing-worker.module.js';
 import { FilesWorkerModule } from './modules/files/files-worker.module.js';
 import { IdentityWorkerModule } from './modules/identity/identity-worker.module.js';
 import { createLogger, type Logger, LoggingModule } from './shared/logging/index.js';
@@ -32,6 +33,7 @@ export class WorkerModule {
         StorageModule,
         FilesWorkerModule,
         IdentityWorkerModule,
+        BillingWorkerModule,
       ],
     };
   }

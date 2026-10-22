@@ -25,8 +25,7 @@ const lien = (p: Plan) => `/plateforme/plans/${p.id}`
 const archive = ref<Plan | null>(null)
 async function archiverPlan(p: Plan) {
   try {
-    await archiver(p.id)
-    archive.value = p
+    archive.value = await archiver(p.id)
     await refresh()
   }
   catch {
@@ -35,7 +34,7 @@ async function archiverPlan(p: Plan) {
 }
 async function annulerArchivage() {
   if (!archive.value) return
-  await desarchiver(archive.value.id)
+  await desarchiver(archive.value.id, archive.value.version ?? 1)
   archive.value = null
   await refresh()
 }
@@ -216,10 +215,6 @@ const chargement = computed(() => pending.value && !plans.value)
         </div>
       </article>
     </div>
-
-    <p class="sa-plans__note">
-      Nombre d’abonnés par plan : données illustratives. Quotas : seuls ceux du plan Pro figurent dans la spécification.
-    </p>
   </div>
 </template>
 
@@ -345,11 +340,5 @@ const chargement = computed(() => pending.value && !plans.value)
 
 .sa-plans__modifier:hover {
   text-decoration: underline;
-}
-
-.sa-plans__note {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--text-muted);
 }
 </style>

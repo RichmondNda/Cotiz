@@ -5,5 +5,7 @@ export default {
     const quota = page.getByRole('group', { name: 'Souscripteurs' })
     await quota.getByRole('button', { name: 'Augmenter' }).click()
     await quota.getByRole('button', { name: 'Diminuer' }).click()
+    // Souris hors du bouton : pas d'infobulle « Diminuer » dans la capture.
+    await page.mouse.move(0, 0)
   },
 }

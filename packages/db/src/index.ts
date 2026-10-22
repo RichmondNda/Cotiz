@@ -1,3 +1,4 @@
 export { createdAt, id, updatedAt, version } from './columns.js';
+export { isUniqueViolation, pgErrorOf } from './errors.js';
 export { updateWithVersion, VersionConflictError, type VersionedTable } from './versioning.js';
 export * from './schema/index.js';

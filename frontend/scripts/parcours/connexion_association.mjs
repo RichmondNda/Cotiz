@@ -1,35 +1,35 @@
-// Parcours de /connexion/association (gestionnaire). Identifiants : server/mocks/IDENTIFIANTS.md.
-// ⚠ `blocage-15-min` bloque awa@entraide.ci 15 min dans le serveur de dev : le capturer en dernier
-// (ou redémarrer `npm run dev` ensuite).
+// Parcours de /connexion/association (gestionnaire). Compte de seed-dev : server/mocks/IDENTIFIANTS.md ; états
+// d'erreur imposés (scripts/reponses-imposees.mjs), sans jamais bloquer le compte de développement.
+import { COMPTES } from '../session-test.mjs'
+import { imposerProbleme } from '../reponses-imposees.mjs'
+
+const LOGIN = '**/api/v1/auth/login'
 
 async function saisir(page, motDePasse) {
-  await page.getByLabel('Email').fill('awa@entraide.ci')
+  await page.getByLabel('Email').fill(COMPTES.gestionnaire.identifiant)
   await page.getByLabel('Mot de passe', { exact: true }).fill(motDePasse)
 }
 
 async function soumettre(page) {
-  const reponse = page.waitForResponse('**/api/v1/auth/login')
+  const reponse = page.waitForResponse(LOGIN)
   await page.getByRole('button', { name: 'Se connecter' }).click()
   await reponse
 }
 
+async function echec(page, code) {
+  await imposerProbleme(page, LOGIN, code)
+  await saisir(page, 'mauvaismdp')
+  await soumettre(page)
+}
+
 export default {
-  'nominal': page => saisir(page, 'motdepasse'),
-  'identifiants-incorrects': async (page) => {
-    await saisir(page, 'mauvaismdp')
-    await soumettre(page)
-  },
-  'compte-suspendu': async (page) => {
-    await saisir(page, 'suspendu')
-    await soumettre(page)
-  },
-  'blocage-15-min': async (page) => {
-    await saisir(page, 'mauvaismdp')
-    for (let i = 0; i < 5; i++) await soumettre(page)
-  },
+  'nominal': page => saisir(page, COMPTES.gestionnaire.password),
+  'identifiants-incorrects': page => echec(page, 'invalid_credentials'),
+  'compte-suspendu': page => echec(page, 'association_suspended'),
+  'blocage-15-min': page => echec(page, 'account_locked'),
   'chargement': async (page) => {
-    await page.route('**/api/v1/auth/login', () => new Promise(() => {}))
-    await saisir(page, 'motdepasse')
+    await page.route(LOGIN, () => new Promise(() => {}))
+    await saisir(page, COMPTES.gestionnaire.password)
     await page.getByRole('button', { name: 'Se connecter' }).click()
   },
 }

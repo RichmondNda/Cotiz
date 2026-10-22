@@ -2,6 +2,7 @@
 export { AfterCommit, afterCommit, type InContext } from './after-commit.js';
 export {
   getRequestContext,
+  isPlatformRoute,
   isWithoutTenantContext,
   setRequestContext,
   WithoutTenantContext,

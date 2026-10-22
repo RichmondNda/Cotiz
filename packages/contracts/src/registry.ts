@@ -19,6 +19,11 @@ export interface OperationDef {
     query?: z.ZodObject;
     body?: z.ZodType;
   };
+  /**
+   * Exception au drapeau `ifMatch` de l'endpoint (porté par l'id dans endpoints.yaml) : `false` pour une opération qui
+   * ne modifie pas une ressource existante, donc sans version à vérifier (création de pf.plan.write). Lot 1.2.
+   */
+  ifMatch?: false;
   response: {
     status: 200 | 201 | 202 | 204 | 302;
     /** Absent pour 204 et 302, facultatif pour 202. */
@@ -47,6 +52,14 @@ export interface EndpointDef {
 /** Garde les types littéraux de la définition (utilisés par le client typé). */
 export function defineEndpoint<const T extends EndpointDef>(def: T): T {
   return def;
+}
+
+/**
+ * `If-Match` exigé pour cette opération : drapeau `ifMatch` de l'endpoint, sauf lecture (GET) et exception déclarée
+ * par l'opération (`ifMatch: false`). Même règle pour le serveur, le client et l'OpenAPI.
+ */
+export function requiresIfMatch(def: Pick<EndpointDef, 'flags'>, op: OperationDef): boolean {
+  return def.flags.ifMatch && op.method !== 'GET' && op.ifMatch !== false;
 }
 
 /** Drapeaux usuels, à compléter par endpoint. */

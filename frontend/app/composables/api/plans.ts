@@ -26,20 +26,19 @@ export function useActionsPlan() {
   const vue = async (id: string) => (await tous()).find(p => p.id === id)!
   return {
     creer: async (plan: ModificationPlan) => {
-      const cree = await client.call('pf.plan.write', 'create', { body: { ...versPlanInput(plan, await tous()), code: codePlan(plan.nom) }, ifMatch: 0 })
+      const cree = await client.call('pf.plan.write', 'create', { body: { ...versPlanInput(plan, await tous()), code: codePlan(plan.nom) } })
       return vue(cree.id)
     },
-    modifier: async (id: string, plan: ModificationPlan) => {
-      const actuel = await vue(id)
-      await client.call('pf.plan.write', 'patch', { params: { id }, body: versPlanInput(plan, await tous()), ifMatch: actuel.version ?? 1 })
+    /** `version` : celle du plan affiché (If-Match) — une modification entre-temps renvoie `version_conflict`. */
+    modifier: async (id: string, version: number, plan: ModificationPlan) => {
+      await client.call('pf.plan.write', 'patch', { params: { id }, body: versPlanInput(plan, await tous()), ifMatch: version })
       return vue(id)
     },
     dupliquer: async (id: string) => vue((await client.call('pf.plan.archive', 'duplicate', { params: { id } })).id),
     archiver: async (id: string) => vue((await client.call('pf.plan.archive', 'archive', { params: { id } })).id),
     /** Annule l'archivage (« Annuler » du message) : le plan redevient actif. */
-    desarchiver: async (id: string) => {
-      const actuel = await vue(id)
-      await client.call('pf.plan.write', 'patch', { params: { id }, body: { isActive: true }, ifMatch: actuel.version ?? 1 })
+    desarchiver: async (id: string, version: number) => {
+      await client.call('pf.plan.write', 'patch', { params: { id }, body: { isActive: true }, ifMatch: version })
       return vue(id)
     },
   }

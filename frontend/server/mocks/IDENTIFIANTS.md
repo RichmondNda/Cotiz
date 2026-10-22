@@ -1,61 +1,39 @@
-# Identifiants mockés des écrans de connexion
+# Identifiants des écrans de connexion
 
-Chaque état d'erreur de `design/INVENTAIRE.md` est atteignable avec les saisies ci-dessous.
-Logique : `server/mocks/handlers/session.ts` (`auth.*`). Le cookie `cotiz_role` reste la session mockée des espaces gestionnaire et souscripteur jusqu'au lot 1.2.
+Les trois espaces se connectent au vrai back depuis le lot 1.2 (`server/bascule/real-endpoints.ts` : `auth.*`, `me`).
+Le cookie `cotiz_role` n'est plus qu'un relais pour les écrans encore simulés : la garde de l'espace le pose après une
+vraie connexion (`app/utils/garde-espace.ts`).
 
-## Souscripteur — `/connexion`
-
-| Téléphone | Mot de passe | Résultat |
-|---|---|---|
-| 05 44 21 87 90 (Moussa Diarra) | `motdepasse` | connexion → `/accueil` |
-| 05 44 21 87 90 | `K7M4-P9QX` (code d'activation remis par l'association) | première connexion → `/bienvenue` |
-| 05 44 21 87 90 | autre | « Mot de passe incorrect » |
-| numéro absent des mocks (ex. 07 00 00 00 00) | — | « Mot de passe incorrect » (le contrat ne révèle pas si un compte existe : écart R7) |
-
-Fatou Traoré (01 22 33 44 55) et Jean Kouassi (07 55 66 77 88) se connectent aussi avec `motdepasse` ;
-la session mockée reste celle de Moussa Diarra.
-
-## Gestionnaire — `/connexion/association`
-
-| Email | Mot de passe | Résultat |
-|---|---|---|
-| awa@entraide.ci | `motdepasse` | connexion → `/asso` |
-| awa@entraide.ci | `K7M4-P9QX` | premier accès → onboarding `/asso/bienvenue` |
-| awa@entraide.ci | `suspendu` | « L’espace de votre association est suspendu » |
-| awa@entraide.ci (ou email inconnu) | autre | « Email ou mot de passe incorrect » |
-| même email, 5ᵉ échec consécutif | — | « Trop de tentatives » : blocage 15 min (mémoire du serveur ; redémarrer `pnpm dev` pour l’effacer) |
-
-État « chargement » : pendant l’envoi. `?scenario=chargement` sur la page allonge la latence à 10 s.
-
-## Super-admin — `/connexion/plateforme` (vrai back depuis le lot 1.1)
-
-L'espace plateforme est basculé vers NestJS (`server/bascule/real-endpoints.ts`) : plus de mock pour sa connexion.
-Prérequis : `docker compose -f infra/compose/local.yml up -d`, `pnpm db:migrate`, `pnpm dev` (api + web), puis le
-compte de développement :
+Prérequis : `docker compose -f infra/compose/local.yml up -d`, `pnpm db:migrate`, `pnpm dev` (api + web), puis les
+données de développement (comptes, associations, plans, abonnements et appartenances, aux UUID des données simulées) :
 
 ```bash
-COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev   # richy@cotiz.app, owner plateforme (développement seulement)
+COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev   # développement seulement ; PLATFORM_DATABASE_URL requise
 ```
 
-| Email | Mot de passe | Résultat |
-|---|---|---|
-| richy@cotiz.app | `Plateau-Dev-Cotiz-2026` | connexion → `/plateforme` (pas de second facteur avant le lot 4.7) |
-| richy@cotiz.app | autre | « Identifiants incorrects » ; au 5ᵉ échec, blocage 15 min |
-| autre | — | « Identifiants incorrects » |
+Mot de passe des comptes actifs : `Plateau-Dev-Cotiz-2026`.
+
+| Espace | Page | Identifiant | Personne | Arrivée |
+|---|---|---|---|---|
+| Souscripteur | `/connexion` | 05 44 21 87 90 | Moussa Diarra (Entraide Yopougon, Ressortissants de Man) | `/accueil` |
+| Souscripteur | `/connexion` | 07 55 66 77 88 | Jean Kouassi | `/accueil` |
+| Souscripteur | `/activer?espace=souscripteur&t=0122334455` | 01 22 33 44 55 | Fatou Traoré, **non activée** : code d'activation affiché par `seed-dev` (nouveau à chaque exécution), puis mot de passe au choix | `/accueil` |
+| Gestionnaire | `/connexion/association` | awa@entraide.ci | Awa Koné, owner d'Entraide Yopougon | `/asso` |
+| Super-admin | `/connexion/plateforme` | richy@cotiz.app | Richy, owner plateforme (pas de second facteur avant le lot 4.7) | `/plateforme` |
+
+Autre mot de passe : « Identifiant ou mot de passe incorrect » ; au 5ᵉ échec, blocage de 15 min (compteur Redis :
+`docker compose -f infra/compose/local.yml restart redis` pour l'effacer). Les écrans encore simulés montrent toujours
+les données de Moussa Diarra et d'Awa Koné, quel que soit le compte connecté (`cotiz_role` → personne fixe,
+`server/mocks/http.ts`) : connecté en Jean ou Fatou, un écran simulé affiche les inscriptions de Moussa. L'isolation
+entre souscripteurs ne se vérifie donc à l'écran que sur les endpoints basculés.
+
+États d'erreur des captures (`/verifier-ecran`) : réponses imposées par `scripts/reponses-imposees.mjs` (association
+suspendue, compte bloqué, compte non activé, code expiré…), sans toucher aux comptes de développement.
 
 Nouveau compte plateforme, sans fournisseur : `pnpm --filter backend cli create-platform-owner <email> <prénom> <nom>`
-affiche un code à remettre et le lien `/activer?espace=plateforme`. Mot de passe perdu : `pnpm --filter backend cli
-reset-password <email>` affiche un code à 6 chiffres, à saisir sur `/mot-de-passe?profil=plateforme`.
-
-## Mot de passe oublié — `/mot-de-passe`
-
-Tout téléphone ou email bien formé est accepté (on ne révèle pas si le compte existe).
-
-| Code | Résultat |
-|---|---|
-| `123456` | étape « Nouveau mot de passe » |
-| `000000` | « Code expiré » |
-| autre | « Code incorrect » |
+affiche un code à remettre et le lien `/activer?espace=plateforme`. Mot de passe perdu du personnel plateforme :
+`pnpm --filter backend cli reset-password <email>` affiche un code à 6 chiffres, à saisir sur
+`/mot-de-passe?profil=plateforme`. Gestionnaires et souscripteurs : code remis par une personne (lots 1.3 et 2.3).
 
 ## Ajout d'un souscripteur — recherche du téléphone
 

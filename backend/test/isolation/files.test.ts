@@ -8,6 +8,7 @@ import {
   errorOf,
   type IsolationHarness,
   isRlsViolation,
+  seedAssociations,
   startIsolationHarness,
   type Tx,
   USERS,
@@ -42,6 +43,7 @@ describe('isolation : files (base migrée)', () => {
 
   beforeAll(async () => {
     h = await startIsolationHarness('migrated');
+    await seedAssociations(h);
     await h.superuser(
       `INSERT INTO files (id, association_id, owner_user_id, purpose, bucket, object_key, original_name, mime_type,
                           size_bytes)

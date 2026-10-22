@@ -70,6 +70,11 @@ export function codeErreur<C extends string = string>(e: unknown): C | undefined
   return typeof code === 'string' ? (code as C) : undefined
 }
 
+/** Message d'un refus du back (titre du Problem, docs/specs/errors.yaml), sinon `undefined` (réseau, panne). */
+export function messageRefus(e: unknown): string | undefined {
+  return e instanceof ApiError && e.problem && e.status < 500 ? e.problem.title : undefined
+}
+
 /** Erreurs de champ d'un `validation_failed` (`fields.<champ>` = code de règle). */
 export function champsErreur(e: unknown): Record<string, string> {
   return e instanceof ApiError && e.problem?.fields ? e.problem.fields : {}

@@ -1,39 +1,14 @@
-// Authentification, identité, profil, préférences et notifications (auth.*, me, me.profile, me.prefs, nt.*).
-// Identifiants des écrans de connexion : server/mocks/IDENTIFIANTS.md.
+// Second facteur (auth.mfa), profil, préférences et notifications (me.profile, me.prefs, nt.*).
 import { motDePasseAcceptable } from '../../../app/utils/mot-de-passe'
 import { db } from '../db'
 import type { MockContext, MockSession } from '../http'
 import { checkVersion, nowInstant, problem, requireSession } from '../http'
-import { me as meView, notification, userRow } from '../views'
+import { notification, userRow } from '../views'
 import { page } from './list'
 
+/** Mot de passe actuel des comptes simulés (changement de mot de passe du profil, me.profile). */
 export const PASSWORD = 'motdepasse'
-/** Mot de passe provisoire = code d'activation remis par l'association (format du contrat, lot 1.1). */
-export const ACTIVATION_CODE = 'K7M4-P9QX'
-export const SUSPENDED_PASSWORD = 'suspendu'
 export const MFA_CODE = '481902'
-export const RESET_CODE_OK = '123456'
-export const RESET_CODE_EXPIRED = '000000'
-const MAX_FAILURES = 5
-const LOCK_MS = 15 * 60 * 1000
-
-const failures = new Map<string, { count: number, lockedUntil?: number }>()
-
-function locked(key: string): boolean {
-  const f = failures.get(key)
-  if (!f?.lockedUntil) return false
-  if (Date.now() < f.lockedUntil) return true
-  failures.delete(key)
-  return false
-}
-
-function fail(key: string): never {
-  const f = failures.get(key) ?? { count: 0 }
-  f.count += 1
-  if (f.count >= MAX_FAILURES) f.lockedUntil = Date.now() + LOCK_MS
-  failures.set(key, f)
-  problem(f.lockedUntil ? 'account_locked' : 'invalid_credentials')
-}
 
 const token = (space: MockSession['space']) => ({
   accessToken: `mock.${space}.${Date.now()}`,
@@ -41,39 +16,8 @@ const token = (space: MockSession['space']) => ({
   space,
 })
 
-const ROLE = { subscriber: 'souscripteur', association: 'gestionnaire', platform: 'superadmin' } as const
-
-/** Personne du jeu qui se connecte avec cet identifiant dans cet espace. */
-function account(space: MockSession['space'], identifier: string) {
-  const id = identifier.trim().toLowerCase()
-  if (space === 'subscriber') {
-    const u = db.users.find(x => x.phone === identifier && db.memberships.some(m => m.userId === x.id && m.role === 'subscriber'))
-    return u ?? null
-  }
-  if (space === 'association') {
-    return db.users.find(x => x.email?.toLowerCase() === id && db.memberships.some(m => m.userId === x.id && m.role !== 'subscriber' && m.status === 'active')) ?? null
-  }
-  return db.users.find(x => x.email?.toLowerCase() === id && db.staff.some(s => s.userId === x.id && s.status === 'active')) ?? null
-}
-
-export function login(ctx: MockContext<'auth.login', 'login'>) {
-  const { space, identifier, password } = ctx.body
-  const key = `${space}:${identifier.toLowerCase()}`
-  if (locked(key)) problem('account_locked')
-  const u = account(space, identifier)
-  if (u && space === 'association' && password === SUSPENDED_PASSWORD) problem('association_suspended')
-  if (u && password === ACTIVATION_CODE && space !== 'platform') {
-    failures.delete(key)
-    problem('account_not_activated')
-  }
-  if (!u || password !== PASSWORD) fail(key)
-  failures.delete(key)
-  if (space === 'platform') {
-    return { status: 'mfa_required' as const, mfaToken: `mfa.${u.id}`, expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() }
-  }
-  ctx.setRole?.(ROLE[space])
-  return { status: 'authenticated' as const, ...token(space) }
-}
+// Connexion, activation, mot de passe oublié, déconnexion et `GET /me` : vrai back depuis le lot 1.2
+// (server/bascule/real-endpoints.ts). Reste simulé : le second facteur du super-admin (auth.mfa, lot 4.7).
 
 export function mfaVerify(ctx: MockContext<'auth.mfa', 'verify'>) {
   if (!('code' in ctx.body) || ctx.body.code !== MFA_CODE) problem('invalid_code')
@@ -81,44 +25,7 @@ export function mfaVerify(ctx: MockContext<'auth.mfa', 'verify'>) {
   return token('platform')
 }
 
-export function activate(ctx: MockContext<'auth.activate', 'activate'>) {
-  const { space, identifier, code, newPassword } = ctx.body
-  if (space === 'platform' || !account(space, identifier) || code.replace('-', '').toUpperCase() !== ACTIVATION_CODE.replace('-', '')) problem('invalid_code')
-  if (!motDePasseAcceptable(newPassword)) problem('weak_password')
-  ctx.setRole?.(ROLE[space])
-  return token(space)
-}
-
-export function forgot(_ctx: MockContext<'auth.forgot', 'forgot'>) {
-  // Réponse identique que le compte existe ou non (202 sans corps).
-  return null
-}
-
-export function verify(ctx: MockContext<'auth.verify', 'verify'>) {
-  if (ctx.body.code === RESET_CODE_EXPIRED) problem('code_expired')
-  if (ctx.body.code !== RESET_CODE_OK) problem('invalid_code')
-  return { resetToken: `reset.${ctx.body.identifier}`, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() }
-}
-
-export function reset(ctx: MockContext<'auth.reset', 'reset'>) {
-  if (!ctx.body.resetToken.startsWith('reset.')) problem('reset_token_invalid')
-  if (!motDePasseAcceptable(ctx.body.newPassword)) problem('weak_password')
-  return null
-}
-
-export function logout(ctx: MockContext<'auth.logout', 'logout'>) {
-  ctx.setRole?.(null)
-  return null
-}
-
 // ---------------------------------------------------------------- Identité et profil
-
-export function me(ctx: MockContext<'me', 'get'>) {
-  const view = meView(requireSession(ctx))
-  // Rapports : graphiques avancés « Bientôt disponibles » (MgProjetRapports).
-  if (ctx.scenario === 'graphiques-bientot-disponibles') view.features = view.features.filter(f => f !== 'analytics')
-  return view
-}
 
 function profileView(userId: string) {
   const u = userRow(userId)

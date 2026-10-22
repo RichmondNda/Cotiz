@@ -28,6 +28,7 @@ import {
   TenantDatabase,
   WithoutTenantContext,
 } from '../../src/shared/tenant-context/index.js';
+import { asSelf } from '../../src/shared/tenant-context/self.js';
 
 const A = '00000000-0000-7000-8000-00000000a001';
 const B = '00000000-0000-7000-8000-00000000a002';
@@ -435,7 +436,7 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
       ['associationId non UUID', { space: 'association', associationId: "x' OR true --" }, /associationId/],
       ['userId non UUID', { space: 'subscriber', userId: 'moussa' }, /userId/],
       ['espace inconnu', { space: 'root' as Space }, /space invalide/],
-      ['association sans associationId', { space: 'association' }, /associationId requis/],
+      ['association sans associationId ni userId', { space: 'association' }, /associationId ou userId requis/],
       ['subscriber sans userId', { space: 'subscriber' }, /userId requis/],
       ['subscriber avec associationId', { space: 'subscriber', userId: MOUSSA, associationId: A }, /interdit/],
       ['public avec associationId', { space: 'public', associationId: A }, /interdit/],
@@ -470,6 +471,84 @@ describe('shared/tenant-context (api, à travers PgBouncer en mode transaction)'
       } finally {
         await parallel.onModuleDestroy();
       }
+    });
+
+    describe('asSelf() : lecture « de soi » dans la transaction en cours', () => {
+      const probe = async () => {
+        const labels = await currentTx().execute<{ label: string }>(
+          sql`SELECT label FROM isolation_probe ORDER BY label`,
+        );
+        const ctx = await currentTx().execute<{ aid: string | null; uid: string | null; space: string }>(
+          sql`SELECT app_association_id() AS aid, app_user_id() AS uid, app_space() AS space`,
+        );
+        return { labels: labels.rows.map((r) => r.label), ctx: ctx.rows[0] };
+      };
+      const inA = <T>(fn: () => Promise<T>) =>
+        app.get(TenantDatabase).withTenantContext({ space: 'association', associationId: A }, fn);
+      const contextA = { labels: ['a1', 'a2'], ctx: { aid: A, uid: null, space: 'association' } };
+
+      it('fn voit l’espace auth de la personne, puis le contexte de A est rétabli', async () => {
+        const seen = await inA(async () => ({ inside: await asSelf(MOUSSA, probe), after: await probe() }));
+        expect(seen).toEqual({
+          inside: { labels: [], ctx: { aid: null, uid: MOUSSA, space: 'auth' } },
+          after: contextA,
+        });
+      });
+
+      it('fn en erreur : l’erreur passe, le contexte de A est rétabli', async () => {
+        const after = await inA(async () => {
+          await expect(asSelf(MOUSSA, () => Promise.reject(new Error('refus métier')))).rejects.toThrow('refus métier');
+          return probe();
+        });
+        expect(after).toEqual(contextA);
+      });
+
+      it('erreur SQL dans fn : l’erreur d’origine passe, la transaction n’est plus utilisable', async () => {
+        await expect(
+          inA(async () => {
+            await expect(asSelf(MOUSSA, () => currentTx().execute(sql`SELECT 1 / 0`))).rejects.toThrow(
+              /Failed query: SELECT 1 \/ 0/,
+            );
+            return probe();
+          }),
+        ).rejects.toThrow(/terminée|fin de la transaction/);
+      });
+
+      it('la transaction d’avant est suspendue pendant fn : ni currentTx() ni une transaction capturée', async () => {
+        const errors = await inA(async () => {
+          const captured = currentTx();
+          const results = await Promise.allSettled([
+            asSelf(MOUSSA, async () => {
+              await sleep(30);
+              return probe();
+            }),
+            Promise.resolve().then(() => currentTx()),
+            (async () => captured.execute(sql`SELECT label FROM isolation_probe`))(),
+          ]);
+          return results.map((r) => (r.status === 'rejected' ? (r.reason as Error).message : 'ok'));
+        });
+        expect(errors[0]).toBe('ok');
+        expect(errors[1]).toMatch(/pendant une lecture « de soi »/);
+        expect(errors[2]).toMatch(/suspendue/);
+      });
+
+      it('deux asSelf() concurrents sur la même transaction : le second est refusé', async () => {
+        const results = await inA(() =>
+          Promise.allSettled([
+            asSelf(MOUSSA, () => sleep(30).then(probe)),
+            asSelf('00000000-0000-7000-8000-000000000003', probe),
+          ]),
+        );
+        expect(results[0].status).toBe('fulfilled');
+        expect(results[1].status).toBe('rejected');
+        expect(results[1].status === 'rejected' && (results[1].reason as Error).message).toMatch(/concurrent/);
+      });
+
+      it('asSelf() hors contexte, ou avec un userId invalide : refusé', async () => {
+        await expect(asSelf(MOUSSA, () => Promise.resolve(1))).rejects.toThrow(/hors contexte/);
+        await expect(inA(() => asSelf('moussa', () => Promise.resolve(1)))).rejects.toThrow(/userId/);
+        expect(await inA(probe)).toEqual(contextA);
+      });
     });
 
     it('currentTx() hors contexte lève une erreur', () => {

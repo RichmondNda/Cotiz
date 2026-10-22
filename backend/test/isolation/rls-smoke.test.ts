@@ -88,12 +88,13 @@ async function scenario3(h: IsolationHarness): Promise<void> {
 
 /**
  * Complément au script : Moussa (souscripteur de A) dans un contexte d'association B ne voit pas ses lignes de A
- * (les politiques souscripteur exigent l'espace subscriber). associations et memberships ne sont pas contrôlées :
- * member_read et self_read n'ont pas de condition d'espace dans schema.sql (point signalé).
+ * (les politiques souscripteur, member_read et self_read exigent l'espace subscriber ou auth, lot 1.2).
  */
 async function scenario3d(h: IsolationHarness): Promise<void> {
   await h.as({ space: 'association', associationId: B.id, userId: USERS.moussa }, async (tx) => {
     const count = countIn(tx);
+    expectCount(await count('associations'), 1, 'ÉCHEC 3d : associations de souscripteur visibles hors espace');
+    expectCount(await count('memberships'), 1, 'ÉCHEC 3d : appartenances de souscripteur visibles hors espace');
     expectCount(await count('installments'), 1, 'ÉCHEC 3d : échéances de souscripteur visibles hors espace');
     expectCount(await count('projects'), 1, 'ÉCHEC 3d : projets de souscripteur visibles hors espace');
     expectCount(await count('enrollments'), 1, 'ÉCHEC 3d : inscriptions de souscripteur visibles hors espace');
@@ -224,6 +225,13 @@ describe('test de fumée de l’isolation et des invariants (docs/specs/rls-smok
       expect((await h.superuser('SELECT 1 FROM projects WHERE id = $1', [INTRUDER_PROJECT])).rowCount).toBe(0);
     });
 
+    it('memberships.self_read sans condition d’espace : détecté par 3d', async () => {
+      const widened = { using: 'user_id = app_user_id()', withCheck: null };
+      await h.withPolicy('memberships', 'self_read', widened, () =>
+        expect(scenario3d(h)).rejects.toThrow(/ÉCHEC 3d : appartenances/),
+      );
+    });
+
     it('installments.subscriber_self_read sans condition d’espace : détecté par 3d', async () => {
       const widened = { using: 'user_id = app_user_id()', withCheck: null };
       await h.withPolicy('installments', 'subscriber_self_read', widened, () =>
@@ -238,5 +246,67 @@ describe('test de fumée de l’isolation et des invariants (docs/specs/rls-smok
       });
       await expect(scenario2(h)).resolves.toBeUndefined();
     });
+  });
+});
+
+/**
+ * Lot 1.2 : associations et memberships sont migrées. Les scénarios du script qui ne lisent qu'elles (1c, 2, 3c et le
+ * complément 3d) tournent aussi sur la base migrée, avec les lignes du script pour ces deux tables (les personnes du
+ * harnais ont les mêmes identifiants). Le reste attend projects, enrollments et installments (lots 2.1 à 2.4).
+ */
+const MIGRATED_TABLES = ['associations', 'memberships'] as const;
+
+async function smokeSeedFor(tables: readonly string[]): Promise<string> {
+  const statements = (await smokeSeed()).split(/;\n(?=INSERT)/).map((s) => s.replace(/;\s*$/, ''));
+  const kept = statements.filter((s) => tables.some((t) => s.startsWith(`INSERT INTO ${t} `)));
+  if (kept.length !== tables.length)
+    throw new Error('rls-smoke-test.sql : données introuvables pour ' + tables.join(', '));
+  return kept.join(';\n') + ';';
+}
+
+describe('test de fumée, partie associations et memberships, sur la base migrée', () => {
+  let h: IsolationHarness;
+
+  beforeAll(async () => {
+    h = await startIsolationHarness('migrated');
+    await h.superuser(await smokeSeedFor(MIGRATED_TABLES));
+  });
+
+  afterAll(async () => {
+    await h.stop();
+  });
+
+  it('1c. le gestionnaire d’Entraide Yopougon ne voit que son association', async () => {
+    expect(await h.count(asManagerOf(A), 'associations')).toBe(1);
+  });
+
+  it('2. sans contexte, ou sans aucune variable app.* : zéro ligne', async () => {
+    for (const table of MIGRATED_TABLES) {
+      expect({ table, n: await h.count(null, table) }).toEqual({ table, n: 0 });
+      expect({ table, n: await h.countWithoutTenantDatabase(table) }).toEqual({ table, n: 0 });
+    }
+  });
+
+  it('3c. le souscripteur Moussa ne voit que son association', async () => {
+    expect(await h.count(asSubscriber(USERS.moussa), 'associations')).toBe(1);
+  });
+
+  it('3d. hors de l’espace subscriber, ni l’association ni l’appartenance de Moussa à A', async () => {
+    const context = { space: 'association', associationId: B.id, userId: USERS.moussa } as const;
+    expect(await h.count(context, 'associations')).toBe(1);
+    expect(await h.count(context, 'memberships')).toBe(1);
+  });
+
+  it('memberships.self_read sans condition d’espace : 3d échoue', async () => {
+    const context = { space: 'association', associationId: B.id, userId: USERS.moussa } as const;
+    const widened = { using: 'user_id = app_user_id()', withCheck: null };
+    expect(await h.withPolicy('memberships', 'self_read', widened, () => h.count(context, 'memberships'))).toBe(2);
+  });
+
+  it.each([
+    ['associations', 'member_read'],
+    ['memberships', 'self_read'],
+  ] as const)('%s.%s retirée : 3c échoue', async (table, policy) => {
+    expect(await h.withoutPolicy(table, policy, () => h.count(asSubscriber(USERS.moussa), 'associations'))).toBe(0);
   });
 });

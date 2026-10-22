@@ -20,10 +20,29 @@ module.exports = {
     {
       name: 'tenant-context-entry-points',
       comment:
-        'Hors de shared/tenant-context, seuls index.ts et worker.ts sont importables : FOR_REQUEST et WORKER_PROCESS restent internes.',
+        'Hors de shared/tenant-context, seuls index.ts, worker.ts et self.ts sont importables : FOR_REQUEST et WORKER_PROCESS restent internes.',
       severity: 'error',
       from: { path: '^src/', pathNot: '^src/shared/tenant-context/' },
-      to: { path: '^src/shared/tenant-context/', pathNot: '^src/shared/tenant-context/(index|worker)\\.ts$' },
+      to: {
+        path: '^src/shared/tenant-context/',
+        pathNot: '^src/shared/tenant-context/(index|worker|self|platform-route)\\.ts$',
+      },
+    },
+    {
+      name: 'platform-route-only-in-access-guards',
+      comment:
+        'Marque d’une route /platform (connexion cotiz_platform, BYPASSRLS) : posée par SpaceGuard seulement, d’après l’espace de la route du contrat.',
+      severity: 'error',
+      from: { path: '^src/', pathNot: ['^src/modules/access/http/space\\.guard\\.ts$', '^src/shared/tenant-context/'] },
+      to: { path: '^src/shared/tenant-context/platform-route\\.ts$' },
+    },
+    {
+      name: 'self-lookup-only-in-access',
+      comment:
+        'Lecture « de soi » (asSelf, LOOKUP_AS_SELF) : l’espace auth ouvre aussi codes et demandes de réinitialisation de toutes les associations ; seul src/modules/access/application/ y lit appartenances et rôles.',
+      severity: 'error',
+      from: { path: '^src/', pathNot: ['^src/modules/access/application/', '^src/shared/tenant-context/'] },
+      to: { path: '^src/shared/tenant-context/self\\.ts$' },
     },
     {
       name: 'worker-tenant-context-only-in-worker',

@@ -5,13 +5,14 @@ import { type Config, loadConfig } from '../../../config.js';
 import { Can, DomainProblem, Endpoint } from '../../../shared/http/index.js';
 import { type FakeRequest, httpContext, routeHandler } from '../../../shared/http/testing.js';
 import { currentRequestInfo, runWithRequestInfo } from '../../../shared/request-info/index.js';
-import { getRequestContext, WithoutTenantContext } from '../../../shared/tenant-context/index.js';
+import { getRequestContext, isPlatformRoute, WithoutTenantContext } from '../../../shared/tenant-context/index.js';
 import {
   AccessTokenSigner,
   type AccessClaims,
   JwtGuard,
   type RevokedSessions,
 } from '../../identity/identity.public.js';
+import type { SelfRoles } from '../application/self-roles.js';
 import { MembershipGuard } from './membership.guard.js';
 import { PermissionGuard } from './permission.guard.js';
 import { SpaceGuard } from './space.guard.js';
@@ -19,6 +20,7 @@ import { SpaceGuard } from './space.guard.js';
 const USER = '00000000-0000-7000-8000-000000000001';
 const SID = '00000000-0000-7000-8000-0000000000b1';
 const AID = '00000000-0000-7000-8000-00000000a001';
+const OTHER_AID = '00000000-0000-7000-8000-00000000a002';
 
 /** Une route par cas : seules leurs métadonnées comptent. */
 class Routes {
@@ -43,6 +45,12 @@ class Routes {
   @Endpoint('as.get', 'get')
   @Can('association.read')
   associationGet(): void {
+    // Route de test.
+  }
+
+  @Endpoint('pr.preview', 'preview')
+  @Can('projects.manage')
+  associationManage(): void {
     // Route de test.
   }
 
@@ -96,15 +104,24 @@ const env = {
   LOG_LEVEL: 'silent',
 };
 
-describe('gardes d’authentification et d’accès (lot 1.1, étape 4)', () => {
+describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
   const reflector = new Reflector();
   let config: Config;
   let signer: AccessTokenSigner;
   const revoked = { isRevoked: () => Promise.resolve(false) } as unknown as RevokedSessions;
+  /** Rôles « en base » de la personne du jeton (SelfRoles simulé) : plateforme, et gestion par association. */
+  let platformRole: string | null;
+  let managementRoles: Record<string, string>;
+  const selfRoles = {
+    platformRole: () => Promise.resolve(platformRole),
+    managementRole: (_userId: string, associationId: string) => Promise.resolve(managementRoles[associationId] ?? null),
+  } as unknown as SelfRoles;
 
   beforeEach(() => {
     config = loadConfig(env);
     signer = new AccessTokenSigner(config);
+    platformRole = null;
+    managementRoles = {};
   });
 
   const token = async (claims: Omit<AccessClaims, 'sub' | 'sid'>) =>
@@ -113,12 +130,13 @@ describe('gardes d’authentification et d’accès (lot 1.1, étape 4)', () => 
   /** Chaîne des gardes globales, dans l'ordre d'AppModule ; `ip` : adresse du client. */
   const chain = async (
     route: Route | ExecutionContext,
-    options: { bearer?: string; ip?: string; config?: Config } = {},
+    options: { bearer?: string; ip?: string; config?: Config; aid?: string } = {},
   ) => {
     const request: FakeRequest = {
       method: 'GET',
       url: '/',
       headers: { authorization: options.bearer ? `Bearer ${options.bearer}` : undefined },
+      params: options.aid === undefined ? {} : { aid: options.aid },
     };
     const context = typeof route === 'string' ? httpContext(routeHandler(Routes, route), Routes, request) : route;
     const req = context.switchToHttp().getRequest<FakeRequest>();
@@ -127,14 +145,14 @@ describe('gardes d’authentification et d’accès (lot 1.1, étape 4)', () => 
       for (const guard of [
         new JwtGuard(signer, revoked, reflector),
         new SpaceGuard(reflector, effective),
-        new MembershipGuard(reflector),
-        new PermissionGuard(reflector),
+        new MembershipGuard(reflector, selfRoles),
+        new PermissionGuard(reflector, selfRoles),
       ]) {
         expect(await guard.canActivate(context)).toBe(true);
       }
       req.headers['x-role'] = currentRequestInfo()?.actorRole;
     });
-    return { context: getRequestContext(req), role: req.headers['x-role'] };
+    return { context: getRequestContext(req), role: req.headers['x-role'], platformConnection: isPlatformRoute(req) };
   };
 
   const refusal = (promise: Promise<unknown>) =>
@@ -169,9 +187,7 @@ describe('gardes d’authentification et d’accès (lot 1.1, étape 4)', () => 
 
     it('un jeton association ou souscripteur ne passe pas sur /platform/* (404)', async () => {
       expect(await refusal(chain('platformList', { bearer: await token({ space: 'subscriber' }) }))).toBe('not_found');
-      expect(await refusal(chain('platformList', { bearer: await token({ space: 'association', aid: AID }) }))).toBe(
-        'not_found',
-      );
+      expect(await refusal(chain('platformList', { bearer: await token({ space: 'association' }) }))).toBe('not_found');
     });
 
     it('routes communes et /me : tout espace ; contexte de l’espace du jeton', async () => {
@@ -185,6 +201,15 @@ describe('gardes d’authentification et d’accès (lot 1.1, étape 4)', () => 
       });
     });
 
+    it('connexion plateforme (BYPASSRLS) : route /platform seulement, jamais /me ni une route commune', async () => {
+      platformRole = 'support';
+      const bearer = await token({ space: 'platform' });
+      expect((await chain('platformList', { bearer })).platformConnection).toBe(true);
+      expect((await chain('me', { bearer })).platformConnection).toBe(false);
+      expect((await chain('file', { bearer })).platformConnection).toBe(false);
+      expect((await chain('login')).platformConnection).toBe(false);
+    });
+
     it('jeton platform depuis une adresse hors PLATFORM_ALLOWED_IPS : refusé à chaque requête', async () => {
       const restricted = loadConfig({ ...env, PLATFORM_ALLOWED_IPS: '203.0.113.0/24' });
       const bearer = await token({ space: 'platform' });
@@ -194,20 +219,39 @@ describe('gardes d’authentification et d’accès (lot 1.1, étape 4)', () => 
   });
 
   describe('MembershipGuard', () => {
-    it('jeton association : 404 tant que les appartenances n’existent pas (lot 1.2), jamais l’aid du jeton', async () => {
-      const bearer = await token({ space: 'association', aid: AID });
+    it('route d’association : le {aid} de l’URL, vérifié contre une appartenance de gestion active', async () => {
+      managementRoles = { [AID]: 'manager' };
+      const bearer = await token({ space: 'association' });
+      expect(await chain('associationGet', { bearer, aid: AID })).toEqual({
+        context: { space: 'association', associationId: AID, userId: USER },
+        role: 'association:manager',
+        platformConnection: false,
+      });
+    });
+
+    it('association dont on ne gère rien, aid absent ou invalide : 404 (rien n’est révélé)', async () => {
+      managementRoles = { [AID]: 'manager' };
+      const bearer = await token({ space: 'association' });
+      expect(await refusal(chain('associationGet', { bearer, aid: OTHER_AID }))).toBe('not_found');
       expect(await refusal(chain('associationGet', { bearer }))).toBe('not_found');
-      expect(await refusal(chain('me', { bearer }))).toBe('not_found');
+      expect(await refusal(chain('associationGet', { bearer, aid: 'pas-un-uuid' }))).toBe('not_found');
+    });
+
+    it('jeton association sur /me ou une route commune : la personne, sans association ni rôle', async () => {
+      managementRoles = { [AID]: 'owner' };
+      const bearer = await token({ space: 'association' });
+      expect(await chain('me', { bearer, aid: AID })).toEqual({
+        context: { space: 'association', userId: USER },
+        role: undefined,
+        platformConnection: false,
+      });
+      expect(await refusal(chain('dashboard', { bearer }))).toBe('forbidden');
     });
   });
 
   describe('espace auth (auth.logout)', () => {
     it('tout jeton peut se déconnecter : contexte auth et utilisateur, jamais l’association du jeton', async () => {
-      for (const claims of [
-        { space: 'association', aid: AID },
-        { space: 'subscriber' },
-        { space: 'platform' },
-      ] as const) {
+      for (const claims of [{ space: 'association' }, { space: 'subscriber' }, { space: 'platform' }] as const) {
         expect((await chain('logout', { bearer: await token(claims) })).context).toEqual({
           space: 'auth',
           userId: USER,
@@ -229,8 +273,19 @@ describe('gardes d’authentification et d’accès (lot 1.1, étape 4)', () => 
       expect(await refusal(chain('dashboard', { bearer: await token({ space: 'platform' }) }))).toBe('forbidden');
     });
 
-    it('permission de rôle plateforme : refusée tant que le rôle n’est pas résolu (lot 1.2)', async () => {
-      expect(await refusal(chain('platformList', { bearer: await token({ space: 'platform' }) }))).toBe('forbidden');
+    it('permission de rôle plateforme : le rôle lu en base ; sans rôle (retiré du personnel), refusée', async () => {
+      const bearer = await token({ space: 'platform' });
+      expect(await refusal(chain('platformList', { bearer }))).toBe('forbidden');
+      platformRole = 'support';
+      expect((await chain('platformList', { bearer })).role).toBe('platform:support');
+    });
+
+    it('permission de rôle d’association : celui de l’association de l’URL (lectrice : lecture seulement)', async () => {
+      managementRoles = { [AID]: 'viewer', [OTHER_AID]: 'owner' };
+      const bearer = await token({ space: 'association' });
+      expect((await chain('associationGet', { bearer, aid: AID })).role).toBe('association:viewer');
+      expect(await refusal(chain('associationManage', { bearer, aid: AID }))).toBe('forbidden');
+      expect((await chain('associationManage', { bearer, aid: OTHER_AID })).role).toBe('association:owner');
     });
 
     it('@Can() absent ou différent du contrat : erreur de configuration (500), jamais ouvert', async () => {

@@ -6,6 +6,7 @@ import { DomainProblem, routeAccess } from '../../../shared/http/index.js';
 import { parseIpAllowList } from '../../../shared/net/index.js';
 import { currentRequestInfo } from '../../../shared/request-info/index.js';
 import { setRequestContext } from '../../../shared/tenant-context/index.js';
+import { markPlatformRoute } from '../../../shared/tenant-context/platform-route.js';
 import { type AccessClaims, authenticatedSession } from '../../identity/identity.public.js';
 
 /**
@@ -22,7 +23,7 @@ export function spaceAccepts(route: ContractSpace, token: AccessClaims['space'])
  * Deuxième garde globale : espace du jeton accepté par la route, sinon 404 `not_found` (comme une ressource
  * inexistante : rien n'est révélé). Jeton platform : adresse du client dans PLATFORM_ALLOWED_IPS à chaque requête
  * (403 `forbidden`), sauf dans l'espace auth (déconnexion). Pose le contexte tenant des jetons platform et subscriber ; celui d'un jeton association est posé
- * par MembershipGuard, après vérification de l'appartenance.
+ * par MembershipGuard, après vérification de l'appartenance. Route /platform : connexion plateforme (markPlatformRoute).
  */
 @Injectable()
 export class SpaceGuard implements CanActivate {
@@ -56,6 +57,8 @@ export class SpaceGuard implements CanActivate {
     if (access.def.space !== 'auth' && claims.space !== 'association') {
       setRequestContext(request, { space: claims.space, userId: claims.sub });
     }
+    // Connexion cotiz_platform (BYPASSRLS) : routes /platform du contrat seulement, jamais d'après le seul jeton.
+    if (access.def.space === 'platform') markPlatformRoute(request);
     return true;
   }
 }

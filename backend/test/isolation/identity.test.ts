@@ -8,6 +8,7 @@ import {
   errorOf,
   type IsolationHarness,
   isRlsViolation,
+  seedAssociations,
   startIsolationHarness,
   type Tx,
   USERS,
@@ -61,6 +62,7 @@ describe('isolation : one_time_codes et password_reset_requests (base migrée)',
 
   beforeAll(async () => {
     h = await startIsolationHarness('migrated');
+    await seedAssociations(h);
     // Codes d'activation émis par A (Moussa), par B (Fatou) et par la plateforme (Koffi, gestionnaire approuvé).
     await h.superuser(
       `INSERT INTO one_time_codes (id, user_id, purpose, code_hash, expires_at, association_id, issued_by)

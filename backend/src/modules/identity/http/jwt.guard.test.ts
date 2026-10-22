@@ -4,7 +4,7 @@ import { loadConfig } from '../../../config.js';
 import { Can, DomainProblem, Endpoint } from '../../../shared/http/index.js';
 import { type FakeRequest, httpContext, routeHandler } from '../../../shared/http/testing.js';
 import { getRequestContext } from '../../../shared/tenant-context/index.js';
-import { AccessTokenSigner } from '../infra/access-token-signer.js';
+import { type AccessClaims, AccessTokenSigner } from '../infra/access-token-signer.js';
 import type { RevokedSessions } from '../infra/revoked-sessions.js';
 import { authenticatedSession, JwtGuard } from './jwt.guard.js';
 
@@ -50,11 +50,18 @@ const codeOf = (promise: Promise<unknown>) =>
   );
 
 describe('JwtGuard', () => {
-  it('jeton valide sur un endpoint auth : espace auth et utilisateur du jeton, jamais son association', async () => {
-    const { token } = await signer.sign({ sub: USER, space: 'association', sid: SID, aid: AID });
+  it('jeton valide sur un endpoint auth : espace auth et utilisateur du jeton', async () => {
+    const { token } = await signer.sign({ sub: USER, space: 'association', sid: SID });
     const request = await run('logout', `Bearer ${token}`);
     expect(getRequestContext(request)).toEqual({ space: 'auth', userId: USER });
-    expect(authenticatedSession(request)).toMatchObject({ sub: USER, sid: SID, aid: AID });
+    expect(authenticatedSession(request)).toEqual({ sub: USER, space: 'association', sid: SID });
+  });
+
+  it('un claim aid (ancien jeton, jeton forgé) est ignoré : jamais d’association venue du jeton', async () => {
+    const forged = { sub: USER, space: 'association', sid: SID, aid: AID } as AccessClaims;
+    const { token } = await signer.sign(forged);
+    const request = await run('logout', `Bearer ${token}`);
+    expect(authenticatedSession(request)).not.toHaveProperty('aid');
   });
 
   it('hors espace auth : aucun contexte posé ici (SpaceGuard et MembershipGuard)', async () => {

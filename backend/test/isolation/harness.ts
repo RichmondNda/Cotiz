@@ -286,6 +286,21 @@ async function seedUsers(harness: IsolationHarness): Promise<void> {
 }
 
 /**
+ * Associations A et B (clés étrangères vers associations, lot 1.2), sans appartenances : chaque test pose celles dont
+ * il a besoin. Base migrée seulement.
+ */
+export async function seedAssociations(harness: IsolationHarness): Promise<void> {
+  await harness.superuser(
+    `INSERT INTO associations (id, slug, name, type, city, country, contact_email, contact_phone, status) VALUES
+       ($1, 'entraide-yopougon', 'Entraide Yopougon', 'entraide', 'Abidjan', 'CI', 'contact@ey.ci', '+2250700000000',
+        'active'),
+       ($2, 'ressortissants-man', 'Ressortissants de Man', 'ressortissants', 'Abidjan', 'CI', 'contact@man.ci',
+        '+2250700000001', 'active')`,
+    [A.id, B.id],
+  );
+}
+
+/**
  * Table d'association de test, créée comme une migration : enableTenantRls() puis la politique souscripteur de
  * docs/specs/schema.sql (lecture de ses propres lignes, dans l'espace subscriber seulement).
  */

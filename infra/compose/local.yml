@@ -1,11 +1,32 @@
 # Environnement local : services dont dépendent l'api et le worker.
 # Lancement : docker compose -f infra/compose/local.yml up -d   (puis `pnpm dev` à la racine)
 # Identifiants de développement uniquement, jamais réutilisés ailleurs. Ports liés à 127.0.0.1.
+#
+# Sobriété (poste WSL de 4 Go) : mémoire plafonnée par service, réglages PostgreSQL et Redis réduits.
+# ClamAV (≈ 1,2 Go de signatures en mémoire) et Gotenberg (Chromium + LibreOffice) ne démarrent qu'à la demande :
+#   docker compose -f infra/compose/local.yml --profile antivirus up -d   # analyse des fichiers déposés
+#   docker compose -f infra/compose/local.yml --profile pdf up -d         # génération PDF (lot 4.1)
+# Sans clamd, un fichier déposé reste « en attente » (jamais « sain » par défaut).
 name: cotiz
 
 services:
   postgres:
     image: postgres:16-alpine
+    # Valeurs de développement : peu de connexions (PgBouncer mutualise), caches réduits.
+    command:
+      - postgres
+      - -c
+      - max_connections=50
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - effective_cache_size=128MB
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=16MB
+      - -c
+      - max_wal_size=256MB
     environment:
       POSTGRES_USER: cotiz
       POSTGRES_PASSWORD: cotiz
@@ -16,11 +37,15 @@ services:
       - postgres:/var/lib/postgresql/data
       # Rôles cotiz_migrator, cotiz_app, cotiz_platform, cotiz_readonly (premier démarrage seulement ; voir le script).
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    shm_size: 64mb
+    mem_limit: 256m
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U cotiz -d cotiz']
-      interval: 5s
+      interval: 10s
       timeout: 3s
       retries: 20
+      start_period: 30s
+      start_interval: 1s
 
   # Mode transaction : le contexte tenant passe par SET LOCAL (architecture/02).
   # L'api et le worker passent par PgBouncer en cotiz_app ; les migrations se connectent directement à PostgreSQL
@@ -34,31 +59,38 @@ services:
       AUTH_TYPE: scram-sha-256
       POOL_MODE: transaction
       MAX_PREPARED_STATEMENTS: '100'
-      MAX_CLIENT_CONN: '200'
-      DEFAULT_POOL_SIZE: '20'
+      MAX_CLIENT_CONN: '100'
+      DEFAULT_POOL_SIZE: '10'
     ports:
       - '127.0.0.1:${COTIZ_PGBOUNCER_PORT:-6432}:5432'
     depends_on:
       postgres:
         condition: service_healthy
+    mem_limit: 32m
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U cotiz_app']
-      interval: 5s
+      interval: 10s
       timeout: 3s
       retries: 20
+      start_period: 30s
+      start_interval: 1s
 
+  # noeviction : BullMQ exige que Redis n'évince jamais une clé ; au-delà de maxmemory, les écritures échouent.
   redis:
     image: redis:7-alpine
-    command: ['redis-server', '--appendonly', 'yes']
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '96mb', '--maxmemory-policy', 'noeviction']
     ports:
       - '127.0.0.1:${COTIZ_REDIS_PORT:-6379}:6379'
     volumes:
       - redis:/data
+    mem_limit: 128m
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
+      interval: 10s
       timeout: 3s
       retries: 20
+      start_period: 30s
+      start_interval: 1s
 
   # MinIO ne publie plus d'image sur Docker Hub : image Chainguard, construite depuis les sources.
   minio:
@@ -67,11 +99,14 @@ services:
     environment:
       MINIO_ROOT_USER: cotiz
       MINIO_ROOT_PASSWORD: cotiz-local-minio
+      # Ramasse-miettes Go calé sous la limite du conteneur.
+      GOMEMLIMIT: 200MiB
     ports:
       - '127.0.0.1:${COTIZ_MINIO_PORT:-9000}:9000'
       - '127.0.0.1:${COTIZ_MINIO_CONSOLE_PORT:-9001}:9001'
     volumes:
       - minio:/data
+    mem_limit: 256m
 
   # Crée les 5 compartiments (architecture/08) puis s'arrête. Idempotent.
   minio-init:
@@ -82,19 +117,29 @@ services:
     depends_on:
       - minio
     restart: 'no'
+    mem_limit: 64m
 
   gotenberg:
     image: gotenberg/gotenberg:8
+    profiles: [pdf]
+    # Un seul Chromium, redémarré souvent : mémoire contenue.
+    command:
+      ['gotenberg', '--chromium-max-queue-size=1', '--chromium-restart-after=10', '--libreoffice-restart-after=10']
     ports:
       - '127.0.0.1:${COTIZ_GOTENBERG_PORT:-3100}:3000'
+    mem_limit: 768m
 
   # Premier démarrage long : téléchargement des signatures (plusieurs minutes).
   clamav:
     image: clamav/clamav:stable
+    profiles: [antivirus]
+    environment:
+      CLAMAV_NO_MILTERD: 'true'
     ports:
       - '127.0.0.1:${COTIZ_CLAMAV_PORT:-3310}:3310'
     volumes:
       - clamav:/var/lib/clamav
+    mem_limit: 1600m
 
 volumes:
   postgres:

@@ -21,6 +21,7 @@ const env = (NODE_ENV: string) => ({
   JWT_PRIVATE_KEY: jwt.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
   JWT_PUBLIC_KEY: jwt.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
   CODES_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+  PLATFORM_DATABASE_URL: 'postgres://cotiz_platform:cotiz@127.0.0.1:1/cotiz',
 });
 
 let app: INestApplication | undefined;

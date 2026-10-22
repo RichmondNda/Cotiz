@@ -57,6 +57,7 @@ describe('loadConfig', () => {
       APP_PUBLIC_URL: 'https://app.cotiz.app',
       ...JWT,
       CODES_ENCRYPTION_KEY,
+      PLATFORM_DATABASE_URL: 'postgres://cotiz_platform:x@127.0.0.1:5432/cotiz',
     };
     expect(() => loadConfig({ ...production, OTEL_TRACES_EXPORTER: 'console' })).toThrow(/OTEL_TRACES_EXPORTER/);
     expect(loadConfig({ ...valid, OTEL_TRACES_EXPORTER: 'console' }).OTEL_TRACES_EXPORTER).toBe('console');
@@ -65,7 +66,7 @@ describe('loadConfig', () => {
 
   it('exige les identifiants MinIO, clamd, la clé de pseudonymisation et l’adresse du front en production seulement, sans recopier leur valeur', () => {
     expect(() => loadConfig({ ...valid, NODE_ENV: 'production' })).toThrow(
-      /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante[\s\S]*LOG_PSEUDONYM_KEY : manquante[\s\S]*APP_PUBLIC_URL : manquante[\s\S]*JWT_PRIVATE_KEY : manquante[\s\S]*JWT_PUBLIC_KEY : manquante[\s\S]*CODES_ENCRYPTION_KEY : manquante/,
+      /S3_ACCESS_KEY_ID : manquante[\s\S]*S3_SECRET_ACCESS_KEY : manquante[\s\S]*CLAMAV_URL : manquante[\s\S]*LOG_PSEUDONYM_KEY : manquante[\s\S]*APP_PUBLIC_URL : manquante[\s\S]*JWT_PRIVATE_KEY : manquante[\s\S]*JWT_PUBLIC_KEY : manquante[\s\S]*CODES_ENCRYPTION_KEY : manquante[\s\S]*PLATFORM_DATABASE_URL : manquante/,
     );
     expect(loadConfig({ ...valid, NODE_ENV: 'development' }).S3_ACCESS_KEY_ID).toBeUndefined();
     const config = loadConfig({
@@ -78,6 +79,7 @@ describe('loadConfig', () => {
       APP_PUBLIC_URL: 'https://app.cotiz.app',
       ...JWT,
       CODES_ENCRYPTION_KEY,
+      PLATFORM_DATABASE_URL: 'postgres://cotiz_platform:x@127.0.0.1:5432/cotiz',
     });
     expect(config.S3_REGION).toBe('us-east-1');
     expect(config.S3_PUBLIC_ENDPOINT).toBeUndefined();

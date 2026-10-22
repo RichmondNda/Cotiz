@@ -1,15 +1,14 @@
-// Espace plateforme (super-admin) : demandes, associations, plans, tableau de bord, factures, personnel.
+// Espace plateforme (super-admin) : demandes, associations, tableau de bord, factures, personnel.
 // Les chiffres globaux de la plateforme (147 associations, 15 impayés…) sont illustratifs dans les maquettes : seules
 // trois associations sont détaillées. Ils sont déclarés ici comme complément, à côté des trois associations calculées.
-import type { Feature } from '@cotiz/contracts'
 import { db } from '../db'
-import type { AssociationRow, PlanRow, RequestRow } from '../db'
+import type { AssociationRow, RequestRow } from '../db'
 import type { MockContext } from '../http'
 import { checkVersion, nowInstant, problem, requireSession } from '../http'
 import { uid } from '../ids'
 import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
 import {
-  associationRow, money, personContact, personRef, plan, planRef, planRow, publicPlan, requestDetail, requestSummary, userRow,
+  associationRow, money, personContact, personRef, planRef, planRow, requestDetail, requestSummary, userRow,
 } from '../views'
 import { page, facetOf } from './list'
 import { handoff } from './handoff'
@@ -253,60 +252,7 @@ export function associationMembers(ctx: MockContext<'pf.asso.sub', 'members'>) {
   return page(rows, ctx.query, { total: associationFigures(a.id).membersCount })
 }
 
-// ---------------------------------------------------------------- Plans
-
-export function plansList(ctx: MockContext<'pf.plans', 'list'>) {
-  if (ctx.scenario === 'aucun-plan') return { items: [] }
-  return { items: db.plans.map(plan) }
-}
-
-export function publicPlans(ctx: MockContext<'pub.plans', 'list'>) {
-  if (ctx.scenario === 'aucun-plan') return { items: [] }
-  return { items: db.plans.filter(p => p.isActive).map(publicPlan) }
-}
-
-export function planCreate(ctx: MockContext<'pf.plan.write', 'create'>) {
-  const b = ctx.body
-  if (db.plans.some(p => p.code === b.code)) problem('code_taken')
-  const row: PlanRow = {
-    id: uid('plan', b.code), code: b.code, name: b.name, description: b.description, priceMonthly: b.priceMonthly.amount,
-    priceYearly: b.priceYearly.amount, limits: { ...b.limits }, features: [...b.features] as Feature[], isFeatured: b.isFeatured,
-    isActive: b.isActive, archivedAt: null, subscribersCount: 0, version: 1,
-  }
-  db.plans.push(row)
-  return plan(row)
-}
-
-export function planPatch(ctx: MockContext<'pf.plan.write', 'patch'>) {
-  const p = planRow(ctx.params.id)
-  checkVersion(ctx, p.version)
-  const b = ctx.body
-  if (b.code && b.code !== p.code && db.plans.some(x => x.code === b.code)) problem('code_taken')
-  Object.assign(p, {
-    code: b.code ?? p.code, name: b.name ?? p.name, description: b.description === undefined ? p.description : b.description,
-    priceMonthly: b.priceMonthly?.amount ?? p.priceMonthly, priceYearly: b.priceYearly?.amount ?? p.priceYearly,
-    limits: b.limits ? { ...b.limits } : p.limits, features: b.features ? [...b.features] : p.features,
-    isFeatured: b.isFeatured ?? p.isFeatured, isActive: b.isActive ?? p.isActive,
-    archivedAt: b.isActive === true ? null : p.archivedAt, version: p.version + 1,
-  })
-  return plan(p)
-}
-
-export function planArchive(ctx: MockContext<'pf.plan.archive', 'archive'>) {
-  const p = planRow(ctx.params.id)
-  if (!p.isActive) problem('invalid_state')
-  Object.assign(p, { isActive: false, isFeatured: false, archivedAt: nowInstant(), version: p.version + 1 })
-  return plan(p)
-}
-
-export function planDuplicate(ctx: MockContext<'pf.plan.archive', 'duplicate'>) {
-  const p = planRow(ctx.params.id)
-  let code = `${p.code}-copie`
-  for (let i = 2; db.plans.some(x => x.code === code); i++) code = `${p.code}-copie-${i}`
-  const row: PlanRow = { ...structuredClone(p), id: uid('plan', code), code, name: `${p.name} (copie)`, isFeatured: false, isActive: true, archivedAt: null, subscribersCount: 0, version: 1 }
-  db.plans.push(row)
-  return plan(row)
-}
+// Plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) : vrai back depuis le lot 1.2.
 
 // ---------------------------------------------------------------- Tableau de bord
 

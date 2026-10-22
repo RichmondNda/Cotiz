@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { ENDPOINTS } from './index.js';
+import { ENDPOINTS, requiresIfMatch } from './index.js';
 import type { EndpointDef } from './index.js';
 
 // Le registre doit être identique à docs/specs/endpoints.yaml : ids, espace, permission, erreurs, drapeaux,
@@ -30,6 +30,19 @@ const opKey = (o: { method: string; path: string }) => `${o.method} ${o.path}`;
 const placeholders = (path: string) => [...path.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
 describe('registre des endpoints', () => {
+  it('If-Match : exigé pour les écritures d’un endpoint ifMatch, sauf exception déclarée et lecture', () => {
+    const { pfPlanWrite, ctGet, lgPayValidate } = {
+      pfPlanWrite: ENDPOINTS['pf.plan.write'] as EndpointDef,
+      ctGet: ENDPOINTS['ct.get'] as EndpointDef,
+      lgPayValidate: ENDPOINTS['lg.pay.validate'] as EndpointDef,
+    };
+    const ops = (def: EndpointDef) =>
+      Object.fromEntries(Object.entries(def.operations).map(([name, op]) => [name, requiresIfMatch(def, op)]));
+    expect(ops(pfPlanWrite)).toEqual({ create: false, patch: true });
+    expect(ops(ctGet)).toMatchObject({ get: false });
+    expect(Object.values(ops(lgPayValidate))).toEqual([true]);
+  });
+
   it(`les ${String(endpoints.length)} ids de endpoints.yaml sont tous dans le registre, aucun en trop`, () => {
     expect(registry.map((e) => e.id).sort()).toEqual(endpoints.map((e) => e.id).sort());
   });
@@ -58,6 +71,17 @@ describe('registre des endpoints', () => {
     it('mêmes opérations (méthode et chemin)', () => {
       const ops = Object.values(def.operations);
       expect(ops.map(opKey).sort()).toEqual((spec?.operations ?? []).map(opKey).sort());
+    });
+
+    it('exception If-Match (`ifMatch: false`) : seulement une création (201) d’un endpoint qui porte ifMatch', () => {
+      for (const op of Object.values(def.operations)) {
+        if (op.ifMatch === false)
+          expect({ flag: def.flags.ifMatch, status: op.response.status, method: op.method }).toEqual({
+            flag: true,
+            status: 201,
+            method: 'POST',
+          });
+      }
     });
 
     it.each(Object.entries(def.operations))('%s : paramètres de chemin, corps et réponse cohérents', (_name, op) => {

@@ -40,7 +40,7 @@ describe('AccessTokenSigner', () => {
     await expect(signer.verify(hs256)).rejects.toThrow();
   });
 
-  it('refuse des claims mal formés : aid hors espace association, ou absent en espace association', async () => {
+  it('refuse des claims mal formés ; un claim aid (lot 1.1) est ignoré, l’association vient de l’URL', async () => {
     const forge = (claims: Record<string, unknown>) =>
       new SignJWT(claims)
         .setProtectedHeader({ alg: 'EdDSA' })
@@ -49,10 +49,16 @@ describe('AccessTokenSigner', () => {
         .setAudience('cotiz-api')
         .setExpirationTime('5m')
         .sign(privateKeyOf(signer));
-    await expect(signer.verify(await forge({ space: 'platform', sid: SID, aid: AID }))).rejects.toThrow();
-    await expect(signer.verify(await forge({ space: 'association', sid: SID }))).rejects.toThrow();
     await expect(signer.verify(await forge({ space: 'system', sid: SID }))).rejects.toThrow();
-    expect(await signer.verify(await forge({ space: 'association', sid: SID, aid: AID }))).toMatchObject({ aid: AID });
+    await expect(signer.verify(await forge({ space: 'association' }))).rejects.toThrow();
+    await expect(signer.verify(await forge({ space: 'association', sid: 'pas-un-uuid' }))).rejects.toThrow();
+    const withAid = await signer.verify(await forge({ space: 'association', sid: SID, aid: AID }));
+    expect(withAid).toEqual({ sub: USER, space: 'association', sid: SID });
+    expect(await signer.verify(await forge({ space: 'association', sid: SID }))).toEqual({
+      sub: USER,
+      space: 'association',
+      sid: SID,
+    });
   });
 });
 

@@ -141,6 +141,8 @@ jobs:
         env:
           MIGRATION_DATABASE_URL: postgres://cotiz_migrator:cotiz-migrator-local@127.0.0.1:5432/cotiz
           DATABASE_URL: postgres://cotiz_app:cotiz-app-local@127.0.0.1:6432/cotiz
+          # Routes /platform et plans de seed-dev (rôle cotiz_platform, BYPASSRLS ; lot 1.2).
+          PLATFORM_DATABASE_URL: postgres://cotiz_platform:cotiz-platform-local@127.0.0.1:5432/cotiz
           REDIS_URL: redis://127.0.0.1:6379
           S3_ENDPOINT: http://127.0.0.1:9000
           NODE_ENV: development
@@ -157,6 +159,8 @@ jobs:
           exit 1
         env:
           DATABASE_URL: postgres://cotiz_app:cotiz-app-local@127.0.0.1:6432/cotiz
+          # Routes /platform et plans de seed-dev (rôle cotiz_platform, BYPASSRLS ; lot 1.2).
+          PLATFORM_DATABASE_URL: postgres://cotiz_platform:cotiz-platform-local@127.0.0.1:5432/cotiz
           REDIS_URL: redis://127.0.0.1:6379
           S3_ENDPOINT: http://127.0.0.1:9000
           NODE_ENV: development

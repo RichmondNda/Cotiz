@@ -22,15 +22,15 @@ const ResetClaims = z.object({
 /** Jeton de réinitialisation (auth.verify → auth.reset) : la personne et le code vérifié qu'il consommera. */
 export type ResetClaims = z.infer<typeof ResetClaims>;
 
-/** Claims du jeton d'accès (architecture/03) : `aid` en espace association seulement, et toujours (lot 1.2). */
-const AccessClaims = z
-  .object({
-    sub: z.uuid(),
-    space: z.enum(['platform', 'association', 'subscriber'] as const satisfies readonly Space[]),
-    sid: z.uuid(),
-    aid: z.uuid().optional(),
-  })
-  .refine((claims) => (claims.space === 'association') === (claims.aid !== undefined), { path: ['aid'] });
+/**
+ * Claims du jeton d'accès (architecture/03) : jamais d'association (lot 1.2, choix Q1) ; l'association d'une requête
+ * est le `{aid}` de l'URL, vérifié contre les appartenances par MembershipGuard. Un claim inconnu est ignoré.
+ */
+const AccessClaims = z.object({
+  sub: z.uuid(),
+  space: z.enum(['platform', 'association', 'subscriber'] as const satisfies readonly Space[]),
+  sid: z.uuid(),
+});
 export type AccessClaims = z.infer<typeof AccessClaims>;
 
 /**

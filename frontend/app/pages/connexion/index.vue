@@ -83,7 +83,7 @@ async function enregistrer() {
     <template #panneau>
       <b class="connexion__accroche">Suivez vos cotisations en toute simplicité</b>
     </template>
-    <template v-if="!prenom">
+    <template v-if="prenom === null">
       <form
         class="connexion"
         novalidate
@@ -184,7 +184,7 @@ async function enregistrer() {
     >
       <div>
         <h1 class="connexion__titre connexion__titre--bienvenue">
-          Bienvenue {{ prenom }} !
+          {{ prenom ? `Bienvenue ${prenom} !` : 'Bienvenue !' }}
         </h1>
         <p class="connexion__sous-titre">
           Pour votre première connexion, choisissez votre propre mot de passe.

@@ -18,6 +18,20 @@ export function getRequestContext(request: object): TenantContext | null {
   return contexts.get(request) ?? null;
 }
 
+const platformRoutes = new WeakSet<object>();
+
+/**
+ * Route `/platform` du contrat, jeton plateforme vérifié : posé par SpaceGuard seulement. La transaction passe alors par
+ * la connexion plateforme (BYPASSRLS) ; un jeton plateforme ailleurs (/me, routes communes) reste en cotiz_app.
+ */
+export function markPlatformRoute(request: object): void {
+  platformRoutes.add(request);
+}
+
+export function isPlatformRoute(request: object): boolean {
+  return platformRoutes.has(request);
+}
+
 export const WITHOUT_TENANT_CONTEXT = Symbol('withoutTenantContext');
 
 /** Route sans accès aux données (sondes, documentation) : pas de transaction, `currentTx()` y lève une erreur. */

@@ -1,4 +1,4 @@
-import { ENDPOINTS, Problem } from '@cotiz/contracts';
+import { ENDPOINTS, Problem, requiresIfMatch } from '@cotiz/contracts';
 import type { EndpointDef, ErrorCode, OperationDef } from '@cotiz/contracts';
 import type { z } from 'zod';
 
@@ -23,10 +23,13 @@ type IdempotencyPart<I extends EndpointKey, N extends OperationName<I>> =
       ? { /** Réutiliser la même clé pour rejouer la même opération. */ idempotencyKey?: string }
       : unknown
     : unknown;
+/** Règle de `requiresIfMatch` (@cotiz/contracts) : écriture d'un endpoint `ifMatch`, sauf exception de l'opération. */
 type IfMatchPart<I extends EndpointKey, N extends OperationName<I>> =
   Writes<I, N> extends true
     ? Flags<I>['ifMatch'] extends true
-      ? { /** `version` de la ressource lue. */ ifMatch: number }
+      ? Op<I, N> extends { ifMatch: false }
+        ? unknown
+        : { /** `version` de la ressource lue. */ ifMatch: number }
       : unknown
     : unknown;
 
@@ -148,12 +151,12 @@ export function createClient(options: ClientOptions) {
       body = JSON.stringify(op.request.body.parse(raw.body));
       headers.set('content-type', 'application/json');
     }
-    if (op.method !== 'GET') {
-      if (def.flags.idempotencyKey) headers.set('idempotency-key', raw.idempotencyKey ?? newKey());
-      if (def.flags.ifMatch) {
-        if (raw.ifMatch === undefined) throw new Error(`${id}.${name} : If-Match (version) obligatoire`);
-        headers.set('if-match', `W/"${String(raw.ifMatch)}"`);
-      }
+    if (op.method !== 'GET' && def.flags.idempotencyKey) {
+      headers.set('idempotency-key', raw.idempotencyKey ?? newKey());
+    }
+    if (requiresIfMatch(def, op)) {
+      if (raw.ifMatch === undefined) throw new Error(`${id}.${name} : If-Match (version) obligatoire`);
+      headers.set('if-match', `W/"${String(raw.ifMatch)}"`);
     }
 
     const response = await doFetch(url(id, name, ...([input] as Args<I, N>)), {

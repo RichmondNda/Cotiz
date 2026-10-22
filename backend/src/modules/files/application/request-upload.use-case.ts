@@ -21,6 +21,9 @@ export class RequestUploadUseCase {
     const rejection = uploadRejection(input);
     if (rejection) throw new DomainProblem(rejection);
     if (UPLOAD_SPACE[input.purpose] !== actor.space) throw new DomainProblem('forbidden');
+    // Jeton association sans association (lot 1.2, choix Q1) : fl.upload ne dit pas à quelle association rattacher le
+    // fichier. Refus explicite plutôt qu'une ligne refusée par la RLS (500), en attendant la décision sur le contrat.
+    if (actor.space === 'association' && actor.associationId === undefined) throw new DomainProblem('forbidden');
 
     const id = newId();
     const bucket = BUCKETS[input.purpose];
@@ -30,7 +33,7 @@ export class RequestUploadUseCase {
       .values({
         id,
         // Gestionnaire : l'association du contexte. Souscripteur : rattachée à l'association à la déclaration (3.3).
-        associationId: actor.space === 'association' ? (actor.associationId ?? null) : null,
+        associationId: actor.space === 'association' ? actor.associationId : null,
         ownerUserId: actor.userId,
         purpose: input.purpose,
         bucket,

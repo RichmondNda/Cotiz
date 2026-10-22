@@ -32,6 +32,13 @@ const ConfigSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   /** Connexions du pool du processus (shared/tenant-context), une transaction de contexte chacune. */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
+  /**
+   * Rôle cotiz_platform (BYPASSRLS) : routes /platform de l'api et scripts de l'espace platform seulement
+   * (architecture/02). Exigée en production ; absente ailleurs, ces routes et scripts échouent.
+   */
+  PLATFORM_DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }).optional(),
+  /** Connexions du pool plateforme (super-admin seulement). */
+  PLATFORM_DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(20).default(3),
   REDIS_URL: z.url({ protocol: /^rediss?$/ }),
   /**
    * Adresse publique du front (liens d'activation des messages prêts à transmettre) : exigée en production ; ailleurs,
@@ -162,6 +169,7 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
     'JWT_PRIVATE_KEY',
     'JWT_PUBLIC_KEY',
     'CODES_ENCRYPTION_KEY',
+    'PLATFORM_DATABASE_URL',
   ] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
   }

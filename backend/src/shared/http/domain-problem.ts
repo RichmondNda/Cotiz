@@ -5,6 +5,9 @@ export interface ProblemDetails {
   detail?: string;
   /** `validation_failed` : chemin du champ → code de la règle. */
   fields?: Record<string, string>;
+  /** `quota_exceeded` : limite de la formule et usage actuel. */
+  limit?: number;
+  usage?: number;
 }
 
 /**

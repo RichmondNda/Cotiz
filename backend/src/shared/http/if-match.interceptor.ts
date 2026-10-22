@@ -3,7 +3,8 @@ import { Reflector } from '@nestjs/core';
 import { map, type Observable } from 'rxjs';
 import { currentRequestInfo, setExpectedVersion } from '../request-info/index.js';
 import { DomainProblem } from './domain-problem.js';
-import { endpointOf } from './endpoint.js';
+import { type EndpointDef, type OperationDef, requiresIfMatch } from '@cotiz/contracts';
+import { type EndpointRef, endpointOf } from './endpoint.js';
 
 /** `W/"3"` (client typé), `"3"` ou `3` : une seule version, entière. */
 const IF_MATCH = /^(?:W\/)?"?(\d{1,9})"?$/;
@@ -14,6 +15,17 @@ export function expectedVersion(): number {
   if (version === undefined)
     throw new Error('expectedVersion() : If-Match absent (endpoint sans le drapeau ifMatch ?)');
   return version;
+}
+
+/**
+ * Règle du contrat (`requiresIfMatch`, @cotiz/contracts) : drapeau `ifMatch` de l'endpoint, sauf lecture et exception
+ * déclarée par l'opération (création de pf.plan.write). Opération inconnue : erreur de configuration, jamais ouvert.
+ */
+function requiresIfMatchFor(endpoint: EndpointRef & { def: EndpointDef }): boolean {
+  const operation = (endpoint.def.operations as Record<string, OperationDef | undefined>)[endpoint.operation];
+  if (!operation)
+    throw new Error(`@Endpoint('${endpoint.id}', '${endpoint.operation}') : opération inconnue du contrat`);
+  return requiresIfMatch(endpoint.def, operation);
 }
 
 /**
@@ -29,7 +41,8 @@ export class IfMatchInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== 'http') return next.handle();
     const http = context.switchToHttp();
-    if (endpointOf(this.reflector, context)?.def.flags.ifMatch) {
+    const endpoint = endpointOf(this.reflector, context);
+    if (endpoint && requiresIfMatchFor(endpoint)) {
       const raw = http.getRequest<{ headers: Record<string, string | string[] | undefined> }>().headers['if-match'];
       const header = Array.isArray(raw) ? raw.join(',') : raw;
       if (header === undefined || header === '') {

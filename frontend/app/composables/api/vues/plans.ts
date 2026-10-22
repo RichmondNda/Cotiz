@@ -1,5 +1,6 @@
 // Plans d'abonnement : `Plan` / `PublicPlan` du contrat → `Plan` de l'interface (cartes tarifaires, SaPlans, SaPlan).
-import type { Plan as PlanContrat, PublicPlan } from '@cotiz/contracts'
+import { FEATURE_SPECS } from '@cotiz/contracts'
+import type { Feature, Plan as PlanContrat, PublicPlan } from '@cotiz/contracts'
 import type { ModificationPlan, Plan } from '~~/types'
 
 /** Puces des cartes tarifaires par fonctionnalité (features.yaml soumises au plan). */
@@ -11,8 +12,15 @@ const PUCES: Record<string, string[]> = {
   analytics: ['Rapports avancés'],
 }
 
+/**
+ * Fonctionnalités incluses dans tout plan (features.yaml, `planGated: false`) : le back ne les porte pas dans un plan
+ * (choix Q4 du lot 1.2), l'interface les affiche en tête de chaque plan, comme la maquette.
+ */
+const INCLUSES = (Object.keys(PUCES) as Feature[]).filter(f => !FEATURE_SPECS[f].planGated)
+const avecIncluses = (features: readonly string[]) => [...INCLUSES.filter(f => !features.includes(f)), ...features]
+
 /** Libellés de SaPlan (FONCTIONNALITES_PLAN, alias compris) → clé de fonctionnalité. */
-const CLES: Record<string, string> = {
+const CLES: Record<string, Feature> = {
   'Grille d’échéances': 'payments',
   'Déclaration et validation des paiements': 'payments',
   'Contrats à signer en ligne': 'contracts',
@@ -27,10 +35,13 @@ const CLES: Record<string, string> = {
  * « Tout <précédent> » puis ses nouveautés (cartes tarifaires de la maquette).
  */
 export function vuePlans(plans: (PlanContrat | PublicPlan)[]): Plan[] {
+  const features = plans.map(p => avecIncluses(p.features))
   return plans.map((p, i) => {
     const precedent = plans[i - 1]
-    const herite = precedent && precedent.features.length > 0 && precedent.features.every(f => p.features.includes(f))
-    const propres = herite ? p.features.filter(f => !precedent.features.includes(f)) : p.features
+    const avant = features[i - 1] ?? []
+    const siennes = features[i]!
+    const herite = precedent && avant.length > 0 && avant.every(f => siennes.includes(f))
+    const propres = herite ? siennes.filter(f => !avant.includes(f)) : siennes
     return {
       id: p.id,
       nom: p.name,
@@ -50,25 +61,31 @@ export function vuePlans(plans: (PlanContrat | PublicPlan)[]): Plan[] {
 
 /** Saisie de SaPlan → corps `PlanInput` du contrat (« Tout X » = fonctionnalités du plan X). */
 export function versPlanInput(plan: ModificationPlan, tous: Plan[]) {
-  const cles = new Set<string>()
+  const cles = new Set<Feature>()
   const ajouter = (libelles: string[], vus: Set<string>) => {
     for (const libelle of libelles) {
       // « Tout Essentiel » reprend les fonctionnalités d'Essentiel, « Tout Découverte » compris.
       const tout = /^Tout (.+)$/.exec(libelle)
       if (tout && !vus.has(tout[1]!)) ajouter(tous.find(p => p.nom === tout[1])?.fonctionnalites ?? [], new Set([...vus, tout[1]!]))
-      const k = CLES[libelle]
+      // Sans libellé (team, exports…) : la clé est affichée telle quelle, elle repart telle quelle.
+      const k = CLES[libelle] ?? (libelle in FEATURE_SPECS ? libelle as Feature : undefined)
       if (k) cles.add(k)
     }
   }
   ajouter(plan.fonctionnalites, new Set())
-  const montant = (v: number | '[PRIX]') => ({ amount: typeof v === 'number' ? v : 0, currency: 'XOF' as const })
+  // Un prix non saisi n'est jamais envoyé comme 0 F (plan gratuit) : le formulaire l'exige avant l'appel.
+  const montant = (v: number | '[PRIX]') => {
+    if (typeof v !== 'number') throw new Error('Plan : prix non saisi')
+    return { amount: v, currency: 'XOF' as const }
+  }
   return {
     name: plan.nom,
     description: plan.description ?? null,
     priceMonthly: montant(plan.prixMensuel),
     priceYearly: montant(plan.prixAnnuel),
     limits: { projects: num(plan.quotas.projets), subscribers: num(plan.quotas.souscripteurs), managers: num(plan.quotas.gestionnaires) },
-    features: [...cles] as PlanContrat['features'],
+    // Seules les fonctionnalités soumises au plan partent au back (les autres sont dans tout plan).
+    features: [...cles].filter(k => FEATURE_SPECS[k].planGated),
     isFeatured: plan.misEnAvant,
     isActive: plan.statut === 'actif',
   }
