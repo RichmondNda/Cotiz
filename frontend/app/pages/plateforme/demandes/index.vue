@@ -137,7 +137,7 @@ function effacer() {
       :lignes-squelette="4"
       :erreur="error ? 'Vérifiez votre connexion, puis réessayez.' : undefined"
       label="Demandes de création d’association"
-      @ligne="l => navigateTo(`/plateforme/demandes/${l.id}`)"
+      @ligne="l => router.push(`/plateforme/demandes/${l.id}`)"
       @reessayer="refresh()"
     >
       <template #cell-association="{ ligne }">
