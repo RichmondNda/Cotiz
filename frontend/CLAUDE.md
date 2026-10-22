@@ -93,6 +93,7 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
 - Bascule d'un endpoint vers NestJS : ajouter son id à `frontend/server/bascule/real-endpoints.ts` (commande `/bascule`),
   puis supprimer son handler simulé en fin de lot.
 - Bascule par espace (lot 1.1) : `server/bascule/real-endpoints.ts` = « id → all | espaces » ; espace basculé = jeton d'accès en mémoire (`useJetonAcces`), pages en `ssr: false`, connexion de test par `scripts/session-test.mjs` (compte `COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev`).
+- Types du routeur dans un utilitaire appelé par un middleware : `Parameters<RouteMiddleware>[0]` (`#app`), pas `vue-router` (pnpm en installe plusieurs exemplaires, aux types incompatibles) ; dans un template, `router.push` plutôt que `navigateTo` (non typé depuis Nuxt 4.6).
 - Droits et fonctionnalités (à partir du lot 0.3) : `usePermissions()` et `<FeatureGate feature="…">` alimentés par `GET /me`.
   Le front masque, le back refuse.
 - Nouveau handler simulé : `defineContractHandler()` (entrée et réponse contrôlées par le schéma) ; les routes à slug
