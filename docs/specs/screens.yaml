@@ -201,7 +201,7 @@ screens:
   endpoints:
   - pf.plans
   - pf.plan.archive
-  uiDeviations: 0
+  uiDeviations: 1
 - id: sa-plan-edit
   space: super-admin
   title: Édition d'un plan

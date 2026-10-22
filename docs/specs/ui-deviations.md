@@ -17,6 +17,7 @@ Les maquettes Claude Design ont été produites avant la décision « aucun four
 | Traitement d'une demande (`sa-demande-detail`) | Email de bienvenue envoyé automatiquement à l'approbation | Après approbation : carte « Accès du gestionnaire » avec identifiant, code d'activation et message prêt (Copier, WhatsApp, lien mailto qui ouvre la messagerie du super-admin). |
 | Utilisateurs plateforme (`sa-users`) | Invitation du personnel par email | Invitation par lien d'activation à usage unique affiché une fois, à transmettre soi-même. |
 | Comptes gestionnaires (`mg-equipe`) | Invitation de gestionnaires par email | Invitation par code d'activation affiché avec message prêt, comme pour les souscripteurs. |
+| Plans d'abonnement (`sa-plans`) | Note sous les cartes : « Nombre d'abonnés par plan : données illustratives. Quotas : seuls ceux du plan Pro figurent dans la spécification. » | Note retirée : abonnés et quotas viennent du back (lot 1.2). |
 
 ## Écrans à maquetter (absents des maquettes)
 

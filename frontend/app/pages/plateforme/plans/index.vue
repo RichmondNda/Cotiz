@@ -215,10 +215,6 @@ const chargement = computed(() => pending.value && !plans.value)
         </div>
       </article>
     </div>
-
-    <p class="sa-plans__note">
-      Nombre d’abonnés par plan : données illustratives. Quotas : seuls ceux du plan Pro figurent dans la spécification.
-    </p>
   </div>
 </template>
 
@@ -344,11 +340,5 @@ const chargement = computed(() => pending.value && !plans.value)
 
 .sa-plans__modifier:hover {
   text-decoration: underline;
-}
-
-.sa-plans__note {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--text-muted);
 }
 </style>
