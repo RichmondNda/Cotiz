@@ -189,7 +189,7 @@ const chargement = computed(() => pending.value && !data.value)
       :chargement="chargement"
       :erreur="error ? 'Vérifiez votre connexion, puis réessayez.' : undefined"
       label="Associations de la plateforme"
-      @ligne="a => navigateTo(lien(a))"
+      @ligne="a => router.push(lien(a))"
       @reessayer="refresh()"
     >
       <template #cell-nom="{ ligne }">
