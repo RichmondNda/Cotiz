@@ -31,7 +31,20 @@ export interface TestDatabase {
 export async function startTestDatabase(
   options: { withRoles?: boolean; network?: StartedNetwork } = {},
 ): Promise<TestDatabase> {
-  let builder = new PostgreSqlContainer('postgres:16-alpine');
+  // Base jetable : durabilité coupée et caches réduits (plusieurs conteneurs tournent en parallèle).
+  let builder = new PostgreSqlContainer('postgres:16-alpine').withCommand([
+    'postgres',
+    '-c',
+    'fsync=off',
+    '-c',
+    'synchronous_commit=off',
+    '-c',
+    'full_page_writes=off',
+    '-c',
+    'shared_buffers=16MB',
+    '-c',
+    'max_wal_size=128MB',
+  ]);
   if (options.network) builder = builder.withNetwork(options.network).withNetworkAliases('postgres');
   if (options.withRoles ?? true) {
     builder = builder.withCopyFilesToContainer([
