@@ -3,7 +3,7 @@ export { SeedDevPlansUseCase } from './application/seed-dev-plans.use-case.js';
 export { SeedDevSubscriptionsUseCase } from './application/seed-dev-subscriptions.use-case.js';
 export { type QuotaKind, QuotaService } from './application/quota.service.js';
 export { isActivePlan, planRefsOf } from './application/plan-records.js';
-export { type NewSubscription, openSubscription } from './application/open-subscription.js';
+export { type NewSubscription, openSubscription, setManagerSeats } from './application/open-subscription.js';
 export {
   type CurrentSubscription,
   currentSubscriptionOf,

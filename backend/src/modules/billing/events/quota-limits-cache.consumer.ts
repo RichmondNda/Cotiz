@@ -8,7 +8,7 @@ import { invalidateAllQuotaLimits, invalidateQuotaLimits } from '../infra/quota-
 
 /**
  * Limites de quotas en cache (events.yaml : « cache: quotas ») : plan.updated → toutes les associations,
- * subscription.plan_changed → celle de l'événement. Rejoué, il invalide une fois de plus (sans effet) ; Redis en panne :
+ * subscription.plan_changed et association.updated (comptes gestionnaires autorisés) → celle de l'événement. Rejoué, il invalide une fois de plus (sans effet) ; Redis en panne :
  * erreur, l'événement est retraité.
  */
 @Injectable()
@@ -32,7 +32,7 @@ export class QuotaLimitsCacheConsumer implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     this.unregister = this.consumers.register({
       name: 'quota-limits-cache',
-      types: ['plan.updated', 'subscription.plan_changed'],
+      types: ['plan.updated', 'subscription.plan_changed', 'association.updated'],
       handle: (event) => this.handle(event),
     });
   }
@@ -44,7 +44,7 @@ export class QuotaLimitsCacheConsumer implements OnModuleInit, OnModuleDestroy {
 
   private async handle(event: EventEnvelope): Promise<void> {
     if (event.type === 'plan.updated') return invalidateAllQuotaLimits(this.redis);
-    if (!event.associationId) throw new Error('subscription.plan_changed sans association');
+    if (!event.associationId) throw new Error(`${event.type} sans association`);
     return invalidateQuotaLimits(this.redis, event.associationId);
   }
 }

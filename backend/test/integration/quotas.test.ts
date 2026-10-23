@@ -83,7 +83,7 @@ describe('QuotaService (quotas du plan de l’association)', () => {
       occurredAt: new Date().toISOString(),
       associationId,
       actorUserId: null,
-      aggregate: { type: type === 'plan.updated' ? 'plan' : 'subscription', id: PLANS.small },
+      aggregate: { type: type.split('.')[0] ?? type, id: PLANS.small },
       payload,
     };
     for (const handler of handlers) await handler.handle(event);
@@ -264,6 +264,17 @@ describe('QuotaService (quotas du plan de l’association)', () => {
       expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
       await h.superuser(`UPDATE subscriptions SET plan_id = $1`, [PLANS.unlimited]);
       await planChanged(A);
+      expect(await outcome(A, 'managers')).toBeNull();
+      expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
+    });
+
+    it('association.updated (surcharge des comptes gestionnaires) invalide l’association concernée seulement', async () => {
+      await subscribe(A, PLANS.small);
+      await subscribe(B, PLANS.small);
+      expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
+      expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
+      await h.superuser(`UPDATE subscriptions SET manager_seats_override = 3`);
+      await deliver('association.updated', A.id, { associationId: A.id, changedFields: ['managerSeatsOverride'] });
       expect(await outcome(A, 'managers')).toBeNull();
       expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
     });

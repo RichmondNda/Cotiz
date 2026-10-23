@@ -62,6 +62,7 @@ export function vueAssociationListe(a: Resume): AssociationListe {
 /** Libellé et ton des événements de la frise plateforme (types d'événements du contrat). */
 const EVENEMENTS: Record<string, { titre: string, ton: TonEvenement }> = {
   'association.created': { titre: 'Espace créé', ton: 'info' },
+  'association.updated': { titre: 'Informations modifiées', ton: 'info' },
   'plan.changed': { titre: 'Changement de plan', ton: 'brand' },
   'manager.added': { titre: 'Gestionnaire ajoutée', ton: 'success' },
   'subscription.past_due': { titre: 'Abonnement impayé', ton: 'warning' },

@@ -4,7 +4,7 @@
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
-import { checkVersion, nowInstant, problem } from '../http'
+import { nowInstant, problem } from '../http'
 import { uid } from '../ids'
 import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
 import {
@@ -80,14 +80,6 @@ function subscription(id: string) {
     price: money(s.billingPeriod === 'yearly' ? p.priceYearly : p.priceMonthly), currentPeriodStart: s.currentPeriodStart,
     currentPeriodEnd: s.currentPeriodEnd, trialEndsOn: s.trialEndsOn, managerSeatsOverride: a.managerSeatsOverride,
   }
-}
-
-export function associationPatch(ctx: MockContext<'pf.asso.patch', 'patch'>) {
-  const a = associationRow(ctx.params.id)
-  checkVersion(ctx, a.version)
-  const { managerSeatsOverride, ...rest } = ctx.body
-  Object.assign(a, rest, managerSeatsOverride === undefined ? {} : { managerSeatsOverride }, { version: a.version + 1 })
-  return platformDetail(a)
 }
 
 export function associationSuspend(ctx: MockContext<'pf.asso.suspend', 'suspend'>) {

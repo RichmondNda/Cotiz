@@ -1,11 +1,16 @@
-import type { INestApplication } from '@nestjs/common';
-import { listOf, LoginResponse, PlatformAssociationDetail, PlatformAssociationSummary } from '@cotiz/contracts';
-import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
+import { listOf, PlatformAssociationDetail, PlatformAssociationSummary } from '@cotiz/contracts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createApp } from '../../src/app.js';
-import { loadConfig } from '../../src/config.js';
-import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
-import { A, B, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
+import { A, B, USERS } from '../isolation/harness.js';
+import {
+  C,
+  codeOf,
+  OWNERS,
+  PLANS,
+  type PlatformFixture,
+  STAFF,
+  startPlatformFixture,
+  SUBS,
+} from './platform-associations.fixture.js';
 
 /**
  * Lot 1.4 · étape 1 : lecture plateforme des associations (pf.asso.list, pf.asso.get) par la connexion plateforme
@@ -13,51 +18,15 @@ import { A, B, type IsolationHarness, seedAssociations, startIsolationHarness, U
  * Lectures non auditées (endpoints.yaml `audited: false`, ADR 0017).
  */
 
-const PASSWORD = 'Baobab-Lagune-2026';
-const STAFF = {
-  owner: { id: '00000000-0000-7000-8000-0000000015a1', email: 'richy@cotiz.test', first: 'Richy', last: 'Nda' },
-  support: { id: '00000000-0000-7000-8000-0000000015a2', email: 'sali@cotiz.test', first: 'Sali', last: 'Bamba' },
-} as const;
-const OWNERS = {
-  diop: { id: '00000000-0000-7000-8000-0000000015a3', email: 'diop@dakar.sn', first: 'Fatou', last: 'Diop' },
-  yao: { id: '00000000-0000-7000-8000-0000000015a4', email: 'yao@bouake.ci', first: 'Yao', last: 'Kouassi' },
-} as const;
-const PLANS = { essentiel: '00000000-0000-7000-8000-0000000015b1', pro: '00000000-0000-7000-8000-0000000015b2' };
-/** Mutuelle de Dakar (suspendue) et Jeunesse solidaire 100% Bouaké (onboarding), en plus de A et B du harnais. */
-const C = '00000000-0000-7000-8000-0000000015c1';
-const D = '00000000-0000-7000-8000-0000000015c2';
-const SUBS = {
-  a: '00000000-0000-7000-8000-0000000015d1',
-  b: '00000000-0000-7000-8000-0000000015d2',
-  c: '00000000-0000-7000-8000-0000000015d3',
-  d: '00000000-0000-7000-8000-0000000015d4',
-};
-
 const Page = listOf(PlatformAssociationSummary);
 
 describe('lecture plateforme des associations (pf.asso.list, pf.asso.get)', () => {
-  let h: IsolationHarness;
-  let redis: StartedRedisContainer;
-  let app: INestApplication;
-  let base: string;
+  let f: PlatformFixture;
   let support: string;
   /** Heure de la connexion d'Awa (gestionnaire de A) : dernière activité de A. */
   let awaLoggedInAfter: Date;
 
-  const call = (path: string, token?: string) =>
-    fetch(`${base}${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
-  const codeOf = async (res: Response) => ((await res.json()) as { code?: string }).code;
-  const login = async (space: string, identifier: string) => {
-    const res = await fetch(`${base}/auth/login`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ space, identifier, password: PASSWORD }),
-    });
-    expect(res.status).toBe(200);
-    const body = LoginResponse.parse(await res.json());
-    if (body.status !== 'authenticated') throw new Error('attendu : authenticated');
-    return body.accessToken;
-  };
+  const call = (path: string, token?: string) => f.call(path, { token });
   const list = async (query = '', token = support) => {
     const res = await call(`/platform/associations${query}`, token);
     expect(res.status).toBe(200);
@@ -70,116 +39,16 @@ describe('lecture plateforme des associations (pf.asso.list, pf.asso.get)', () =
   };
   const names = (page: { items: { name: string }[] }) => page.items.map((i) => i.name);
   const auditCount = async () =>
-    ((await h.superuser('SELECT count(*)::int AS n FROM audit_logs')).rows[0] as { n: number }).n;
+    ((await f.h.superuser('SELECT count(*)::int AS n FROM audit_logs')).rows[0] as { n: number }).n;
 
   beforeAll(async () => {
-    [h, redis] = await Promise.all([startIsolationHarness('migrated'), new RedisContainer('redis:7-alpine').start()]);
-    await seedAssociations(h);
-    const people = [...Object.values(STAFF), ...Object.values(OWNERS)];
-    await h.superuser(
-      `INSERT INTO users (id, email, first_name, last_name, status)
-       SELECT id, email, first_name, last_name, 'active'
-         FROM unnest($1::uuid[], $2::text[], $3::text[], $4::text[]) AS p(id, email, first_name, last_name)`,
-      [people.map((p) => p.id), people.map((p) => p.email), people.map((p) => p.first), people.map((p) => p.last)],
-    );
-    await h.superuser(`INSERT INTO platform_staff (user_id, role) VALUES ($1, 'owner'), ($2, 'support')`, [
-      STAFF.owner.id,
-      STAFF.support.id,
-    ]);
-    const hash = await new SecretHasher().hash(PASSWORD);
-    await h.superuser(`INSERT INTO credentials (user_id, password_hash) SELECT id, $1 FROM users`, [hash]);
-    // Entrées : A le 1er sept., B le 15 sept., C le 1er oct., D le 10 oct. 2026.
-    await h.superuser(
-      `UPDATE associations SET created_at = CASE id WHEN $1::uuid THEN timestamptz '2026-09-01T08:00:00Z'
-                                                    ELSE timestamptz '2026-09-15T08:00:00Z' END`,
-      [A.id],
-    );
-    await h.superuser(
-      `INSERT INTO associations (id, slug, name, type, city, country, contact_email, contact_phone, status,
-         suspended_at, suspension_reason, created_at) VALUES
-         ($1, 'mutuelle-dakar', 'Mutuelle de Dakar', 'mutuelle', 'Dakar', 'SN', 'contact@dakar.sn', '+221770000003',
-          'suspended', '2026-10-20T09:00:00Z', 'Abonnement impayé', '2026-10-01T08:00:00Z'),
-         ($2, 'jeunesse-bouake', 'Jeunesse solidaire 100% Bouaké', 'tontine', 'Bouaké', 'CI', 'contact@bouake.ci',
-          '+2250700000002', 'onboarding', NULL, NULL, '2026-10-10T08:00:00Z')`,
-      [C, D],
-    );
-    await h.superuser(
-      `INSERT INTO plans (id, code, name, price_monthly, price_yearly, max_projects, max_subscribers, max_managers,
-         features)
-       VALUES ($1, 'essentiel', 'Essentiel', 10000, 120000, 5, 100, 2, '{}'),
-              ($2, 'pro', 'Pro', 25000, 300000, NULL, 500, 5, '{}')`,
-      [PLANS.essentiel, PLANS.pro],
-    );
-    await h.superuser(
-      `INSERT INTO subscriptions (id, association_id, plan_id, billing_period, status, current_period_start,
-         current_period_end, trial_ends_at, manager_seats_override) VALUES
-         ($1, $5, $9, 'monthly', 'active', '2026-10-01', '2026-10-31', NULL, NULL),
-         ($2, $6, $10, 'yearly', 'trialing', '2026-09-15', '2026-10-14', '2026-10-14', 3),
-         ($3, $7, $9, 'monthly', 'active', '2026-10-01', '2026-10-31', NULL, NULL),
-         ($4, $8, $9, 'monthly', 'trialing', '2026-10-10', '2026-11-08', '2026-11-08', NULL)`,
-      [SUBS.a, SUBS.b, SUBS.c, SUBS.d, A.id, B.id, C, D, PLANS.essentiel, PLANS.pro],
-    );
-    await h.superuser(
-      `INSERT INTO memberships (id, association_id, user_id, role, status, joined_at) VALUES
-         (gen_random_uuid(), $1, $3, 'owner', 'active', '2026-09-01T08:00:00Z'),
-         (gen_random_uuid(), $1, $4, 'subscriber', 'active', now()),
-         (gen_random_uuid(), $1, $5, 'subscriber', 'active', now()),
-         (gen_random_uuid(), $1, $6, 'subscriber', 'removed', now()),
-         (gen_random_uuid(), $2, $7, 'owner', 'active', now()),
-         (gen_random_uuid(), $2, $8, 'subscriber', 'active', now()),
-         (gen_random_uuid(), $2, $3, 'subscriber', 'active', now()),
-         (gen_random_uuid(), $9, $10, 'owner', 'active', now()),
-         (gen_random_uuid(), $11, $12, 'owner', 'active', now())`,
-      [
-        A.id,
-        B.id,
-        USERS.awa,
-        USERS.moussa,
-        USERS.aminata,
-        USERS.fatou,
-        USERS.koffi,
-        USERS.fatou,
-        C,
-        OWNERS.diop.id,
-        D,
-        OWNERS.yao.id,
-      ],
-    );
-    // Frise de A : création par le super-admin, puis une action d'une autre association (jamais reprise).
-    await h.superuser(
-      `INSERT INTO audit_logs (occurred_at, actor_user_id, actor_role, association_id, action, entity_type, entity_id)
-       VALUES ('2026-09-01T08:00:00Z', $1, 'platform:owner', $2, 'association.create', 'association', $2),
-              ('2026-09-15T08:00:00Z', $1, 'platform:owner', $3, 'association.create', 'association', $3),
-              ('2026-09-02T08:00:00Z', $1, 'platform:owner', $2, 'plan.update', 'plan', $4)`,
-      [STAFF.owner.id, A.id, B.id, PLANS.essentiel],
-    );
-    // Koffi (owner de B) connecté dans un autre espace que l'espace association : pas une activité de B.
-    await h.superuser(
-      `INSERT INTO sessions (id, user_id, refresh_token_hash, family_id, space, created_at, last_used_at, expires_at)
-       VALUES (gen_random_uuid(), $1, 'x', gen_random_uuid(), 'subscriber', now(), now(), now() + interval '1 day')`,
-      [USERS.koffi],
-    );
-    const config = loadConfig({
-      NODE_ENV: 'test',
-      DATABASE_URL: h.db.urlFor('cotiz_app'),
-      PLATFORM_DATABASE_URL: h.db.urlFor('cotiz_platform'),
-      REDIS_URL: redis.getConnectionUrl(),
-      S3_ENDPOINT: 'http://127.0.0.1:1',
-      RATE_LIMIT_ENDPOINT_PER_MIN: '10000',
-      RATE_LIMIT_IP_PER_MIN: '10000',
-    });
-    app = await createApp(config, { logger: false });
-    await app.listen(0, '127.0.0.1');
-    base = `${await app.getUrl()}/api/v1`;
-    support = await login('platform', STAFF.support.email);
+    f = await startPlatformFixture();
+    support = await f.login('platform', STAFF.support.email);
     awaLoggedInAfter = new Date(Date.now() - 1000);
-    await login('association', 'awa@test.cotiz.app');
+    await f.login('association', 'awa@test.cotiz.app');
   });
 
-  afterAll(async () => {
-    await app.close();
-    await Promise.all([h.stop(), redis.stop()]);
-  });
+  afterAll(() => f.stop());
 
   describe('pf.asso.list', () => {
     it('toutes les associations, la plus ancienne en premier, avec compteurs par statut et par plan', async () => {
@@ -373,8 +242,8 @@ describe('lecture plateforme des associations (pf.asso.list, pf.asso.get)', () =
       expect((await call('/platform/associations')).status).toBe(401);
       expect((await call(`/platform/associations/${A.id}`)).status).toBe(401);
       for (const token of [
-        await login('association', 'awa@test.cotiz.app'),
-        await login('subscriber', 'moussa@test.cotiz.app'),
+        await f.login('association', 'awa@test.cotiz.app'),
+        await f.login('subscriber', 'moussa@test.cotiz.app'),
       ]) {
         expect((await call('/platform/associations', token)).status).toBe(404);
         expect((await call(`/platform/associations/${A.id}`, token)).status).toBe(404);

@@ -110,7 +110,6 @@ const WRITES: Record<string, () => Call> = {
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
   'nt.read read': () => ({ params: { id: uid('notification', 'nt-mb-1') } }),
   'nt.read readAll': () => ({}),
-  'pf.asso.patch patch': () => ({ params: { id: aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
   'pf.asso.suspend suspend': () => ({ params: { id: aid }, body: { reason: 'Impayé', confirmName: 'Entraide Yopougon' } }),
   'pf.asso.suspend reactivate': () => ({ params: { id: aid }, setup: () => call('pf.asso.suspend', 'suspend', { params: { id: aid }, body: { reason: 'x', confirmName: 'x' } }) } as Call),
   'pf.asso.plan changePlan': () => ({ params: { id: aid }, body: { planId: uid('plan', 'pro'), effectiveOn: '2026-10-01' } }),

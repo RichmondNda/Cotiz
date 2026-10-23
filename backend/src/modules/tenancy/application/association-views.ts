@@ -14,6 +14,7 @@ import { type AssociationRecord, platformAssociationOf } from './association-rec
 /** Actions du journal reprises dans la frise de la fiche, et le type d'événement affiché (libellés côté front). */
 const TIMELINE: Readonly<Record<string, string>> = {
   'association_request.approve': 'request.approved',
+  'association.update': 'association.updated',
 };
 /** Création directe : son auteur signe l'entrée « association.created » qui clôt toujours la frise. */
 const CREATE_ACTION = 'association.create';

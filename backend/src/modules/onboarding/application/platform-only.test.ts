@@ -19,7 +19,7 @@ vi.mock('../../../shared/tenant-context/index.js', async (original) => ({
 
 const { grantOwnership, membersOf, ownerOf, ownsAnAssociation, teamsOf } =
   await import('../../access/access.public.js');
-const { currentSubscriptionOf, displayedPlansOf, latestSubscriptionOf, openSubscription } =
+const { currentSubscriptionOf, displayedPlansOf, latestSubscriptionOf, openSubscription, setManagerSeats } =
   await import('../../billing/billing.public.js');
 const { createAssociation, platformAssociationDetail, platformAssociationOf } =
   await import('../../tenancy/tenancy.public.js');
@@ -46,6 +46,7 @@ const calls: [string, () => Promise<unknown>][] = [
   ['platformManagerActivityOf', () => platformManagerActivityOf([ID])],
   ['platformAuditTrailOf', () => platformAuditTrailOf(ID, ['association.create'], 1)],
   ['platformAssociationDetail', () => platformAssociationDetail(ID)],
+  ['setManagerSeats', () => setManagerSeats(ID, 3)],
   [
     'openSubscription',
     () =>
