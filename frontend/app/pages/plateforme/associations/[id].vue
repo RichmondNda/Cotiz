@@ -116,8 +116,8 @@ async function executer(action: () => Promise<FicheAssociationPlateforme>, succe
     toast.succes(succes.titre, succes.message ? { message: succes.message } : undefined)
     return true
   }
-  catch {
-    toast.erreur('Action impossible', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Action impossible', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
     return false
   }
   finally {

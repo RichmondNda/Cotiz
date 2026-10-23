@@ -4,7 +4,6 @@
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
-import { problem } from '../http'
 import { uid } from '../ids'
 import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
 import {
@@ -80,17 +79,6 @@ function subscription(id: string) {
     price: money(s.billingPeriod === 'yearly' ? p.priceYearly : p.priceMonthly), currentPeriodStart: s.currentPeriodStart,
     currentPeriodEnd: s.currentPeriodEnd, trialEndsOn: s.trialEndsOn, managerSeatsOverride: a.managerSeatsOverride,
   }
-}
-
-export function associationChangePlan(ctx: MockContext<'pf.asso.plan', 'changePlan'>) {
-  const a = associationRow(ctx.params.id)
-  const p = planRow(ctx.body.planId)
-  const f = associationFigures(a.id)
-  if (p.limits.projects !== null && f.projectsCount > p.limits.projects) problem('quota_exceeded')
-  a.planId = p.id
-  const s = db.subscriptions.find(x => x.associationId === a.id)!
-  Object.assign(s, { planId: p.id, billingPeriod: ctx.body.billingPeriod ?? s.billingPeriod })
-  return subscription(s.id)
 }
 
 export function associationProjects(ctx: MockContext<'pf.asso.sub', 'projects'>) {

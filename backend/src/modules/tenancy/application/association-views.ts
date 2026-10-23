@@ -17,6 +17,7 @@ const TIMELINE: Readonly<Record<string, string>> = {
   'association.update': 'association.updated',
   'association.suspend': 'association.suspended',
   'association.reactivate': 'association.reactivated',
+  'subscription.change_plan': 'plan.changed',
 };
 /** Création directe : son auteur signe l'entrée « association.created » qui clôt toujours la frise. */
 const CREATE_ACTION = 'association.create';

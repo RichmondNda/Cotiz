@@ -17,7 +17,7 @@ const PROFILE_FIELDS = ['name', 'type', 'city', 'country', 'description', 'conta
  * pf.asso.patch : modification administrative (sa-association-detail), sous verrou optimiste (`If-Match`, 412) ;
  * seuls les champs envoyés changent, la version s'incrémente même si aucune valeur ne change. Comptes gestionnaires
  * autorisés : surcharge de l'abonnement en cours (billing). association.updated avec les champs réellement modifiés,
- * s'il y en a (invalide les limites de quotas en cache). Corps vide : 422.
+ * s'il y en a. Corps vide : 422.
  */
 @Injectable()
 export class UpdateAssociationUseCase {

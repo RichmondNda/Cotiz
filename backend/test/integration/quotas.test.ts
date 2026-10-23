@@ -1,15 +1,7 @@
-import type { EventEnvelope, EventType } from '@cotiz/contracts';
-import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { sql } from 'drizzle-orm';
-import { Redis } from 'ioredis';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { loadConfig } from '../../src/config.js';
 import { QuotaService } from '../../src/modules/billing/billing.public.js';
-import { QuotaLimitsCacheConsumer } from '../../src/modules/billing/events/quota-limits-cache.consumer.js';
-import { readQuotaLimits, writeQuotaLimits } from '../../src/modules/billing/infra/quota-limits-cache.js';
 import { DomainProblem } from '../../src/shared/http/domain-problem.js';
-import { EventConsumers } from '../../src/shared/outbox/index.js';
-import type { RedisClient } from '../../src/shared/redis/redis.module.js';
 import { currentTx, TenantDatabase } from '../../src/shared/tenant-context/index.js';
 import {
   A,
@@ -24,8 +16,9 @@ import {
 
 /**
  * Lot 1.2 · étape 5 : QuotaService.assert (architecture/02, « Quotas de plan » ; choix Q7). Limites de l'abonnement en
- * cours (trialing, active, past_due) en cache 5 min, invalidées par plan.updated et subscription.plan_changed ; usage
- * compté en direct dans la transaction de l'association. Dépassement : 409 quota_exceeded avec limit et usage.
+ * cours (trialing, active, past_due) et usage lus en base, sous le verrou du quota, dans la transaction de
+ * l'association (lot 1.4 : plus de cache des limites, un changement de plan est vu dès son COMMIT). Dépassement : 409
+ * quota_exceeded avec limit et usage.
  */
 
 const PLANS = {
@@ -35,24 +28,19 @@ const PLANS = {
 
 describe('QuotaService (quotas du plan de l’association)', () => {
   let h: IsolationHarness;
-  let redisContainer: StartedRedisContainer;
-  let redis: Redis;
   let db: TenantDatabase;
   let quotas: QuotaService;
-  const consumers = new EventConsumers();
-  let consumer: QuotaLimitsCacheConsumer;
 
-  const assertIn = (association: FixtureAssociation, kind: 'projects' | 'subscribers' | 'managers', service = quotas) =>
-    db.withTenantContext(asManagerOf(association), () => service.assert(association.id, kind));
+  const assertIn = (association: FixtureAssociation, kind: 'projects' | 'subscribers' | 'managers') =>
+    db.withTenantContext(asManagerOf(association), () => quotas.assert(association.id, kind));
 
   /** `null` si l'ajout est permis, sinon le problème levé. */
   const outcome = async (
     association: FixtureAssociation,
     kind: 'subscribers' | 'managers',
-    service = quotas,
   ): Promise<{ code: string; limit?: number; usage?: number } | null> => {
     try {
-      await assertIn(association, kind, service);
+      await assertIn(association, kind);
       return null;
     } catch (error) {
       if (!(error instanceof DomainProblem)) throw error;
@@ -73,35 +61,8 @@ describe('QuotaService (quotas du plan de l’association)', () => {
       [association.id, planId, status, override],
     );
 
-  const deliver = async (type: EventType, associationId: string | null, payload: Record<string, unknown>) => {
-    const handlers = consumers.for(type);
-    expect(handlers.map((c) => c.name)).toEqual(['quota-limits-cache']);
-    const event: EventEnvelope = {
-      id: '1',
-      type,
-      version: 1,
-      occurredAt: new Date().toISOString(),
-      associationId,
-      actorUserId: null,
-      aggregate: { type: type.split('.')[0] ?? type, id: PLANS.small },
-      payload,
-    };
-    for (const handler of handlers) await handler.handle(event);
-  };
-  const planUpdated = (planId: string) => deliver('plan.updated', null, { planId });
-  const planChanged = (association: FixtureAssociation) =>
-    deliver('subscription.plan_changed', association.id, {
-      associationId: association.id,
-      fromPlanId: PLANS.small,
-      toPlanId: PLANS.unlimited,
-      effectiveAt: new Date().toISOString(),
-    });
-
   beforeAll(async () => {
-    [h, redisContainer] = await Promise.all([
-      startIsolationHarness('migrated'),
-      new RedisContainer('redis:7-alpine').start(),
-    ]);
+    h = await startIsolationHarness('migrated');
     await seedAssociations(h);
     await h.superuser(
       `INSERT INTO plans (id, code, name, price_monthly, price_yearly, max_projects, max_subscribers, max_managers,
@@ -110,30 +71,16 @@ describe('QuotaService (quotas du plan de l’association)', () => {
          ($2, 'q-unlimited', 'Illimité', 1000, 12000, NULL, NULL, NULL, '{}', true)`,
       [PLANS.small, PLANS.unlimited],
     );
-    redis = new Redis(redisContainer.getConnectionUrl(), { maxRetriesPerRequest: 1 });
     db = new TenantDatabase({ connectionString: h.db.urlFor('cotiz_app'), max: 4 });
-    quotas = new QuotaService({ redis } as RedisClient);
-    consumer = new QuotaLimitsCacheConsumer(
-      consumers,
-      loadConfig({
-        NODE_ENV: 'test',
-        DATABASE_URL: h.db.urlFor('cotiz_app'),
-        REDIS_URL: redisContainer.getConnectionUrl(),
-        S3_ENDPOINT: 'http://127.0.0.1:1',
-      }),
-    );
-    consumer.onModuleInit();
+    quotas = new QuotaService();
   });
 
   afterAll(async () => {
-    consumer.onModuleDestroy();
-    redis.disconnect();
     await db.onModuleDestroy();
-    await Promise.all([h.stop(), redisContainer.stop()]);
+    await h.stop();
   });
 
   beforeEach(async () => {
-    await redis.flushall();
     await h.superuser('DELETE FROM subscriptions');
     await h.superuser('DELETE FROM memberships');
     await h.superuser(`UPDATE plans SET max_managers = 2, max_subscribers = 2 WHERE id = $1`, [PLANS.small]);
@@ -180,7 +127,6 @@ describe('QuotaService (quotas du plan de l’association)', () => {
       expect(await outcome(A, 'managers')).toBeNull();
       expect(await outcome(A, 'subscribers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
       await h.superuser('UPDATE subscriptions SET manager_seats_override = 1');
-      await planChanged(A);
       expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 1, usage: 2 });
     });
 
@@ -244,97 +190,30 @@ describe('QuotaService (quotas du plan de l’association)', () => {
       expect(rejected?.reason).toBeInstanceOf(DomainProblem);
       expect(rejected?.reason).toMatchObject({ code: 'quota_exceeded', details: { limit: 3, usage: 3 } });
     });
-  });
-
-  describe('cache des limites (5 min)', () => {
-    it('limites servies par le cache jusqu’à plan.updated', async () => {
+    it('limite modifiée en base : appliquée dès l’ajout suivant, sans invalidation', async () => {
       await subscribe(A, PLANS.small);
       expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      expect(await redis.ttl('cotiz:cache:quotas:' + A.id)).toBeGreaterThan(290);
-      await h.superuser(`UPDATE plans SET max_managers = 5 WHERE id = $1`, [PLANS.small]);
-      expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      await planUpdated(PLANS.small);
-      expect(await outcome(A, 'managers')).toBeNull();
-    });
-
-    it('subscription.plan_changed invalide l’association concernée seulement', async () => {
-      await subscribe(A, PLANS.small);
-      await subscribe(B, PLANS.small);
-      expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      await h.superuser(`UPDATE subscriptions SET plan_id = $1`, [PLANS.unlimited]);
-      await planChanged(A);
-      expect(await outcome(A, 'managers')).toBeNull();
-      expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-    });
-
-    it('association.updated (surcharge des comptes gestionnaires) invalide l’association concernée seulement', async () => {
-      await subscribe(A, PLANS.small);
-      await subscribe(B, PLANS.small);
-      expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      await h.superuser(`UPDATE subscriptions SET manager_seats_override = 3`);
-      await deliver('association.updated', A.id, { associationId: A.id, changedFields: ['managerSeatsOverride'] });
-      expect(await outcome(A, 'managers')).toBeNull();
-      expect(await outcome(B, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-    });
-
-    it('cache propre à chaque association : jamais les limites d’une autre', async () => {
-      await subscribe(A, PLANS.small);
-      await subscribe(B, PLANS.unlimited);
-      expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      expect(await outcome(B, 'managers')).toBeNull();
-      expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-      expect((await readQuotaLimits(redis, A.id)).limits).toEqual({ projects: 1, subscribers: 2, managers: 2 });
-      expect((await readQuotaLimits(redis, B.id)).limits).toEqual({
-        projects: null,
-        subscribers: null,
-        managers: null,
-      });
-    });
-
-    it('limites lues avant une invalidation : jamais servies ensuite (génération)', async () => {
-      await subscribe(A, PLANS.small);
-      const before = await readQuotaLimits(redis, A.id);
-      expect(before.limits).toBeNull();
-      await planChanged(A);
-      await writeQuotaLimits(redis, A.id, { projects: 0, subscribers: 0, managers: 0 }, before.generation);
-      expect((await readQuotaLimits(redis, A.id)).limits).toBeNull();
-      const other = await readQuotaLimits(redis, A.id);
-      await planUpdated(PLANS.small);
-      await writeQuotaLimits(redis, A.id, { projects: 0, subscribers: 0, managers: 0 }, other.generation);
-      expect((await readQuotaLimits(redis, A.id)).limits).toBeNull();
-      expect(await outcome(A, 'managers')).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
-    });
-
-    it.each([
-      ['forme fausse', '{"limits":{"managers":0}}'],
-      ['JSON illisible', '{pas du json'],
-    ])('valeur en cache invalide (%s) : relue en base, puis réécrite', async (_why, raw) => {
-      await subscribe(A, PLANS.unlimited);
-      await redis.set('cotiz:cache:quotas:' + A.id, raw);
-      expect(await outcome(A, 'managers')).toBeNull();
-      expect((await readQuotaLimits(redis, A.id)).limits).toEqual({
-        projects: null,
-        subscribers: null,
-        managers: null,
-      });
-    });
-
-    it('Redis absent : limites lues en base, jamais de refus ni d’accord par défaut', async () => {
-      const down = new Redis('redis://127.0.0.1:1', {
-        lazyConnect: true,
-        maxRetriesPerRequest: 0,
-        commandTimeout: 200,
-        retryStrategy: () => null,
-      });
-      down.on('error', () => undefined);
-      const degraded = new QuotaService({ redis: down } as RedisClient);
-      await subscribe(A, PLANS.small);
-      expect(await outcome(A, 'managers', degraded)).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
       await h.superuser(`UPDATE plans SET max_managers = 3 WHERE id = $1`, [PLANS.small]);
-      expect(await outcome(A, 'managers', degraded)).toBeNull();
-      down.disconnect();
+      expect(await outcome(A, 'managers')).toBeNull();
+      await h.superuser(`UPDATE subscriptions SET plan_id = $1 WHERE association_id = $2`, [PLANS.unlimited, A.id]);
+      expect(await outcome(A, 'subscribers')).toBeNull();
+    });
+
+    it('limite abaissée pendant un ajout (changement de plan) : l’ajout attend le verrou et voit la nouvelle limite', async () => {
+      // Limite 3, usage 2 (owner actif, manager invité). Une transaction de la plateforme prend le verrou du quota,
+      // abaisse la limite à 2, attend, puis valide ; l'ajout lancé pendant ce temps doit être refusé.
+      await subscribe(A, PLANS.small, 'active', 3);
+      const lowering = h.superuser(
+        `BEGIN;
+         SELECT pg_advisory_xact_lock(hashtextextended('quota:${A.id}:managers', 0));
+         UPDATE subscriptions SET manager_seats_override = NULL WHERE association_id = '${A.id}';
+         SELECT pg_sleep(0.4);
+         COMMIT;`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const added = await outcome(A, 'managers');
+      await lowering;
+      expect(added).toEqual({ code: 'quota_exceeded', limit: 2, usage: 2 });
     });
   });
 });

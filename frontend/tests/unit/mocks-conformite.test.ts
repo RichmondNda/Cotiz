@@ -110,7 +110,6 @@ const WRITES: Record<string, () => Call> = {
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
   'nt.read read': () => ({ params: { id: uid('notification', 'nt-mb-1') } }),
   'nt.read readAll': () => ({}),
-  'pf.asso.plan changePlan': () => ({ params: { id: aid }, body: { planId: uid('plan', 'pro'), effectiveOn: '2026-10-01' } }),
   'as.patch patch': () => ({ params: { aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
   'as.pm replace': () => ({ params: { aid }, body: { items: [{ kind: 'cash', label: 'Espèces', details: {}, isActive: true }] } }),
   'as.onb complete': () => ({ params: { aid } }),
