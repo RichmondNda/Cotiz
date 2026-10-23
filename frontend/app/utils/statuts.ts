@@ -8,6 +8,7 @@ import type {
   StatutAssociation,
   StatutContrat,
   StatutDemande,
+  StatutReinitialisation,
   StatutEcheance,
   StatutFacture,
   StatutPaiement,
@@ -63,6 +64,15 @@ export const STATUTS_DEMANDE: Record<StatutDemande, LibelleStatut> = {
   refusee: { libelle: 'Refusée', ton: 'danger' },
 }
 
+/** Demandes de réinitialisation (status-mapping.yaml : password_reset_requests.status). */
+export const STATUTS_REINITIALISATION: Record<StatutReinitialisation, LibelleStatut> = {
+  a_traiter: { libelle: 'À traiter', ton: 'warning' },
+  code_remis: { libelle: 'Code remis', ton: 'info' },
+  terminee: { libelle: 'Terminée', ton: 'success' },
+  expiree: { libelle: 'Expirée', ton: 'neutral' },
+  ignoree: { libelle: 'Ignorée', ton: 'neutral' },
+}
+
 export const STATUTS_CONTRAT: Record<StatutContrat, LibelleStatut> = {
   a_signer: { libelle: 'Signature attendue', ton: 'warning' },
   signe: { libelle: 'Signé', ton: 'success' },
@@ -102,6 +112,7 @@ export const TABLES_STATUTS = {
   souscription: STATUTS_SOUSCRIPTION,
   association: STATUTS_ASSOCIATION,
   demande: STATUTS_DEMANDE,
+  reinitialisation: STATUTS_REINITIALISATION,
   contrat: STATUTS_CONTRAT,
   plan: STATUTS_PLAN,
   facture: STATUTS_FACTURE,

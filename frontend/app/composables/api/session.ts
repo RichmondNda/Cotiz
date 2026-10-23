@@ -47,8 +47,13 @@ export const useMoi = () => {
 /** Compteurs des menus, recomposés selon l'espace (plus de route dédiée : docs/specs/v0-mapping.md). */
 export const useCompteursNavigation = () => {
   const { role } = useSession()
-  return useLecture<CompteursNavigation>(() => `compteurs-navigation:${role.value}`, async (client) => {
-    const compteurs: CompteursNavigation = { paiementsAValider: 0, notificationsNonLues: 0, souscripteursEnRetard: 0, demandesATraiter: 0 }
+  const { peut } = usePermissions()
+  // Réinitialisations : owner et admin plateforme seulement (le support n'a pas `platform.associations.manage`).
+  const reinitialisations = computed(() => role.value === 'superadmin' && peut('platform.associations.manage'))
+  return useLecture<CompteursNavigation>(() => `compteurs-navigation:${role.value}:${reinitialisations.value}`, async (client) => {
+    const compteurs: CompteursNavigation = {
+      paiementsAValider: 0, notificationsNonLues: 0, souscripteursEnRetard: 0, demandesATraiter: 0, reinitialisationsATraiter: 0,
+    }
     if (!role.value) return compteurs
     compteurs.notificationsNonLues = (await client.call('nt.list', 'unreadCount')).count
     if (role.value === 'gestionnaire') {
@@ -58,6 +63,9 @@ export const useCompteursNavigation = () => {
     }
     // Demandes en attente : la file réelle (pf.req.list), pas le tableau de bord (lot 1.4).
     if (role.value === 'superadmin') compteurs.demandesATraiter = (await client.call('pf.req.list', 'list', { query: { status: 'pending', limit: 1 } })).total
+    if (reinitialisations.value) {
+      compteurs.reinitialisationsATraiter = (await client.call('pf.resets', 'list', { query: { status: 'pending', limit: 1 } })).total
+    }
     return compteurs
   })
 }

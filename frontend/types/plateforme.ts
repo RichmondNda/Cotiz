@@ -216,3 +216,22 @@ export interface ProfilPlateforme {
 }
 
 export type ModificationProfilPlateforme = Partial<Pick<ProfilPlateforme, 'prenom' | 'nom' | 'email' | 'preferences'>>
+
+/** Demande « mot de passe oublié » d'un gestionnaire, traitée par le super-admin (`pf.resets`, SaReinitialisations). */
+export type StatutReinitialisation = 'a_traiter' | 'code_remis' | 'terminee' | 'expiree' | 'ignoree'
+
+export interface DemandeReinitialisation {
+  id: string
+  statut: StatutReinitialisation
+  personne: { prenom: string, nom: string, email: string | null, telephone: string | null }
+  /** Instant ISO. */
+  demandeeLe: string
+  traiteeLe: string | null
+  traiteePar: string | null
+}
+
+/** Résultat de `pf.resets › issueCode` : la demande traitée et le code à transmettre (affiché une fois). */
+export interface CodeReinitialisation {
+  demande: DemandeReinitialisation
+  acces: AccesARemettre
+}

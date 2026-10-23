@@ -46,4 +46,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['pf.asso.patch', 'all'],
   ['pf.asso.suspend', 'all'],
   ['pf.asso.plan', 'all'],
+  // Lot 1.4 : demandes de réinitialisation des gestionnaires (écran ajouté, sans mock).
+  ['pf.resets', 'all'],
 ])
