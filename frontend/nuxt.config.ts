@@ -56,6 +56,12 @@ export default defineNuxtConfig({
     ignore: process.env.NUXT_MOCKS === '0' ? ['api/v1/**', 'api/_dev/**'] : [],
   },
 
+  // Dépendances découvertes en cours de route (imports dynamiques, dont le solveur ALTCHA) : pré-optimisées au
+  // démarrage du serveur de dev, sinon Vite recharge la page au premier passage (parcours e2e en CI).
+  vite: {
+    optimizeDeps: { include: ['@sentry/vue', 'zod', 'markdown-it', 'altcha/lib'] },
+  },
+
   typescript: {
     strict: true,
     // Types de domaine partagés entre app/ et server/ (frontend/types).
