@@ -109,6 +109,7 @@ export const LegalPage = z.object({
   /** Texte versionné en Markdown ; le sommaire est construit à partir des titres. */
   markdown: z.string(),
 });
+export type LegalPage = z.infer<typeof LegalPage>;
 
 export const pubLegal = defineEndpoint({
   id: 'pub.legal',
