@@ -18,7 +18,7 @@ import { platformRecentActivityOf } from '../../../shared/audit/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { watchlist } from '../domain/watchlist.js';
 
-/** Devise de la plateforme : celle de ses plans (ce que les associations paient à Cotiz). */
+/** Devise de la plateforme : plans en XOF seulement (contrainte plans_currency_xof, PlanInput). */
 const PLATFORM_CURRENCY: Currency = 'XOF';
 const OLDEST_PENDING = 3;
 const ACTIVITY_LIMIT = 10;

@@ -329,7 +329,7 @@ CREATE TABLE plans (
   description text,
   price_monthly bigint NOT NULL,
   price_yearly bigint NOT NULL,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT plans_currency_xof CHECK (currency = 'XOF'),
   max_projects int,
   max_subscribers int,
   max_managers int,
@@ -343,6 +343,7 @@ CREATE TABLE plans (
 COMMENT ON TABLE plans IS 'Formules d''abonnement gérées par le super-admin.';
 COMMENT ON COLUMN plans.price_monthly IS 'en XOF';
 COMMENT ON COLUMN plans.price_yearly IS 'en XOF';
+COMMENT ON COLUMN plans.currency IS 'XOF seulement (plans_currency_xof)';
 COMMENT ON COLUMN plans.max_projects IS 'NULL = illimité';
 COMMENT ON COLUMN plans.max_subscribers IS 'NULL = illimité';
 COMMENT ON COLUMN plans.max_managers IS 'NULL = illimité';
