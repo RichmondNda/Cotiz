@@ -226,6 +226,8 @@ COMMENT ON COLUMN memberships.title IS 'fonction affichée (« Trésorière »),
 
 -- association_requests · module onboarding · V1 · lot 1.3
 -- Demandes de création issues du formulaire public.
+-- Numéro de la référence DEM-<année>-<numéro sur 5 chiffres> : séquence globale, jamais remise à zéro.
+CREATE SEQUENCE association_request_number_seq;
 CREATE TABLE association_requests (
   id uuid PRIMARY KEY,
   reference text NOT NULL UNIQUE,
@@ -275,6 +277,7 @@ CREATE TABLE associations (
   type text NOT NULL,
   city text NOT NULL,
   country text NOT NULL,
+  registration_number text,
   description text,
   logo_file_id uuid,
   contact_email text NOT NULL,
@@ -291,6 +294,7 @@ CREATE TABLE associations (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE associations IS 'Le client de Cotiz. Racine de l''isolation multi-tenant.';
+COMMENT ON COLUMN associations.registration_number IS 'facultatif, repris de la demande';
 COMMENT ON COLUMN associations.status IS 'onboarding · active · past_due · suspended · closed';
 COMMENT ON COLUMN associations.currency IS 'XOF';
 COMMENT ON COLUMN associations.timezone IS 'Africa/Abidjan';
@@ -1031,6 +1035,7 @@ ALTER TABLE memberships ADD FOREIGN KEY (association_id) REFERENCES associations
 ALTER TABLE memberships ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE memberships ADD FOREIGN KEY (invited_by) REFERENCES users(id);
 ALTER TABLE association_requests ADD FOREIGN KEY (desired_plan_id) REFERENCES plans(id);
+ALTER TABLE association_requests ADD FOREIGN KEY (viewed_by) REFERENCES users(id);
 ALTER TABLE association_requests ADD FOREIGN KEY (decided_by) REFERENCES users(id);
 ALTER TABLE association_requests ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE associations ADD FOREIGN KEY (logo_file_id) REFERENCES files(id);
@@ -1167,6 +1172,7 @@ CREATE INDEX payments_self ON payments (user_id, declared_at DESC);
 CREATE INDEX allocations_installment ON allocations (installment_id);
 CREATE INDEX enrollments_project ON enrollments (association_id, project_id, status);
 CREATE INDEX enrollments_user ON enrollments (user_id);
+CREATE INDEX association_requests_queue ON association_requests (status, created_at);
 CREATE INDEX memberships_user ON memberships (user_id) WHERE status = 'active';
 CREATE INDEX notifications_unread ON notifications (user_id, created_at DESC) WHERE read_at IS NULL;
 CREATE INDEX outbox_unpublished ON outbox_events (id) WHERE published_at IS NULL;
@@ -1210,7 +1216,9 @@ CREATE POLICY self_read ON memberships FOR SELECT
 ALTER TABLE association_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE association_requests FORCE ROW LEVEL SECURITY;
 CREATE POLICY public_submit ON association_requests FOR INSERT
-  WITH CHECK (app_space() = 'public');
+  WITH CHECK (app_space() = 'public' AND status = 'pending' AND viewed_by IS NULL AND viewed_at IS NULL
+              AND decided_by IS NULL AND decided_at IS NULL AND rejection_reason_code IS NULL
+              AND rejection_message IS NULL AND internal_note IS NULL AND association_id IS NULL);
 
 -- associations
 ALTER TABLE associations ENABLE ROW LEVEL SECURITY;
@@ -1556,3 +1564,5 @@ REVOKE DELETE ON payments, allocations, installments, invoices FROM cotiz_app, c
 -- plans : écrits par la plateforme seulement (cotiz_platform) ; plans et abonnements jamais supprimés (archivage, résiliation).
 REVOKE INSERT, UPDATE ON plans FROM cotiz_app;
 REVOKE DELETE ON plans, subscriptions FROM cotiz_app, cotiz_platform;
+-- association_requests : preuve de la demande (CGU acceptées), jamais supprimée.
+REVOKE DELETE ON association_requests FROM cotiz_app, cotiz_platform;

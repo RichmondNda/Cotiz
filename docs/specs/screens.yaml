@@ -27,6 +27,7 @@ screens:
   completeAtLot: '1.3'
   endpoints:
   - pub.plans
+  - pub.challenge
   - pub.request
   uiDeviations: 0
 - id: pub-confirm

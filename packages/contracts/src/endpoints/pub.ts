@@ -27,10 +27,13 @@ export const AssociationRequestInput = z.object({
   contact: ContactPerson.extend({ title: z.string().min(1).max(80) }),
   needs: RequestNeeds,
   termsAccepted: z.literal(true),
-  /** Champ piège, invisible pour une personne : doit rester vide. */
-  website: z.literal('').optional(),
-  /** Solution de la preuve de travail ALTCHA auto-hébergée (base64). */
-  altcha: z.string().min(1),
+  /**
+   * Champ piège, invisible pour une personne : rempli, la demande est ignorée sans le dire (réponse 201 d'apparence
+   * normale, rien n'est enregistré), pour ne pas apprendre au robot qu'il a été repéré.
+   */
+  website: z.string().max(200).optional(),
+  /** Solution de la preuve de travail ALTCHA auto-hébergée (`pub.challenge`) : JSON `{ challenge, solution }` en base64. */
+  altcha: z.string().min(1).max(4000),
 });
 export type AssociationRequestInput = z.infer<typeof AssociationRequestInput>;
 
@@ -58,6 +61,44 @@ export const pubRequest = defineEndpoint({
   },
 });
 
+/**
+ * Défi ALTCHA auto-hébergé (décision n° 12, format de `altcha-lib` v2) : résolu par le widget du formulaire, renvoyé
+ * dans `altcha`. Signé par HMAC, valable 10 minutes, accepté une seule fois.
+ */
+export const AltchaChallenge = z
+  .object({
+    parameters: z.object({
+      algorithm: z.string(),
+      nonce: z.string(),
+      salt: z.string(),
+      cost: z.int().positive(),
+      keyLength: z.int().positive(),
+      keyPrefix: z.string(),
+      keySignature: z.string().optional(),
+      /** Expiration, en secondes depuis l'époque Unix. */
+      expiresAt: z.int().positive(),
+    }),
+    signature: z.string(),
+  })
+  .meta({ id: 'AltchaChallenge' });
+export type AltchaChallenge = z.infer<typeof AltchaChallenge>;
+
+export const pubChallenge = defineEndpoint({
+  id: 'pub.challenge',
+  space: 'public',
+  permission: 'public',
+  errors: [],
+  flags: { ...noFlags, rateLimited: true },
+  operations: {
+    get: {
+      method: 'GET',
+      path: '/api/v1/public/altcha-challenge',
+      request: {},
+      response: { status: 200, body: AltchaChallenge },
+    },
+  },
+});
+
 export const LegalSlug = z.enum(['cgu', 'confidentialite', 'mentions']);
 
 export const LegalPage = z.object({
@@ -68,6 +109,7 @@ export const LegalPage = z.object({
   /** Texte versionné en Markdown ; le sommaire est construit à partir des titres. */
   markdown: z.string(),
 });
+export type LegalPage = z.infer<typeof LegalPage>;
 
 export const pubLegal = defineEndpoint({
   id: 'pub.legal',

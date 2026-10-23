@@ -6,3 +6,20 @@
 # Aucun consommateur réel : fl.upload n'est basculé qu'au lot 1.1, seul le mock Nitro l'appelait.
 POST /api/v1/uploads/{id}/complete response property `sha256` list-of-types was widened by adding types `null` to media type `application/json` of response `202`
 POST /api/v1/uploads/{id}/complete the `sha256` response's property pattern `^[0-9a-f]{64}$` was removed for the status `202`
+
+# Lot 1.3 (PR #19) : RequestApproved.handoff nullable (décision Q6 validée : responsable déjà titulaire d'un compte actif,
+# rattaché sans code). Aucun consommateur réel : pf.req.approve n'était appelé que par le mock Nitro avant ce lot.
+POST /api/v1/platform/association-requests/{id}/approve added `#/components/schemas/Handoff, subschema #2` to the `handoff` response property `anyOf` list for the response status `200`
+POST /api/v1/platform/association-requests/{id}/approve the `handoff` response's property `type` changed from `object` to `any` for status `200`
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/activationUrl` from the response with the `200` status
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/code` from the response with the `200` status
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/expiresAt` from the response with the `200` status
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/mailtoUrl` from the response with the `200` status
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/message` from the response with the `200` status
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/recipient` from the response with the `200` status
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/smsUrl` from the response with the `200` status
+POST /api/v1/platform/association-requests/{id}/approve removed the required property `handoff/whatsappUrl` from the response with the `200` status
+# Lot 1.3 : bornes anti-abus du formulaire public (charge ALTCHA, champ piège). Le seul client, le front, envoie une
+# charge ALTCHA de quelques centaines d'octets et laisse le champ piège vide.
+POST /api/v1/public/association-requests the `altcha` request property's maxLength was set to `4000`
+POST /api/v1/public/association-requests the `website` request property's maxLength was set to `200`

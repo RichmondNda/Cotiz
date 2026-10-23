@@ -90,6 +90,13 @@ const ConfigSchema = z.object({
   RATE_LIMIT_IP_PER_MIN: z.coerce.number().int().min(1).default(300),
   RATE_LIMIT_ASSOCIATION_PER_MIN: z.coerce.number().int().min(1).default(600),
   RATE_LIMIT_ENDPOINT_PER_MIN: z.coerce.number().int().min(1).default(20),
+  /**
+   * Clé HMAC des défis ALTCHA auto-hébergés du formulaire de demande (décision n° 12) : exigée en production ;
+   * ailleurs, absente, une clé éphémère est tirée au démarrage (un défi ne survit pas à un redémarrage).
+   */
+  ALTCHA_HMAC_KEY: z.string().min(32).optional(),
+  /** Coût PBKDF2 d'un essai du défi ALTCHA (difficulté pour le navigateur ; les tests le baissent). */
+  ALTCHA_COST: z.coerce.number().int().min(1).default(5000),
   /** Intervalle du relais outbox du worker (jobs.yaml : chaque seconde) ; 0 le désactive (tests). */
   OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1_000),
   /**
@@ -170,6 +177,7 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
     'JWT_PUBLIC_KEY',
     'CODES_ENCRYPTION_KEY',
     'PLATFORM_DATABASE_URL',
+    'ALTCHA_HMAC_KEY',
   ] as const) {
     if (config[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'exigée en production' });
   }

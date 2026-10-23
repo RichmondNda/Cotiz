@@ -169,7 +169,7 @@ Demandes de création issues du formulaire public.
 | Colonne | Type | Note |
 |---|---|---|
 | `id` | `uuid PK` |  |
-| `reference` | `text UNIQUE` | DEM-2026-00042, affichée sur la confirmation |
+| `reference` | `text UNIQUE` | DEM-2026-00042, affichée sur la confirmation ; numéro tiré de `association_request_number_seq` |
 | `association_name / type / city / country` | `text` |  |
 | `registration_number` | `text NULL` |  |
 | `activity_description` | `text` | 500 caractères max |
@@ -180,7 +180,7 @@ Demandes de création issues du formulaire public.
 | `acquisition_source` | `text NULL` |  |
 | `terms_accepted_at` | `timestamptz` | preuve d'acceptation des CGU |
 | `status` | `enum` | pending · approved · rejected |
-| `viewed_by / viewed_at` | `uuid / timestamptz` | première ouverture par la plateforme |
+| `viewed_by / viewed_at` | `uuid FK users / timestamptz` | première ouverture par la plateforme |
 | `decided_by / decided_at` | `uuid / timestamptz` |  |
 | `rejection_reason_code / rejection_message` | `text NULL` |  |
 | `internal_note` | `text NULL` | jamais visible par la candidate |
@@ -195,6 +195,7 @@ Le client de Cotiz. Racine de l'isolation multi-tenant.
 | `id` | `uuid PK` |  |
 | `slug` | `text UNIQUE` |  |
 | `name / type / city / country` | `text` |  |
+| `registration_number` | `text NULL` | facultatif, repris de la demande (lot 1.3) |
 | `description` | `text NULL` |  |
 | `logo_file_id` | `uuid NULL FK files` |  |
 | `contact_email / contact_phone` | `text` |  |

@@ -101,6 +101,10 @@ errors:
   http: 409
   message: Cette adresse gère déjà une autre association.
   where: Approbation, création directe
+- code: owner_account_unavailable
+  http: 409
+  message: Le compte de cette adresse ne peut pas être rattaché (pas encore activé, bloqué ou réservé à la plateforme).
+  where: Approbation, création directe
 - code: slug_taken
   http: 409
   message: Cet identifiant d'association est déjà utilisé.

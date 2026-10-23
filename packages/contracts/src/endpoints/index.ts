@@ -82,7 +82,7 @@ import {
   pfStaff,
 } from './pf.js';
 import { prCreate, prDelete, prGet, prLifecycle, prList, prOverview, prPatch, prPreview } from './projects.js';
-import { pubLegal, pubPlans, pubRequest } from './pub.js';
+import { pubChallenge, pubLegal, pubPlans, pubRequest } from './pub.js';
 import { rpAnalytics, rpExport, rpReport } from './reports.js';
 import { asResets, pfResets } from './resets.js';
 import { sysHealth } from './sys.js';
@@ -189,6 +189,7 @@ export const ENDPOINTS = {
   'pr.overview': prOverview,
   'pub.plans': pubPlans,
   'pub.request': pubRequest,
+  'pub.challenge': pubChallenge,
   'pub.legal': pubLegal,
   'rp.report': rpReport,
   'rp.export': rpExport,

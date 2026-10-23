@@ -6,3 +6,4 @@ export * from './identity.js';
 export * from './tenancy.js';
 export * from './billing.js';
 export * from './access.js';
+export * from './onboarding.js';

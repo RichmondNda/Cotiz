@@ -98,6 +98,7 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
   Le front masque, le back refuse.
 - Nouveau handler simulé : `defineContractHandler()` (entrée et réponse contrôlées par le schéma) ; les routes à slug
   passent par `scripts/route-mock.mjs` (slug → UUID déterministe), partagé par les e2e et `capture-ecran.mjs`.
+- Dépendance chargée par import dynamique (solveur ALTCHA `altcha/lib` + workers, markdown-it) : l'ajouter à `vite.optimizeDeps.include` de `nuxt.config.ts`, sinon Vite recharge la page au premier passage et les e2e expirent en CI.
 - Comparer deux captures `.verif/` au pixel près : en `nuxt dev`, seul le badge de Nuxt devtools (temps en ms) varie.
 
 ## Session et routes

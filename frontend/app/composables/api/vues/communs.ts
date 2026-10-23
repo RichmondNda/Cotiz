@@ -1,9 +1,9 @@
 // Adaptation des réponses du contrat (@cotiz/contracts, anglais) aux types d'interface des écrans (`~~/types`).
 // Renommages et libellés seulement (docs/specs/v0-mapping.md § 1) : aucun calcul métier, les chiffres viennent de l'API.
 // Champ nullable sans valeur → placeholder de la maquette (règle de docs/placeholders-v0.md, repli d'interface).
-import type { Money } from '@cotiz/contracts'
+import type { Handoff, Money } from '@cotiz/contracts'
 import type {
-  Frequence, MoyenPaiement, StatutAssociation, StatutDemande, StatutEcheance, StatutPaiement, StatutProjet,
+  AccesARemettre, Frequence, MoyenPaiement, StatutAssociation, StatutDemande, StatutEcheance, StatutPaiement, StatutProjet,
   StatutSouscription, TypeCalendrier,
 } from '~~/types'
 
@@ -82,3 +82,14 @@ export const TRANCHES_PROJETS: { valeur: number, libelle: string }[] = [
 ]
 export const trancheProjets = (n: number | null | undefined): string =>
   n == null ? '[N]' : [...TRANCHES_PROJETS].reverse().find(t => n >= t.valeur)?.libelle ?? String(n)
+
+/** Handoff du contrat → accès à transmettre (HandoffCard). */
+export const vueAcces = (h: Handoff): AccesARemettre => ({
+  destinataire: `${h.recipient.firstName} ${h.recipient.lastName}`.trim(),
+  code: h.code,
+  expireLe: h.expiresAt,
+  message: h.message,
+  whatsapp: h.whatsappUrl,
+  sms: h.smsUrl,
+  mailto: h.mailtoUrl,
+})

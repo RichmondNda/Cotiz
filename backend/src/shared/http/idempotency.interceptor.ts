@@ -7,6 +7,7 @@ import {
   Injectable,
   Logger,
   type NestInterceptor,
+  SetMetadata,
 } from '@nestjs/common';
 import { HTTP_CODE_METADATA } from '@nestjs/common/constants.js';
 import { Reflector } from '@nestjs/core';
@@ -29,6 +30,25 @@ export interface IdempotencyStore {
 }
 
 export const IDEMPOTENCY_STORE = Symbol('IDEMPOTENCY_STORE');
+
+const REPLAY_IN_HANDLER = 'cotiz:idempotency:replay-in-handler';
+/** Ce que la réponse laisse en mémoire (ReplayInHandler) : jamais de secret. */
+type Reference = (body: unknown) => unknown;
+/** Requêtes rejouées par leur handler (ReplayInHandler), avec la référence mémorisée de l'opération. */
+const replays = new WeakMap<object, { reference: unknown }>();
+
+/**
+ * Route dont la réponse porte un secret (code d'activation) : seule une référence sans secret est mémorisée (`null`
+ * par défaut, sinon `reference(réponse)`, ex. l'identifiant créé) ; au rejeu, le handler est rappelé,
+ * `idempotentReplay(request)` donne cette référence, et il reconstruit la même réponse depuis la base (secret chiffré),
+ * sans refaire l'opération.
+ */
+export const ReplayInHandler = (reference: Reference = () => null) => SetMetadata(REPLAY_IN_HANDLER, reference);
+
+/** Rejeu d'une opération déjà faite (route ReplayInHandler) : sa référence mémorisée ; `null` pour une première fois. */
+export function idempotentReplay(request: object): { reference: unknown } | null {
+  return replays.get(request) ?? null;
+}
 
 /** Réponse conservée 24 h (architecture/06) ; verrou d'une requête en cours, au-delà duquel elle peut être renvoyée. */
 const RESPONSE_TTL_SECONDS = 24 * 3600;
@@ -83,7 +103,7 @@ export class RedisIdempotencyStore implements IdempotencyStore {
  * `Idempotency-Key` (architecture/06), pour les endpoints du contrat qui portent le drapeau : clé exigée ; réponse
  * réussie mémorisée 24 h et rejouée telle quelle (en-tête `Idempotent-Replayed`) ; même clé avec une autre requête →
  * 422 idempotency_key_reused ; même requête encore en cours → 409 invalid_state. Une opération en échec n'est pas
- * mémorisée : la même clé peut être renvoyée. Clés propres à chaque utilisateur : jamais la réponse d'un autre.
+ * mémorisée : la même clé peut être renvoyée. Réponse avec un secret : voir ReplayInHandler. Clés propres à chaque utilisateur : jamais la réponse d'un autre.
  * Placé avant la transaction de contexte : la réponse n'est mémorisée qu'après le COMMIT.
  */
 @Injectable()
@@ -125,6 +145,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const storeKey = `${scope}:${endpoint.id}:${key}`;
     const fingerprint = requestFingerprint(request.method, request.url, request.body);
 
+    const inHandler = this.reflector.get<Reference | undefined>(REPLAY_IN_HANDLER, context.getHandler());
     const existing = await this.store.begin(storeKey, fingerprint, PENDING_TTL_SECONDS);
     if (existing) {
       if (existing.fingerprint !== fingerprint) throw new DomainProblem('idempotency_key_reused');
@@ -135,6 +156,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
         .switchToHttp()
         .getResponse<{ setHeader(n: string, v: string): void }>()
         .setHeader('Idempotent-Replayed', 'true');
+      if (inHandler) {
+        replays.set(request, { reference: existing.body });
+        return next.handle();
+      }
       return of(existing.body);
     }
 
@@ -144,7 +169,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
     return next.handle().pipe(
       mergeMap(async (body: unknown) => {
         try {
-          await this.store.complete(storeKey, { state: 'done', fingerprint, status, body }, RESPONSE_TTL_SECONDS);
+          const record = { state: 'done', fingerprint, status, body: inHandler ? inHandler(body) : body } as const;
+          await this.store.complete(storeKey, record, RESPONSE_TTL_SECONDS);
         } catch (error) {
           // L'opération a réussi : renvoyer sa réponse. Le verrou expirera ; un renvoi serait alors réexécuté.
           this.logger.warn(`idempotence : réponse non mémorisée (${(error as Error).message})`);

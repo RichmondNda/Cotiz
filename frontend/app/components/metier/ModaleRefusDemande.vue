@@ -1,10 +1,11 @@
 <!--
-  Refus d'une demande de création : motif obligatoire (liste), précisions libres et aperçu de l'email envoyé
-  au responsable. Pour « Informations incomplètes », les précisions sont pré-remplies (maquette) tant qu'elles ne sont
+  Refus d'une demande de création : motif obligatoire (liste), précisions libres et aperçu du message prêt, que la
+  plateforme transmet elle-même au responsable (aucun email envoyé, ui-deviations.md). Pour « Informations incomplètes », les précisions sont pré-remplies (maquette) tant qu'elles ne sont
   pas réécrites. Émet `refuser` ; `envoi` affiche le chargement du bouton.
 -->
 <script setup lang="ts">
 import type { RefusDemande } from '~~/types'
+import { messageRefusDemande } from '~/utils/demandes'
 import { MOTIFS_REFUS_DEMANDE } from '~/utils/statuts'
 
 const props = withDefaults(defineProps<{
@@ -36,11 +37,7 @@ watch(motif, (nouveau, ancien) => {
   if (nouveau) erreur.value = ''
 })
 
-const apercu = computed(() => [
-  `Bonjour ${props.prenomResponsable}, nous ne pouvons pas donner suite à votre demande pour le moment.`,
-  motif.value && `Motif : ${motif.value.charAt(0).toLocaleLowerCase('fr')}${motif.value.slice(1)}.`,
-  precisions.value.trim(),
-].filter(Boolean).join(' '))
+const apercu = computed(() => messageRefusDemande(props.prenomResponsable, motif.value, precisions.value))
 
 function refuser() {
   if (!motif.value) {
@@ -80,7 +77,7 @@ function refuser() {
         aria-live="polite"
       >
         <div class="refus__apercu-titre">
-          Aperçu de l’email
+          Message à transmettre
         </div>
         {{ apercu }}
       </div>
@@ -97,7 +94,7 @@ function refuser() {
         variante="danger"
         taille="sm"
         :chargement="envoi"
-        libelle-chargement="Envoi…"
+        libelle-chargement="Refus…"
         @click="refuser"
       >
         Refuser la demande

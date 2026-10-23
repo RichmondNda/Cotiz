@@ -69,10 +69,29 @@ export type DemandeDetaillee = Demande & { historique: EvenementDemande[] }
 /** Corps de `pf.req.approve › approve`. */
 export interface ApprobationDemande {
   planId: Identifiant
-  comptesGestionnaires: number
+  /** `null` : le nombre de comptes du plan (aucune surcharge). */
+  comptesGestionnaires: number | null
   debutAbonnement: DateISO
   noteInterne?: string
   messagePersonnalise?: string
+}
+
+/** Accès à transmettre soi-même (handoff du contrat) : code d'activation et message prêt, liens d'envoi. */
+export interface AccesARemettre {
+  destinataire: string
+  code: string
+  /** Instant ISO d'expiration du code. */
+  expireLe: string
+  message: string
+  whatsapp: string | null
+  sms: string | null
+  mailto: string | null
+}
+
+/** Résultat de `pf.req.approve › approve` : la demande approuvée ; `acces` `null` si le responsable a déjà un compte. */
+export interface DemandeApprouvee {
+  demande: DemandeDetaillee
+  acces: AccesARemettre | null
 }
 
 /** Corps de `pf.req.reject › reject`. */
@@ -131,8 +150,16 @@ export interface FicheAssociationPlateforme {
 export interface NouvelleAssociationPlateforme {
   association: { nom: string, type: TypeAssociation, numeroEnregistrement?: string, ville: string, pays: string, description?: string }
   gestionnaire: { prenom: string, nom: string, email: string, telephone: string }
-  abonnement: { planId: Identifiant, debut: DateISO, comptesGestionnaires: number, essaiJours: number | null }
+  /** `comptesGestionnaires` `null` : ceux du plan (aucune surcharge). */
+  abonnement: { planId: Identifiant, debut: DateISO, comptesGestionnaires: number | null, essaiJours: number | null }
+  /** Afficher tout de suite le code d'activation du gestionnaire principal (message prêt). */
   envoyerIdentifiants: boolean
+}
+
+/** Résultat de `pf.asso.create › create` ; `acces` seulement si les accès sont remis tout de suite. */
+export interface AssociationCreee {
+  association: AssociationListe
+  acces: AccesARemettre | null
 }
 
 /** Corps de `pf.asso.suspend › suspend`. */

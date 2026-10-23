@@ -15,6 +15,7 @@ permissions:
   - auth.activate
   - auth.mfa
   - pub.plans
+  - pub.challenge
   - pub.request
   - pub.legal
   - psp.webhook

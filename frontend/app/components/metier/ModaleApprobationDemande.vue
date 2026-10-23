@@ -1,6 +1,6 @@
 <!--
-  Approbation d'une demande de création : récapitulatif (« L'association … sera créée avec le plan Essentiel.
-  Mariam Ouattara recevra ses identifiants par email. ») et message personnalisé optionnel joint à l'email.
+  Approbation d'une demande de création : récapitulatif (« L'association … sera créée avec le plan Essentiel. ») et
+  message personnalisé optionnel, ajouté au message prêt des accès (aucun email envoyé, ui-deviations.md).
   Émet `approuver` avec le message éventuel ; `envoi` affiche le chargement du bouton.
 -->
 <script setup lang="ts">
@@ -31,7 +31,7 @@ const approuver = () => emit('approuver', avecMessage.value && message.value.tri
     :titre="`Approuver ${props.association} ?`"
   >
     <p class="approbation__texte">
-      L’association {{ association }} sera créée avec le plan {{ plan }}. {{ responsable }} recevra ses identifiants par email.
+      L’association {{ association }} sera créée avec le plan {{ plan }}. Vous transmettrez ensuite ses accès à {{ responsable }} : code d’activation et message prêt.
     </p>
     <CzCheckbox
       v-model="avecMessage"
@@ -48,7 +48,7 @@ const approuver = () => emit('approuver', avecMessage.value && message.value.tri
         v-model="message"
         type="textarea"
         :lignes="3"
-        :placeholder="`Ajouté à l’email envoyé à ${responsable}`"
+        :placeholder="`Ajouté au message prêt pour ${responsable}`"
       />
     </CzField>
     <template #pied>

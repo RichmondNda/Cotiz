@@ -7,7 +7,9 @@ export interface VectorFile<C> {
   cases: C[];
 }
 
-export function loadVectors<C>(name: 'money' | 'schedule' | 'allocation' | 'validation' | 'status'): VectorFile<C> {
+export function loadVectors<C>(
+  name: 'money' | 'schedule' | 'allocation' | 'validation' | 'status' | 'subscription',
+): VectorFile<C> {
   const file = fileURLToPath(new URL(`../../../docs/specs/test-vectors/${name}.json`, import.meta.url));
   return JSON.parse(readFileSync(file, 'utf8')) as VectorFile<C>;
 }
