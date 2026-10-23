@@ -23,6 +23,7 @@ export {
   suspensionTeamOf,
   teamsOf,
 } from './application/owner-membership.js';
+export { platformSubscribersCount, platformTeamSizes, type TeamSize } from './application/platform-team-stats.js';
 export { SeedDevMembershipsUseCase } from './application/seed-dev-memberships.use-case.js';
 export { SelfRoles } from './application/self-roles.js';
 export { actorRoleOf, permissionsOf } from './domain/permission-policy.js';

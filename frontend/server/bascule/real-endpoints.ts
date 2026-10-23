@@ -48,4 +48,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['pf.asso.plan', 'all'],
   // Lot 1.4 : demandes de réinitialisation des gestionnaires (écran ajouté, sans mock).
   ['pf.resets', 'all'],
+  // Lot 1.4 : tableau de bord plateforme (vues matérialisées, tâche stats.refresh).
+  ['pf.dashboard', 'all'],
 ])

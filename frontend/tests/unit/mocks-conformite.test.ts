@@ -87,7 +87,7 @@ const terms = { entryFee: money(50000), installmentAmount: money(10000), frequen
 const READS: Record<string, Call> = {
   'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
   'pf.asso.sub projects': { params: { id: aid } },
-  'pf.asso.sub members': { params: { id: aid } }, 'pf.dashboard get': {}, 'pf.invoices list': {}, 'pf.staff list': {},
+  'pf.asso.sub members': { params: { id: aid } }, 'pf.invoices list': {}, 'pf.staff list': {},
   'as.get get': { params: { aid } }, 'as.pm list': { params: { aid } }, 'as.dashboard get': { params: { aid } },
   'bl.sub get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P }, 'pr.list list': { params: { aid } }, 'pr.get get': { params: P },
@@ -289,7 +289,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   })
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
-    expect(await problem('pf.dashboard', 'get', { as: 'association' })).toBe('forbidden')
+    expect(await problem('pf.staff', 'list', { as: 'association' })).toBe('forbidden')
     expect(await problem('me.dash', 'get', { as: null })).toBe('session_expired')
   })
 })

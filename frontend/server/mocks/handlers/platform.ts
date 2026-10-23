@@ -1,21 +1,13 @@
-// Espace plateforme (super-admin) : demandes, associations, tableau de bord, factures, personnel.
-// Les chiffres globaux de la plateforme (147 associations, 15 impayés…) sont illustratifs dans les maquettes : seules
-// trois associations sont détaillées. Ils sont déclarés ici comme complément, à côté des trois associations calculées.
+// Espace plateforme (super-admin) : onglets de la fiche d'une association, factures, personnel.
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
 import { uid } from '../ids'
 import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
 import {
-  associationRow, money, personContact, personRef, planRef, planRow, requestSummary, userRow,
+  associationRow, money, personContact, personRef, planRef, planRow, userRow,
 } from '../views'
 import { page } from './list'
-
-// ---------------------------------------------------------------- Complément plateforme (illustratif)
-
-const PLATFORM_KPI = { activeAssociations: 147, newAssociationsThisMonth: 6, subscriptionsUpToDate: 132, subscriptionsUnpaid: 15, totalAssociations: 147 }
-/** Associations actives d'octobre 2025 à septembre 2026 (courbe de SaDashboard). */
-const ACTIVE_BY_MONTH = [98, 102, 105, 110, 114, 120, 124, 130, 134, 138, 143, 147]
 
 // ---------------------------------------------------------------- Associations
 
@@ -105,34 +97,7 @@ export function associationMembers(ctx: MockContext<'pf.asso.sub', 'members'>) {
 
 // Plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) : vrai back depuis le lot 1.2.
 
-// ---------------------------------------------------------------- Tableau de bord
-
-export function dashboard(ctx: MockContext<'pf.dashboard', 'get'>) {
-  const pending = ctx.scenario === 'aucune-demande' ? [] : db.requests.filter(r => r.status === 'pending').sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-  const subscribers = db.associations.reduce((t, a) => t + associationFigures(a.id).membersCount, 0)
-  const revenue = db.subscriptions.filter(s => s.status === 'active' || s.status === 'past_due').reduce((t, s) => t + planRow(s.planId).priceMonthly, 0)
-  const man = associationRow(uid('association', 'ressortissants-man'))
-  const bouake = associationRow(uid('association', 'jeunesse-bouake'))
-  const entraide = associationRow(uid('association', 'entraide-yopougon'))
-  return {
-    pendingRequests: pending.length,
-    oldestPendingRequests: pending.slice(0, 3).map(requestSummary),
-    kpi: { ...PLATFORM_KPI, subscribers, monthlyRecurringRevenue: money(revenue) },
-    activeAssociationsByMonth: ACTIVE_BY_MONTH.map((count, i) => ({ month: `${i < 3 ? 2025 : 2026}-${String(((9 + i) % 12) + 1).padStart(2, '0')}-01`, count })),
-    associationsByPlan: db.plans.filter(p => p.isActive).map(p => ({ plan: planRef(p), count: p.subscribersCount })),
-    watchlist: [
-      { associationId: man.id, name: man.name, signal: 'unpaid' as const, since: '2026-09-05' },
-      { associationId: bouake.id, name: bouake.name, signal: 'inactive' as const, since: '2026-09-24' },
-      { associationId: entraide.id, name: entraide.name, signal: 'quota' as const, since: null },
-    ],
-    activity: [
-      { type: 'association.created', at: '2026-09-24T09:00:00Z', associationId: bouake.id, associationName: bouake.name },
-      { type: 'subscription.past_due', at: '2026-09-05T09:00:00Z', associationId: man.id, associationName: man.name },
-      { type: 'plan.changed', at: '2025-06-01T09:00:00Z', associationId: entraide.id, associationName: entraide.name },
-      { type: 'request.approved', at: '2026-09-24T09:00:00Z', associationId: bouake.id, associationName: bouake.name },
-    ],
-  }
-}
+// Tableau de bord (pf.dashboard) : vrai back depuis le lot 1.4.
 
 // ---------------------------------------------------------------- Factures (V2) et personnel (V2)
 

@@ -9,4 +9,6 @@ export {
   currentSubscriptionOf,
   displayedPlansOf,
   latestSubscriptionOf,
+  platformCurrentSubscriptions,
+  type SubscriptionStanding,
 } from './application/subscription-views.js';

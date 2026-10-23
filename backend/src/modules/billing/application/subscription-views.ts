@@ -91,3 +91,43 @@ async function subscriptionOf(associationId: string, currentOnly: boolean): Prom
     },
   };
 }
+
+export interface SubscriptionStanding {
+  status: (typeof CURRENT)[number];
+  /** Dernier jour inclus de la période en cours. */
+  currentPeriodEnd: string | null;
+  /** Limites appliquées (surcharge des comptes gestionnaires comprise) ; `null` : illimité. */
+  limits: { subscribers: number | null; managers: number | null };
+}
+
+/**
+ * Abonnement en cours de chaque association qui en a un (tableau de bord plateforme : impayés, quotas). Toutes les
+ * associations en une lecture ; au plus un par association (`subscriptions_one_active`). Plateforme seulement.
+ */
+export async function platformCurrentSubscriptions(): Promise<Map<string, SubscriptionStanding>> {
+  if (currentContext()?.space !== 'platform')
+    throw new Error('platformCurrentSubscriptions : espace plateforme seulement');
+  const rows = await currentTx()
+    .select({
+      associationId: subscriptions.associationId,
+      status: subscriptions.status,
+      currentPeriodEnd: subscriptions.currentPeriodEnd,
+      managerSeatsOverride: subscriptions.managerSeatsOverride,
+      maxSubscribers: plans.maxSubscribers,
+      maxManagers: plans.maxManagers,
+    })
+    .from(subscriptions)
+    .innerJoin(plans, eq(plans.id, subscriptions.planId))
+    .where(inArray(subscriptions.status, CURRENT));
+  const standings = new Map<string, SubscriptionStanding>();
+  for (const r of rows) {
+    // Filtré par CURRENT : jamais suspended ni canceled.
+    const status = r.status as SubscriptionStanding['status'];
+    standings.set(r.associationId, {
+      status,
+      currentPeriodEnd: r.currentPeriodEnd,
+      limits: { subscribers: r.maxSubscribers, managers: r.managerSeatsOverride ?? r.maxManagers },
+    });
+  }
+  return standings;
+}

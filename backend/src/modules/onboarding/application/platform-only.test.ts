@@ -17,15 +17,22 @@ vi.mock('../../../shared/tenant-context/index.js', async (original) => ({
   },
 }));
 
-const { grantOwnership, membersOf, ownerOf, ownsAnAssociation, teamsOf } =
+const { grantOwnership, membersOf, ownerOf, ownsAnAssociation, platformSubscribersCount, platformTeamSizes, teamsOf } =
   await import('../../access/access.public.js');
-const { currentSubscriptionOf, displayedPlansOf, latestSubscriptionOf, openSubscription, setManagerSeats } =
-  await import('../../billing/billing.public.js');
-const { createAssociation, platformAssociationDetail, platformAssociationOf } =
+const {
+  currentSubscriptionOf,
+  displayedPlansOf,
+  latestSubscriptionOf,
+  openSubscription,
+  platformCurrentSubscriptions,
+  setManagerSeats,
+} = await import('../../billing/billing.public.js');
+const { createAssociation, platformAssociationDetail, platformAssociationOf, platformAssociationsOverview } =
   await import('../../tenancy/tenancy.public.js');
 const { ManagerAccounts, platformManagerActivityOf, platformPersonContactsOf } =
   await import('../../identity/identity.public.js');
-const { platformAuditTrailOf } = await import('../../../shared/audit/index.js');
+const { platformAuditTrailOf, platformRecentActivityOf } = await import('../../../shared/audit/index.js');
+const { platformPendingRequestsOf } = await import('../onboarding.public.js');
 
 const ID = '00000000-0000-7000-8000-000000000001';
 // Le service de codes passe lui aussi par la transaction : en plateforme, l'émission l'atteint.
@@ -46,6 +53,13 @@ const calls: [string, () => Promise<unknown>][] = [
   ['platformManagerActivityOf', () => platformManagerActivityOf([ID])],
   ['platformAuditTrailOf', () => platformAuditTrailOf(ID, ['association.create'], 1)],
   ['platformAssociationDetail', () => platformAssociationDetail(ID)],
+  // Tableau de bord plateforme (lot 1.4) : toutes les associations, demandes et le journal.
+  ['platformTeamSizes', () => platformTeamSizes()],
+  ['platformSubscribersCount', () => platformSubscribersCount()],
+  ['platformCurrentSubscriptions', () => platformCurrentSubscriptions()],
+  ['platformAssociationsOverview', () => platformAssociationsOverview()],
+  ['platformPendingRequestsOf', () => platformPendingRequestsOf(3)],
+  ['platformRecentActivityOf', () => platformRecentActivityOf(['association.create'], 10)],
   ['setManagerSeats', () => setManagerSeats(ID, 3)],
   [
     'openSubscription',

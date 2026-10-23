@@ -78,6 +78,8 @@ const ACTIVITE: Record<string, { titre: string, ton: TonEvenement }> = {
   'subscription.past_due': { titre: 'Abonnement impayé', ton: 'warning' },
   'plan.changed': { titre: 'Changement de plan', ton: 'brand' },
   'request.approved': { titre: 'Demande approuvée', ton: 'success' },
+  'association.suspended': { titre: 'Association suspendue', ton: 'danger' },
+  'association.reactivated': { titre: 'Association réactivée', ton: 'success' },
 }
 
 export function vueActivite(a: { type: string, at: string, associationName: string }, i: number): EvenementPlateforme {
