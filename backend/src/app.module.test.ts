@@ -19,6 +19,7 @@ const production = loadConfig({
   JWT_PUBLIC_KEY: jwt.publicKey.export({ type: 'spki', format: 'pem' }).toString(),
   CODES_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   PLATFORM_DATABASE_URL: 'postgres://cotiz_platform:cotiz@127.0.0.1:1/cotiz',
+  ALTCHA_HMAC_KEY: 'a'.repeat(64),
   LOG_LEVEL: 'silent',
 });
 

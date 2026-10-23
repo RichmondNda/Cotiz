@@ -41,6 +41,7 @@
     "@opentelemetry/sdk-trace-node": "^2.12.0",
     "@opentelemetry/semantic-conventions": "^1.43.0",
     "@sentry/node": "^11.6.0",
+    "altcha-lib": "2.6.0",
     "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.4",
     "file-type": "^22.1.1",

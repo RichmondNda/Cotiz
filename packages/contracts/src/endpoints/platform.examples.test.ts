@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ActivateRequest,
+  AltchaChallenge,
   AssociationRequestInput,
   Handoff,
   LoginRequest,
@@ -36,7 +37,25 @@ describe('espace public et authentification', () => {
     expect(PublicPlanList.parse(body)).toEqual(body);
   });
 
-  it('pub.request : demande d’Entraide Yopougon, champ piège vide', () => {
+  it('pub.challenge : défi ALTCHA signé et daté', () => {
+    const challenge = {
+      parameters: {
+        algorithm: 'PBKDF2/SHA-256',
+        nonce: '7f3a',
+        salt: '9c1e',
+        cost: 5000,
+        keyLength: 32,
+        keyPrefix: '00',
+        keySignature: 'ab12',
+        expiresAt: 1792700000,
+      },
+      signature: 'cd34',
+    };
+    expect(AltchaChallenge.parse(challenge)).toEqual(challenge);
+    expect(AltchaChallenge.safeParse({ ...challenge, signature: undefined }).success).toBe(false);
+  });
+
+  it('pub.request : demande d’Entraide Yopougon ; champ piège accepté par le schéma (ignoré par le serveur)', () => {
     const demande = {
       association: {
         name: 'Entraide Yopougon',
@@ -58,7 +77,11 @@ describe('espace public et authentification', () => {
       altcha: 'eyJhbGdvcml0aG0iOiJTSEEtMjU2In0=',
     };
     expect(AssociationRequestInput.safeParse(demande).success).toBe(true);
-    expect(AssociationRequestInput.safeParse({ ...demande, website: 'https://spam.example' }).success).toBe(false);
+    // Champ piège rempli : valide pour le schéma, la demande est ignorée sans erreur (aucun signal au robot).
+    expect(AssociationRequestInput.safeParse({ ...demande, website: 'https://spam.example' }).success).toBe(true);
+    expect(AssociationRequestInput.safeParse({ ...demande, altcha: '' }).success).toBe(false);
+    expect(AssociationRequestInput.safeParse({ ...demande, website: 'x'.repeat(201) }).success).toBe(false);
+    expect(AssociationRequestInput.safeParse({ ...demande, altcha: 'x'.repeat(4001) }).success).toBe(false);
     expect(AssociationRequestInput.safeParse({ ...demande, termsAccepted: false }).success).toBe(false);
     expect(
       AssociationRequestInput.safeParse({

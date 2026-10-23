@@ -117,6 +117,7 @@ Route `/demande` · version spec V1 · statut maquette : maquetté · réel au l
 | Id | Opérations | Lot |
 |---|---|---|
 | `pub.plans` | `GET /public/plans` | 1.2 |
+| `pub.challenge` | `GET /public/altcha-challenge` | 1.3 |
 | `pub.request` | `POST /public/association-requests` | 1.3 |
 
 <a id="pub-confirm"></a>

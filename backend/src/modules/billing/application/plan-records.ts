@@ -36,6 +36,15 @@ export function toPlan(row: PlanRow, subscribersCount: number): Plan {
   };
 }
 
+/** Le plan existe et est proposé (actif) : plan souhaité du formulaire de demande (pub.request). */
+export async function isActivePlan(planId: string): Promise<boolean> {
+  const [row] = await currentTx()
+    .select({ id: plans.id })
+    .from(plans)
+    .where(and(eq(plans.id, planId), eq(plans.isActive, true)));
+  return row !== undefined;
+}
+
 /** Plans actifs (pub.plans). */
 export async function activePlans(): Promise<PlanRow[]> {
   return currentTx()
