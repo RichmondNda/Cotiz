@@ -100,6 +100,7 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
   passent par `scripts/route-mock.mjs` (slug → UUID déterministe), partagé par les e2e et `capture-ecran.mjs`.
 - Dépendance chargée par import dynamique (solveur ALTCHA `altcha/lib` + workers, markdown-it) : l'ajouter à `vite.optimizeDeps.include` de `nuxt.config.ts`, sinon Vite recharge la page au premier passage et les e2e expirent en CI.
 - Comparer deux captures `.verif/` au pixel près : en `nuxt dev`, seul le badge de Nuxt devtools (temps en ms) varie.
+- Capture de `/plateforme` sur le vrai back : `pnpm db:migrate` puis rafraîchir les statistiques (`BEGIN; SET LOCAL app.space = 'system'; SELECT refresh_platform_stats(); COMMIT;` en psql) ; sinon les vues matérialisées sont vides jusqu'au prochain `stats.refresh` (15 min).
 
 ## Session et routes
 
