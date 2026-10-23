@@ -56,7 +56,8 @@ export const useCompteursNavigation = () => {
       compteurs.paiementsAValider = tdb.paymentsToReview.count
       compteurs.souscripteursEnRetard = tdb.lateSubscribers.count
     }
-    if (role.value === 'superadmin') compteurs.demandesATraiter = (await client.call('pf.dashboard', 'get')).pendingRequests
+    // Demandes en attente : la file réelle (pf.req.list), pas le tableau de bord (lot 1.4).
+    if (role.value === 'superadmin') compteurs.demandesATraiter = (await client.call('pf.req.list', 'list', { query: { status: 'pending', limit: 1 } })).total
     return compteurs
   })
 }

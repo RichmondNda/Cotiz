@@ -39,7 +39,7 @@ export function vueDemande(r: Resume): Demande {
 }
 
 /** Détail d'une demande et sa frise (reçue, consultée, décision). `plan` / `comptes` : association créée à l'approbation. */
-export function vueDemandeDetaillee(d: AssociationRequestDetail, attribution?: { planId: string, planNom: string, comptes: number | null }): DemandeDetaillee {
+export function vueDemandeDetaillee(d: AssociationRequestDetail, attribution?: { planId: string, planNom?: string, comptes: number | null }): DemandeDetaillee {
   const base = vueDemande(d)
   const vue: Demande = {
     ...base,
@@ -65,7 +65,7 @@ export function vueDemandeDetaillee(d: AssociationRequestDetail, attribution?: {
   const evts: EvenementDemande[] = [{ id: 'recue', titre: 'Demande reçue', date: vue.recueLe, ton: 'info' }]
   if (d.viewedAt) evts.push({ id: 'consultee', titre: `Consultée par ${d.viewedBy?.firstName ?? 'la plateforme'}`, date: local(d.viewedAt), ton: 'brand' })
   if (d.decision && d.status === 'approved') {
-    evts.push({ id: 'decision', titre: 'Approuvée — espace créé', date: jour(d.decision.decidedAt), detail: [`par ${d.decision.decidedBy.firstName}`, attribution && `plan ${attribution.planNom}`].filter(Boolean).join(' · '), ton: 'success' })
+    evts.push({ id: 'decision', titre: 'Approuvée — espace créé', date: jour(d.decision.decidedAt), detail: [`par ${d.decision.decidedBy.firstName}`, attribution?.planNom && `plan ${attribution.planNom}`].filter(Boolean).join(' · '), ton: 'success' })
   }
   if (d.decision && d.status === 'rejected') {
     evts.push({ id: 'decision', titre: 'Refusée', date: jour(d.decision.decidedAt), detail: [`par ${d.decision.decidedBy.firstName}`, vue.motifRefus].filter(Boolean).join(' · '), ton: 'danger' })
@@ -73,8 +73,8 @@ export function vueDemandeDetaillee(d: AssociationRequestDetail, attribution?: {
   return { ...vue, historique: evts }
 }
 
-/** Formulaire public `/demande` → `AssociationRequestInput` (anti-robot ALTCHA au lot 1.3 : jeton factice d'ici là). */
-export function versDemande(d: NouvelleDemande) {
+/** Formulaire public `/demande` → `AssociationRequestInput` ; `altcha` : charge du défi résolu. */
+export function versDemande(d: NouvelleDemande, altcha: string) {
   const tranche = Object.entries(TRANCHES_SOUSCRIPTEURS).find(([, libelle]) => libelle === d.besoins.souscripteursEstimes)?.[0] ?? '1_20'
   return {
     association: { name: d.association.nom, type: d.association.type, city: d.association.ville, country: d.association.pays, registrationNumber: d.association.numeroEnregistrement ?? null, activityDescription: d.association.description },
@@ -86,6 +86,6 @@ export function versDemande(d: NouvelleDemande) {
       acquisitionSource: d.besoins.source || null,
     },
     termsAccepted: true as const,
-    altcha: 'altcha-lot-1.3',
+    altcha,
   }
 }

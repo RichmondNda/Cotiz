@@ -227,25 +227,4 @@ export function requestSummary(r: RequestRow) {
   }
 }
 
-export function requestDetail(r: RequestRow) {
-  const history: { type: 'received' | 'approved' | 'rejected', at: string, by: ReturnType<typeof personRefById> }[] = [
-    { type: 'received', at: r.createdAt, by: null },
-  ]
-  if (r.status !== 'pending' && r.decidedAt) history.push({ type: r.status, at: r.decidedAt, by: personRefById(r.decidedBy) })
-  return {
-    ...requestSummary(r),
-    association: { ...r.association },
-    contact: { ...r.contact },
-    needs: { ...r.needs },
-    termsAcceptedAt: r.termsAcceptedAt,
-    viewedAt: r.viewedAt,
-    viewedBy: personRefById(r.viewedBy),
-    decision: r.status === 'pending' || !r.decidedAt
-      ? null
-      : { decidedAt: r.decidedAt, decidedBy: personRefById(r.decidedBy)!, rejectionReasonCode: r.rejectionReasonCode, rejectionMessage: r.rejectionMessage, associationId: r.associationId },
-    internalNote: r.internalNote,
-    history,
-  }
-}
-
 export { today }

@@ -31,4 +31,13 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['pf.plans', 'all'],
   ['pf.plan.write', 'all'],
   ['pf.plan.archive', 'all'],
+  // Lot 1.3 : demandes de création (formulaire public, anti-robot, pages légales), approbation et création directe.
+  ['pub.challenge', 'all'],
+  ['pub.request', 'all'],
+  ['pub.legal', 'all'],
+  ['pf.req.list', 'all'],
+  ['pf.req.get', 'all'],
+  ['pf.req.approve', 'all'],
+  ['pf.req.reject', 'all'],
+  ['pf.asso.create', 'all'],
 ])

@@ -8,6 +8,7 @@ import { CliModule } from '../../src/cli/cli.module.js';
 import { runCli } from '../../src/cli/commands.js';
 import { CreatePlatformOwnerUseCase } from '../../src/modules/identity/application/create-platform-owner.use-case.js';
 import { type Config, loadConfig } from '../../src/config.js';
+import { mockId } from '../../src/shared/dev-seed/index.js';
 import {
   DEV_PASSWORD,
   SeedDevAccountsUseCase,
@@ -426,6 +427,25 @@ describe('CLI : create-platform-owner', () => {
       ];
       expect(links).toEqual(expect.arrayContaining(expected));
       expect(links).toHaveLength(expected.length);
+
+      // Demandes de création de référence : une seule ligne chacune malgré deux exécutions, références de la séquence.
+      const { rows: requests } = await h.superuser(
+        `SELECT id, reference, status, association_id AS aid, decided_by AS decider, viewed_by AS viewer
+           FROM association_requests ORDER BY created_at`,
+      );
+      expect(requests).toHaveLength(8);
+      const request = (key: string): unknown =>
+        requests.find((r) => (r as { id: string }).id === mockId('request', key));
+      expect(request('tontine-commercantes-adjame')).toMatchObject({
+        status: 'pending',
+        aid: null,
+        decider: null,
+        viewer: RICHY,
+      });
+      expect(request('entraide-yopougon')).toMatchObject({ status: 'approved', aid: ASSOC.entraide, decider: RICHY });
+      expect(request('amis-grand-bassam')).toMatchObject({ status: 'rejected', aid: null, decider: RICHY });
+      for (const r of requests) expect((r as { reference: string }).reference).toMatch(/^DEM-\d{4}-\d{5}$/);
+      expect(new Set(requests.map((r) => (r as { reference: string }).reference)).size).toBe(8);
     });
 
     it('refusée hors développement et test, ou sans COTIZ_DEV_SEED=1', async () => {

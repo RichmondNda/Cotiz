@@ -3,16 +3,19 @@
   Colonne principale : L'association · Le responsable (email et téléphone copiables) · Besoins exprimés · Historique.
   Colonne « Décision » (collante) : plan à attribuer (pré-rempli avec le souhait), comptes gestionnaires, début
   d'abonnement, note interne ; « Approuver et créer l'espace » (modale récapitulative → crée l'association) et
-  « Refuser » (modale : motif obligatoire, précisions, aperçu de l'email). Après décision : résumé à la place.
+  « Refuser » (modale : motif obligatoire, précisions, aperçu du message). Après décision : résumé à la place, avec le
+  message prêt à transmettre soi-même (ui-deviations.md : accès du gestionnaire après approbation, refus motivé).
   Mobile : colonne de décision sous la fiche, boutons en barre fixe en bas.
   Scénarios : `approuvee`, `refusee` (+ `chargement`, `erreur`). Modales : interaction réelle.
 -->
 <script setup lang="ts">
 import type { Definition } from '~/components/metier/ListeDefinitions.vue'
 import type { EvenementFrise } from '~/components/metier/Frise.vue'
+import type { AccesARemettre } from '~~/types'
 import { formatDate, formatHeure } from '~/utils/format'
 import { formatSaisieDate, lireDateSaisie } from '~/utils/echeancier'
 import { maintenant } from '~/utils/date-reference'
+import { mailtoRefusDemande, messageRefusDemande } from '~/utils/demandes'
 import { STATUTS_DEMANDE, TYPES_ASSOCIATION } from '~/utils/statuts'
 
 definePageMeta({ middleware: 'espace-plateforme', layout: 'backoffice', espace: 'superadmin', titre: 'Demande' })
@@ -77,7 +80,19 @@ const planId = computed<string | null>({
   get: () => planChoisi.value ?? d.value?.besoins.planSouhaiteId ?? null,
   set: v => (planChoisi.value = v),
 })
-const comptes = ref(2)
+/** Comptes du plan (quota) : valeur proposée tant que le super-admin ne la change pas. */
+const comptesDuPlan = (id?: string | null) => {
+  const q = plans.value?.find(p => p.id === id)?.quotas.gestionnaires
+  return typeof q === 'number' ? q : 1
+}
+/** Comptes choisis ; `null` : ceux du plan, sans surcharge. */
+const comptesChoisis = ref<number | null>(null)
+const comptes = computed<number>({
+  get: () => comptesChoisis.value ?? comptesDuPlan(planId.value),
+  set: v => (comptesChoisis.value = v === comptesDuPlan(planId.value) ? null : v),
+})
+/** Accès du responsable, renvoyés une seule fois par l'approbation. */
+const acces = ref<AccesARemettre | null>(null)
 const debut = ref(premierDuMoisSuivant())
 const note = ref('')
 const erreurDebut = ref('')
@@ -96,15 +111,21 @@ async function confirmerApprobation(message: string | undefined) {
   if (!d.value || !planId.value) return
   envoi.value = true
   try {
-    demande.value = await approuver(d.value.id, {
+    const r = await approuver(d.value.id, {
       planId: planId.value,
-      comptesGestionnaires: comptes.value,
+      comptesGestionnaires: comptesChoisis.value,
       debutAbonnement: lireDateSaisie(debut.value)!,
       noteInterne: note.value.trim() || undefined,
       messagePersonnalise: message,
     })
+    demande.value = r.demande
+    acces.value = r.acces
     modaleApprobation.value = false
-    toast.succes('Espace créé', { message: `${responsable.value} va recevoir ses identifiants par email.` })
+    toast.succes('Espace créé', {
+      message: r.acces
+        ? `Transmettez ses accès à ${responsable.value}.`
+        : `${responsable.value} a déjà un compte Cotiz : le nouvel espace y est rattaché.`,
+    })
     rechargerCompteurs()
   }
   catch {
@@ -121,7 +142,7 @@ async function confirmerRefus(refus: { motif: string, precisions?: string }) {
   try {
     demande.value = await refuser(d.value.id, refus)
     modaleRefus.value = false
-    toast.succes('Demande refusée', { message: `L’email a été envoyé à ${d.value.responsable.email}.` })
+    toast.succes('Demande refusée', { message: `Transmettez le message prêt à ${responsable.value}.` })
     rechargerCompteurs()
   }
   catch {
@@ -131,6 +152,9 @@ async function confirmerRefus(refus: { motif: string, precisions?: string }) {
     envoi.value = false
   }
 }
+
+const messageRefus = computed(() => (d.value ? messageRefusDemande(d.value.responsable.prenom, d.value.motifRefus, d.value.precisionsRefus) : ''))
+const comptesAttribues = computed(() => d.value?.comptesGestionnaires ?? comptesDuPlan(d.value?.planAttribueId))
 
 const lienAssociation = computed(() => (d.value?.associationId ? `/plateforme/associations/${d.value.associationId}` : '/plateforme/associations'))
 const introuvable = computed(() => (error.value as { statusCode?: number } | null)?.statusCode === 404)
@@ -316,7 +340,7 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
               Approuvée
             </CzBadge>
             <p class="sa-demande__texte">
-              L’espace a été créé avec le plan <b>{{ nomPlan(d.planAttribueId) }}</b> et {{ d.comptesGestionnaires ?? 1 }} compte{{ (d.comptesGestionnaires ?? 1) > 1 ? 's' : '' }} gestionnaire{{ (d.comptesGestionnaires ?? 1) > 1 ? 's' : '' }}. {{ responsable }} a reçu ses identifiants par email.
+              L’espace a été créé avec le plan <b>{{ nomPlan(d.planAttribueId) }}</b> et {{ comptesAttribues }} compte{{ comptesAttribues > 1 ? 's' : '' }} gestionnaire{{ comptesAttribues > 1 ? 's' : '' }}.
             </p>
             <CzButton
               bloc
@@ -328,7 +352,7 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
 
           <!-- Refusée -->
           <section
-            v-else
+            v-else-if="d.statut === 'refusee'"
             class="cz-card sa-demande__carte sa-demande__resume"
           >
             <CzBadge
@@ -340,9 +364,9 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
             <ListeDefinitions
               :elements="[
                 { cle: 'motif', libelle: 'Motif', valeur: d.motifRefus },
-                { cle: 'envoye', libelle: 'Envoyé', valeur: `${d.refusEnvoyeLe ? formatDate(d.refusEnvoyeLe, 'numerique') : '—'} à ${d.responsable.email}` },
+                { cle: 'decide', libelle: 'Refusée le', valeur: d.decideLe ? formatDate(d.decideLe, 'numerique') : '—' },
               ]"
-              largeur-libelle="70px"
+              largeur-libelle="80px"
             />
             <CzButton
               variante="secondaire"
@@ -352,6 +376,24 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
               Retour aux demandes
             </CzButton>
           </section>
+          <HandoffCard
+            v-if="d.statut === 'approuvee' && acces"
+            titre="Accès du gestionnaire"
+            :destinataire="acces.destinataire"
+            :code="acces.code"
+            :expire-le="acces.expireLe"
+            :message="acces.message"
+            :whatsapp="acces.whatsapp"
+            :sms="acces.sms"
+            :mailto="acces.mailto"
+          />
+          <HandoffCard
+            v-if="d.statut === 'refusee'"
+            titre="Message de refus"
+            :destinataire="responsable"
+            :message="messageRefus"
+            :mailto="mailtoRefusDemande(d.responsable.email, d.association.nom, messageRefus)"
+          />
         </aside>
       </div>
 
@@ -442,6 +484,9 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
 .sa-demande__decision {
   position: sticky;
   top: calc(64px + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .sa-demande__form {

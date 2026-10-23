@@ -1,13 +1,15 @@
 <!--
   SaNouvelleAssociation — créer une association sans demande préalable (association accompagnée, démonstration).
   Formulaire en une page, 4 sections repliables : Association (mêmes champs que le formulaire public) · Gestionnaire
-  principal · Abonnement (plan, date de début, comptes gestionnaires, période d'essai) · Envoi (identifiants maintenant).
+  principal · Abonnement (plan, date de début, comptes gestionnaires, période d'essai) · Envoi (accès remis maintenant).
   Barre d'actions collante en bas : Annuler · Créer l'association. Validation à la perte de focus et à l'envoi
-  (bandeau « N champs à corriger dans … »). Création : toast de succès puis redirection vers le détail.
+  (bandeau « N champs à corriger dans … »). Création : toast de succès puis redirection vers le détail ; accès remis
+  maintenant : carte « Accès du gestionnaire » (code d'activation, message prêt) à la place du formulaire, aucun email
+  envoyé (ui-deviations.md).
   États `rempli`, `erreurs`, `envoi-en-cours` : interaction réelle (scripts/parcours).
 -->
 <script setup lang="ts">
-import type { TypeAssociation } from '~~/types'
+import type { AccesARemettre, TypeAssociation } from '~~/types'
 import { formatDate } from '~/utils/format'
 import { formatSaisieDate, lireDateSaisie } from '~/utils/echeancier'
 import { maintenant } from '~/utils/date-reference'
@@ -41,7 +43,8 @@ const f = reactive({
   telephone: '',
   planChoisi: null as string | null,
   debut: formatDate(new Date(m.getFullYear(), m.getMonth() + 1, 1), 'numerique'),
-  comptes: 2,
+  /** Comptes choisis ; `null` : ceux du plan, sans surcharge. */
+  comptes: null as number | null,
   essai: true,
   dureeEssai: 14 as number | null,
   envoyer: true,
@@ -50,6 +53,16 @@ const f = reactive({
 const plan = computed<string | null>({
   get: () => f.planChoisi ?? plans.value?.[0]?.id ?? null,
   set: v => (f.planChoisi = v),
+})
+
+/** Comptes du plan (quota) : valeur proposée tant qu'elle n'est pas changée. */
+const comptesDuPlan = computed(() => {
+  const q = plans.value?.find(p => p.id === plan.value)?.quotas.gestionnaires
+  return typeof q === 'number' ? q : 1
+})
+const comptes = computed<number>({
+  get: () => f.comptes ?? comptesDuPlan.value,
+  set: v => (f.comptes = v === comptesDuPlan.value ? null : v),
 })
 
 const sections = reactive({ association: true, gestionnaire: true, abonnement: true, envoi: true })
@@ -87,6 +100,8 @@ const bandeau = computed(() => {
 
 // ---------------------------------------------------------------- Envoi
 const envoi = ref(false)
+/** Association créée avec ses accès à remettre (renvoyés une seule fois). */
+const creee = ref<{ id: string, nom: string, acces: AccesARemettre } | null>(null)
 async function creerAssociation() {
   soumis.value = true
   if (enErreur.value.length) {
@@ -101,14 +116,22 @@ async function creerAssociation() {
   if (!plan.value || !f.type || !f.pays) return
   envoi.value = true
   try {
-    const cree = await creer({
+    const { association: cree, acces } = await creer({
       association: { nom: f.nom.trim(), type: f.type, numeroEnregistrement: f.numero.trim() || undefined, ville: f.ville.trim(), pays: f.pays, description: f.description.trim() || undefined },
       gestionnaire: { prenom: f.prenom.trim(), nom: f.nomGestionnaire.trim(), email: f.email.trim(), telephone: `+225 ${formatSaisieTelephone(f.telephone)}` },
       abonnement: { planId: plan.value, debut: lireDateSaisie(f.debut)!, comptesGestionnaires: f.comptes, essaiJours: f.essai ? f.dureeEssai : null },
       envoyerIdentifiants: f.envoyer,
     })
+    if (acces) {
+      toast.succes('Association créée', { message: `Transmettez ses accès à ${acces.destinataire}.` })
+      creee.value = { id: cree.id, nom: cree.nom, acces }
+      window.scrollTo({ top: 0 })
+      return
+    }
     toast.succes('Association créée', {
-      message: f.envoyer ? 'Les identifiants ont été envoyés au gestionnaire principal.' : 'Les identifiants pourront être envoyés depuis le détail.',
+      message: f.envoyer
+        ? 'Le gestionnaire principal a déjà un compte Cotiz : le nouvel espace y est rattaché.'
+        : 'Aucun code d’activation n’a été affiché.',
     })
     await navigateTo(`/plateforme/associations/${cree.id}`)
   }
@@ -128,243 +151,271 @@ async function creerAssociation() {
       sous-titre="Création directe, sans demande préalable (association accompagnée, démonstration)."
     />
 
-    <CzAlert
-      v-if="bandeau"
-      ton="danger"
-      icone="alerte"
+    <div
+      v-if="creee"
+      class="sa-nouvelle__creee"
     >
-      <b>{{ bandeau.nombre }} champ{{ bandeau.nombre > 1 ? 's' : '' }} à corriger</b> dans {{ bandeau.liste }}.
-    </CzAlert>
+      <HandoffCard
+        titre="Accès du gestionnaire"
+        :destinataire="creee.acces.destinataire"
+        :code="creee.acces.code"
+        :expire-le="creee.acces.expireLe"
+        :message="creee.acces.message"
+        :whatsapp="creee.acces.whatsapp"
+        :sms="creee.acces.sms"
+        :mailto="creee.acces.mailto"
+      />
+      <CzButton :to="`/plateforme/associations/${creee.id}`">
+        Voir l’association {{ creee.nom }}
+      </CzButton>
+    </div>
 
-    <form
-      class="sa-nouvelle__form"
-      novalidate
-      @submit.prevent="creerAssociation"
-    >
-      <SectionRepliable
-        v-model:ouvert="sections.association"
-        :numero="1"
-        titre="Association"
+    <template v-else>
+      <CzAlert
+        v-if="bandeau"
+        ton="danger"
+        icone="alerte"
       >
-        <div class="sa-nouvelle__grille">
-          <CzField
-            label="Nom de l’association"
-            requis
-            :erreur="erreur('nom')"
-            class="sa-nouvelle__large"
-          >
-            <CzInput
-              v-model="f.nom"
-              placeholder="Ex. Entraide Yopougon"
-              @blur="toucher('nom')"
-            />
-          </CzField>
-          <CzField
-            label="Type"
-            requis
-          >
-            <CzSelect
-              v-model="f.type"
-              :options="TYPES"
-            />
-          </CzField>
-          <CzField label="Numéro d’enregistrement">
-            <CzInput
-              v-model="f.numero"
-              placeholder="Optionnel"
-            />
-          </CzField>
-          <CzField
-            label="Ville"
-            requis
-            :erreur="erreur('ville')"
-          >
-            <CzInput
-              v-model="f.ville"
-              placeholder="Ex. Abidjan"
-              @blur="toucher('ville')"
-            />
-          </CzField>
-          <CzField
-            label="Pays"
-            requis
-          >
-            <CzSelect
-              v-model="f.pays"
-              :options="PAYS"
-            />
-          </CzField>
-          <CzField
-            label="Description de l’activité"
-            :erreur="erreur('description')"
-            class="sa-nouvelle__large"
-          >
-            <CzInput
-              v-model="f.description"
-              type="textarea"
-              :lignes="3"
-              :maxlength="500"
-              placeholder="500 caractères maximum"
-              @blur="toucher('description')"
-            />
-          </CzField>
-        </div>
-      </SectionRepliable>
+        <b>{{ bandeau.nombre }} champ{{ bandeau.nombre > 1 ? 's' : '' }} à corriger</b> dans {{ bandeau.liste }}.
+      </CzAlert>
 
-      <SectionRepliable
-        v-model:ouvert="sections.gestionnaire"
-        :numero="2"
-        titre="Gestionnaire principal"
+      <form
+        class="sa-nouvelle__form"
+        novalidate
+        @submit.prevent="creerAssociation"
       >
-        <div class="sa-nouvelle__grille">
-          <CzField
-            label="Prénom"
-            requis
-            :erreur="erreur('prenom')"
-          >
-            <CzInput
-              v-model="f.prenom"
-              autocomplete="off"
-              @blur="toucher('prenom')"
-            />
-          </CzField>
-          <CzField
-            label="Nom"
-            requis
-            :erreur="erreur('nomGestionnaire')"
-          >
-            <CzInput
-              v-model="f.nomGestionnaire"
-              autocomplete="off"
-              @blur="toucher('nomGestionnaire')"
-            />
-          </CzField>
-          <CzField
-            label="Email"
-            requis
-            :erreur="erreur('email')"
-          >
-            <CzInput
-              v-model="f.email"
-              type="email"
-              inputmode="email"
-              autocomplete="off"
-              @blur="toucher('email')"
-            />
-          </CzField>
-          <CzField
-            label="Téléphone"
-            requis
-            :erreur="erreur('telephone')"
-          >
-            <CzInput
-              v-model="f.telephone"
-              type="telephone"
-              inputmode="numeric"
-              autocomplete="off"
-              @blur="toucher('telephone')"
-            />
-          </CzField>
-        </div>
-      </SectionRepliable>
-
-      <SectionRepliable
-        v-model:ouvert="sections.abonnement"
-        :numero="3"
-        titre="Abonnement"
-      >
-        <div class="sa-nouvelle__grille">
-          <CzField
-            label="Plan"
-            requis
-          >
-            <CzSelect
-              v-model="plan"
-              :options="optionsPlans"
-            />
-          </CzField>
-          <CzField
-            label="Date de début"
-            :erreur="erreur('debut')"
-          >
-            <CzInput
-              :model-value="f.debut"
-              inputmode="numeric"
-              placeholder="JJ/MM/AAAA"
-              @update:model-value="v => (f.debut = formatSaisieDate(String(v)))"
-              @blur="toucher('debut')"
-            />
-          </CzField>
-          <CzField label="Comptes gestionnaires autorisés">
-            <CzCounter
-              v-model="f.comptes"
-              :min="1"
-              label="Comptes gestionnaires autorisés"
-              class="sa-nouvelle__compteur"
-            />
-          </CzField>
-          <div class="cz-field">
-            <span class="cz-label">Période d’essai</span>
-            <div class="sa-nouvelle__essai">
-              <CzToggle
-                v-model="f.essai"
-                label="Période d’essai"
+        <SectionRepliable
+          v-model:ouvert="sections.association"
+          :numero="1"
+          titre="Association"
+        >
+          <div class="sa-nouvelle__grille">
+            <CzField
+              label="Nom de l’association"
+              requis
+              :erreur="erreur('nom')"
+              class="sa-nouvelle__large"
+            >
+              <CzInput
+                v-model="f.nom"
+                placeholder="Ex. Entraide Yopougon"
+                @blur="toucher('nom')"
               />
+            </CzField>
+            <CzField
+              label="Type"
+              requis
+            >
               <CzSelect
-                v-model="f.dureeEssai"
-                :options="ESSAIS"
-                :disabled="!f.essai"
-                label="Durée de la période d’essai"
-                class="sa-nouvelle__duree"
+                v-model="f.type"
+                :options="TYPES"
               />
+            </CzField>
+            <CzField label="Numéro d’enregistrement">
+              <CzInput
+                v-model="f.numero"
+                placeholder="Optionnel"
+              />
+            </CzField>
+            <CzField
+              label="Ville"
+              requis
+              :erreur="erreur('ville')"
+            >
+              <CzInput
+                v-model="f.ville"
+                placeholder="Ex. Abidjan"
+                @blur="toucher('ville')"
+              />
+            </CzField>
+            <CzField
+              label="Pays"
+              requis
+            >
+              <CzSelect
+                v-model="f.pays"
+                :options="PAYS"
+              />
+            </CzField>
+            <CzField
+              label="Description de l’activité"
+              :erreur="erreur('description')"
+              class="sa-nouvelle__large"
+            >
+              <CzInput
+                v-model="f.description"
+                type="textarea"
+                :lignes="3"
+                :maxlength="500"
+                placeholder="500 caractères maximum"
+                @blur="toucher('description')"
+              />
+            </CzField>
+          </div>
+        </SectionRepliable>
+
+        <SectionRepliable
+          v-model:ouvert="sections.gestionnaire"
+          :numero="2"
+          titre="Gestionnaire principal"
+        >
+          <div class="sa-nouvelle__grille">
+            <CzField
+              label="Prénom"
+              requis
+              :erreur="erreur('prenom')"
+            >
+              <CzInput
+                v-model="f.prenom"
+                autocomplete="off"
+                @blur="toucher('prenom')"
+              />
+            </CzField>
+            <CzField
+              label="Nom"
+              requis
+              :erreur="erreur('nomGestionnaire')"
+            >
+              <CzInput
+                v-model="f.nomGestionnaire"
+                autocomplete="off"
+                @blur="toucher('nomGestionnaire')"
+              />
+            </CzField>
+            <CzField
+              label="Email"
+              requis
+              :erreur="erreur('email')"
+            >
+              <CzInput
+                v-model="f.email"
+                type="email"
+                inputmode="email"
+                autocomplete="off"
+                @blur="toucher('email')"
+              />
+            </CzField>
+            <CzField
+              label="Téléphone"
+              requis
+              :erreur="erreur('telephone')"
+            >
+              <CzInput
+                v-model="f.telephone"
+                type="telephone"
+                inputmode="numeric"
+                autocomplete="off"
+                @blur="toucher('telephone')"
+              />
+            </CzField>
+          </div>
+        </SectionRepliable>
+
+        <SectionRepliable
+          v-model:ouvert="sections.abonnement"
+          :numero="3"
+          titre="Abonnement"
+        >
+          <div class="sa-nouvelle__grille">
+            <CzField
+              label="Plan"
+              requis
+            >
+              <CzSelect
+                v-model="plan"
+                :options="optionsPlans"
+              />
+            </CzField>
+            <CzField
+              label="Date de début"
+              :erreur="erreur('debut')"
+            >
+              <CzInput
+                :model-value="f.debut"
+                inputmode="numeric"
+                placeholder="JJ/MM/AAAA"
+                @update:model-value="v => (f.debut = formatSaisieDate(String(v)))"
+                @blur="toucher('debut')"
+              />
+            </CzField>
+            <CzField label="Comptes gestionnaires autorisés">
+              <CzCounter
+                v-model="comptes"
+                :min="1"
+                label="Comptes gestionnaires autorisés"
+                class="sa-nouvelle__compteur"
+              />
+            </CzField>
+            <div class="cz-field">
+              <span class="cz-label">Période d’essai</span>
+              <div class="sa-nouvelle__essai">
+                <CzToggle
+                  v-model="f.essai"
+                  label="Période d’essai"
+                />
+                <CzSelect
+                  v-model="f.dureeEssai"
+                  :options="ESSAIS"
+                  :disabled="!f.essai"
+                  label="Durée de la période d’essai"
+                  class="sa-nouvelle__duree"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </SectionRepliable>
+        </SectionRepliable>
 
-      <SectionRepliable
-        v-model:ouvert="sections.envoi"
-        :numero="4"
-        titre="Envoi"
-      >
-        <div class="sa-nouvelle__envoi">
-          <CzToggle
-            v-model="f.envoyer"
-            label="Envoyer les identifiants maintenant"
-          />
-          <div>
-            <b>Envoyer les identifiants maintenant</b>
-            <div class="sa-nouvelle__aide">
-              Le gestionnaire principal les reçoit par email dès la création.
+        <SectionRepliable
+          v-model:ouvert="sections.envoi"
+          :numero="4"
+          titre="Envoi"
+        >
+          <div class="sa-nouvelle__envoi">
+            <CzToggle
+              v-model="f.envoyer"
+              label="Remettre les accès maintenant"
+            />
+            <div>
+              <b>Remettre les accès maintenant</b>
+              <div class="sa-nouvelle__aide">
+                Le code d’activation et un message prêt s’affichent dès la création, à transmettre vous-même au gestionnaire principal.
+              </div>
             </div>
           </div>
-        </div>
-      </SectionRepliable>
+        </SectionRepliable>
 
-      <div
-        class="sa-nouvelle__barre"
-        role="region"
-        aria-label="Actions"
-      >
-        <CzButton
-          variante="fantome"
-          to="/plateforme/associations"
+        <div
+          class="sa-nouvelle__barre"
+          role="region"
+          aria-label="Actions"
         >
-          Annuler
-        </CzButton>
-        <CzButton
-          type="submit"
-          :chargement="envoi"
-          libelle-chargement="Création…"
-        >
-          Créer l’association
-        </CzButton>
-      </div>
-    </form>
+          <CzButton
+            variante="fantome"
+            to="/plateforme/associations"
+          >
+            Annuler
+          </CzButton>
+          <CzButton
+            type="submit"
+            :chargement="envoi"
+            libelle-chargement="Création…"
+          >
+            Créer l’association
+          </CzButton>
+        </div>
+      </form>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.sa-nouvelle__creee {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 640px;
+}
+
 .sa-nouvelle {
   display: flex;
   flex-direction: column;

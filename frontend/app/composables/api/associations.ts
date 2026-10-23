@@ -1,11 +1,11 @@
 // Associations : espace gestionnaire (as.get, as.patch, as.pm, as.onb) et espace plateforme (pf.asso.*).
 import type { ApiClient } from './client'
 import type {
-  Association, AssociationListe, FicheAssociationPlateforme, ListeAssociations, ModificationAssociation,
+  Association, AssociationCreee, AssociationListe, FicheAssociationPlateforme, ListeAssociations, ModificationAssociation,
   NouvelleAssociationPlateforme, SuspensionAssociation,
 } from '~~/types'
 import { associationCourante } from './session'
-import { STATUT_ASSOCIATION, STATUT_ASSOCIATION_INVERSE, versE164 } from './vues/communs'
+import { STATUT_ASSOCIATION, STATUT_ASSOCIATION_INVERSE, versE164, vueAcces } from './vues/communs'
 import { versMoyens, vueAssociation, vueAssociationListe, vueFiche } from './vues/associations'
 import { vuePlans } from './vues/plans'
 
@@ -103,14 +103,15 @@ export const useFicheAssociation = (id: MaybeRefOrGetter<string>) =>
 export function useActionsAssociationPlateforme() {
   const client = useClient()
   return {
-    creer: async (n: NouvelleAssociationPlateforme): Promise<AssociationListe> => {
+    /** Les accès du gestionnaire principal ne sont renvoyés qu'ici : à afficher aussitôt. */
+    creer: async (n: NouvelleAssociationPlateforme): Promise<AssociationCreee> => {
       const r = await client.call('pf.asso.create', 'create', { body: {
         association: { name: n.association.nom, type: n.association.type, city: n.association.ville, country: n.association.pays, registrationNumber: n.association.numeroEnregistrement ?? null, description: n.association.description ?? null },
         owner: { firstName: n.gestionnaire.prenom, lastName: n.gestionnaire.nom, email: n.gestionnaire.email, phone: versE164(n.gestionnaire.telephone) },
         subscription: { planId: n.abonnement.planId, startsOn: n.abonnement.debut, managerSeats: n.abonnement.comptesGestionnaires, trialDays: n.abonnement.essaiJours },
         issueCredentialsNow: n.envoyerIdentifiants,
       } })
-      return vueAssociationListe(r.association)
+      return { association: vueAssociationListe(r.association), acces: r.handoff ? vueAcces(r.handoff) : null }
     },
     suspendre: async (id: string, s: SuspensionAssociation) => {
       const d = await client.call('pf.asso.get', 'get', { params: { id } })

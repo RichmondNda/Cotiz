@@ -17,6 +17,7 @@ import {
 } from '../modules/identity/application/seed-dev-accounts.use-case.js';
 import { SeedDevMembershipsUseCase } from '../modules/access/access.public.js';
 import { SeedDevPlansUseCase, SeedDevSubscriptionsUseCase } from '../modules/billing/billing.public.js';
+import { SeedDevRequestsUseCase } from '../modules/onboarding/onboarding.public.js';
 import { SeedDevAssociationsUseCase } from '../modules/tenancy/tenancy.public.js';
 import { TenantDatabase } from '../shared/tenant-context/index.js';
 
@@ -34,7 +35,7 @@ const USAGE = [
   'Commandes :',
   '  create-platform-owner <email> <prénom> <nom>',
   '  reset-password <email>',
-  '  seed-dev                (développement : comptes, associations et plans de référence)',
+  '  seed-dev                (développement : comptes, associations, plans et demandes de référence)',
 ].join('\n');
 
 const DATE = new Intl.DateTimeFormat('fr-FR', {
@@ -169,6 +170,7 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
         };
         await app.get(SeedDevSubscriptionsUseCase).execute();
         await app.get(SeedDevMembershipsUseCase).execute();
+        await app.get(SeedDevRequestsUseCase).execute();
         return created;
       },
       { platformConnection: true },

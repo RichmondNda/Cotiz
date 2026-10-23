@@ -86,7 +86,6 @@ const terms = { entryFee: money(50000), installmentAmount: money(10000), frequen
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
   'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
-  'pf.req.list list': {}, 'pf.req.get get': { params: { id: uid('request', 'tontine-commercantes-adjame') } },
   'pf.asso.list list': {}, 'pf.asso.get get': { params: { id: aid } }, 'pf.asso.sub projects': { params: { id: aid } },
   'pf.asso.sub members': { params: { id: aid } }, 'pf.dashboard get': {}, 'pf.invoices list': {}, 'pf.staff list': {},
   'as.get get': { params: { aid } }, 'as.pm list': { params: { aid } }, 'as.dashboard get': { params: { aid } },
@@ -111,18 +110,6 @@ const WRITES: Record<string, () => Call> = {
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
   'nt.read read': () => ({ params: { id: uid('notification', 'nt-mb-1') } }),
   'nt.read readAll': () => ({}),
-  'pub.request create': () => ({ body: {
-    association: { name: 'Mutuelle de Cocody', type: 'mutuelle', city: 'Abidjan', country: 'Côte d’Ivoire', activityDescription: 'Entraide' },
-    contact: { firstName: 'Ama', lastName: 'Kouadio', email: 'ama@exemple.ci', phone: '+2250707070707', title: 'Présidente' },
-    needs: { estimatedSubscribers: '21_50' }, termsAccepted: true, altcha: 'ok',
-  } }),
-  'pf.req.approve approve': () => ({ params: { id: uid('request', 'tontine-commercantes-adjame') }, body: { planId: uid('plan', 'essentiel'), managerSeats: 2, subscriptionStartsOn: '2026-10-01' } }),
-  'pf.req.reject reject': () => ({ params: { id: uid('request', 'tontine-commercantes-adjame') }, body: { reasonCode: 'incomplete' } }),
-  'pf.asso.create create': () => ({ body: {
-    association: { name: 'Amicale de Daloa', type: 'association', city: 'Daloa', country: 'Côte d’Ivoire' },
-    owner: { firstName: 'Paul', lastName: 'Yao', email: 'paul@exemple.ci', phone: '+2250707070708' },
-    subscription: { planId: uid('plan', 'decouverte'), startsOn: '2026-10-01', managerSeats: 1, trialDays: null }, issueCredentialsNow: true,
-  } }),
   'pf.asso.patch patch': () => ({ params: { id: aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
   'pf.asso.suspend suspend': () => ({ params: { id: aid }, body: { reason: 'Impayé', confirmName: 'Entraide Yopougon' } }),
   'pf.asso.suspend reactivate': () => ({ params: { id: aid }, setup: () => call('pf.asso.suspend', 'suspend', { params: { id: aid }, body: { reason: 'x', confirmName: 'x' } }) } as Call),
@@ -312,13 +299,6 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 })
 
 describe('mutations : état en mémoire', () => {
-  it('approuver une demande : la fiche de l’association créée se lit (abonnement compris)', async () => {
-    const { associationId } = await call('pf.req.approve', 'approve', WRITES['pf.req.approve approve']!()) as { associationId: string }
-    const fiche = await call('pf.asso.get', 'get', { params: { id: associationId } }) as { subscription: { plan: { id: string }, currentPeriodStart: string } }
-    expect(fiche.subscription.plan.id).toBe(uid('plan', 'essentiel'))
-    expect(fiche.subscription.currentPeriodStart).toBe('2026-10-01')
-  })
-
   it('déclarer puis valider : les échéances d’août et septembre de Moussa passent payées', async () => {
     const declared = await call('me.declare', 'declare', WRITES['me.declare declare']!()) as { id: string, status: string }
     expect(declared.status).toBe('pending')

@@ -4,7 +4,8 @@
   avec la section active surlignée et colonne de lecture de 720 px. Mobile : sommaire replié en accordéon.
 -->
 <script setup lang="ts">
-import { DOCUMENTS_LEGAUX, estDocumentLegal } from '~/config/legal'
+import { estDocumentLegal, ONGLETS_LEGAUX } from '~/config/legal'
+import { formatDate } from '~/utils/format'
 
 definePageMeta({
   layout: 'public',
@@ -13,10 +14,10 @@ definePageMeta({
 
 const route = useRoute()
 const cle = computed(() => (estDocumentLegal(route.params.document) ? route.params.document : 'cgu'))
-const doc = computed(() => DOCUMENTS_LEGAUX[cle.value])
-const sections = computed(() => doc.value.sections.map((t, i) => ({ id: `${cle.value}-${i}`, titre: `${i + 1}. ${t}` })))
+const { data: doc } = await useDocumentLegal(cle)
+const sections = computed(() => doc.value?.sections ?? [])
 
-useHead({ title: () => `${doc.value.titre} — Cotiz` })
+useHead({ title: () => `${doc.value?.titre ?? ONGLETS_LEGAUX[cle.value]} — Cotiz` })
 
 const active = ref(0)
 const sommaireOuvert = ref(false)
@@ -44,7 +45,7 @@ function observer() {
   }
 }
 onMounted(observer)
-watch(cle, () => nextTick(observer))
+watch(sections, () => nextTick(observer))
 onBeforeUnmount(() => observateur?.disconnect())
 
 function aller(i: number) {
@@ -65,21 +66,21 @@ function imprimer() {
         aria-label="Documents légaux"
       >
         <NuxtLink
-          v-for="(d, k) in DOCUMENTS_LEGAUX"
+          v-for="(onglet, k) in ONGLETS_LEGAUX"
           :key="k"
           :to="`/legal/${k}`"
           class="legal__onglet"
           :class="{ 'is-on': k === cle }"
           :aria-current="k === cle ? 'page' : undefined"
         >
-          {{ d.onglet }}
+          {{ onglet }}
         </NuxtLink>
       </nav>
       <h1 class="legal__titre">
-        {{ doc.titre }}
+        {{ doc?.titre }}
       </h1>
       <div class="legal__meta">
-        <span class="legal__date">Dernière mise à jour : {{ doc.miseAJour }}</span>
+        <span class="legal__date">Dernière mise à jour : {{ doc ? formatDate(doc.miseAJour, 'long') : '[DATE]' }}</span>
         <div class="legal__actions">
           <CzButton
             variante="secondaire"
@@ -148,8 +149,12 @@ function imprimer() {
           class="legal__section"
         >
           <h2>{{ s.titre }}</h2>
-          <p>[Texte juridique de la section « {{ s.titre }} » à fournir par votre conseil juridique.]</p>
-          <p>[Suite du texte.]</p>
+          <!-- eslint-disable vue/no-v-html -- Markdown versionné du dépôt, rendu sans HTML brut (markdown-it) -->
+          <div
+            class="legal__texte"
+            v-html="s.html"
+          />
+          <!-- eslint-enable vue/no-v-html -->
         </section>
       </article>
     </div>
@@ -295,7 +300,15 @@ function imprimer() {
   color: var(--text-strong);
 }
 
-.legal__section p {
+.legal__texte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.legal__texte :deep(p),
+.legal__texte :deep(ul),
+.legal__texte :deep(ol) {
   margin: 0;
   font-size: 15px;
   line-height: 1.7;

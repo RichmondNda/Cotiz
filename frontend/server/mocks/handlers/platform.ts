@@ -2,16 +2,15 @@
 // Les chiffres globaux de la plateforme (147 associations, 15 impayés…) sont illustratifs dans les maquettes : seules
 // trois associations sont détaillées. Ils sont déclarés ici comme complément, à côté des trois associations calculées.
 import { db } from '../db'
-import type { AssociationRow, RequestRow } from '../db'
+import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
-import { checkVersion, nowInstant, problem, requireSession } from '../http'
+import { checkVersion, nowInstant, problem } from '../http'
 import { uid } from '../ids'
 import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
 import {
-  associationRow, money, personContact, personRef, planRef, planRow, requestDetail, requestSummary, userRow,
+  associationRow, money, personContact, personRef, planRef, planRow, requestSummary, userRow,
 } from '../views'
-import { page, facetOf } from './list'
-import { handoff } from './handoff'
+import { page } from './list'
 
 // ---------------------------------------------------------------- Complément plateforme (illustratif)
 
@@ -20,76 +19,6 @@ const PLATFORM_COUNTS = { active: 132, past_due: 15, suspended: 0, onboarding: 1
 const PLATFORM_KPI = { activeAssociations: 147, newAssociationsThisMonth: 6, subscriptionsUpToDate: 132, subscriptionsUnpaid: 15, totalAssociations: 147 }
 /** Associations actives d'octobre 2025 à septembre 2026 (courbe de SaDashboard). */
 const ACTIVE_BY_MONTH = [98, 102, 105, 110, 114, 120, 124, 130, 134, 138, 143, 147]
-
-// ---------------------------------------------------------------- Demandes
-
-function requestRow(id: string): RequestRow {
-  return db.requests.find(r => r.id === id) ?? problem('not_found')
-}
-
-/** Scénarios de SaDemande : décision de la maquette (plan Essentiel, 2 comptes ; motif « Informations incomplètes »). */
-function withDecisionScenario(r: RequestRow, scenario: string | undefined): RequestRow {
-  if (scenario === 'approuvee') return { ...r, status: 'approved', decidedAt: '2026-09-25T10:00:00Z', decidedBy: uid('user', 'richy'), approvedPlanId: uid('plan', 'essentiel'), associationId: uid('association', r.key) }
-  if (scenario === 'refusee') return { ...r, status: 'rejected', decidedAt: '2026-09-25T10:00:00Z', decidedBy: uid('user', 'richy'), rejectionReasonCode: 'incomplete' }
-  return r
-}
-
-export function requestsList(ctx: MockContext<'pf.req.list', 'list'>) {
-  const q = ctx.query
-  let rows = [...db.requests].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-  if (ctx.scenario === 'vide' || ctx.scenario === 'aucune-demande') rows = rows.filter(r => r.status !== 'pending')
-  const all = rows
-  if (q.status) rows = rows.filter(r => r.status === q.status)
-  if (q.q) {
-    const t = q.q.toLowerCase()
-    rows = rows.filter(r => r.association.name.toLowerCase().includes(t) || r.contact.email.toLowerCase().includes(t))
-  }
-  if (q.desiredPlanId) rows = rows.filter(r => r.needs.desiredPlanId === q.desiredPlanId)
-  return page(rows.map(requestSummary), q, { facets: facetOf(all, 'status', r => r.status) })
-}
-
-export function requestGet(ctx: MockContext<'pf.req.get', 'get'>) {
-  const r = requestRow(ctx.params.id)
-  // Première ouverture : la demande est marquée consultée (frise « Consultée par Richy »).
-  if (!r.viewedAt) Object.assign(r, { viewedAt: nowInstant(), viewedBy: requireSession(ctx).userId })
-  return requestDetail(withDecisionScenario(r, ctx.scenario))
-}
-
-export function requestApprove(ctx: MockContext<'pf.req.approve', 'approve'>) {
-  const r = requestRow(ctx.params.id)
-  if (r.status !== 'pending') problem('request_already_handled')
-  planRow(ctx.body.planId)
-  const associationId = uid('association', r.key)
-  const ownerId = uid('user', `owner-${r.key}`)
-  if (!db.associations.some(a => a.id === associationId)) {
-    const now = nowInstant()
-    db.associations.push({
-      id: associationId, slug: r.key, name: r.association.name, type: r.association.type, city: r.association.city,
-      country: r.association.country, description: r.association.activityDescription, logoFileId: null,
-      contactEmail: r.contact.email, contactPhone: r.contact.phone, status: 'onboarding', currency: 'XOF', timezone: 'Africa/Abidjan',
-      defaultGraceDays: 5, onboardingCompletedAt: null, planId: ctx.body.planId, managerSeatsOverride: ctx.body.managerSeats ?? null,
-      createdAt: now, lastActivityAt: now, suspendedAt: null, suspensionReason: null, statusBeforeSuspension: null, version: 1,
-    })
-    db.subscriptions.push({
-      id: uid('subscription', r.key), associationId, planId: ctx.body.planId, billingPeriod: ctx.body.billingPeriod ?? 'monthly',
-      status: 'active', currentPeriodStart: ctx.body.subscriptionStartsOn, currentPeriodEnd: null, trialEndsOn: null,
-    })
-    db.users.push({ id: ownerId, key: `owner-${r.key}`, firstName: r.contact.firstName, lastName: r.contact.lastName, phone: r.contact.phone, email: r.contact.email, status: 'pending_activation', locale: 'fr-CI', address: null, city: null, passwordChangedAt: null, lastLoginAt: null, version: 1 })
-    db.memberships.push({ associationId, userId: ownerId, role: 'owner', status: 'invited', title: r.contact.title, joinedAt: now })
-  }
-  Object.assign(r, {
-    status: 'approved', decidedAt: nowInstant(), decidedBy: requireSession(ctx).userId, associationId,
-    approvedPlanId: ctx.body.planId, internalNote: ctx.body.internalNote ?? r.internalNote,
-  })
-  return { request: requestDetail(r), associationId, handoff: handoff(userRow(ownerId), 'association', ctx.body.personalMessage) }
-}
-
-export function requestReject(ctx: MockContext<'pf.req.reject', 'reject'>) {
-  const r = requestRow(ctx.params.id)
-  if (r.status !== 'pending') problem('request_already_handled')
-  Object.assign(r, { status: 'rejected', decidedAt: nowInstant(), decidedBy: requireSession(ctx).userId, rejectionReasonCode: ctx.body.reasonCode, rejectionMessage: ctx.body.message ?? null })
-  return requestDetail(r)
-}
 
 // ---------------------------------------------------------------- Associations
 
@@ -173,28 +102,6 @@ export function associationsList(ctx: MockContext<'pf.asso.list', 'list'>) {
 
 export function associationGet(ctx: MockContext<'pf.asso.get', 'get'>) {
   return platformDetail(withSuspendScenario(associationRow(ctx.params.id), ctx.scenario))
-}
-
-export function associationCreate(ctx: MockContext<'pf.asso.create', 'create'>) {
-  const b = ctx.body
-  const slug = b.association.slug ?? b.association.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  if (db.associations.some(a => a.slug === slug)) problem('slug_taken')
-  if (db.users.some(u => u.email?.toLowerCase() === b.owner.email.toLowerCase() && db.memberships.some(m => m.userId === u.id && m.role === 'owner'))) problem('email_already_owner')
-  planRow(b.subscription.planId)
-  const id = uid('association', slug)
-  const ownerId = uid('user', `owner-${slug}`)
-  const now = nowInstant()
-  db.associations.push({
-    id, slug, name: b.association.name, type: b.association.type, city: b.association.city, country: b.association.country,
-    description: b.association.description ?? null, logoFileId: null, contactEmail: b.owner.email, contactPhone: b.owner.phone,
-    status: 'onboarding', currency: 'XOF', timezone: 'Africa/Abidjan', defaultGraceDays: 5, onboardingCompletedAt: null,
-    planId: b.subscription.planId, managerSeatsOverride: b.subscription.managerSeats ?? null, createdAt: now, lastActivityAt: now,
-    suspendedAt: null, suspensionReason: null, statusBeforeSuspension: null, version: 1,
-  })
-  db.subscriptions.push({ id: uid('subscription', slug), associationId: id, planId: b.subscription.planId, billingPeriod: b.subscription.billingPeriod ?? 'monthly', status: b.subscription.trialDays ? 'trialing' : 'active', currentPeriodStart: b.subscription.startsOn, currentPeriodEnd: null, trialEndsOn: null })
-  db.users.push({ id: ownerId, key: `owner-${slug}`, firstName: b.owner.firstName, lastName: b.owner.lastName, phone: b.owner.phone, email: b.owner.email, status: 'pending_activation', locale: 'fr-CI', address: null, city: null, passwordChangedAt: null, lastLoginAt: null, version: 1 })
-  db.memberships.push({ associationId: id, userId: ownerId, role: 'owner', status: 'invited', title: null, joinedAt: now })
-  return { association: platformDetail(associationRow(id)), handoff: b.issueCredentialsNow ? handoff(userRow(ownerId), 'association') : null }
 }
 
 export function associationPatch(ctx: MockContext<'pf.asso.patch', 'patch'>) {
