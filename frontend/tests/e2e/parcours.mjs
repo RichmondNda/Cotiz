@@ -174,9 +174,10 @@ const PARCOURS = {
       await page.waitForURL(u => new URL(u).pathname === '/plateforme')
     }],
     ['tableau-de-bord', async (page) => {
-      await contient(page, '4 demandes à traiter')
-      // Compteur du menu : file réelle (pf.req.list), qui suit l'état de la base.
+      // Compteur du menu : file réelle (pf.req.list), qui suit l'état de la base (seed-dev + la demande du parcours
+      // public). Le tableau de bord (pf.dashboard, lu en direct) annonce le même nombre.
       compteurAvant = await attendreCompteur(page, 'Demandes', n => n > 0)
+      await contient(page, `${compteurAvant} demandes à traiter`)
       await page.getByRole('link', { name: 'Examiner' }).first().click()
       await page.waitForURL(`**/plateforme/demandes/${DEMANDE_TONTINE}`)
     }],

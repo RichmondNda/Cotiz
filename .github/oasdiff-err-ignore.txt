@@ -23,3 +23,19 @@ POST /api/v1/platform/association-requests/{id}/approve removed the required pro
 # charge ALTCHA de quelques centaines d'octets et laisse le champ piège vide.
 POST /api/v1/public/association-requests the `altcha` request property's maxLength was set to `4000`
 POST /api/v1/public/association-requests the `website` request property's maxLength was set to `200`
+# Lot 1.4 (PR #20) : prix des plans en F CFA (XOF) seulement (décision validée, CHECK plans_currency_xof). L'énumération
+# devient une constante. Seul client : l'écran plateforme des plans, qui n'envoie que XOF.
+POST /api/v1/platform/plans the `currency` request property const value `XOF` was added
+POST /api/v1/platform/plans removed the enum value `GNF` of the request property `priceMonthly/currency`
+POST /api/v1/platform/plans removed the enum value `GNF` of the request property `priceYearly/currency`
+POST /api/v1/platform/plans removed the enum value `XAF` of the request property `priceMonthly/currency`
+POST /api/v1/platform/plans removed the enum value `XAF` of the request property `priceYearly/currency`
+POST /api/v1/platform/plans removed the enum value `XOF` of the request property `priceMonthly/currency`
+POST /api/v1/platform/plans removed the enum value `XOF` of the request property `priceYearly/currency`
+PATCH /api/v1/platform/plans/{id} the `currency` request property const value `XOF` was added
+PATCH /api/v1/platform/plans/{id} removed the enum value `GNF` of the request property `priceMonthly/currency`
+PATCH /api/v1/platform/plans/{id} removed the enum value `GNF` of the request property `priceYearly/currency`
+PATCH /api/v1/platform/plans/{id} removed the enum value `XAF` of the request property `priceMonthly/currency`
+PATCH /api/v1/platform/plans/{id} removed the enum value `XAF` of the request property `priceYearly/currency`
+PATCH /api/v1/platform/plans/{id} removed the enum value `XOF` of the request property `priceMonthly/currency`
+PATCH /api/v1/platform/plans/{id} removed the enum value `XOF` of the request property `priceYearly/currency`
