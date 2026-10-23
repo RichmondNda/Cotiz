@@ -57,6 +57,13 @@
       "when": 1792440083744,
       "tag": "0007_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792710224096,
+      "tag": "0008_onboarding",
+      "breakpoints": true
     }
   ]
 }

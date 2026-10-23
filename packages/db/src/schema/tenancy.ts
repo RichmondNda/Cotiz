@@ -40,6 +40,8 @@ export const associations = pgTable('associations', {
   type: text('type').notNull(),
   city: text('city').notNull(),
   country: text('country').notNull(),
+  /** Facultatif, repris de la demande (lot 1.3). */
+  registrationNumber: text('registration_number'),
   description: text('description'),
   logoFileId: uuid('logo_file_id').references((): AnyPgColumn => files.id),
   contactEmail: text('contact_email').notNull(),

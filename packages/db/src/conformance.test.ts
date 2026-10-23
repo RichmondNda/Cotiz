@@ -96,6 +96,19 @@ async function enums(url: string): Promise<Map<string, string[]>> {
   });
 }
 
+/** Séquences du schéma public créées explicitement (hors colonnes identity et serial). */
+async function sequences(url: string): Promise<string[]> {
+  return withClient(url, async (c) => {
+    const { rows } = await c.query<{ name: string }>(
+      `SELECT s.relname AS name FROM pg_class s JOIN pg_namespace n ON n.oid = s.relnamespace
+        WHERE n.nspname = 'public' AND s.relkind = 'S'
+          AND NOT EXISTS (SELECT FROM pg_depend d WHERE d.objid = s.oid AND d.deptype IN ('a', 'i'))
+        ORDER BY 1`,
+    );
+    return rows.map((r) => r.name);
+  });
+}
+
 describe('conformité des migrations au schéma cible (docs/specs/schema.sql)', () => {
   let db: TestDatabase;
   let migrated: string;
@@ -139,6 +152,12 @@ describe('conformité des migrations au schéma cible (docs/specs/schema.sql)', 
   it('chaque type enum migré a les valeurs de sa définition cible, dans le même ordre', async () => {
     const [actual, expected] = await Promise.all([enums(migrated), enums(spec)]);
     for (const [name, labels] of actual) expect({ name, labels }).toEqual({ name, labels: expected.get(name) });
+  });
+
+  it('chaque séquence migrée existe dans le schéma cible', async () => {
+    const [actual, expected] = await Promise.all([sequences(migrated), sequences(spec)]);
+    expect(actual.length).toBeGreaterThan(0);
+    expect(actual.filter((name) => !expected.includes(name))).toEqual([]);
   });
 
   it('chaque fonction migrée est identique à sa définition cible', async () => {

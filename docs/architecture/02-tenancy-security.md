@@ -25,8 +25,8 @@ SET LOCAL app.space = 'association';   -- platform | association | subscriber | 
 | Rôle | Utilisé par | Droits |
 |---|---|---|
 | cotiz_migrator | Migrations | Propriétaire du schéma |
-| cotiz_app | api + worker | Sans BYPASSRLS ; pas d'UPDATE/DELETE sur audit_logs et contract_signatures ; pas de DELETE sur l'argent ; pas d'INSERT/UPDATE sur plans ; pas de DELETE sur plans et subscriptions |
-| cotiz_platform | Routes `/platform` du contrat, scripts qui la demandent (`seed-dev`, dev et test) | BYPASSRLS ; écritures auditées, lectures si le contrat le demande ; pas de DELETE sur plans et subscriptions ([ADR 0017](../adr/0017-acces-plateforme-if-match.md)) |
+| cotiz_app | api + worker | Sans BYPASSRLS ; pas d'UPDATE/DELETE sur audit_logs et contract_signatures ; pas de DELETE sur l'argent ; pas d'INSERT/UPDATE sur plans ; pas de DELETE sur plans, subscriptions et association_requests |
+| cotiz_platform | Routes `/platform` du contrat, scripts qui la demandent (`seed-dev`, dev et test) | BYPASSRLS ; écritures auditées, lectures si le contrat le demande ; pas de DELETE sur plans, subscriptions et association_requests ([ADR 0017](../adr/0017-acces-plateforme-if-match.md)) |
 | cotiz_readonly | Rapports lourds | SELECT |
 
 ## Politiques RLS
