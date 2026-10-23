@@ -1,7 +1,7 @@
-import type { Plan, PublicPlan } from '@cotiz/contracts';
+import type { Plan, PlanRef, PublicPlan } from '@cotiz/contracts';
 import { plans, subscriptions } from '@cotiz/db';
 import { type Currency, Money } from '@cotiz/domain';
-import { and, asc, count, eq, ne, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, ne, sql } from 'drizzle-orm';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { isPlanGated } from '../domain/plan-rules.js';
 
@@ -34,6 +34,17 @@ export function toPlan(row: PlanRow, subscribersCount: number): Plan {
     subscribersCount,
     version: row.version,
   };
+}
+
+/** Références des plans donnés (plan souhaité d'une demande), par identifiant. */
+export async function planRefsOf(ids: readonly string[]): Promise<Map<string, PlanRef>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const rows = await currentTx()
+    .select({ id: plans.id, code: plans.code, name: plans.name })
+    .from(plans)
+    .where(inArray(plans.id, unique));
+  return new Map(rows.map((r) => [r.id, r]));
 }
 
 /** Le plan existe et est proposé (actif) : plan souhaité du formulaire de demande (pub.request). */

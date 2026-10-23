@@ -40,3 +40,4 @@ export type Plan = z.infer<typeof Plan>;
 export const QuotaUsage = z.object({ used: z.int().nonnegative(), limit: Quota }).meta({ id: 'QuotaUsage' });
 
 export const PlanRef = z.object({ id: Uuid, code: z.string(), name: z.string() }).meta({ id: 'PlanRef' });
+export type PlanRef = z.infer<typeof PlanRef>;

@@ -41,6 +41,7 @@ export const AssociationRequestSummary = z
     createdAt: Instant,
   })
   .meta({ id: 'AssociationRequestSummary' });
+export type AssociationRequestSummary = z.infer<typeof AssociationRequestSummary>;
 
 export const AssociationRequestDetail = AssociationRequestSummary.extend({
   association: AssociationIdentity.extend({ activityDescription: z.string() }),
@@ -76,6 +77,7 @@ export const AssociationRequestsQuery = ListQuery.extend({
   country: z.string().optional(),
   desiredPlanId: Uuid.optional(),
 });
+export type AssociationRequestsQuery = z.infer<typeof AssociationRequestsQuery>;
 
 export const pfReqList = defineEndpoint({
   id: 'pf.req.list',
