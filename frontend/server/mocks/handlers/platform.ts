@@ -4,7 +4,7 @@
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
-import { nowInstant, problem } from '../http'
+import { problem } from '../http'
 import { uid } from '../ids'
 import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
 import {
@@ -80,20 +80,6 @@ function subscription(id: string) {
     price: money(s.billingPeriod === 'yearly' ? p.priceYearly : p.priceMonthly), currentPeriodStart: s.currentPeriodStart,
     currentPeriodEnd: s.currentPeriodEnd, trialEndsOn: s.trialEndsOn, managerSeatsOverride: a.managerSeatsOverride,
   }
-}
-
-export function associationSuspend(ctx: MockContext<'pf.asso.suspend', 'suspend'>) {
-  const a = associationRow(ctx.params.id)
-  if (a.status === 'suspended') problem('invalid_state')
-  Object.assign(a, { statusBeforeSuspension: a.status, status: 'suspended', suspendedAt: nowInstant(), suspensionReason: ctx.body.reason, version: a.version + 1 })
-  return platformDetail(a)
-}
-
-export function associationReactivate(ctx: MockContext<'pf.asso.suspend', 'reactivate'>) {
-  const a = associationRow(ctx.params.id)
-  if (a.status !== 'suspended') problem('invalid_state')
-  Object.assign(a, { status: a.statusBeforeSuspension ?? 'active', statusBeforeSuspension: null, suspendedAt: null, suspensionReason: null, version: a.version + 1 })
-  return platformDetail(a)
 }
 
 export function associationChangePlan(ctx: MockContext<'pf.asso.plan', 'changePlan'>) {

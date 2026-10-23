@@ -1,3 +1,5 @@
+export { ASSOCIATION_STATUSES, associationTransition } from './association-status.js';
+export type { AssociationAction, AssociationStatus } from './association-status.js';
 export { DomainError } from './errors.js';
 export type { DomainErrorCode } from './errors.js';
 export { formatMoney, Money } from './money.js';

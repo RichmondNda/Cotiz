@@ -51,12 +51,22 @@ export function holdsMembership(
   });
 }
 
-/** Rôle de gestion actif de la personne dans l'association (le plus fort) ; `null` si elle n'y gère rien. */
-export function managementRoleIn(userId: string, associationId: string): Promise<ManagementRole | null> {
+/** Gestion de la personne dans une association : son rôle le plus fort et le statut de l'association. */
+export interface ManagementAccess {
+  role: ManagementRole;
+  associationStatus: string;
+}
+
+/**
+ * Rôle de gestion actif de la personne dans l'association (le plus fort), avec le statut de l'association (une
+ * association suspendue refuse son espace : MembershipGuard) ; `null` si elle n'y gère rien.
+ */
+export function managementAccessIn(userId: string, associationId: string): Promise<ManagementAccess | null> {
   return asSelf(userId, async () => {
     const rows = await currentTx()
-      .select({ role: memberships.role })
+      .select({ role: memberships.role, associationStatus: associations.status })
       .from(memberships)
+      .innerJoin(associations, eq(associations.id, memberships.associationId))
       .where(
         and(
           eq(memberships.userId, userId),
@@ -66,7 +76,8 @@ export function managementRoleIn(userId: string, associationId: string): Promise
         ),
       );
     const held = new Set(rows.map((r) => r.role));
-    return MANAGEMENT_ROLES.find((role) => held.has(role)) ?? null;
+    const role = MANAGEMENT_ROLES.find((r) => held.has(r));
+    return role && rows[0] ? { role, associationStatus: rows[0].associationStatus } : null;
   });
 }
 

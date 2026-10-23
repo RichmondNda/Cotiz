@@ -69,6 +69,7 @@ const EVENEMENTS: Record<string, { titre: string, ton: TonEvenement }> = {
   'onboarding.in_progress': { titre: 'Onboarding en cours', ton: 'info' },
   'request.approved': { titre: 'Demande approuvée', ton: 'success' },
   'association.suspended': { titre: 'Association suspendue', ton: 'danger' },
+  'association.reactivated': { titre: 'Association réactivée', ton: 'success' },
 }
 
 /** Activité du tableau de bord plateforme (« Nouvelle association · Jeunesse solidaire de Bouaké · 24 sept. »). */

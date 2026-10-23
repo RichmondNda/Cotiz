@@ -1,4 +1,4 @@
-import { memberships } from '@cotiz/db';
+import { associations, memberships } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
@@ -104,4 +104,34 @@ export async function teamsOf(associationIds: readonly string[]): Promise<Map<st
     else if (row.status === 'active') team.activeManagerIds.push(row.userId);
   }
   return teams;
+}
+
+/**
+ * Statut de l'association du contexte et ses gestionnaires (owner, manager, viewer) actifs (consommateur de
+ * association.suspended). Contexte de cette association seulement : jamais l'équipe d'une autre.
+ */
+export async function suspensionTeamOf(
+  associationId: string,
+): Promise<{ status: string; activeManagerIds: string[] } | null> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('suspensionTeamOf : contexte de cette association seulement');
+  }
+  const tx = currentTx();
+  const [association] = await tx
+    .select({ status: associations.status })
+    .from(associations)
+    .where(eq(associations.id, associationId));
+  if (!association) return null;
+  const rows = await tx
+    .selectDistinct({ userId: memberships.userId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.associationId, associationId),
+        eq(memberships.status, 'active'),
+        ne(memberships.role, 'subscriber'),
+      ),
+    );
+  return { status: association.status, activeManagerIds: rows.map((r) => r.userId) };
 }

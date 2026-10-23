@@ -1,9 +1,11 @@
-import type { INestApplication } from '@nestjs/common';
+import { type INestApplication, Module, type Type } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { LoginResponse } from '@cotiz/contracts';
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { expect } from 'vitest';
-import { createApp } from '../../src/app.js';
-import { loadConfig } from '../../src/config.js';
+import { configureApp } from '../../src/app.js';
+import { AppModule } from '../../src/app.module.js';
+import { type Config, loadConfig } from '../../src/config.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { A, B, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
 
@@ -43,13 +45,14 @@ export interface PlatformFixture {
     options?: { token?: string; method?: string; body?: unknown; headers?: Record<string, string> },
   ) => Promise<Response>;
   login: (space: string, identifier: string) => Promise<string>;
+  config: Config;
   stop: () => Promise<void>;
 }
 
 export const codeOf = async (res: Response) => ((await res.json()) as { code?: string }).code;
 
-/** Base migrée, jeu de référence, api réelle sur un port libre. */
-export async function startPlatformFixture(): Promise<PlatformFixture> {
+/** Base migrée, jeu de référence, api réelle sur un port libre ; `controllers` : routes de test en plus (sondes). */
+export async function startPlatformFixture(controllers: Type[] = []): Promise<PlatformFixture> {
   const [h, redis] = await Promise.all([
     startIsolationHarness('migrated'),
     new RedisContainer('redis:7-alpine').start(),
@@ -64,7 +67,10 @@ export async function startPlatformFixture(): Promise<PlatformFixture> {
     RATE_LIMIT_ENDPOINT_PER_MIN: '10000',
     RATE_LIMIT_IP_PER_MIN: '10000',
   });
-  const app = await createApp(config, { logger: false });
+  @Module({ imports: [AppModule.register(config)], controllers })
+  class TestRoot {}
+  const app = await NestFactory.create(TestRoot, { logger: false, abortOnError: false });
+  configureApp(app, config);
   await app.listen(0, '127.0.0.1');
   const base = `${await app.getUrl()}/api/v1`;
 
@@ -92,6 +98,7 @@ export async function startPlatformFixture(): Promise<PlatformFixture> {
     base,
     call,
     login,
+    config,
     stop: async () => {
       await app.close();
       await Promise.all([h.stop(), redis.stop()]);

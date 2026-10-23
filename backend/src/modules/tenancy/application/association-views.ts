@@ -15,6 +15,8 @@ import { type AssociationRecord, platformAssociationOf } from './association-rec
 const TIMELINE: Readonly<Record<string, string>> = {
   'association_request.approve': 'request.approved',
   'association.update': 'association.updated',
+  'association.suspend': 'association.suspended',
+  'association.reactivate': 'association.reactivated',
 };
 /** Création directe : son auteur signe l'entrée « association.created » qui clôt toujours la frise. */
 const CREATE_ACTION = 'association.create';

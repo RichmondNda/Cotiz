@@ -1,6 +1,7 @@
 <!--
   Suspension d'une association (confirmation renforcée) : motif obligatoire et saisie du nom de l'association.
-  Le bouton reste inactif tant que le nom saisi ne correspond pas. Émet `suspendre` avec le motif.
+  Le bouton reste inactif tant que le nom saisi ne correspond pas. Émet `suspendre` avec le motif et le nom saisi
+  (le back le compare à son tour).
 -->
 <script setup lang="ts">
 import { MOTIFS_SUSPENSION } from '~/utils/statuts'
@@ -13,7 +14,7 @@ const props = withDefaults(defineProps<{
 }>(), { envoi: false })
 
 const ouvert = defineModel<boolean>('ouvert', { default: false })
-const emit = defineEmits<{ suspendre: [motif: string] }>()
+const emit = defineEmits<{ suspendre: [motif: string, nomSaisi: string] }>()
 
 const OPTIONS = MOTIFS_SUSPENSION.map(m => ({ valeur: m as string, label: m }))
 const motif = ref<string | null>(MOTIFS_SUSPENSION[0])
@@ -67,7 +68,7 @@ const confirme = computed(() => saisie.value.trim() === props.association && Boo
         :disabled="!confirme"
         :chargement="envoi"
         libelle-chargement="Suspension…"
-        @click="motif && emit('suspendre', motif)"
+        @click="motif && emit('suspendre', motif, saisie.trim())"
       >
         Suspendre l’association
       </CzButton>

@@ -109,12 +109,21 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
   let config: Config;
   let signer: AccessTokenSigner;
   const revoked = { isRevoked: () => Promise.resolve(false) } as unknown as RevokedSessions;
-  /** Rôles « en base » de la personne du jeton (SelfRoles simulé) : plateforme, et gestion par association. */
+  /**
+   * Rôles « en base » de la personne du jeton (SelfRoles simulé) : plateforme, et gestion par association (avec le
+   * statut de l'association, active par défaut).
+   */
   let platformRole: string | null;
   let managementRoles: Record<string, string>;
+  let suspended: Set<string>;
   const selfRoles = {
     platformRole: () => Promise.resolve(platformRole),
-    managementRole: (_userId: string, associationId: string) => Promise.resolve(managementRoles[associationId] ?? null),
+    managementAccess: (_userId: string, associationId: string) => {
+      const role = managementRoles[associationId];
+      return Promise.resolve(
+        role ? { role, associationStatus: suspended.has(associationId) ? 'suspended' : 'active' } : null,
+      );
+    },
   } as unknown as SelfRoles;
 
   beforeEach(() => {
@@ -122,6 +131,7 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
     signer = new AccessTokenSigner(config);
     platformRole = null;
     managementRoles = {};
+    suspended = new Set();
   });
 
   const token = async (claims: Omit<AccessClaims, 'sub' | 'sid'>) =>
@@ -235,6 +245,14 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       expect(await refusal(chain('associationGet', { bearer, aid: OTHER_AID }))).toBe('not_found');
       expect(await refusal(chain('associationGet', { bearer }))).toBe('not_found');
       expect(await refusal(chain('associationGet', { bearer, aid: 'pas-un-uuid' }))).toBe('not_found');
+    });
+
+    it('association suspendue : 403 association_suspended, après le 404 du non-membre', async () => {
+      managementRoles = { [AID]: 'owner' };
+      suspended = new Set([AID, OTHER_AID]);
+      const bearer = await token({ space: 'association' });
+      expect(await refusal(chain('associationGet', { bearer, aid: AID }))).toBe('association_suspended');
+      expect(await refusal(chain('associationGet', { bearer, aid: OTHER_AID }))).toBe('not_found');
     });
 
     it('jeton association sur /me ou une route commune : la personne, sans association ni rôle', async () => {

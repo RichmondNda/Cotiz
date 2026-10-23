@@ -125,10 +125,10 @@ async function executer(action: () => Promise<FicheAssociationPlateforme>, succe
   }
 }
 
-async function lancerSuspension(motif: string) {
+async function lancerSuspension(motif: string, nomSaisi: string) {
   if (!a.value) return
   const nom = a.value.nom
-  if (await executer(() => suspendre(id.value, { motif }), { titre: 'Association suspendue', message: `${nom} n’a plus accès à son espace.` })) {
+  if (await executer(() => suspendre(id.value, { motif, nomSaisi }), { titre: 'Association suspendue', message: `${nom} n’a plus accès à son espace.` })) {
     modaleSuspension.value = false
   }
 }

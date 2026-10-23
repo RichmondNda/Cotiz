@@ -8,7 +8,8 @@ export {
   holdsMembership,
   MANAGEMENT_ROLES,
   type ManagementRole,
-  managementRoleIn,
+  type ManagementAccess,
+  managementAccessIn,
   type MembershipSpace,
   type MembershipStatus,
 } from './application/memberships.js';
@@ -19,6 +20,7 @@ export {
   membersOf,
   ownerOf,
   ownsAnAssociation,
+  suspensionTeamOf,
   teamsOf,
 } from './application/owner-membership.js';
 export { SeedDevMembershipsUseCase } from './application/seed-dev-memberships.use-case.js';

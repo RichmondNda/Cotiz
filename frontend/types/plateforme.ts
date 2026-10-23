@@ -165,6 +165,8 @@ export interface AssociationCreee {
 /** Corps de `pf.asso.suspend › suspend`. */
 export interface SuspensionAssociation {
   motif: string
+  /** Nom saisi pour confirmer (comparé par le back au nom de l'association). */
+  nomSaisi: string
 }
 
 /** Corps de `pf.plan.write › create` et `pf.plan.write › patch`. */
