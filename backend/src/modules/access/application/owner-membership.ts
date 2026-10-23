@@ -73,3 +73,35 @@ export async function membersOf(associationId: string): Promise<AssociationMembe
   const managers = rows.flatMap((r) => (r.role === 'subscriber' ? [] : [{ userId: r.userId, role: r.role }]));
   return { managers, subscribers: rows.length - managers.length };
 }
+
+export interface AssociationTeam {
+  /** Souscripteurs non retirés. */
+  subscribers: number;
+  /** Gestionnaires (owner, manager, viewer) actifs : leurs connexions font l'activité de l'association. */
+  activeManagerIds: string[];
+}
+
+/** Équipe de chaque association donnée (liste plateforme), par identifiant. Espace plateforme seulement. */
+export async function teamsOf(associationIds: readonly string[]): Promise<Map<string, AssociationTeam>> {
+  assertPlatform('teamsOf');
+  const teams = new Map<string, AssociationTeam>(
+    associationIds.map((id) => [id, { subscribers: 0, activeManagerIds: [] }]),
+  );
+  if (teams.size === 0) return teams;
+  const rows = await currentTx()
+    .select({
+      associationId: memberships.associationId,
+      userId: memberships.userId,
+      role: memberships.role,
+      status: memberships.status,
+    })
+    .from(memberships)
+    .where(and(inArray(memberships.associationId, [...teams.keys()]), ne(memberships.status, 'removed')));
+  for (const row of rows) {
+    const team = teams.get(row.associationId);
+    if (!team) continue;
+    if (row.role === 'subscriber') team.subscribers += 1;
+    else if (row.status === 'active') team.activeManagerIds.push(row.userId);
+  }
+  return teams;
+}

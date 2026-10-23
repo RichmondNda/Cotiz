@@ -86,7 +86,7 @@ const terms = { entryFee: money(50000), installmentAmount: money(10000), frequen
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
   'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
-  'pf.asso.list list': {}, 'pf.asso.get get': { params: { id: aid } }, 'pf.asso.sub projects': { params: { id: aid } },
+  'pf.asso.sub projects': { params: { id: aid } },
   'pf.asso.sub members': { params: { id: aid } }, 'pf.dashboard get': {}, 'pf.invoices list': {}, 'pf.staff list': {},
   'as.get get': { params: { aid } }, 'as.pm list': { params: { aid } }, 'as.dashboard get': { params: { aid } },
   'bl.sub get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },

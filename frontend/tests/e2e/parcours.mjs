@@ -190,12 +190,20 @@ const PARCOURS = {
       await assert(n === compteurAvant - 1, `Le compteur « Demandes » du menu doit passer de ${compteurAvant} à ${compteurAvant - 1} (lu : ${n})`)
     }],
     // Pas d'email (ui-deviations.md) : les accès du responsable s'affichent une fois, à transmettre soi-même.
-    // Fiche et liste des associations : encore simulées jusqu'au lot 1.4 (pf.asso.get, pf.asso.list).
     ['acces-du-gestionnaire', async (page) => {
       const carte = page.getByRole('region', { name: 'Accès du gestionnaire' })
       await carte.waitFor()
       await assert(/[A-Z0-9]{4}-[A-Z0-9]{4}/.test(await texte(carte)), 'Code d’activation affiché dans la carte « Accès du gestionnaire »')
       await carte.getByRole('button', { name: 'Copier le message' }).waitFor()
+    }],
+    // Fiche et liste des associations réelles (lot 1.4 : pf.asso.get, pf.asso.list).
+    ['fiche-association', async (page) => {
+      await page.getByRole('link', { name: 'Voir l’association créée' }).click()
+      await page.waitForURL(u => /^\/plateforme\/associations\/[0-9a-f-]{36}$/.test(new URL(u).pathname))
+      const nom = (await texte(page.getByRole('heading', { level: 1 }))).trim()
+      await page.getByRole('navigation').getByRole('link', { name: 'Associations' }).first().click()
+      await page.waitForURL('**/plateforme/associations')
+      await contient(page, nom, `La nouvelle association « ${nom} » doit figurer dans la liste`)
     }],
   ]),
 }

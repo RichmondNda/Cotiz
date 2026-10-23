@@ -40,4 +40,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['pf.req.approve', 'all'],
   ['pf.req.reject', 'all'],
   ['pf.asso.create', 'all'],
+  // Lot 1.4 : liste et fiche des associations (super-admin).
+  ['pf.asso.list', 'all'],
+  ['pf.asso.get', 'all'],
 ])

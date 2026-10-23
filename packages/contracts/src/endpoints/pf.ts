@@ -189,6 +189,7 @@ export const PlatformAssociationSummary = z.object({
   lastActivityAt: Instant.nullable(),
   createdAt: Instant,
 });
+export type PlatformAssociationSummary = z.infer<typeof PlatformAssociationSummary>;
 
 export const PlatformAssociationsQuery = ListQuery.extend({
   status: AssociationStatus.optional(),

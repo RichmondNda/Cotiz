@@ -17,10 +17,15 @@ vi.mock('../../../shared/tenant-context/index.js', async (original) => ({
   },
 }));
 
-const { grantOwnership, membersOf, ownerOf, ownsAnAssociation } = await import('../../access/access.public.js');
-const { currentSubscriptionOf, openSubscription } = await import('../../billing/billing.public.js');
-const { createAssociation, platformAssociationOf } = await import('../../tenancy/tenancy.public.js');
-const { ManagerAccounts, platformPersonContactsOf } = await import('../../identity/identity.public.js');
+const { grantOwnership, membersOf, ownerOf, ownsAnAssociation, teamsOf } =
+  await import('../../access/access.public.js');
+const { currentSubscriptionOf, displayedPlansOf, latestSubscriptionOf, openSubscription } =
+  await import('../../billing/billing.public.js');
+const { createAssociation, platformAssociationDetail, platformAssociationOf } =
+  await import('../../tenancy/tenancy.public.js');
+const { ManagerAccounts, platformManagerActivityOf, platformPersonContactsOf } =
+  await import('../../identity/identity.public.js');
+const { platformAuditTrailOf } = await import('../../../shared/audit/index.js');
 
 const ID = '00000000-0000-7000-8000-000000000001';
 // Le service de codes passe lui aussi par la transaction : en plateforme, l'émission l'atteint.
@@ -34,6 +39,13 @@ const calls: [string, () => Promise<unknown>][] = [
   ['currentSubscriptionOf', () => currentSubscriptionOf(ID)],
   ['platformAssociationOf', () => platformAssociationOf(ID)],
   ['platformPersonContactsOf', () => platformPersonContactsOf([ID])],
+  // Lecture plateforme des associations (lot 1.4) : liste et fiche lisent toutes les associations.
+  ['teamsOf', () => teamsOf([ID])],
+  ['latestSubscriptionOf', () => latestSubscriptionOf(ID)],
+  ['displayedPlansOf', () => displayedPlansOf()],
+  ['platformManagerActivityOf', () => platformManagerActivityOf([ID])],
+  ['platformAuditTrailOf', () => platformAuditTrailOf(ID, ['association.create'], 1)],
+  ['platformAssociationDetail', () => platformAssociationDetail(ID)],
   [
     'openSubscription',
     () =>
@@ -70,7 +82,7 @@ const calls: [string, () => Promise<unknown>][] = [
 ];
 
 describe('mise en place d’un espace : plateforme seulement', () => {
-  for (const space of ['association', 'subscriber', 'me', 'auth', 'public', null]) {
+  for (const space of ['association', 'subscriber', 'me', 'auth', 'public', 'system', null]) {
     it.each(calls)(`%s refusée en espace ${String(space)}, sans accès base`, async (_name, call) => {
       context.space = space;
       touched.mockClear();

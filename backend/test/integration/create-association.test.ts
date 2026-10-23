@@ -204,7 +204,7 @@ describe('création directe d’une association (pf.asso.create)', () => {
           managers: { used: 1, limit: 2 },
         },
         kpi: { activeProjects: 0, subscribers: 0, collectedTotal: { amount: 0, currency: 'XOF' }, recoveryRate: null },
-        events: [{ type: 'created', by: { id: STAFF.owner.id }, detail: null }],
+        events: [{ type: 'association.created', by: { id: STAFF.owner.id }, detail: null }],
         version: 1,
       });
       expect(await rows(`SELECT registration_number FROM associations WHERE id = $1`, [body.association.id])).toEqual([
@@ -430,7 +430,7 @@ describe('création directe d’une association (pf.asso.create)', () => {
   describe('deux personnes de la plateforme', () => {
     it('l’admin crée aussi une association', async () => {
       const body = await created(await create(newKey(), creation, admin));
-      expect(body.association.events).toMatchObject([{ type: 'created', by: { id: STAFF.admin.id } }]);
+      expect(body.association.events).toMatchObject([{ type: 'association.created', by: { id: STAFF.admin.id } }]);
       expect(body.handoff).not.toBeNull();
     });
 

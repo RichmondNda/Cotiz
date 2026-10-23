@@ -14,10 +14,12 @@ export {
 } from './application/memberships.js';
 export {
   type AssociationMembers,
+  type AssociationTeam,
   grantOwnership,
   membersOf,
   ownerOf,
   ownsAnAssociation,
+  teamsOf,
 } from './application/owner-membership.js';
 export { SeedDevMembershipsUseCase } from './application/seed-dev-memberships.use-case.js';
 export { SelfRoles } from './application/self-roles.js';

@@ -4,4 +4,9 @@ export { SeedDevSubscriptionsUseCase } from './application/seed-dev-subscription
 export { type QuotaKind, QuotaService } from './application/quota.service.js';
 export { isActivePlan, planRefsOf } from './application/plan-records.js';
 export { type NewSubscription, openSubscription } from './application/open-subscription.js';
-export { type CurrentSubscription, currentSubscriptionOf } from './application/subscription-views.js';
+export {
+  type CurrentSubscription,
+  currentSubscriptionOf,
+  displayedPlansOf,
+  latestSubscriptionOf,
+} from './application/subscription-views.js';

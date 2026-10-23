@@ -14,8 +14,6 @@ import { page } from './list'
 
 // ---------------------------------------------------------------- Complément plateforme (illustratif)
 
-/** Puces de SaAssociations : 148 associations dont 3 détaillées. */
-const PLATFORM_COUNTS = { active: 132, past_due: 15, suspended: 0, onboarding: 1 }
 const PLATFORM_KPI = { activeAssociations: 147, newAssociationsThisMonth: 6, subscriptionsUpToDate: 132, subscriptionsUnpaid: 15, totalAssociations: 147 }
 /** Associations actives d'octobre 2025 à septembre 2026 (courbe de SaDashboard). */
 const ACTIVE_BY_MONTH = [98, 102, 105, 110, 114, 120, 124, 130, 134, 138, 143, 147]
@@ -25,12 +23,6 @@ const ACTIVE_BY_MONTH = [98, 102, 105, 110, 114, 120, 124, 130, 134, 138, 143, 1
 function ownerOf(a: AssociationRow) {
   const m = db.memberships.find(x => x.associationId === a.id && x.role === 'owner')
   return m ? userRow(m.userId) : null
-}
-
-/** Scénario `etat-suspendue` (SaAssociation) : Entraide Yopougon suspendue, sans toucher au jeu. */
-function withSuspendScenario(a: AssociationRow, scenario: string | undefined): AssociationRow {
-  if (scenario !== 'etat-suspendue') return a
-  return { ...a, status: 'suspended', suspendedAt: '2026-09-25T09:00:00Z', suspensionReason: 'Abonnement impayé depuis plus de 30 jours', statusBeforeSuspension: a.status }
 }
 
 function summary(a: AssociationRow) {
@@ -88,20 +80,6 @@ function subscription(id: string) {
     price: money(s.billingPeriod === 'yearly' ? p.priceYearly : p.priceMonthly), currentPeriodStart: s.currentPeriodStart,
     currentPeriodEnd: s.currentPeriodEnd, trialEndsOn: s.trialEndsOn, managerSeatsOverride: a.managerSeatsOverride,
   }
-}
-
-export function associationsList(ctx: MockContext<'pf.asso.list', 'list'>) {
-  const q = ctx.query
-  if (ctx.scenario === 'vide') return page([], q, { facets: { status: { ...PLATFORM_COUNTS } } })
-  let rows = [...db.associations]
-  if (q.status) rows = rows.filter(a => a.status === q.status)
-  if (q.planId) rows = rows.filter(a => a.planId === q.planId)
-  if (q.q) rows = rows.filter(a => a.name.toLowerCase().includes(q.q!.toLowerCase()))
-  return page(rows.map(summary), q, { facets: { status: { ...PLATFORM_COUNTS } } })
-}
-
-export function associationGet(ctx: MockContext<'pf.asso.get', 'get'>) {
-  return platformDetail(withSuspendScenario(associationRow(ctx.params.id), ctx.scenario))
 }
 
 export function associationPatch(ctx: MockContext<'pf.asso.patch', 'patch'>) {
