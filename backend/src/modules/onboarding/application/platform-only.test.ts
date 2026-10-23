@@ -17,10 +17,10 @@ vi.mock('../../../shared/tenant-context/index.js', async (original) => ({
   },
 }));
 
-const { grantOwnership, ownerOf, ownsAnAssociation } = await import('../../access/access.public.js');
-const { openSubscription } = await import('../../billing/billing.public.js');
-const { createAssociation } = await import('../../tenancy/tenancy.public.js');
-const { ManagerAccounts } = await import('../../identity/identity.public.js');
+const { grantOwnership, membersOf, ownerOf, ownsAnAssociation } = await import('../../access/access.public.js');
+const { currentSubscriptionOf, openSubscription } = await import('../../billing/billing.public.js');
+const { createAssociation, platformAssociationOf } = await import('../../tenancy/tenancy.public.js');
+const { ManagerAccounts, platformPersonContactsOf } = await import('../../identity/identity.public.js');
 
 const ID = '00000000-0000-7000-8000-000000000001';
 // Le service de codes passe lui aussi par la transaction : en plateforme, l'émission l'atteint.
@@ -30,6 +30,10 @@ const calls: [string, () => Promise<unknown>][] = [
   ['ownsAnAssociation', () => ownsAnAssociation(ID)],
   ['grantOwnership', () => grantOwnership(ID, ID, ID)],
   ['ownerOf', () => ownerOf(ID)],
+  ['membersOf', () => membersOf(ID)],
+  ['currentSubscriptionOf', () => currentSubscriptionOf(ID)],
+  ['platformAssociationOf', () => platformAssociationOf(ID)],
+  ['platformPersonContactsOf', () => platformPersonContactsOf([ID])],
   [
     'openSubscription',
     () =>

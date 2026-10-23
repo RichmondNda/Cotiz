@@ -32,19 +32,22 @@ export interface IdempotencyStore {
 export const IDEMPOTENCY_STORE = Symbol('IDEMPOTENCY_STORE');
 
 const REPLAY_IN_HANDLER = 'cotiz:idempotency:replay-in-handler';
-/** Requêtes rejouées par leur handler (ReplayInHandler) : le cas d'usage reconstruit la réponse. */
-const replays = new WeakSet<object>();
+/** Ce que la réponse laisse en mémoire (ReplayInHandler) : jamais de secret. */
+type Reference = (body: unknown) => unknown;
+/** Requêtes rejouées par leur handler (ReplayInHandler), avec la référence mémorisée de l'opération. */
+const replays = new WeakMap<object, { reference: unknown }>();
 
 /**
- * Route dont la réponse porte un secret (code d'activation) : rien n'est mémorisé, sinon l'empreinte de la requête ;
- * au rejeu, le handler est rappelé avec `isIdempotentReplay(request)` vrai et reconstruit la même réponse depuis la
- * base (secret chiffré), sans refaire l'opération.
+ * Route dont la réponse porte un secret (code d'activation) : seule une référence sans secret est mémorisée (`null`
+ * par défaut, sinon `reference(réponse)`, ex. l'identifiant créé) ; au rejeu, le handler est rappelé,
+ * `idempotentReplay(request)` donne cette référence, et il reconstruit la même réponse depuis la base (secret chiffré),
+ * sans refaire l'opération.
  */
-export const ReplayInHandler = () => SetMetadata(REPLAY_IN_HANDLER, true);
+export const ReplayInHandler = (reference: Reference = () => null) => SetMetadata(REPLAY_IN_HANDLER, reference);
 
-/** La requête est le rejeu d'une opération déjà faite (route ReplayInHandler). */
-export function isIdempotentReplay(request: object): boolean {
-  return replays.has(request);
+/** Rejeu d'une opération déjà faite (route ReplayInHandler) : sa référence mémorisée ; `null` pour une première fois. */
+export function idempotentReplay(request: object): { reference: unknown } | null {
+  return replays.get(request) ?? null;
 }
 
 /** Réponse conservée 24 h (architecture/06) ; verrou d'une requête en cours, au-delà duquel elle peut être renvoyée. */
@@ -142,7 +145,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const storeKey = `${scope}:${endpoint.id}:${key}`;
     const fingerprint = requestFingerprint(request.method, request.url, request.body);
 
-    const inHandler = this.reflector.get<boolean | undefined>(REPLAY_IN_HANDLER, context.getHandler()) === true;
+    const inHandler = this.reflector.get<Reference | undefined>(REPLAY_IN_HANDLER, context.getHandler());
     const existing = await this.store.begin(storeKey, fingerprint, PENDING_TTL_SECONDS);
     if (existing) {
       if (existing.fingerprint !== fingerprint) throw new DomainProblem('idempotency_key_reused');
@@ -154,7 +157,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         .getResponse<{ setHeader(n: string, v: string): void }>()
         .setHeader('Idempotent-Replayed', 'true');
       if (inHandler) {
-        replays.add(request);
+        replays.set(request, { reference: existing.body });
         return next.handle();
       }
       return of(existing.body);
@@ -166,7 +169,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     return next.handle().pipe(
       mergeMap(async (body: unknown) => {
         try {
-          const record = { state: 'done', fingerprint, status, body: inHandler ? null : body } as const;
+          const record = { state: 'done', fingerprint, status, body: inHandler ? inHandler(body) : body } as const;
           await this.store.complete(storeKey, record, RESPONSE_TTL_SECONDS);
         } catch (error) {
           // L'opération a réussi : renvoyer sa réponse. Le verrou expirera ; un renvoi serait alors réexécuté.

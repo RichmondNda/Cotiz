@@ -1,5 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import { AccessToken, LoginResponse, RequestApproved } from '@cotiz/contracts';
+import { AccessToken, AssociationRequestDetail, LoginResponse, RequestApproved } from '@cotiz/contracts';
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { Redis } from 'ioredis';
 import { associations, memberships, subscriptions } from '@cotiz/db';
@@ -19,9 +19,9 @@ import {
 } from '../isolation/harness.js';
 
 /**
- * Lot 1.3 · étape 5 : approbation d'une demande (pf.req.approve, architecture/04 §4.1) par la connexion plateforme.
- * Vérification de l'étape : approuver deux fois → un seul espace ; le gestionnaire active son compte avec le code et
- * se connecte.
+ * Lot 1.3 · étapes 5 et 6 : décision sur une demande, par la connexion plateforme. Approbation (pf.req.approve,
+ * architecture/04 §4.1) — vérification : approuver deux fois → un seul espace ; le gestionnaire active son compte avec
+ * le code et se connecte. Refus (pf.req.reject) — vérification : impossible de refuser une demande approuvée.
  */
 
 const PASSWORD = 'Baobab-Lagune-2026';
@@ -29,6 +29,7 @@ const NEW_PASSWORD = 'Fromager-Plateau-2026';
 const STAFF = {
   owner: { id: '00000000-0000-7000-8000-0000000015a1', email: 'richy@cotiz.test', first: 'Richy', last: 'Nda' },
   support: { id: '00000000-0000-7000-8000-0000000015a2', email: 'sali@cotiz.test', first: 'Sali', last: 'Bamba' },
+  admin: { id: '00000000-0000-7000-8000-0000000015a3', email: 'kady@cotiz.test', first: 'Kady', last: 'Touré' },
 } as const;
 const PLANS = {
   essentiel: '00000000-0000-7000-8000-0000000015b1',
@@ -56,7 +57,9 @@ const decision = {
   personalMessage: 'Bienvenue sur Cotiz !',
 };
 
-describe('approbation d’une demande (pf.req.approve)', () => {
+const refusal = { reasonCode: 'incomplete', message: 'Merci de joindre vos statuts et de renvoyer la demande.' };
+
+describe('décision sur une demande (pf.req.approve, pf.req.reject)', () => {
   let h: IsolationHarness;
   let redisContainer: StartedRedisContainer;
   let redis: Redis;
@@ -64,6 +67,7 @@ describe('approbation d’une demande (pf.req.approve)', () => {
   let base: string;
   let owner: string;
   let support: string;
+  let admin: string;
   let manager: string;
 
   const login = async (space: string, identifier: string, password = PASSWORD) => {
@@ -102,6 +106,12 @@ describe('approbation d’une demande (pf.req.approve)', () => {
          'Amitié.', 'Prénom', 'Nom', 'Président', $2, $3, '1_20', now(), 'pending', now())`,
       [id, email, phone, `DEM-2026-9${id.slice(-4)}`],
     );
+  const reject = (id: string, key: string, token = owner, body: object = refusal) =>
+    fetch(`${base}/platform/association-requests/${id}/reject`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}`, 'idempotency-key': key },
+      body: JSON.stringify(body),
+    });
   let keySeq = 0;
   const newKey = () => `cle-approbation-${String(++keySeq).padStart(4, '0')}`;
 
@@ -118,10 +128,10 @@ describe('approbation d’une demande (pf.req.approve)', () => {
          FROM unnest($1::uuid[], $2::text[], $3::text[], $4::text[]) AS p(id, email, first_name, last_name)`,
       [people.map((p) => p.id), people.map((p) => p.email), people.map((p) => p.first), people.map((p) => p.last)],
     );
-    await h.superuser(`INSERT INTO platform_staff (user_id, role) VALUES ($1, 'owner'), ($2, 'support')`, [
-      STAFF.owner.id,
-      STAFF.support.id,
-    ]);
+    await h.superuser(
+      `INSERT INTO platform_staff (user_id, role) VALUES ($1, 'owner'), ($2, 'support'), ($3, 'admin')`,
+      [STAFF.owner.id, STAFF.support.id, STAFF.admin.id],
+    );
     await h.superuser(
       `INSERT INTO users (id, email, first_name, last_name, status) VALUES ($1, $2, 'Inès', 'Test', 'pending_activation')`,
       [INES.id, INES.email],
@@ -152,6 +162,7 @@ describe('approbation d’une demande (pf.req.approve)', () => {
     base = `${await app.getUrl()}/api/v1`;
     owner = await login('platform', STAFF.owner.email);
     support = await login('platform', STAFF.support.email);
+    admin = await login('platform', STAFF.admin.email);
   });
 
   afterAll(async () => {
@@ -538,6 +549,11 @@ describe('approbation d’une demande (pf.req.approve)', () => {
   });
 
   describe('permissions', () => {
+    it('l’admin de la plateforme approuve aussi', async () => {
+      const body = await approved(await approve(REQ.yopougon, newKey(), admin));
+      expect(body.request.decision?.decidedBy).toMatchObject({ id: STAFF.admin.id });
+    });
+
     it('le support lit mais ne décide pas → 403, rien n’est créé', async () => {
       const before = await associationsCount();
       const res = await approve(REQ.yopougon, newKey(), support);
@@ -579,6 +595,120 @@ describe('approbation d’une demande (pf.req.approve)', () => {
         body: JSON.stringify(decision),
       });
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('refus (pf.req.reject)', () => {
+    it('demande refusée : motif, message, décideur, frise ; aucun espace ni compte créé', async () => {
+      const before = await associationsCount();
+      const res = await reject(REQ.yopougon, newKey());
+      expect(res.status).toBe(200);
+      const body = AssociationRequestDetail.parse(await res.json());
+      expect(body).toMatchObject({
+        id: REQ.yopougon,
+        status: 'rejected',
+        decision: {
+          decidedBy: { id: STAFF.owner.id },
+          rejectionReasonCode: 'incomplete',
+          rejectionMessage: refusal.message,
+          associationId: null,
+        },
+      });
+      expect(body.history.map((e) => e.type)).toEqual(['received', 'rejected']);
+      expect(await associationsCount()).toBe(before);
+      expect(await count(`SELECT count(*) AS n FROM users WHERE email = $1`, [NEW_EMAIL])).toBe(0);
+    });
+
+    it('événement association.request_rejected et audit, dans la transaction', async () => {
+      await reject(REQ.yopougon, newKey());
+      expect(
+        await rows(
+          `SELECT association_id, payload FROM outbox_events
+            WHERE event_type = 'association.request_rejected' AND aggregate_id = $1 ORDER BY id DESC LIMIT 1`,
+          [REQ.yopougon],
+        ),
+      ).toEqual([{ association_id: null, payload: { requestId: REQ.yopougon, reasonCode: 'incomplete' } }]);
+      const audit = await rows(
+        `SELECT actor_user_id, association_id, after FROM audit_logs
+          WHERE action = 'association_request.reject' AND entity_id = $1 ORDER BY id DESC LIMIT 1`,
+        [REQ.yopougon],
+      );
+      expect(audit).toEqual([
+        {
+          actor_user_id: STAFF.owner.id,
+          association_id: null,
+          after: { status: 'rejected', rejectionReasonCode: 'incomplete' },
+        },
+      ]);
+    });
+
+    it('message facultatif', async () => {
+      const res = await reject(REQ.yopougon, newKey(), owner, { reasonCode: 'out_of_scope' });
+      expect(res.status).toBe(200);
+      expect(AssociationRequestDetail.parse(await res.json()).decision).toMatchObject({
+        rejectionReasonCode: 'out_of_scope',
+        rejectionMessage: null,
+      });
+    });
+
+    it('vérification : impossible de refuser une demande approuvée → 409, elle reste approuvée', async () => {
+      const approval = await approved(await approve(REQ.yopougon, newKey()));
+      const res = await reject(REQ.yopougon, newKey());
+      expect(res.status).toBe(409);
+      expect(await codeOf(res)).toBe('request_already_handled');
+      expect(
+        await rows(`SELECT status, association_id FROM association_requests WHERE id = $1`, [REQ.yopougon]),
+      ).toEqual([{ status: 'approved', association_id: approval.associationId }]);
+    });
+
+    it('refuser deux fois : même clé → même réponse ; autre clé → 409', async () => {
+      const key = newKey();
+      const first = await reject(REQ.yopougon, key);
+      expect(first.status).toBe(200);
+      const firstBody: unknown = await first.json();
+      const again = await reject(REQ.yopougon, key);
+      expect(again.headers.get('idempotent-replayed')).toBe('true');
+      expect(await again.json()).toEqual(firstBody);
+      const other = await reject(REQ.yopougon, newKey(), owner, { reasonCode: 'duplicate' });
+      expect(other.status).toBe(409);
+      expect(await codeOf(other)).toBe('request_already_handled');
+    });
+
+    it('l’admin refuse aussi ; la fiche du demandeur ne reste pas dans Redis', async () => {
+      const key = newKey();
+      const res = await reject(REQ.yopougon, key, admin);
+      expect(res.status).toBe(200);
+      const first: unknown = await res.json();
+      const keys = await redis.keys(`cotiz:idem:*${key}`);
+      expect(keys).toHaveLength(1);
+      const stored = (await redis.get(keys[0] ?? '')) ?? '';
+      expect(stored).not.toContain(NEW_EMAIL);
+      expect(stored).not.toContain('+2250708091099');
+      expect(stored).not.toContain(refusal.message);
+      const again = await reject(REQ.yopougon, key, admin);
+      expect(again.headers.get('idempotent-replayed')).toBe('true');
+      expect(await again.json()).toEqual(first);
+    });
+
+    it('approuver une demande refusée → 409', async () => {
+      await reject(REQ.yopougon, newKey());
+      const res = await approve(REQ.yopougon, newKey());
+      expect(res.status).toBe(409);
+      expect(await codeOf(res)).toBe('request_already_handled');
+    });
+
+    it('demande inconnue → 404 ; motif vide → 422', async () => {
+      expect((await reject(UNKNOWN, newKey())).status).toBe(404);
+      const res = await reject(REQ.yopougon, newKey(), owner, { reasonCode: '' });
+      expect(res.status).toBe(422);
+    });
+
+    it('le support ne refuse pas → 403 ; jeton gestionnaire → 404 ; la demande reste en attente', async () => {
+      expect((await reject(REQ.yopougon, newKey(), support)).status).toBe(403);
+      expect((await reject(REQ.yopougon, newKey(), manager)).status).toBe(404);
+      expect(await rows(`SELECT status FROM association_requests WHERE id = $1`, [REQ.yopougon])).toEqual([
+        { status: 'pending' },
+      ]);
     });
   });
 });

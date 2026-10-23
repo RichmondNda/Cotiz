@@ -227,6 +227,7 @@ export const PlatformSubscription = z
     managerSeatsOverride: z.int().min(1).nullable(),
   })
   .meta({ id: 'PlatformSubscription' });
+export type PlatformSubscription = z.infer<typeof PlatformSubscription>;
 
 export const PlatformAssociationDetail = PlatformAssociationSummary.extend({
   type: AssociationType,
@@ -282,6 +283,8 @@ export const CreateAssociationInput = z.object({
 });
 
 export const AssociationCreated = z.object({ association: PlatformAssociationDetail, handoff: Handoff.nullable() });
+export type AssociationCreated = z.infer<typeof AssociationCreated>;
+export type CreateAssociationInput = z.infer<typeof CreateAssociationInput>;
 
 export const pfAssoCreate = defineEndpoint({
   id: 'pf.asso.create',

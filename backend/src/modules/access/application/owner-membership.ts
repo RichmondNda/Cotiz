@@ -1,6 +1,6 @@
 import { memberships } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 function assertPlatform(what: string): void {
@@ -53,4 +53,23 @@ export async function ownerOf(associationId: string): Promise<string | null> {
     .orderBy(memberships.createdAt)
     .limit(1);
   return row?.userId ?? null;
+}
+
+export interface AssociationMembers {
+  /** Gestionnaires (owner, manager, viewer) invités ou actifs, owner en premier, puis par ancienneté. */
+  managers: { userId: string; role: 'owner' | 'manager' | 'viewer' }[];
+  /** Souscripteurs non retirés. */
+  subscribers: number;
+}
+
+/** Équipe et nombre de souscripteurs d'une association (fiche plateforme). Espace plateforme seulement. */
+export async function membersOf(associationId: string): Promise<AssociationMembers> {
+  assertPlatform('membersOf');
+  const rows = await currentTx()
+    .select({ userId: memberships.userId, role: memberships.role })
+    .from(memberships)
+    .where(and(eq(memberships.associationId, associationId), ne(memberships.status, 'removed')))
+    .orderBy(sql`${memberships.role} <> 'owner'`, memberships.createdAt, memberships.id);
+  const managers = rows.flatMap((r) => (r.role === 'subscriber' ? [] : [{ userId: r.userId, role: r.role }]));
+  return { managers, subscribers: rows.length - managers.length };
 }
