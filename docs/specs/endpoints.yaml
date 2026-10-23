@@ -397,10 +397,11 @@ endpoints:
   operations:
   - method: POST
     path: /api/v1/platform/association-requests/{id}/approve
-  summary: 'Approbation en une transaction : association, abonnement, compte gestionnaire, appartenance owner. Renvoie le message d''accès prêt à transmettre (code d''activation affiché une fois)'
+  summary: 'Approbation en une transaction : association, abonnement, compte gestionnaire, appartenance owner. Renvoie le message d''accès prêt à transmettre (code d''activation jamais mémorisé en clair : le rejeu de la même requête le reconstruit tant qu''il sert ; null si le responsable a déjà un compte actif)'
   errors:
   - request_already_handled
   - email_already_owner
+  - owner_account_unavailable
   emits:
   - association.approved
   idempotencyKey: true
@@ -454,6 +455,7 @@ endpoints:
   errors:
   - slug_taken
   - email_already_owner
+  - owner_account_unavailable
   emits:
   - association.approved
   idempotencyKey: true

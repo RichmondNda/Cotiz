@@ -4,6 +4,7 @@ import { CodeService } from './application/code-service.js';
 import { GetMeUseCase } from './application/get-me.use-case.js';
 import { LoginUseCase } from './application/login.use-case.js';
 import { LogoutUseCase } from './application/logout.use-case.js';
+import { ManagerAccounts } from './application/manager-accounts.js';
 import { RefreshSessionUseCase } from './application/refresh-session.use-case.js';
 import { RequestPasswordResetUseCase } from './application/request-password-reset.use-case.js';
 import { ResetPasswordUseCase } from './application/reset-password.use-case.js';
@@ -42,8 +43,9 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     RequestPasswordResetUseCase,
     VerifyResetCodeUseCase,
     ResetPasswordUseCase,
+    ManagerAccounts,
   ],
-  // Garde d'authentification, enregistrée globalement par AppModule.
-  exports: [JwtGuard],
+  // Garde d'authentification, enregistrée globalement par AppModule ; comptes des gestionnaires (onboarding).
+  exports: [JwtGuard, ManagerAccounts],
 })
 export class IdentityModule {}

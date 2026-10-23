@@ -88,3 +88,12 @@ Toute autre transition → `invalid_state`.
 
 ## 9. Verrouillage des conditions financières
 Au **premier paiement validé** d'un projet, `financial_terms_locked_at` est posé. Deviennent non modifiables : `installment_amount`, `entry_fee_amount`, `frequency`, `due_day`, `schedule_type`, `start_date`, `end_date`, `currency`. Restent modifiables : nom, description, couverture, délai de grâce (pour l'avenir), moyens de paiement.
+
+## 10. Première période d'un abonnement — `firstSubscriptionPeriod({ startsOn, billingPeriod, trialDays })`
+Abonnement créé à l'approbation d'une demande ou à la création directe d'une association.
+- **Fin d'une période payante** — `periodEnd(start, billingPeriod)` : `start` + 1 mois (`monthly`) ou + 12 mois (`yearly`), jour ramené au dernier jour du mois s'il n'existe pas, **moins un jour** (dernier jour inclus). 1er nov. → 30 nov. ; 15 nov. → 14 déc. ; 31 janv. 2027 → 27 févr. ; 29 févr. 2028 en annuel → 27 févr. 2029.
+- **Sans essai** (`trialDays` `null`) : statut `active`, `currentPeriodEnd = periodEnd(startsOn)`, `trialEndsAt = null`.
+- **Avec essai** (1 à 365 jours, le jour de début compris) : statut `trialing`, `trialEndsAt = startsOn + trialDays − 1`, et la période en cours **est** l'essai : `currentPeriodEnd = trialEndsAt`. La première période payante commence le lendemain (lot 4.6).
+- Erreurs : date illisible `invalid_date`, période inconnue `invalid_billing_period`, durée d'essai hors bornes `invalid_trial_days`.
+- Comptes gestionnaires : `manager_seats_override` n'est posé que si le nombre accordé diffère de celui du plan (`null` ou absent = le plan, illimité compris).
+- Vecteurs : `test-vectors/subscription.json`.

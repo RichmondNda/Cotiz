@@ -3,3 +3,5 @@ export { authenticatedSession, JwtGuard } from './http/jwt.guard.js';
 export { type AccessClaims, AccessTokenSigner } from './infra/access-token-signer.js';
 export { RevokedSessions } from './infra/revoked-sessions.js';
 export { platformPersonRefsOf } from './application/person-refs.js';
+export { IdentityModule } from './identity.module.js';
+export { type ManagerAccount, ManagerAccounts, type ManagerContact } from './application/manager-accounts.js';

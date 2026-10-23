@@ -27,6 +27,7 @@ export const ERROR_CODES = [
   'reset_token_invalid',
   'request_already_handled',
   'email_already_owner',
+  'owner_account_unavailable',
   'slug_taken',
   'code_taken',
   'last_owner',
@@ -90,6 +91,11 @@ export const ERRORS = {
   reset_token_invalid: { http: 422, message: "Le lien de réinitialisation n'est plus valable. Recommencez." },
   request_already_handled: { http: 409, message: 'Cette demande a déjà été traitée.' },
   email_already_owner: { http: 409, message: 'Cette adresse gère déjà une autre association.' },
+  owner_account_unavailable: {
+    http: 409,
+    message:
+      'Le compte de cette adresse ne peut pas être rattaché (pas encore activé, bloqué ou réservé à la plateforme).',
+  },
   slug_taken: { http: 409, message: "Cet identifiant d'association est déjà utilisé." },
   code_taken: { http: 409, message: 'Ce code de plan existe déjà.' },
   last_owner: { http: 409, message: 'Il doit rester au moins un propriétaire.' },

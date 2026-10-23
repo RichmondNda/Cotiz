@@ -67,7 +67,7 @@ export function requestApprove(ctx: MockContext<'pf.req.approve', 'approve'>) {
       id: associationId, slug: r.key, name: r.association.name, type: r.association.type, city: r.association.city,
       country: r.association.country, description: r.association.activityDescription, logoFileId: null,
       contactEmail: r.contact.email, contactPhone: r.contact.phone, status: 'onboarding', currency: 'XOF', timezone: 'Africa/Abidjan',
-      defaultGraceDays: 5, onboardingCompletedAt: null, planId: ctx.body.planId, managerSeatsOverride: ctx.body.managerSeats,
+      defaultGraceDays: 5, onboardingCompletedAt: null, planId: ctx.body.planId, managerSeatsOverride: ctx.body.managerSeats ?? null,
       createdAt: now, lastActivityAt: now, suspendedAt: null, suspensionReason: null, statusBeforeSuspension: null, version: 1,
     })
     db.subscriptions.push({
@@ -188,7 +188,7 @@ export function associationCreate(ctx: MockContext<'pf.asso.create', 'create'>) 
     id, slug, name: b.association.name, type: b.association.type, city: b.association.city, country: b.association.country,
     description: b.association.description ?? null, logoFileId: null, contactEmail: b.owner.email, contactPhone: b.owner.phone,
     status: 'onboarding', currency: 'XOF', timezone: 'Africa/Abidjan', defaultGraceDays: 5, onboardingCompletedAt: null,
-    planId: b.subscription.planId, managerSeatsOverride: b.subscription.managerSeats, createdAt: now, lastActivityAt: now,
+    planId: b.subscription.planId, managerSeatsOverride: b.subscription.managerSeats ?? null, createdAt: now, lastActivityAt: now,
     suspendedAt: null, suspensionReason: null, statusBeforeSuspension: null, version: 1,
   })
   db.subscriptions.push({ id: uid('subscription', slug), associationId: id, planId: b.subscription.planId, billingPeriod: b.subscription.billingPeriod ?? 'monthly', status: b.subscription.trialDays ? 'trialing' : 'active', currentPeriodStart: b.subscription.startsOn, currentPeriodEnd: null, trialEndsOn: null })

@@ -10,6 +10,8 @@ import {
   type IdempotencyRecord,
   type IdempotencyStore,
   IdempotencyInterceptor,
+  isIdempotentReplay,
+  ReplayInHandler,
   requestFingerprint,
 } from './idempotency.interceptor.js';
 import { FakeResponse, fakeHandler, httpContext, routeHandler } from './testing.js';
@@ -24,6 +26,13 @@ class Routes {
   @Endpoint('pub.request', 'create')
   @HttpCode(201)
   submit(): void {
+    // Route de test : seules ses métadonnées comptent.
+  }
+
+  @Endpoint('pf.req.approve', 'approve')
+  @HttpCode(200)
+  @ReplayInHandler()
+  approve(): void {
     // Route de test : seules ses métadonnées comptent.
   }
 
@@ -61,7 +70,7 @@ function setup() {
   const interceptor = new IdempotencyInterceptor(new Reflector(), store);
   const call = async (
     options: {
-      route?: 'declare' | 'read' | 'submit';
+      route?: 'declare' | 'read' | 'submit' | 'approve';
       key?: string;
       body?: unknown;
       user?: string | null;
@@ -74,15 +83,16 @@ function setup() {
     if (options.user !== null) setRequestContext(req, { space: 'subscriber', userId: options.user ?? MOUSSA });
     const response = new FakeResponse();
     const handler = fakeHandler(options.result ?? { id: 'p1', status: 'pending' }, options.error);
+    const replayed = () => isIdempotentReplay(req);
     const route = options.route ?? 'declare';
     const context = httpContext(routeHandler(Routes, route), Routes, req, response);
     try {
       const value = await runWithRequestInfo({ requestId: 'r', ip: '203.0.113.7', userAgent: null }, async () =>
         lastValueFrom(await interceptor.intercept(context, handler)),
       );
-      return { value, response, calls: handler.calls };
+      return { value, response, calls: handler.calls, replayed: replayed() };
     } catch (error) {
-      return { error, response, calls: handler.calls };
+      return { error, response, calls: handler.calls, replayed: replayed() };
     }
   };
   return { store, call };
@@ -104,6 +114,29 @@ describe('IdempotencyInterceptor (Idempotency-Key, réponse mémorisée 24 h)', 
     expect(replay.calls).toBe(0);
     expect(replay.value).toEqual({ id: 'p1', status: 'pending' });
     expect(replay.response.getHeader('idempotent-replayed')).toBe('true');
+  });
+
+  it('ReplayInHandler : rien de la réponse n’est mémorisé ; le rejeu repasse par le handler, marqué rejeu', async () => {
+    const { store, call } = setup();
+    const secret = { handoff: { code: 'K7M4-P9QX' } };
+    const first = await call({ route: 'approve', result: secret });
+    expect(first.value).toEqual(secret);
+    expect(first.replayed).toBe(false);
+    const [stored] = [...store.records.values()];
+    expect(stored?.record).toMatchObject({ state: 'done', status: 200, body: null });
+    expect(JSON.stringify(stored?.record)).not.toContain('K7M4');
+
+    const replay = await call({ route: 'approve', result: { rebuilt: true } });
+    expect(replay.calls).toBe(1);
+    expect(replay.replayed).toBe(true);
+    expect(replay.value).toEqual({ rebuilt: true });
+    expect(replay.response.getHeader('idempotent-replayed')).toBe('true');
+    // Le rejeu ne remplace pas l'enregistrement (empreinte, 24 h).
+    expect([...store.records.values()][0]?.record).toEqual(stored?.record);
+
+    const reused = await call({ route: 'approve', body: { other: true } });
+    expect(code(reused.error)).toBe('idempotency_key_reused');
+    expect(reused.calls).toBe(0);
   });
 
   it('même clé, corps différent → 422 idempotency_key_reused, sans exécution', async () => {

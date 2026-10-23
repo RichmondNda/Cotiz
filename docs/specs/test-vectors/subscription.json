@@ -1,0 +1,205 @@
+{
+  "function": "firstSubscriptionPeriod",
+  "cases": [
+    {
+      "name": "mensuel-premier-du-mois",
+      "input": {
+        "startsOn": "2026-11-01",
+        "billingPeriod": "monthly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2026-11-30",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "mensuel-milieu-de-mois",
+      "input": {
+        "startsOn": "2026-11-15",
+        "billingPeriod": "monthly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2026-12-14",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "mensuel-decembre",
+      "input": {
+        "startsOn": "2026-12-31",
+        "billingPeriod": "monthly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2027-01-30",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "mensuel-31-janvier",
+      "input": {
+        "startsOn": "2027-01-31",
+        "billingPeriod": "monthly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2027-02-27",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "mensuel-31-janvier-bissextile",
+      "input": {
+        "startsOn": "2028-01-31",
+        "billingPeriod": "monthly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2028-02-28",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "mensuel-29-fevrier",
+      "input": {
+        "startsOn": "2028-02-29",
+        "billingPeriod": "monthly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2028-03-28",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "annuel",
+      "input": {
+        "startsOn": "2026-11-15",
+        "billingPeriod": "yearly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2027-11-14",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "annuel-29-fevrier",
+      "input": {
+        "startsOn": "2028-02-29",
+        "billingPeriod": "yearly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2029-02-27",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "annuel-28-fevrier",
+      "input": {
+        "startsOn": "2027-02-28",
+        "billingPeriod": "yearly",
+        "trialDays": null
+      },
+      "output": {
+        "status": "active",
+        "currentPeriodEnd": "2028-02-27",
+        "trialEndsAt": null
+      }
+    },
+    {
+      "name": "essai-14-jours",
+      "input": {
+        "startsOn": "2026-11-01",
+        "billingPeriod": "monthly",
+        "trialDays": 14
+      },
+      "output": {
+        "status": "trialing",
+        "currentPeriodEnd": "2026-11-14",
+        "trialEndsAt": "2026-11-14"
+      }
+    },
+    {
+      "name": "essai-plus-long-que-le-mois",
+      "input": {
+        "startsOn": "2026-11-01",
+        "billingPeriod": "monthly",
+        "trialDays": 60
+      },
+      "output": {
+        "status": "trialing",
+        "currentPeriodEnd": "2026-12-30",
+        "trialEndsAt": "2026-12-30"
+      }
+    },
+    {
+      "name": "essai-un-jour",
+      "input": {
+        "startsOn": "2026-12-31",
+        "billingPeriod": "yearly",
+        "trialDays": 1
+      },
+      "output": {
+        "status": "trialing",
+        "currentPeriodEnd": "2026-12-31",
+        "trialEndsAt": "2026-12-31"
+      }
+    },
+    {
+      "name": "date-illisible",
+      "input": {
+        "startsOn": "2026-02-30",
+        "billingPeriod": "monthly",
+        "trialDays": null
+      },
+      "error": {
+        "code": "invalid_date"
+      }
+    },
+    {
+      "name": "periode-inconnue",
+      "input": {
+        "startsOn": "2026-11-01",
+        "billingPeriod": "weekly",
+        "trialDays": null
+      },
+      "error": {
+        "code": "invalid_billing_period"
+      }
+    },
+    {
+      "name": "essai-nul",
+      "input": {
+        "startsOn": "2026-11-01",
+        "billingPeriod": "monthly",
+        "trialDays": 0
+      },
+      "error": {
+        "code": "invalid_trial_days"
+      }
+    },
+    {
+      "name": "essai-trop-long",
+      "input": {
+        "startsOn": "2026-11-01",
+        "billingPeriod": "monthly",
+        "trialDays": 366
+      },
+      "error": {
+        "code": "invalid_trial_days"
+      }
+    }
+  ]
+}

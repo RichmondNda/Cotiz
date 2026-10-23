@@ -11753,6 +11753,7 @@
                                   "reset_token_invalid",
                                   "request_already_handled",
                                   "email_already_owner",
+                                  "owner_account_unavailable",
                                   "slug_taken",
                                   "code_taken",
                                   "last_owner",
@@ -13049,7 +13050,7 @@
         "tags": ["platform"],
         "x-endpoint-id": "pf.req.approve",
         "x-permission": "platform.requests.manage",
-        "x-errors": ["request_already_handled", "email_already_owner"],
+        "x-errors": ["request_already_handled", "email_already_owner", "owner_account_unavailable"],
         "x-rate-limited": false,
         "x-audited": true,
         "parameters": [
@@ -13093,9 +13094,16 @@
                     "enum": ["monthly", "yearly"]
                   },
                   "managerSeats": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 9007199254740991
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   },
                   "subscriptionStartsOn": {
                     "type": "string",
@@ -13111,7 +13119,7 @@
                     "maxLength": 1000
                   }
                 },
-                "required": ["planId", "managerSeats", "subscriptionStartsOn"]
+                "required": ["planId", "subscriptionStartsOn"]
               }
             }
           }
@@ -13133,7 +13141,14 @@
                       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                     },
                     "handoff": {
-                      "$ref": "#/components/schemas/Handoff"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Handoff"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": ["request", "associationId", "handoff"],
@@ -13449,7 +13464,7 @@
         "tags": ["platform"],
         "x-endpoint-id": "pf.asso.create",
         "x-permission": "platform.associations.manage",
-        "x-errors": ["slug_taken", "email_already_owner"],
+        "x-errors": ["slug_taken", "email_already_owner", "owner_account_unavailable"],
         "x-rate-limited": false,
         "x-audited": true,
         "parameters": [
@@ -13569,9 +13584,16 @@
                         "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
                       },
                       "managerSeats": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 9007199254740991
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
                       },
                       "trialDays": {
                         "anyOf": [
@@ -13586,7 +13608,7 @@
                         ]
                       }
                     },
-                    "required": ["planId", "startsOn", "managerSeats", "trialDays"]
+                    "required": ["planId", "startsOn", "trialDays"]
                   },
                   "issueCredentialsNow": {
                     "type": "boolean"
@@ -18948,6 +18970,7 @@
               "reset_token_invalid",
               "request_already_handled",
               "email_already_owner",
+              "owner_account_unavailable",
               "slug_taken",
               "code_taken",
               "last_owner",

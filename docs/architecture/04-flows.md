@@ -4,9 +4,11 @@ Chaque flux indique le lot où il est construit. Les règles de calcul et leurs 
 
 ## 4.1 Approbation d'une association (lot 1.3)
 1. Le super-admin clique « Approuver et créer l'espace » avec le plan choisi (`Idempotency-Key`).
-2. Une transaction (rôle `cotiz_platform`) : `associations` (status `onboarding`), `subscriptions`, `users` du gestionnaire (ou rattachement par email), `memberships` (owner, active), `one_time_codes` (activation), mise à jour de la demande, audit, événement `association.approved`.
-3. Réponse : `handoff` (identifiant email, code, message prêt avec lien `mailto:` et WhatsApp). **Aucun email n'est envoyé par Cotiz.**
-4. Approuver deux fois la même demande renvoie la même réponse (idempotence) ; une demande déjà traitée : `request_already_handled`.
+2. Une transaction (rôle `cotiz_platform`) : `associations` (status `onboarding`), `subscriptions` (période et statut par `firstSubscriptionPeriod`, domain-rules § 10), `users` du gestionnaire (ou rattachement par email), `memberships` (owner, active), `one_time_codes` (activation, émis par la plateforme sans association), mise à jour de la demande, audit, événement `association.approved`.
+   - Rattachement par email : seulement un compte **actif** qui n'est owner d'aucune association et ne fait pas partie du personnel de la plateforme ; aucun code n'est émis. L'email d'une demande n'étant pas vérifié, un compte pas encore activé, verrouillé ou désactivé est refusé (`owner_account_unavailable`) : émettre un code pour lui le livrerait au demandeur. Déjà owner : `email_already_owner`.
+   - Contrôles avant toute écriture, sous verrou de l'adresse (deux approbations simultanées pour la même adresse : la seconde voit la première).
+3. Réponse : `handoff` (identifiant email, code, message prêt avec lien `mailto:` et WhatsApp) ; `null` pour un compte rattaché. **Aucun email n'est envoyé par Cotiz.**
+4. Approuver deux fois la même demande avec la même `Idempotency-Key` renvoie la même réponse : rien n'en est mémorisé en clair, le rejeu la reconstruit depuis la base (code déchiffré tant qu'il sert, `handoff` `null` ensuite). Avec une autre clé, une demande déjà traitée : `request_already_handled`.
 
 ## 4.2 Création de projet et échéancier (lot 2.2)
 - Projet créé en `draft`. `POST …/schedule-preview` appelle `generateSchedule()` de `@cotiz/domain` : **même fonction** que l'aperçu front.

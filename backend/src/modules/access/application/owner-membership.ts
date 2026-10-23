@@ -1,0 +1,56 @@
+import { memberships } from '@cotiz/db';
+import { newId } from '@cotiz/domain';
+import { and, eq, inArray, sql } from 'drizzle-orm';
+import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
+
+function assertPlatform(what: string): void {
+  if (currentContext()?.space !== 'platform') throw new Error(`${what} : espace plateforme seulement`);
+}
+
+/**
+ * La personne est-elle déjà owner (active ou invitée) d'une association ? Une adresse ne gère qu'une association
+ * (`email_already_owner`, approbation et création directe). Espace plateforme seulement : lit toutes les associations.
+ */
+export async function ownsAnAssociation(userId: string): Promise<boolean> {
+  assertPlatform('ownsAnAssociation');
+  const [row] = await currentTx()
+    .select({ one: sql<number>`1` })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.userId, userId),
+        eq(memberships.role, 'owner'),
+        inArray(memberships.status, ['active', 'invited']),
+      ),
+    )
+    .limit(1);
+  return row !== undefined;
+}
+
+/** Gestionnaire principal d'une nouvelle association : appartenance owner active (lot 1.3). Espace plateforme seulement. */
+export async function grantOwnership(associationId: string, userId: string, invitedBy: string): Promise<void> {
+  assertPlatform('grantOwnership');
+  await currentTx()
+    .insert(memberships)
+    .values({
+      id: newId(),
+      associationId,
+      userId,
+      role: 'owner',
+      status: 'active',
+      invitedBy,
+      joinedAt: sql`now()`,
+    });
+}
+
+/** Owner de l'association (rejeu d'une approbation) ; `null` si elle n'en a pas. Espace plateforme seulement. */
+export async function ownerOf(associationId: string): Promise<string | null> {
+  assertPlatform('ownerOf');
+  const [row] = await currentTx()
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .where(and(eq(memberships.associationId, associationId), eq(memberships.role, 'owner')))
+    .orderBy(memberships.createdAt)
+    .limit(1);
+  return row?.userId ?? null;
+}

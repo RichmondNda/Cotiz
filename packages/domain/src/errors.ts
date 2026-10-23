@@ -16,7 +16,10 @@ export type DomainErrorCode =
   | 'amount_exceeds_remaining'
   // Statuts : délai de grâce ou statut d'inscription invalides (non décrits par domain-rules).
   | 'invalid_grace_days'
-  | 'invalid_status';
+  | 'invalid_status'
+  // Abonnement (domain-rules § 10) : période de facturation ou durée d'essai invalides.
+  | 'invalid_billing_period'
+  | 'invalid_trial_days';
 
 /** Erreur d'une règle métier : `code` stable, `details` facultatifs (ex. `maxAmount`). */
 export class DomainError extends Error {

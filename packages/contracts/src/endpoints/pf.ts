@@ -115,26 +115,32 @@ export const ApproveRequestInput = z.object({
   planId: Uuid,
   /** Période de facturation ; mensuelle si absente (le formulaire ne la propose pas). */
   billingPeriod: BillingPeriod.optional(),
-  /** Comptes gestionnaires autorisés (défaut selon le plan). */
-  managerSeats: z.int().min(1),
+  /** Comptes gestionnaires autorisés ; `null` ou absent : ceux du plan (aucune surcharge). */
+  managerSeats: z.int().min(1).nullish(),
   subscriptionStartsOn: IsoDate,
   internalNote: z.string().max(2000).optional(),
   /** Mot personnel ajouté au message prêt. */
   personalMessage: z.string().max(1000).optional(),
 });
 
-/** L'espace est créé ; les accès du gestionnaire sont à transmettre soi-même (aucun email envoyé). */
+/**
+ * L'espace est créé ; les accès du gestionnaire sont à transmettre soi-même (aucun email envoyé). `handoff` `null` : le
+ * responsable a déjà un compte actif (rattaché par son email), sans code à remettre ; au rejeu, aussi une fois le code
+ * consommé ou expiré.
+ */
 export const RequestApproved = z.object({
   request: AssociationRequestDetail,
   associationId: Uuid,
-  handoff: Handoff,
+  handoff: Handoff.nullable(),
 });
+export type RequestApproved = z.infer<typeof RequestApproved>;
+export type ApproveRequestInput = z.infer<typeof ApproveRequestInput>;
 
 export const pfReqApprove = defineEndpoint({
   id: 'pf.req.approve',
   space: 'platform',
   permission: 'platform.requests.manage',
-  errors: ['request_already_handled', 'email_already_owner'],
+  errors: ['request_already_handled', 'email_already_owner', 'owner_account_unavailable'],
   flags: { ...noFlags, idempotencyKey: true, audited: true },
   operations: {
     approve: {
@@ -266,7 +272,8 @@ export const CreateAssociationInput = z.object({
     planId: Uuid,
     billingPeriod: BillingPeriod.optional(),
     startsOn: IsoDate,
-    managerSeats: z.int().min(1),
+    /** Comptes gestionnaires autorisés ; `null` ou absent : ceux du plan (aucune surcharge). */
+    managerSeats: z.int().min(1).nullish(),
     /** Période d'essai en jours ; `null` = pas d'essai. */
     trialDays: z.int().min(1).max(365).nullable(),
   }),
@@ -280,7 +287,7 @@ export const pfAssoCreate = defineEndpoint({
   id: 'pf.asso.create',
   space: 'platform',
   permission: manage,
-  errors: ['slug_taken', 'email_already_owner'],
+  errors: ['slug_taken', 'email_already_owner', 'owner_account_unavailable'],
   flags: { ...noFlags, idempotencyKey: true, audited: true },
   operations: {
     create: {
