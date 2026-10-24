@@ -3,6 +3,7 @@ import { plans, subscriptions } from '@cotiz/db';
 import { type Currency, Money } from '@cotiz/domain';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
+import type { PlanRow } from './plan-records.js';
 
 /** Abonnement en cours (au plus un, index `subscriptions_one_active`). */
 const CURRENT = ['trialing', 'active', 'past_due'] as const;
@@ -56,7 +57,8 @@ export async function displayedPlansOf(): Promise<Map<string, PlanRef>> {
   return new Map(rows.map(({ associationId, ...plan }) => [associationId, plan]));
 }
 
-async function subscriptionOf(associationId: string, currentOnly: boolean): Promise<CurrentSubscription | null> {
+/** Abonnement en cours, à défaut (`currentOnly` faux) le plus récent, et son plan ; `undefined` s'il n'y en a pas. */
+async function subscriptionRowOf(associationId: string, currentOnly: boolean) {
   const [row] = await currentTx()
     .select({ subscription: subscriptions, plan: plans })
     .from(subscriptions)
@@ -69,7 +71,33 @@ async function subscriptionOf(associationId: string, currentOnly: boolean): Prom
     )
     .orderBy(desc(isCurrent), desc(subscriptions.createdAt), desc(subscriptions.id))
     .limit(1);
-  if (!row) return null;
+  return row;
+}
+
+/**
+ * Abonnement de l'association du contexte, vu par ses gestionnaires (bl.sub) : celui en cours, à défaut le plus récent
+ * (choix Q8) ; `null` si elle n'en a jamais eu. Plan complet (carte « Plan actuel »), prix au tarif actuel du plan.
+ */
+export async function ownSubscriptionOf(
+  associationId: string,
+): Promise<{ subscription: CurrentSubscription; plan: PlanRow } | null> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('ownSubscriptionOf : contexte de cette association attendu');
+  }
+  const row = await subscriptionRowOf(associationId, false);
+  return row ? { subscription: toCurrentSubscription(row), plan: row.plan } : null;
+}
+
+async function subscriptionOf(associationId: string, currentOnly: boolean): Promise<CurrentSubscription | null> {
+  const row = await subscriptionRowOf(associationId, currentOnly);
+  return row ? toCurrentSubscription(row) : null;
+}
+
+function toCurrentSubscription(row: {
+  subscription: typeof subscriptions.$inferSelect;
+  plan: PlanRow;
+}): CurrentSubscription {
   const { subscription: s, plan } = row;
   const currency = plan.currency as Currency;
   return {
