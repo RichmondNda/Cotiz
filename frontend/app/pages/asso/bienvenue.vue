@@ -10,6 +10,8 @@
 import type { FichierDepose } from '~/components/cz/CzFileDrop.vue'
 import type { ModalitePaiement, MoyenPaiement } from '~~/types'
 import { emailValide } from '~/utils/validation'
+import { codeErreur, messageRefus } from '~/composables/api/client'
+import { erreursMoyens } from '~/composables/api/vues/associations'
 import { MOYENS_PAIEMENT } from '~/utils/statuts'
 
 definePageMeta({ middleware: 'espace-gestionnaire', layout: false })
@@ -74,7 +76,11 @@ const erreurs = computed(() => {
     if (!profil.nom.trim()) e.nom = 'Indiquez le nom de l’association.'
     if (profil.email.trim() && !emailValide(profil.email)) e.email = 'Adresse email invalide.'
   }
-  if (etape.value === 3 && !ORDRE.some(m => moyens[m].actif)) e.moyens = 'Choisissez au moins un moyen de paiement.'
+  if (etape.value === 3) {
+    if (!ORDRE.some(m => moyens[m].actif)) e.moyens = 'Choisissez au moins un moyen de paiement.'
+    // Même schéma que le back (as.pm.replace) : opérateur, numéro, IBAN, instructions.
+    Object.assign(e, erreursMoyens(modalites()))
+  }
   return e
 })
 
@@ -111,12 +117,16 @@ async function continuer() {
             ville: profil.ville.trim(),
             telephoneContact: profil.telephone.trim() || undefined,
             emailContact: profil.email.trim() || undefined,
-            logoUrl: logo.value ? `[LOGO] ${logo.value.nom}` : undefined,
+            logo: logo.value?.fichier,
           }
         : { modalitesPaiement: modalites() })
     }
-    catch {
-      toast.erreur('Enregistrement impossible', { message: 'Vérifiez votre connexion, puis réessayez.' })
+    catch (e) {
+      toast.erreur('Enregistrement impossible', {
+        message: codeErreur(e) === 'logo_en_analyse'
+          ? 'Le logo est en cours de vérification : réessayez dans un instant.'
+          : messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.',
+      })
       return
     }
     finally {
@@ -363,6 +373,7 @@ function retour() {
                   <CzField
                     v-if="moyens[m].actif"
                     :label="CHAMPS_MOYENS[m]"
+                    :erreur="erreurs[m]"
                   >
                     <CzInput v-model="moyens[m].valeur" />
                   </CzField>

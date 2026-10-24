@@ -2,7 +2,7 @@
 // `details` selon le type, opérateur codé, numéro E.164, instructions obligatoires pour les espèces).
 import { ENDPOINTS } from '@cotiz/contracts'
 import { describe, expect, it } from 'vitest'
-import { versMoyens } from '~/composables/api/vues/associations'
+import { erreursMoyens, versMoyens } from '~/composables/api/vues/associations'
 
 const corps = ENDPOINTS['as.pm'].operations.replace.request.body
 
@@ -31,5 +31,31 @@ describe('versMoyens', () => {
     const items = versMoyens([{ moyen: 'mobile_money', numeroMobileMoney: '0708091011', operateur: 'Autre' }])
     const issues = corps.safeParse({ items }).error?.issues.map(i => i.path.join('.'))
     expect(issues).toEqual(['items.0.details.operator'])
+  })
+})
+
+describe('erreursMoyens', () => {
+  it('saisie valide : aucune erreur', () => {
+    expect(erreursMoyens([
+      { moyen: 'virement', iban: 'CI93 CI00 8011 1234 5678 9012 34' },
+      { moyen: 'mobile_money', numeroMobileMoney: '07 08 09 10 11', operateur: 'Orange' },
+      { moyen: 'especes', instructions: 'Remise au trésorier' },
+    ])).toEqual({})
+  })
+
+  it('un message par moyen refusé, selon le champ', () => {
+    expect(erreursMoyens([
+      { moyen: 'virement', iban: '0708091011' },
+      { moyen: 'mobile_money', numeroMobileMoney: '07 08 09 10 11', operateur: 'Autre' },
+      { moyen: 'especes' },
+    ])).toEqual({
+      virement: 'Indiquez un IBAN valide.',
+      mobile_money: 'Précisez l’opérateur : Orange, MTN, Moov ou Wave.',
+      especes: 'Précisez les instructions de paiement.',
+    })
+  })
+
+  it('numéro manquant : message du numéro', () => {
+    expect(erreursMoyens([{ moyen: 'mobile_money', operateur: 'Wave' }])).toEqual({ mobile_money: 'Indiquez un numéro de téléphone valide.' })
   })
 })

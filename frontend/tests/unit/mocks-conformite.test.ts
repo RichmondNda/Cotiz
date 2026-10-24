@@ -88,8 +88,7 @@ const READS: Record<string, Call> = {
   'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
   'pf.asso.sub projects': { params: { id: aid } },
   'pf.asso.sub members': { params: { id: aid } }, 'pf.invoices list': {}, 'pf.staff list': {},
-  'as.get get': { params: { aid } }, 'as.pm list': { params: { aid } }, 'as.dashboard get': { params: { aid } },
-  'bl.sub get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
+  'as.dashboard get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P }, 'pr.list list': { params: { aid } }, 'pr.get get': { params: P },
   'pr.overview get': { params: P }, 'rp.report get': { params: P }, 'en.list list': { params: P }, 'mb.list list': { params: { aid } },
   'mb.get get': { params: { aid, uid: ID.moussa } }, 'mb.timeline list': { params: { aid, uid: ID.moussa } },
@@ -110,9 +109,6 @@ const WRITES: Record<string, () => Call> = {
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
   'nt.read read': () => ({ params: { id: uid('notification', 'nt-mb-1') } }),
   'nt.read readAll': () => ({}),
-  'as.patch patch': () => ({ params: { aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
-  'as.pm replace': () => ({ params: { aid }, body: { items: [{ kind: 'cash', label: 'Espèces', details: {}, instructions: 'Remise au trésorier', isActive: true }] } }),
-  'as.onb complete': () => ({ params: { aid } }),
   'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
   'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
   'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
@@ -259,7 +255,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
     expect(await problem('pr.create', 'create', { ...WRITES['pr.create create']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
     expect(await problem('en.create', 'create', { ...WRITES['en.create create']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
     expect(await problem('pr.patch', 'patch', { ...WRITES['pr.patch patch']!(), scenario: 'version_conflict' })).toBe('version_conflict')
-    expect(await problem('as.get', 'get', { ...READS['as.get get'], scenario: 'association_suspended' })).toBe('association_suspended')
+    expect(await problem('as.dashboard', 'get', { ...READS['as.dashboard get'], scenario: 'association_suspended' })).toBe('association_suspended')
     expect(await problem('lg.pay.reject', 'reject', { ...WRITES['lg.pay.reject reject']!(), scenario: 'payment_already_reviewed' })).toBe('payment_already_reviewed')
   })
 
@@ -285,7 +281,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 
   it('ressource d’une autre association → 404', async () => {
     expect(await problem('pr.get', 'get', { params: { aid, pid: ID.mutuelle } })).toBe('not_found')
-    expect(await problem('as.get', 'get', { params: { aid: ID.man } })).toBe('not_found')
+    expect(await problem('as.dashboard', 'get', { params: { aid: ID.man } })).toBe('not_found')
   })
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {

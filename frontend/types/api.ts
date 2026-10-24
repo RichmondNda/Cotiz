@@ -190,10 +190,10 @@ export type NouveauProjet = Pick<Projet,
   brouillon?: boolean
 }
 
-/** Corps de `as.patch › patch + as.pm › replace` (onboarding étapes 2 et 3, paramètres). */
+/** Corps de `as.patch › patch + as.pm › replace` (onboarding étapes 2 et 3, paramètres) ; `logo` : déposé par `as.upload`. */
 export type ModificationAssociation = Partial<Pick<Association,
-  'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'logoUrl' | 'modalitesPaiement' | 'instructionsPaiement'
->>
+  'nom' | 'description' | 'ville' | 'telephoneContact' | 'emailContact' | 'modalitesPaiement' | 'instructionsPaiement'
+>> & { logo?: File }
 
 // ---------------------------------------------------------------- Détail d'un projet (gestionnaire)
 

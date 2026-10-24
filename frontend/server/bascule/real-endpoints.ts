@@ -8,8 +8,8 @@ export type BasculeSpace = 'platform' | 'association' | 'subscriber'
 export type BasculeRule = 'all' | readonly BasculeSpace[]
 
 /**
- * Dépôt et lecture de fichiers : espace plateforme seulement. Le dépôt d'un logo d'association (décision 24, lot 2.1)
- * et de la preuve d'un souscripteur (lot 3.3) restent simulés avec les écrans qui s'en servent.
+ * Dépôt et lecture de fichiers (fl.*) : espace plateforme seulement. Le logo d'une association passe par as.upload et
+ * as.file (décision 24, lot 2.1) ; la preuve d'un souscripteur (lot 3.3) reste simulée avec les écrans qui s'en servent.
  */
 const PLATFORM = ['platform'] as const
 
@@ -50,4 +50,12 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['pf.resets', 'all'],
   // Lot 1.4 : tableau de bord plateforme (vues matérialisées, tâche stats.refresh).
   ['pf.dashboard', 'all'],
+  // Lot 2.1 : profil, logo, moyens de paiement, onboarding et abonnement de l'association (espace gestionnaire).
+  ['as.get', 'all'],
+  ['as.patch', 'all'],
+  ['as.upload', 'all'],
+  ['as.file', 'all'],
+  ['as.pm', 'all'],
+  ['as.onb', 'all'],
+  ['bl.sub', 'all'],
 ])

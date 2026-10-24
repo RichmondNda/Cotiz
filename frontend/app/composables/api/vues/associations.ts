@@ -1,8 +1,10 @@
 // Associations : réponses du contrat (Association, PaymentMethod, PlatformAssociation*) → types d'interface.
 import type { CallOutput } from '@cotiz/api-client'
+import { ENDPOINTS } from '@cotiz/contracts'
 import type { Association as AssociationContrat, PaymentMethod, PlatformAssociationDetail } from '@cotiz/contracts'
 import type {
-  Association, AssociationListe, EvenementPlateforme, FicheAssociationPlateforme, ModalitePaiement, Plan, Quota, QuotaUtilise, StatutFacture,
+  Association, AssociationListe, EvenementPlateforme, FicheAssociationPlateforme, ModalitePaiement, MoyenPaiement, Plan, Quota, QuotaUtilise,
+  StatutFacture,
   TonEvenement, TypeAssociation,
 } from '~~/types'
 import { formatDate, formatFCFA, formatMois, initiales } from '~/utils/format'
@@ -47,6 +49,30 @@ export function versMoyens(modalites: ModalitePaiement[], instructions?: string)
     }
     return { kind: 'cash', label: 'Espèces', details: {}, instructions: x.instructions ?? null, isActive: true }
   })
+}
+
+/** Message affiché sous le champ d'un moyen, selon le champ refusé par le contrat. */
+export const MESSAGE_OPERATEUR = 'Précisez l’opérateur : Orange, MTN, Moov ou Wave.'
+const MESSAGES_MOYEN: Record<string, string> = {
+  'details.operator': MESSAGE_OPERATEUR,
+  'details.number': 'Indiquez un numéro de téléphone valide.',
+  'details.iban': 'Indiquez un IBAN valide.',
+  'instructions': 'Précisez les instructions de paiement.',
+}
+
+/**
+ * Modalités saisies refusées par le contrat de `as.pm.replace` (même schéma que le back) : message par moyen, avant
+ * l'envoi. Aucune erreur : objet vide.
+ */
+export function erreursMoyens(modalites: ModalitePaiement[], instructions?: string): Partial<Record<MoyenPaiement, string>> {
+  const resultat = ENDPOINTS['as.pm'].operations.replace.request.body.safeParse({ items: versMoyens(modalites, instructions) })
+  const erreurs: Partial<Record<MoyenPaiement, string>> = {}
+  for (const issue of resultat.error?.issues ?? []) {
+    const [racine, index, ...champ] = issue.path.map(String)
+    const moyen = racine === 'items' ? modalites[Number(index)]?.moyen : undefined
+    if (moyen && !erreurs[moyen]) erreurs[moyen] = MESSAGES_MOYEN[champ.join('.')] ?? 'Vérifiez ce moyen de paiement.'
+  }
+  return erreurs
 }
 
 interface Compteurs { projets: number, souscripteurs: number, gestionnaires: number, limiteSecondaires?: number, prochaineEcheance?: string, planId: string }
