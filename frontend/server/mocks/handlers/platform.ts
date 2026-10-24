@@ -73,7 +73,12 @@ function subscription(id: string) {
   }
 }
 
+// Association réelle (pf.asso.get basculé au lot 1.4) inconnue des mocks, créée par le vrai back : encore aucun projet
+// ni souscripteur, comme le renverra pf.asso.sub une fois basculé.
+const associationInconnue = (id: string) => !db.associations.some(a => a.id === id)
+
 export function associationProjects(ctx: MockContext<'pf.asso.sub', 'projects'>) {
+  if (associationInconnue(ctx.params.id)) return page([], ctx.query, { total: 0 })
   const a = associationRow(ctx.params.id)
   const rows = db.projects.filter(p => p.associationId === a.id).map((p) => {
     const f = projectFigures(p)
@@ -83,6 +88,7 @@ export function associationProjects(ctx: MockContext<'pf.asso.sub', 'projects'>)
 }
 
 export function associationMembers(ctx: MockContext<'pf.asso.sub', 'members'>) {
+  if (associationInconnue(ctx.params.id)) return page([], ctx.query, { total: 0 })
   const a = associationRow(ctx.params.id)
   const projectIds = new Set(db.projects.filter(p => p.associationId === a.id).map(p => p.id))
   const rows = db.memberships
