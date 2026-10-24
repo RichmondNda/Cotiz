@@ -16,7 +16,7 @@ Un seul endpoint `POST /auth/login` avec `space` : `platform`, `association` ou 
 | Rafraîchissement | Opaque 256 bits, cookie `HttpOnly; Secure; SameSite=Lax; Path=/api/v1/auth`, stocké haché (SHA-256) dans `sessions`. Durée **absolue** de 30 jours depuis la connexion, jamais prolongée par les rotations. « Rester connecté » (`sessions.remember_me`) : cookie persistant jusqu'à cette échéance ; sinon cookie de session |
 | Rotation | Chaque `POST /auth/refresh` émet un nouveau jeton et révoque l'ancien, avec la même échéance. Réutilisation d'un jeton révoqué = vol présumé : **toute la famille** (`family_id`) est révoquée. Le droit à l'espace est revérifié à chaque rotation. Le front ne lance qu'un renouvellement à la fois, tous onglets confondus |
 | Déconnexion | Session révoquée ; `sid` en liste noire Redis jusqu'à expiration du JWT |
-| Suspension d'association | Liste noire Redis `assoc:suspended:{aid}` vérifiée par la garde ; effet immédiat |
+| Suspension d'association | `MembershipGuard` lit le statut de l'association en base à chaque requête : 403 `association_suspended` dès la requête suivante. Le consommateur de `association.suspended` révoque les sessions de l'espace association des gestionnaires (familles entières, `sid` en liste noire Redis) ; reconnexion refusée (`association_suspended`). Aucune clé Redis par association |
 | Hachage | argon2id (paramètres OWASP : m=19 MiB, t=2, p=1) |
 | Verrouillage | 5 échecs → 15 min (`account_locked`) ; limite complémentaire par IP |
 
