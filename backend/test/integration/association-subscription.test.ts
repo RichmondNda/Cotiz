@@ -15,7 +15,7 @@ import {
  * Lot 2.1 · étape 4 : abonnement de l'association vu par ses gestionnaires (bl.sub) : plan, période, prix au tarif
  * actuel, quotas et usage. Vérification de l'étape : réponse conforme au contrat. Choix du lot : abonnement en cours, à
  * défaut le plus récent ; aucun → 404 (Q8). Usage compté comme QuotaService (Q7) : gestionnaires = owner, manager et
- * viewer invités ou actifs ; souscripteurs non retirés ; projets à 0 jusqu'au lot 2.2 (Q6).
+ * viewer invités ou actifs ; souscripteurs non retirés ; projets en brouillon, inscriptions ouvertes ou en cours (lot 2.2, Q6).
  */
 
 const xof = (amount: number) => ({ amount, currency: 'XOF' });
@@ -67,6 +67,14 @@ describe('abonnement de l’association (bl.sub)', () => {
          (gen_random_uuid(), $1, $3, 'subscriber', 'removed')`,
       [A.id, DIDI, ALI],
     );
+    // A : un brouillon et un projet en cours comptés, un projet terminé non compté (Q6) ; B : non compté pour A.
+    await f.h.superuser(
+      `INSERT INTO projects (id, association_id, name, description, status, installment_amount, frequency, due_day,
+                             schedule_type, start_date, created_by)
+       SELECT gen_random_uuid(), a, 'P', '', s::projects_status, 1000, 'monthly', 5, 'rolling', '2026-01-01', $3
+         FROM (VALUES ($1::uuid, 'draft'), ($1::uuid, 'active'), ($1::uuid, 'completed'), ($2::uuid, 'draft')) AS p(a, s)`,
+      [A.id, B.id, USERS.awa],
+    );
     [awa, koffi, yao] = await Promise.all([
       f.login('association', 'awa@test.cotiz.app'),
       f.login('association', 'koffi@test.cotiz.app'),
@@ -96,7 +104,7 @@ describe('abonnement de l’association (bl.sub)', () => {
       currentPeriodEnd: '2026-10-31',
       trialEndsOn: null,
       quotas: {
-        projects: { used: 0, limit: 5 },
+        projects: { used: 2, limit: 5 },
         // Moussa (actif), Didi (invité) ; Ali retiré ; Aminata et Fatou sont passées gestionnaires.
         subscribers: { used: 2, limit: 100 },
         // Awa (owner), Koffi (viewer), Aminata (manager invitée).
@@ -116,7 +124,7 @@ describe('abonnement de l’association (bl.sub)', () => {
       currentPeriodEnd: '2026-10-14',
       trialEndsOn: '2026-10-14',
       quotas: {
-        projects: { used: 0, limit: null },
+        projects: { used: 1, limit: null },
         // Fatou et Awa, souscriptrices de B.
         subscribers: { used: 2, limit: 500 },
         managers: { used: 1, limit: 3 },

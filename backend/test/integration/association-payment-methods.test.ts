@@ -153,6 +153,41 @@ describe('moyens de paiement de l’association (as.pm)', () => {
     expect(await rows(B.id)).toHaveLength(1);
   });
 
+  it('moyens absents mais retenus par un projet (lot 2.2) : désactivés, conservés en fin de liste dans leur ordre', async () => {
+    const [sgbci, orange, cash] = PaymentMethodList.parse(await (await put([SGBCI, ORANGE, CASH])).json()).items;
+    const project = '00000000-0000-7000-8000-00000000c201';
+    await f.h.superuser(
+      `INSERT INTO projects (id, association_id, name, description, installment_amount, frequency, due_day,
+                             schedule_type, start_date, created_by)
+       VALUES ($1, $2, 'Tontine', '', 25000, 'monthly', 5, 'rolling', '2026-03-01', $3)`,
+      [project, A.id, USERS.awa],
+    );
+    await f.h.superuser(
+      `INSERT INTO project_payment_methods (project_id, payment_method_id, association_id)
+       VALUES ($1, $2, $4), ($1, $3, $4)`,
+      [project, cash?.id, sgbci?.id, A.id],
+    );
+    try {
+      const res = await put([{ ...ORANGE, id: orange?.id }]);
+      expect(res.status).toBe(200);
+      const items = PaymentMethodList.parse(await res.json()).items;
+      expect(items.map((m) => [m.id, m.position, m.isActive])).toEqual([
+        [orange?.id, 0, true],
+        [sgbci?.id, 1, false],
+        [cash?.id, 2, false],
+      ]);
+      expect(await list()).toEqual(items);
+      // Retenus par le projet : les liens restent. Absents de nouveau : conservés, rien ne change, aucun événement.
+      expect((await f.h.superuser('SELECT 1 FROM project_payment_methods')).rowCount).toBe(2);
+      const again = PaymentMethodList.parse(await (await put(items.slice(0, 1))).json()).items;
+      expect(again).toEqual(items);
+      expect(await events()).toHaveLength(2);
+    } finally {
+      await f.h.superuser('DELETE FROM project_payment_methods');
+      await f.h.superuser('DELETE FROM projects');
+    }
+  });
+
   describe('validation par type : 422 validation_failed sur le champ, rien n’est écrit', () => {
     it.each([
       [

@@ -37,7 +37,7 @@ describe('QuotaService (quotas du plan de l’association)', () => {
   /** `null` si l'ajout est permis, sinon le problème levé. */
   const outcome = async (
     association: FixtureAssociation,
-    kind: 'subscribers' | 'managers',
+    kind: 'projects' | 'subscribers' | 'managers',
   ): Promise<{ code: string; limit?: number; usage?: number } | null> => {
     try {
       await assertIn(association, kind);
@@ -154,9 +154,28 @@ describe('QuotaService (quotas du plan de l’association)', () => {
       expect(await outcome(A, 'managers')).toBeNull();
     });
 
-    it('projets : compteur branché au lot 2.1, échec explicite d’ici là', async () => {
-      await subscribe(A, PLANS.unlimited);
-      await expect(assertIn(A, 'projects')).rejects.toThrow(/lot 2\.1/);
+    it('projets : brouillons, inscriptions ouvertes et en cours comptés ; terminés, archivés et autres associations non (Q6)', async () => {
+      await subscribe(A, PLANS.small);
+      const project = (association: FixtureAssociation, status: string) =>
+        h.superuser(
+          `INSERT INTO projects (id, association_id, name, description, status, installment_amount, frequency,
+                                 due_day, schedule_type, start_date, created_by)
+           VALUES (gen_random_uuid(), $1, 'P', '', $2, 1000, 'monthly', 5, 'rolling', '2026-01-01', $3)`,
+          [association.id, status, association.managerId],
+        );
+      await h.superuser('DELETE FROM projects');
+      try {
+        await project(A, 'completed');
+        await project(A, 'archived');
+        await project(B, 'active');
+        expect(await outcome(A, 'projects')).toBeNull();
+        await h.superuser(`UPDATE plans SET max_projects = 3 WHERE id = $1`, [PLANS.small]);
+        for (const status of ['draft', 'enrolling', 'active']) await project(A, status);
+        expect(await outcome(A, 'projects')).toEqual({ code: 'quota_exceeded', limit: 3, usage: 3 });
+      } finally {
+        await h.superuser('DELETE FROM projects');
+        await h.superuser(`UPDATE plans SET max_projects = 1 WHERE id = $1`, [PLANS.small]);
+      }
     });
   });
 

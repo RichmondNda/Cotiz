@@ -78,6 +78,13 @@
       "when": 1792793353825,
       "tag": "0010_plans_xof",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792870964020,
+      "tag": "0011_projects",
+      "breakpoints": true
     }
   ]
 }

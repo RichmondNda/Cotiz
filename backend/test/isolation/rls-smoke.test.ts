@@ -250,11 +250,12 @@ describe('test de fumée de l’isolation et des invariants (docs/specs/rls-smok
 });
 
 /**
- * Lot 1.2 : associations et memberships sont migrées. Les scénarios du script qui ne lisent qu'elles (1c, 2, 3c et le
- * complément 3d) tournent aussi sur la base migrée, avec les lignes du script pour ces deux tables (les personnes du
- * harnais ont les mêmes identifiants). Le reste attend projects, enrollments et installments (lots 2.1 à 2.4).
+ * Lot 1.2 : associations et memberships sont migrées ; lot 2.2 : projects. Les scénarios du script qui ne lisent
+ * qu'elles (1b, 1c, 1d, 2, 3c et le complément 3d) tournent aussi sur la base migrée, avec les lignes du script pour
+ * ces tables (les personnes du harnais ont les mêmes identifiants). Le reste attend enrollments et installments (lots
+ * 2.3 et 2.4), dont 3b (lecture d'un projet suivi par le souscripteur, subscriber_enrolled_read).
  */
-const MIGRATED_TABLES = ['associations', 'memberships'] as const;
+const MIGRATED_TABLES = ['associations', 'memberships', 'projects'] as const;
 
 async function smokeSeedFor(tables: readonly string[]): Promise<string> {
   const statements = (await smokeSeed()).split(/;\n(?=INSERT)/).map((s) => s.replace(/;\s*$/, ''));
@@ -264,7 +265,7 @@ async function smokeSeedFor(tables: readonly string[]): Promise<string> {
   return kept.join(';\n') + ';';
 }
 
-describe('test de fumée, partie associations et memberships, sur la base migrée', () => {
+describe('test de fumée, partie associations, memberships et projects, sur la base migrée', () => {
   let h: IsolationHarness;
 
   beforeAll(async () => {
@@ -276,8 +277,31 @@ describe('test de fumée, partie associations et memberships, sur la base migré
     await h.stop();
   });
 
+  it('1b. le gestionnaire d’Entraide Yopougon ne voit que son projet', async () => {
+    expect(await h.count(asManagerOf(A), 'projects')).toBe(1);
+  });
+
   it('1c. le gestionnaire d’Entraide Yopougon ne voit que son association', async () => {
     expect(await h.count(asManagerOf(A), 'associations')).toBe(1);
+  });
+
+  it('1d. le gestionnaire d’Entraide Yopougon n’écrit pas de projet dans une autre association', async () => {
+    const error = await errorOf(
+      h.asRollback(asManagerOf(A), (tx) =>
+        tx.execute(sql`INSERT INTO projects (id, association_id, name, description, status, installment_amount,
+                         frequency, due_day, schedule_type, start_date, created_by)
+                       VALUES (${INTRUDER_PROJECT}, ${B.id}, 'intrus', '', 'draft', 1, 'monthly', 5, 'fixed',
+                         '2026-01-01', ${USERS.awa})`),
+      ),
+    );
+    expect(isRlsViolation(error)).toBe(true);
+  });
+
+  it('projects.tenant_isolation élargie : 1b échoue', async () => {
+    const widened = { using: 'true', withCheck: 'true' };
+    expect(await h.withPolicy('projects', 'tenant_isolation', widened, () => h.count(asManagerOf(A), 'projects'))).toBe(
+      2,
+    );
   });
 
   it('2. sans contexte, ou sans aucune variable app.* : zéro ligne', async () => {
@@ -291,10 +315,13 @@ describe('test de fumée, partie associations et memberships, sur la base migré
     expect(await h.count(asSubscriber(USERS.moussa), 'associations')).toBe(1);
   });
 
-  it('3d. hors de l’espace subscriber, ni l’association ni l’appartenance de Moussa à A', async () => {
+  it('3d. hors de l’espace subscriber, ni l’association, ni l’appartenance, ni les projets de A', async () => {
     const context = { space: 'association', associationId: B.id, userId: USERS.moussa } as const;
     expect(await h.count(context, 'associations')).toBe(1);
     expect(await h.count(context, 'memberships')).toBe(1);
+    // Double 1b jusqu'au lot 2.3 : subscriber_enrolled_read et enrollments n'existent pas encore sur la base migrée
+    // (à compléter alors par la mutation « subscriber_enrolled_read sans condition d'espace : 3d échoue »).
+    expect(await h.count(context, 'projects')).toBe(1);
   });
 
   it('memberships.self_read sans condition d’espace : 3d échoue', async () => {

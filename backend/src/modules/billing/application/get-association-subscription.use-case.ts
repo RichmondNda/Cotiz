@@ -8,8 +8,8 @@ import { ownSubscriptionOf } from './subscription-views.js';
 
 /**
  * bl.sub : abonnement de l'association pour ses gestionnaires (mg-abonnement) : plan, période, prix, quotas et usage.
- * Abonnement en cours, à défaut le plus récent ; aucun : 404 (choix Q8). Usage compté comme QuotaService (Q7) ;
- * projets à 0 jusqu'au lot 2.2 (Q6, la table `projects` n'existe pas encore).
+ * Abonnement en cours, à défaut le plus récent ; aucun : 404 (choix Q8). Usage compté comme QuotaService (Q7 ; projets :
+ * Q6 du lot 2.2).
  */
 @Injectable()
 export class GetAssociationSubscriptionUseCase {
@@ -28,7 +28,7 @@ export class GetAssociationSubscriptionUseCase {
       currentPeriodEnd: s.subscription.currentPeriodEnd,
       trialEndsOn: s.subscription.trialEndsOn,
       quotas: {
-        projects: { used: 0, limit: s.limits.projects },
+        projects: { used: await quotaUsageOf(associationId, 'projects'), limit: s.limits.projects },
         subscribers: { used: await quotaUsageOf(associationId, 'subscribers'), limit: s.limits.subscribers },
         managers: { used: await quotaUsageOf(associationId, 'managers'), limit: s.limits.managers },
       },

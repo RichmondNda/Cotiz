@@ -312,7 +312,8 @@ CREATE TABLE association_payment_methods (
   instructions text,
   position int NOT NULL DEFAULT 0,
   is_active boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (id, association_id)
 );
 COMMENT ON TABLE association_payment_methods IS 'Comment les souscripteurs paient l''association (écran onboarding étape 3).';
 COMMENT ON COLUMN association_payment_methods.association_id IS 'RLS';
@@ -417,7 +418,8 @@ CREATE TABLE projects (
   created_by uuid NOT NULL,
   closed_at timestamptz,
   version int NOT NULL DEFAULT 1,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (id, association_id)
 );
 COMMENT ON TABLE projects IS 'Un projet de cotisation.';
 COMMENT ON COLUMN projects.association_id IS 'RLS';
@@ -1048,8 +1050,10 @@ ALTER TABLE invoices ADD FOREIGN KEY (subscription_id) REFERENCES subscriptions(
 ALTER TABLE invoices ADD FOREIGN KEY (pdf_file_id) REFERENCES files(id);
 ALTER TABLE projects ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE projects ADD FOREIGN KEY (created_by) REFERENCES users(id);
-ALTER TABLE project_payment_methods ADD FOREIGN KEY (project_id) REFERENCES projects(id);
-ALTER TABLE project_payment_methods ADD FOREIGN KEY (payment_method_id) REFERENCES association_payment_methods(id);
+-- Clés composites : le projet et le moyen de paiement sont de l'association de la ligne (la RLS ne contrôle que
+-- association_id ; une clé simple accepterait un lien vers une autre association, lot 2.2).
+ALTER TABLE project_payment_methods ADD FOREIGN KEY (project_id, association_id) REFERENCES projects(id, association_id);
+ALTER TABLE project_payment_methods ADD FOREIGN KEY (payment_method_id, association_id) REFERENCES association_payment_methods(id, association_id);
 ALTER TABLE project_payment_methods ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE enrollments ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE enrollments ADD FOREIGN KEY (project_id) REFERENCES projects(id);

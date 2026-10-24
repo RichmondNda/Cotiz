@@ -6,6 +6,7 @@ import { and, eq, notInArray } from 'drizzle-orm';
 import type { z } from 'zod';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
+import { paymentMethodsInUse } from '../../projects/projects.public.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { contextAssociationId } from './association-records.js';
@@ -29,9 +30,10 @@ function canonical(value: unknown): string {
 /**
  * as.pm › replace : remplacement complet des moyens de paiement (onboarding étape 3, paramètres). `details` déjà
  * validé par type (PaymentMethodInput) ; l'ordre de la liste donne `position`. Moyen avec `id` : mis à jour (il doit
- * être de cette association, une seule fois, sinon 422) ; sans `id` : créé ; absent de la liste : supprimé (choix Q5,
- * aucun moyen n'est encore référencé ; lot 2.2 : désactiver un moyen référencé). Deux remplacements concurrents
- * s'ordonnent par un verrou de transaction, partagé avec la clôture de l'onboarding. Audité ; association.updated si la liste change.
+ * être de cette association, une seule fois, sinon 422) ; sans `id` : créé ; absent de la liste : supprimé (choix Q5),
+ * sauf s'il est retenu par un projet (lot 2.2) : désactivé et conservé en fin de liste, dans son ordre d'avant. Deux
+ * remplacements concurrents s'ordonnent par un verrou de transaction, partagé avec la clôture de l'onboarding. Audité ;
+ * association.updated si la liste change.
  */
 @Injectable()
 export class ReplacePaymentMethodsUseCase {
@@ -55,7 +57,7 @@ export class ReplacePaymentMethodsUseCase {
       seen.add(item.id);
     });
 
-    const after: PaymentMethod[] = items.map((item, position) => ({
+    const listed: PaymentMethod[] = items.map((item, position) => ({
       id: item.id ?? newId(),
       kind: item.kind,
       label: item.label,
@@ -64,6 +66,15 @@ export class ReplacePaymentMethodsUseCase {
       position,
       isActive: item.isActive,
     }));
+    const omitted = before.filter((m) => !seen.has(m.id));
+    const inUse = await paymentMethodsInUse(
+      associationId,
+      omitted.map((m) => m.id),
+    );
+    const after: PaymentMethod[] = [
+      ...listed,
+      ...omitted.filter((m) => inUse.has(m.id)).map((m, i) => ({ ...m, position: listed.length + i, isActive: false })),
+    ];
     const changed = canonical(before) !== canonical(after);
 
     if (changed) {

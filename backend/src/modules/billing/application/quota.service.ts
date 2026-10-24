@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { memberships, plans, subscriptions } from '@cotiz/db';
+import { memberships, plans, projects, subscriptions } from '@cotiz/db';
 import { and, count, eq, inArray, ne, sql } from 'drizzle-orm';
 import { DomainProblem } from '../../../shared/http/domain-problem.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
@@ -15,6 +15,8 @@ export type QuotaKind = keyof QuotaLimits;
 /** Abonnement en cours : au plus un par association (index `subscriptions_one_active`). */
 const CURRENT = ['trialing', 'active', 'past_due'] as const;
 const MANAGER_ROLES = ['owner', 'manager', 'viewer'] as const;
+/** Projets comptés par le quota : ni terminés ni archivés (lot 2.2, choix Q6). */
+export const PROJECT_QUOTA_STATUSES = ['draft', 'enrolling', 'active'] as const;
 /** Sans abonnement en cours (aucun, suspendu, résilié) : rien ne peut être ajouté (choix Q7). */
 const NONE: QuotaLimits = { projects: 0, subscribers: 0, managers: 0 };
 
@@ -45,7 +47,6 @@ export class QuotaService {
     if (context?.space !== 'association' || context.associationId !== associationId) {
       throw new Error('QuotaService.assert : contexte de l’association attendu');
     }
-    if (kind === 'projects') throw new Error('QuotaService.assert : quota de projets branché au lot 2.1');
     await lockQuota(associationId, kind);
     const limit = (await this.limits(associationId))[kind];
     if (limit === null) return;
@@ -72,13 +73,21 @@ export class QuotaService {
 
 /**
  * Usage d'un quota, compté en base comme pour un ajout (QuotaService.assert) et pour l'affichage (bl.sub) :
- * gestionnaires = owner, manager, viewer invités ou actifs ; souscripteurs = non retirés (choix Q7). Contexte de
- * l'association seulement (jamais la connexion plateforme, qui contourne la RLS).
+ * gestionnaires = owner, manager, viewer invités ou actifs ; souscripteurs = non retirés (choix Q7) ; projets = ni
+ * terminés ni archivés (Q6 du lot 2.2). Contexte de l'association seulement (jamais la connexion plateforme, qui
+ * contourne la RLS).
  */
-export async function quotaUsageOf(associationId: string, kind: 'subscribers' | 'managers'): Promise<number> {
+export async function quotaUsageOf(associationId: string, kind: QuotaKind): Promise<number> {
   const context = currentContext();
   if (context?.space !== 'association' || context.associationId !== associationId) {
     throw new Error('quotaUsageOf : contexte de l’association attendu');
+  }
+  if (kind === 'projects') {
+    const [row] = await currentTx()
+      .select({ n: count() })
+      .from(projects)
+      .where(and(eq(projects.associationId, associationId), inArray(projects.status, PROJECT_QUOTA_STATUSES)));
+    return row?.n ?? 0;
   }
   const roles = kind === 'managers' ? inArray(memberships.role, MANAGER_ROLES) : eq(memberships.role, 'subscriber');
   const [row] = await currentTx()

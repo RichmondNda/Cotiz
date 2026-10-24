@@ -44,6 +44,16 @@ describe('lecture plateforme des associations (pf.asso.list, pf.asso.get)', () =
   beforeAll(async () => {
     f = await startPlatformFixture();
     support = await f.login('platform', STAFF.support.email);
+    // A (lot 2.2) : un projet par statut. Comptés : tous sauf l'archivé ; quota (Q6) : brouillon, inscriptions
+    // ouvertes, en cours ; actifs : inscriptions ouvertes et en cours. B : un brouillon, jamais compté pour A.
+    await f.h.superuser(
+      `INSERT INTO projects (id, association_id, name, description, status, installment_amount, frequency, due_day,
+                             schedule_type, start_date, created_by)
+       SELECT gen_random_uuid(), a, 'P', '', s::projects_status, 1000, 'monthly', 5, 'rolling', '2026-01-01', $3
+         FROM (VALUES ($1::uuid, 'draft'), ($1::uuid, 'enrolling'), ($1::uuid, 'active'), ($1::uuid, 'completed'),
+                      ($1::uuid, 'archived'), ($2::uuid, 'draft')) AS p(a, s)`,
+      [A.id, B.id, USERS.awa],
+    );
     awaLoggedInAfter = new Date(Date.now() - 1000);
     await f.login('association', 'awa@test.cotiz.app');
   });
@@ -77,13 +87,17 @@ describe('lecture plateforme des associations (pf.asso.list, pf.asso.get)', () =
         logoFileId: null,
         status: 'active',
         plan: { id: PLANS.essentiel, code: 'essentiel', name: 'Essentiel' },
-        projectsCount: 0,
+        projectsCount: 4,
         subscribersCount: 2,
         createdAt: '2026-09-01T08:00:00.000Z',
       });
       expect(new Date(a?.lastActivityAt ?? 0).getTime()).toBeGreaterThanOrEqual(awaLoggedInAfter.getTime());
       // Koffi (B) ne s'est connecté qu'en souscripteur ; la connexion d'Awa, souscriptrice de B, n'est pas une activité de B.
-      expect(items.find((i) => i.id === B.id)).toMatchObject({ lastActivityAt: null, subscribersCount: 2 });
+      expect(items.find((i) => i.id === B.id)).toMatchObject({
+        lastActivityAt: null,
+        subscribersCount: 2,
+        projectsCount: 1,
+      });
     });
 
     it('filtre par statut : les compteurs par statut restent ceux des autres filtres', async () => {
@@ -176,11 +190,11 @@ describe('lecture plateforme des associations (pf.asso.list, pf.asso.get)', () =
           managerSeatsOverride: null,
         },
         quotas: {
-          projects: { used: 0, limit: 5 },
+          projects: { used: 3, limit: 5 },
           subscribers: { used: 2, limit: 100 },
           managers: { used: 1, limit: 2 },
         },
-        kpi: { activeProjects: 0, subscribers: 2, collectedTotal: { amount: 0, currency: 'XOF' }, recoveryRate: null },
+        kpi: { activeProjects: 2, subscribers: 2, collectedTotal: { amount: 0, currency: 'XOF' }, recoveryRate: null },
         version: 1,
       });
       expect(new Date(detail.lastActivityAt ?? 0).getTime()).toBeGreaterThanOrEqual(awaLoggedInAfter.getTime());
@@ -202,7 +216,7 @@ describe('lecture plateforme des associations (pf.asso.list, pf.asso.get)', () =
       const detail = await get(B.id);
       expect(detail.subscription).toMatchObject({ status: 'trialing', managerSeatsOverride: 3 });
       expect(detail.quotas).toEqual({
-        projects: { used: 0, limit: null },
+        projects: { used: 1, limit: null },
         subscribers: { used: 2, limit: 500 },
         managers: { used: 1, limit: 3 },
       });

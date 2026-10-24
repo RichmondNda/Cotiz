@@ -305,9 +305,9 @@ Moyens de paiement retenus pour un projet (surcharge des moyens par défaut).
 
 | Colonne | Type | Note |
 |---|---|---|
-| `project_id` | `uuid FK` |  |
-| `payment_method_id` | `uuid FK` |  |
-| `association_id` | `uuid` | RLS |
+| `project_id` | `uuid FK` | clé composite `(project_id, association_id)` → `projects (id, association_id)` |
+| `payment_method_id` | `uuid FK` | clé composite `(payment_method_id, association_id)` → `association_payment_methods (id, association_id)` |
+| `association_id` | `uuid` | RLS ; projet et moyen de paiement de la même association |
 | `instructions_override` | `text NULL` |  |
 
 ## `enrollments` — lot 2.3
