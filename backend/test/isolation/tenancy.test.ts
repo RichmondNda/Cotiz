@@ -52,6 +52,12 @@ const insertMembership = (tx: Tx, id: string, associationId: string, userId: str
   tx.execute(sql`INSERT INTO memberships (id, association_id, user_id, role, status)
                  VALUES (${id}, ${associationId}, ${userId}, 'manager', 'active')`);
 
+/** Écriture du remplacement complet des moyens (as.pm, lot 2.1) : insertion, ou mise à jour si l'id existe. */
+const upsertMethod = (tx: Tx, id: string, associationId: string) =>
+  tx.execute(sql`INSERT INTO association_payment_methods (id, association_id, kind, label)
+                 VALUES (${id}, ${associationId}, 'mobile_money', 'piratée')
+                 ON CONFLICT (id) DO UPDATE SET label = EXCLUDED.label, association_id = EXCLUDED.association_id`);
+
 const insertMethod = (tx: Tx, id: string, associationId: string) =>
   tx.execute(sql`INSERT INTO association_payment_methods (id, association_id, kind, label)
                  VALUES (${id}, ${associationId}, 'mobile_money', 'Wave')`);
@@ -143,6 +149,16 @@ describe('isolation : associations, association_payment_methods, memberships (ba
         h.asRollback(asManagerOf(A), (tx) => insertMethod(tx, '00000000-0000-7000-8000-0000000aa0f1', B.id)),
       );
       expect(isRlsViolation(method)).toBe(true);
+    });
+
+    it('un gestionnaire de A ne réécrit pas un moyen de B par INSERT … ON CONFLICT (as.pm)', async () => {
+      const error = await errorOf(h.asRollback(asManagerOf(A), (tx) => upsertMethod(tx, METHODS.bankB, A.id)));
+      expect(isRlsViolation(error)).toBe(true);
+      const { rows } = await h.superuser(
+        'SELECT association_id, label FROM association_payment_methods WHERE id = $1',
+        [METHODS.bankB],
+      );
+      expect(rows).toEqual([{ association_id: B.id, label: 'SGBCI' }]);
     });
 
     it('un gestionnaire de A ne déplace pas une ligne de A vers B', async () => {
@@ -383,6 +399,24 @@ describe('isolation : associations, association_payment_methods, memberships (ba
       ['associations', 'tenant_self', associations],
     ] as const)('%s.%s retirée : le gestionnaire ne voit plus rien des siennes', async (table, policy, read) => {
       expect(await h.withoutPolicy(table, policy, () => h.as(asManagerOf(A), read))).toEqual([]);
+    });
+
+    it('association_payment_methods.tenant_isolation élargie : l’upsert de A réécrit le moyen de B', async () => {
+      const rewritten = await h.withPolicy(
+        'association_payment_methods',
+        'tenant_isolation',
+        { using: 'true', withCheck: 'true' },
+        () =>
+          h.asRollback(asManagerOf(A), async (tx) => {
+            await upsertMethod(tx, METHODS.bankB, A.id);
+            return (
+              await tx.execute<{ label: string }>(
+                sql`SELECT label FROM association_payment_methods WHERE id = ${METHODS.bankB}`,
+              )
+            ).rows;
+          }),
+      );
+      expect(rewritten).toEqual([{ label: 'piratée' }]);
     });
 
     it('associations.tenant_self en WITH CHECK (true) : un gestionnaire crée une association', async () => {

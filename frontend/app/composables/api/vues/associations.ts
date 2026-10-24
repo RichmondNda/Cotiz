@@ -6,7 +6,7 @@ import type {
   TonEvenement, TypeAssociation,
 } from '~~/types'
 import { formatDate, formatFCFA, formatMois, initiales } from '~/utils/format'
-import { email, jour, m, MOYEN, OPERATEURS, SITUATION, STATUT_ASSOCIATION, STATUT_PROJET, tel } from './communs'
+import { email, jour, m, MOYEN, OPERATEURS, SITUATION, STATUT_ASSOCIATION, STATUT_PROJET, tel, versE164 } from './communs'
 
 const TYPES: TypeAssociation[] = ['association', 'mutuelle', 'tontine', 'groupement', 'autre']
 const type = (t: string): TypeAssociation => (TYPES.includes(t as TypeAssociation) ? t as TypeAssociation : 'autre')
@@ -22,15 +22,31 @@ export function vueModalites(moyens: PaymentMethod[]): ModalitePaiement[] {
   }))
 }
 
-/** Modalités saisies (onboarding, paramètres) → liste complète `as.pm.replace`. */
+/** Opérateur saisi (« Orange », « MTN MoMo »…) → code du contrat (contenu dans la saisie) ; inconnu : la saisie, refusée par le back. */
+function codeOperateur(saisie: string): string {
+  const texte = saisie.trim().toLowerCase()
+  return Object.keys(OPERATEURS).find(code => texte.includes(code)) ?? saisie.trim()
+}
+
+/** Modalités saisies (onboarding, paramètres) → liste complète `as.pm.replace` (`details` selon le moyen, contrat). */
 export function versMoyens(modalites: ModalitePaiement[], instructions?: string) {
-  return modalites.map(x => ({
-    kind: ({ virement: 'bank_transfer', mobile_money: 'mobile_money', especes: 'cash' } as const)[x.moyen],
-    label: x.moyen === 'mobile_money' ? (x.operateur || 'Mobile money') : x.moyen === 'virement' ? 'Virement bancaire' : 'Espèces',
-    details: Object.fromEntries(Object.entries({ iban: x.iban, number: x.numeroMobileMoney, operator: x.operateur }).filter(([, v]) => v)) as Record<string, string>,
-    instructions: x.instructions ?? (x.moyen === 'virement' ? instructions ?? null : null),
-    isActive: true,
-  }))
+  return modalites.map((x): { kind: PaymentMethod['kind'], label: string, details: Record<string, string>, instructions: string | null, isActive: boolean } => {
+    if (x.moyen === 'mobile_money') {
+      const operator = codeOperateur(x.operateur ?? '')
+      const details = { operator, number: x.numeroMobileMoney ? versE164(x.numeroMobileMoney) : '' }
+      return {
+        kind: 'mobile_money', label: OPERATEURS[operator] ?? (x.operateur || 'Mobile money'),
+        details: Object.fromEntries(Object.entries(details).filter(([, v]) => v)), instructions: x.instructions ?? null, isActive: true,
+      }
+    }
+    if (x.moyen === 'virement') {
+      return {
+        kind: 'bank_transfer', label: 'Virement bancaire', details: x.iban ? { iban: x.iban } : {},
+        instructions: x.instructions ?? instructions ?? null, isActive: true,
+      }
+    }
+    return { kind: 'cash', label: 'Espèces', details: {}, instructions: x.instructions ?? null, isActive: true }
+  })
 }
 
 interface Compteurs { projets: number, souscripteurs: number, gestionnaires: number, limiteSecondaires?: number, prochaineEcheance?: string, planId: string }

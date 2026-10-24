@@ -111,7 +111,7 @@ const WRITES: Record<string, () => Call> = {
   'nt.read read': () => ({ params: { id: uid('notification', 'nt-mb-1') } }),
   'nt.read readAll': () => ({}),
   'as.patch patch': () => ({ params: { aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
-  'as.pm replace': () => ({ params: { aid }, body: { items: [{ kind: 'cash', label: 'Espèces', details: {}, isActive: true }] } }),
+  'as.pm replace': () => ({ params: { aid }, body: { items: [{ kind: 'cash', label: 'Espèces', details: {}, instructions: 'Remise au trésorier', isActive: true }] } }),
   'as.onb complete': () => ({ params: { aid } }),
   'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
   'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
