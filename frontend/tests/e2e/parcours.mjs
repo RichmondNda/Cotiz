@@ -201,7 +201,9 @@ const PARCOURS = {
     ['fiche-association', async (page) => {
       await page.getByRole('link', { name: 'Voir l’association créée' }).click()
       await page.waitForURL(u => /^\/plateforme\/associations\/[0-9a-f-]{36}$/.test(new URL(u).pathname))
-      const nom = (await texte(page.getByRole('heading', { level: 1 }))).trim()
+      // Le titre porte aussi le badge de statut : le nom seul est son premier nœud texte.
+      const nom = (await page.getByRole('heading', { level: 1 }).evaluate(h => h.firstChild?.textContent ?? '')).trim()
+      await assert(nom.length > 0, 'Nom de l’association lu dans le titre de la fiche')
       await page.getByRole('navigation').getByRole('link', { name: 'Associations' }).first().click()
       await page.waitForURL('**/plateforme/associations')
       await contient(page, nom, `La nouvelle association « ${nom} » doit figurer dans la liste`)
