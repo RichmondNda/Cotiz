@@ -25,12 +25,10 @@ const ATTENDUS = [
   ['gestionnaire', '/asso/paiements/pm-awa-kone', ['Awa Koné', F(75000)]],
   ['gestionnaire', '/asso', [F(9594000), '82 %', '14', F(75000)]],
   ['gestionnaire', '/asso/projets', [F(9594000)]],
-  ['superadmin', '/plateforme/associations/entraide-yopougon', ['Awa Koné', '82 %', '52']],
-  // Plateforme : 132 à jour + 15 impayées = 147 actives ; + 1 en onboarding = 148 associations.
-  ['superadmin', '/plateforme', ['147', 'sur 147 associations', '132 abonnements à jour']],
-  ['superadmin', '/plateforme/associations', ['Toutes · 148', 'Actives · 132', 'Impayées · 15', 'Onboarding · 1', '148 au total']],
-  // Limites du plan Pro de seed-reference.yaml (projets illimités, 500 souscripteurs) : écart R1 de docs/specs/v0-mapping.md.
-  ['superadmin', '/plateforme/associations/ressortissants-man', ['5', 'Projets 5 / illimité', 'Souscripteurs 142 / 500']],
+  // Espace plateforme sur le vrai back (lot 1.4 : pf.dashboard, pf.asso.list, pf.asso.get) : ses chiffres viennent de
+  // seed-dev, plus du store des mocks gestionnaire ; les comparer reprendra quand l'espace association sera réel. Les
+  // compteurs plateforme sont testés côté back (platform-dashboard.test.ts, platform-associations.test.ts).
+  ['superadmin', '/plateforme/associations/entraide-yopougon', ['Awa Koné']],
 ]
 
 const browser = await chromium.launch()
