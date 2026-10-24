@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import type { CreateProjectInput, Project } from '@cotiz/contracts';
-import { projectPaymentMethods, projects } from '@cotiz/db';
+import { projects } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
 import type { z } from 'zod';
 import { QuotaService } from '../../billing/billing.public.js';
 import { isUsableAssociationFile } from '../../files/files.public.js';
-import { lockPaymentMethods, paymentMethodsOf } from '../../tenancy/tenancy.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
-import { currencyProblems, type FieldProblems, projectScheduleOf } from '../domain/project-terms.js';
+import { currencyProblems, projectScheduleOf } from '../domain/project-terms.js';
+import { paymentMethodProblems, replaceProjectPaymentMethods } from './project-payment-methods.js';
 import { associationCurrencyOf, contextAssociationId, toProject } from './project-records.js';
 
 type Input = z.infer<typeof CreateProjectInput>;
@@ -50,8 +50,6 @@ export class CreateProjectUseCase {
     const schedule = projectScheduleOf(terms, currency);
     if (!Array.isArray(schedule)) throw new DomainProblem('validation_failed', { fields: schedule });
 
-    // Même verrou qu'as.pm : un moyen retenu ici n'est pas supprimé en même temps.
-    await lockPaymentMethods(associationId);
     const methodProblems = await paymentMethodProblems(associationId, input.paymentMethods);
     if (Object.keys(methodProblems).length > 0) {
       throw new DomainProblem('validation_failed', { fields: methodProblems });
@@ -85,16 +83,7 @@ export class CreateProjectUseCase {
       })
       .returning();
     if (!row) throw new Error('pr.create : aucune ligne insérée');
-    if (input.paymentMethods.length > 0) {
-      await tx.insert(projectPaymentMethods).values(
-        input.paymentMethods.map((m) => ({
-          projectId: row.id,
-          paymentMethodId: m.paymentMethodId,
-          associationId,
-          instructionsOverride: m.instructionsOverride,
-        })),
-      );
-    }
+    await replaceProjectPaymentMethods(associationId, row.id, input.paymentMethods);
 
     await this.outbox.publish(tx, {
       type: 'project.created',
@@ -108,19 +97,4 @@ export class CreateProjectUseCase {
     recordAudit({ entityType: 'project', entityId: row.id, associationId, after });
     return project;
   }
-}
-
-/** Moyens de paiement choisis : de l'association et actifs (`not_available`), chacun une fois (`duplicate`). */
-async function paymentMethodProblems(associationId: string, chosen: Input['paymentMethods']): Promise<FieldProblems> {
-  if (chosen.length === 0) return {};
-  const active = new Set((await paymentMethodsOf(associationId)).filter((m) => m.isActive).map((m) => m.id));
-  const seen = new Set<string>();
-  const problems: FieldProblems = {};
-  chosen.forEach((m, i) => {
-    const field = `paymentMethods.${String(i)}.paymentMethodId`;
-    if (!active.has(m.paymentMethodId)) problems[field] = 'not_available';
-    else if (seen.has(m.paymentMethodId)) problems[field] = 'duplicate';
-    seen.add(m.paymentMethodId);
-  });
-  return problems;
 }

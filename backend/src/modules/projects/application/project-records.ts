@@ -27,12 +27,20 @@ export async function associationCurrencyOf(associationId: string): Promise<Curr
   return row.currency as Currency;
 }
 
-/** Un projet de l'association du contexte (RLS) ; `null` s'il n'existe pas ou n'est pas le sien. */
-export async function projectOf(associationId: string, projectId: string): Promise<ProjectRecord | null> {
-  const [row] = await currentTx()
+/**
+ * Un projet de l'association du contexte (RLS) ; `null` s'il n'existe pas ou n'est pas le sien. `lock` : verrouillé
+ * jusqu'à la fin de la transaction (FOR NO KEY UPDATE), pour une modification qui dépend de son état.
+ */
+export async function projectOf(
+  associationId: string,
+  projectId: string,
+  options: { lock?: boolean } = {},
+): Promise<ProjectRecord | null> {
+  const query = currentTx()
     .select()
     .from(projects)
     .where(and(eq(projects.associationId, associationId), eq(projects.id, projectId)));
+  const [row] = await (options.lock ? query.for('no key update') : query);
   return row ?? null;
 }
 
