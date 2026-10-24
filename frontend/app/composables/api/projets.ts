@@ -27,7 +27,7 @@ async function contratOuNull(client: ApiClient, aid: string, pid: string) {
 /** Projet de l'interface : moyens de l'association, avatars et contrat (signataire, modèle). */
 async function enrichir(client: ApiClient, aid: string, p: ProjectSummary | Project, options: { contrat?: boolean } = {}): Promise<Projet> {
   const [moyens, enr, contrat] = await Promise.all([
-    client.call('as.pm', 'list', { params: { aid } }),
+    client.call('as.pm.list', 'list', { params: { aid } }),
     inscriptions(client, aid, p.id),
     options.contrat ? contratOuNull(client, aid, p.id) : Promise.resolve(null),
   ])
@@ -73,7 +73,7 @@ export const useGrilleProjet = (id: MaybeRefOrGetter<string>) =>
 
 /** Corps de création (MgNouveauProjet) → `CreateProjectInput` ; moyens choisis = moyens de l'association du même type. */
 async function versProjet(client: ApiClient, aid: string, p: NouveauProjet) {
-  const moyens = (await client.call('as.pm', 'list', { params: { aid } })).items
+  const moyens = (await client.call('as.pm.list', 'list', { params: { aid } })).items
   return {
     name: p.nom, description: p.description ?? '', requiredSubscribers: p.souscripteursRequis, graceDays: p.delaiGraceJours,
     entryFee: p.fondsEntree ? { amount: p.fondsEntree, currency: 'XOF' as const } : null,
@@ -182,7 +182,7 @@ export function useActionsProjet() {
     modifierProjet: async (projetId: string, mod: ModificationProjet) => {
       const aid = await associationCourante(client)
       const p = await client.call('pr.get', 'get', { params: { aid, pid: projetId } })
-      const moyens = (await client.call('as.pm', 'list', { params: { aid } })).items
+      const moyens = (await client.call('as.pm.list', 'list', { params: { aid } })).items
       try {
         await client.call('pr.patch', 'patch', {
           params: { aid, pid: projetId }, ifMatch: p.version,

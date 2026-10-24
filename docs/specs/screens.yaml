@@ -267,6 +267,7 @@ screens:
   - as.get
   - as.patch
   - as.pm
+  - as.pm.list
   - as.onb
   - as.upload
   - as.file
@@ -310,8 +311,9 @@ screens:
   endpoints:
   - pr.create
   - pr.preview
-  - as.pm
-  - fl.upload
+  - as.pm.list
+  - pr.upload
+  - as.file
   uiDeviations: 0
 - id: mg-projet-overview
   space: manager
@@ -386,6 +388,9 @@ screens:
   - pr.patch
   - pr.lifecycle
   - pr.delete
+  - pr.upload
+  - as.pm.list
+  - as.file
   uiDeviations: 0
 - id: mg-projet-rapports
   space: manager
@@ -553,6 +558,7 @@ screens:
   - as.get
   - as.patch
   - as.pm
+  - as.pm.list
   - as.upload
   - as.file
   uiDeviations: 0

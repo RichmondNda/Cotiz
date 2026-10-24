@@ -15,7 +15,7 @@ import { vuePlans } from './vues/plans'
 export async function chargerAssociation(client: ApiClient, aid: string): Promise<Association> {
   const [a, moyens, tdb, sub, equipe] = await Promise.all([
     client.call('as.get', 'get', { params: { aid } }),
-    client.call('as.pm', 'list', { params: { aid } }),
+    client.call('as.pm.list', 'list', { params: { aid } }),
     // Tableau de bord et équipe encore simulés (lots 2.6, 4.5) : inconnus des mocks pour une association créée en réel.
     client.call('as.dashboard', 'get', { params: { aid } }).catch(() => null),
     client.call('bl.sub', 'get', { params: { aid } }),

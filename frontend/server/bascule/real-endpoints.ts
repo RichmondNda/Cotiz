@@ -56,6 +56,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['as.upload', 'all'],
   ['as.file', 'all'],
   ['as.pm', 'all'],
+  ['as.pm.list', 'all'],
   ['as.onb', 'all'],
   ['bl.sub', 'all'],
 ])

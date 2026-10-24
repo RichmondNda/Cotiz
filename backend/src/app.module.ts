@@ -11,6 +11,7 @@ import { SpaceGuard } from './modules/access/http/space.guard.js';
 import { FilesModule } from './modules/files/files.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { OnboardingModule } from './modules/onboarding/onboarding.module.js';
+import { ProjectsModule } from './modules/projects/projects.module.js';
 import { ReportingModule } from './modules/reporting/reporting.module.js';
 import { TenancyModule } from './modules/tenancy/tenancy.module.js';
 import { JwtGuard } from './modules/identity/identity.public.js';
@@ -71,6 +72,7 @@ export class AppModule {
         AccessModule,
         OnboardingModule,
         TenancyModule,
+        ProjectsModule,
         ReportingModule,
         // Documentation interne (Scalar) : jamais en production.
         ...(config.NODE_ENV === 'production' ? [] : [ApiDocsModule]),

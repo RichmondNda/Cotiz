@@ -4,7 +4,8 @@ import { A, B, USERS } from '../isolation/harness.js';
 import { codeOf, type PlatformFixture, startPlatformFixture } from './platform-associations.fixture.js';
 
 /**
- * Lot 2.1 · étape 2 : moyens de paiement de l'association (as.pm). GET : liste dans l'ordre ; PUT : remplacement
+ * Lot 2.1 · étape 2 : moyens de paiement de l'association (as.pm.list, lot 2.2 : GET, liste dans l'ordre, pour tous
+ * les gestionnaires ; as.pm : PUT, par l'owner). PUT : remplacement
  * complet (mise à jour par `id`, ajout, suppression des absents), `details` validé par type. Vérification de l'étape :
  * validation par type testée. Audité (numéro masqué), association.updated si la liste change. Isolation : un `id` d'une
  * autre association est refusé, ses moyens ne sont jamais touchés.
@@ -290,15 +291,25 @@ describe('moyens de paiement de l’association (as.pm)', () => {
   });
 
   describe('droits et isolation', () => {
-    it('viewer : 403 en lecture comme en écriture (association.settings.manage)', async () => {
-      expect((await f.call(url(A.id), { token: koffi })).status).toBe(403);
-      expect((await put([CASH], A.id, koffi)).status).toBe(403);
+    it('viewer : lecture permise (as.pm.list, association.read, lot 2.2) ; écriture 403 (association.settings.manage)', async () => {
+      await put([CASH]);
+      expect((await list(A.id, koffi)).map((m) => m.label)).toEqual(['Espèces']);
+      expect((await put([ORANGE], A.id, koffi)).status).toBe(403);
+      expect((await list()).map((m) => m.label)).toEqual(['Espèces']);
     });
 
     it('association dont on n’est pas gestionnaire : 404, rien n’est écrit', async () => {
       expect((await f.call(url(B.id), { token: awa })).status).toBe(404);
       expect((await put([], B.id, awa)).status).toBe(404);
       expect(await rows(B.id)).toHaveLength(1);
+    });
+
+    it('jeton souscripteur : 404 en lecture (numéros et comptes de l’association) comme en écriture', async () => {
+      await put([CASH]);
+      const moussa = await f.login('subscriber', 'moussa@test.cotiz.app');
+      expect((await f.call(url(A.id), { token: moussa })).status).toBe(404);
+      expect((await put([], A.id, moussa)).status).toBe(404);
+      expect(await rows(A.id)).toHaveLength(1);
     });
 
     it('owner de B : ne voit que les moyens de B', async () => {

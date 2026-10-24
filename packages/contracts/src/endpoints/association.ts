@@ -128,12 +128,13 @@ export const asFile = defineEndpoint({
 
 export const PaymentMethodList = z.object({ items: z.array(PaymentMethod) });
 
-export const asPm = defineEndpoint({
-  id: 'as.pm',
+/** Lecture des moyens de paiement par tous les gestionnaires (choix des moyens d'un projet, lot 2.2). */
+export const asPmList = defineEndpoint({
+  id: 'as.pm.list',
   space: 'association',
-  permission: 'association.settings.manage',
-  errors: ['validation_failed'],
-  flags: { ...noFlags, audited: true },
+  permission: 'association.read',
+  errors: [],
+  flags: noFlags,
   operations: {
     list: {
       method: 'GET',
@@ -141,7 +142,17 @@ export const asPm = defineEndpoint({
       request: { params: AssociationParams },
       response: { status: 200, body: PaymentMethodList },
     },
-    /** Remplacement complet de la liste. */
+  },
+});
+
+export const asPm = defineEndpoint({
+  id: 'as.pm',
+  space: 'association',
+  permission: 'association.settings.manage',
+  errors: ['validation_failed'],
+  flags: { ...noFlags, audited: true },
+  operations: {
+    /** Remplacement complet de la liste ; un moyen absent mais retenu par un projet est désactivé, pas supprimé. */
     replace: {
       method: 'PUT',
       path: '/api/v1/associations/{aid}/payment-methods',

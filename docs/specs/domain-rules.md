@@ -28,6 +28,10 @@ Règles :
 4. **Fonds d'entrée** : `sequence = 0`, `kind = entry_fee`, dû à la **première** date périodique du souscripteur.
 5. **Dates fixes** : toutes les dates jusqu'à `endDate` incluse.
 6. **Cycle roulant** : seulement les `horizon` prochaines dates à partir de `enrolledFrom` ; la tâche `schedule.extend-rolling` maintient l'horizon.
+7. **Conditions d'un projet** (pr.create, pr.preview ; lot 2.2) : montants dans la devise de l'association
+   (`currency_mismatch`) ; dates fixes : au moins une date périodique dans le projet (`endDate: no_installment`, sinon le
+   fonds d'entrée n'aurait pas de date) ; total par souscripteur (fonds d'entrée compris) représentable en entier sûr,
+   sinon pr.create refuse (`installmentAmount: total_too_large`) et l'aperçu donne un total `null`.
 
 Vecteurs : `schedule.json` (15 cas dont 4 erreurs).
 
