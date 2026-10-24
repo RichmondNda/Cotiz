@@ -31,3 +31,17 @@ export async function platformAssociationsOverview(): Promise<AssociationOvervie
     })
     .from(associations);
 }
+
+/**
+ * L'association du contexte, lue par son gestionnaire (RLS `tenant_self`) ; `null` si elle n'est pas lisible. Refusée
+ * hors du contexte de cette association. Identifiant de l'URL comparé en minuscules, comme MembershipGuard.
+ */
+export async function ownAssociationOf(aid: string): Promise<AssociationRecord | null> {
+  const context = currentContext();
+  const id = aid.toLowerCase();
+  if (context?.space !== 'association' || context.associationId !== id) {
+    throw new Error('ownAssociationOf : contexte de cette association attendu');
+  }
+  const [row] = await currentTx().select().from(associations).where(eq(associations.id, id));
+  return row ?? null;
+}

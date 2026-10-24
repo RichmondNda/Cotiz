@@ -96,6 +96,7 @@ permissions:
   - association:viewer
   endpoints:
   - as.get
+  - as.file
   - bl.sub
   - as.dashboard
   - pr.list
@@ -120,6 +121,7 @@ permissions:
   - as.patch
   - as.pm
   - as.onb
+  - as.upload
   - dev.keys
   - dev.webhooks
 - permission: association.team.manage

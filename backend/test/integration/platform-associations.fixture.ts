@@ -51,8 +51,14 @@ export interface PlatformFixture {
 
 export const codeOf = async (res: Response) => ((await res.json()) as { code?: string }).code;
 
-/** Base migrée, jeu de référence, api réelle sur un port libre ; `controllers` : routes de test en plus (sondes). */
-export async function startPlatformFixture(controllers: Type[] = []): Promise<PlatformFixture> {
+/**
+ * Base migrée, jeu de référence, api réelle sur un port libre ; `controllers` : routes de test en plus (sondes) ;
+ * `env` : variables de configuration en plus (stockage réel).
+ */
+export async function startPlatformFixture(
+  controllers: Type[] = [],
+  env: Record<string, string> = {},
+): Promise<PlatformFixture> {
   const [h, redis] = await Promise.all([
     startIsolationHarness('migrated'),
     new RedisContainer('redis:7-alpine').start(),
@@ -66,6 +72,7 @@ export async function startPlatformFixture(controllers: Type[] = []): Promise<Pl
     S3_ENDPOINT: 'http://127.0.0.1:1',
     RATE_LIMIT_ENDPOINT_PER_MIN: '10000',
     RATE_LIMIT_IP_PER_MIN: '10000',
+    ...env,
   });
   @Module({ imports: [AppModule.register(config)], controllers })
   class TestRoot {}

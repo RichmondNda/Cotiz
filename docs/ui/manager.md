@@ -79,7 +79,8 @@ Route `/asso/bienvenue` · version spec V1 · statut maquette : maquetté · ré
 | `as.patch` | `PATCH /associations/{aid}` | 2.1 |
 | `as.pm` | `GET /associations/{aid}/payment-methods`<br>`PUT /associations/{aid}/payment-methods` | 2.1 |
 | `as.onb` | `POST /associations/{aid}/onboarding/complete` | 2.1 |
-| `fl.upload` | `POST /uploads`<br>`POST /uploads/{id}/complete` | 0.5 |
+| `as.upload` | `POST /associations/{aid}/uploads`<br>`POST /associations/{aid}/uploads/{id}/complete` | 2.1 |
+| `as.file` | `GET /associations/{aid}/files/{id}` | 2.1 |
 
 <a id="mg-dashboard"></a>
 
@@ -806,6 +807,8 @@ Route `/asso/parametres` · version spec V1 · statut maquette : maquetté · r�
 | `as.get` | `GET /associations/{aid}` | 2.1 |
 | `as.patch` | `PATCH /associations/{aid}` | 2.1 |
 | `as.pm` | `GET /associations/{aid}/payment-methods`<br>`PUT /associations/{aid}/payment-methods` | 2.1 |
+| `as.upload` | `POST /associations/{aid}/uploads`<br>`POST /associations/{aid}/uploads/{id}/complete` | 2.1 |
+| `as.file` | `GET /associations/{aid}/files/{id}` | 2.1 |
 
 <a id="mg-notifs"></a>
 
