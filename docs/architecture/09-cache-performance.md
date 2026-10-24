@@ -6,11 +6,11 @@
 | KPI tableau de bord gestionnaire | Redis | 60 s | `payment.*`, `member.*` de l'association |
 | Synthèse souscripteur | Redis | 30 s | Événements le concernant |
 | Compteur de non-lus | Redis | Jusqu'à changement | Chaque notification / lecture |
-| Abonnement, quotas, features d'une association | Mémoire + Redis | 5 min | Changement de plan, suspension |
+| Abonnement, features d'une association | Mémoire + Redis | 5 min | Changement de plan, suspension |
 | Plans publics | Redis + `Cache-Control` | 1 h | Modification d'un plan |
 | Statistiques plateforme, rapports lourds | Vues matérialisées | 15 min | Rafraîchissement concurrent planifié |
 
-**Jamais en cache** : file de validation, échéancier au moment de déclarer, toute donnée lue pour décider d'une écriture.
+**Jamais en cache** : file de validation, échéancier au moment de déclarer, limites de quotas, toute donnée lue pour décider d'une écriture.
 
 ## Index des requêtes chaudes
 Définis dans `docs/specs/schema.sql` (section Index) : grille, file de validation, espace souscripteur, retards, cloche, relais outbox, recherche trigramme, codes à remettre, demandes de réinitialisation, file « À relancer ».

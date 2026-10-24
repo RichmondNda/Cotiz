@@ -174,9 +174,10 @@ const PARCOURS = {
       await page.waitForURL(u => new URL(u).pathname === '/plateforme')
     }],
     ['tableau-de-bord', async (page) => {
-      await contient(page, '4 demandes à traiter')
-      // Compteur du menu : file réelle (pf.req.list), qui suit l'état de la base.
+      // Compteur du menu : file réelle (pf.req.list), qui suit l'état de la base (seed-dev + la demande du parcours
+      // public). Le tableau de bord (pf.dashboard, lu en direct) annonce le même nombre.
       compteurAvant = await attendreCompteur(page, 'Demandes', n => n > 0)
+      await contient(page, `${compteurAvant} demandes à traiter`)
       await page.getByRole('link', { name: 'Examiner' }).first().click()
       await page.waitForURL(`**/plateforme/demandes/${DEMANDE_TONTINE}`)
     }],
@@ -190,12 +191,22 @@ const PARCOURS = {
       await assert(n === compteurAvant - 1, `Le compteur « Demandes » du menu doit passer de ${compteurAvant} à ${compteurAvant - 1} (lu : ${n})`)
     }],
     // Pas d'email (ui-deviations.md) : les accès du responsable s'affichent une fois, à transmettre soi-même.
-    // Fiche et liste des associations : encore simulées jusqu'au lot 1.4 (pf.asso.get, pf.asso.list).
     ['acces-du-gestionnaire', async (page) => {
       const carte = page.getByRole('region', { name: 'Accès du gestionnaire' })
       await carte.waitFor()
       await assert(/[A-Z0-9]{4}-[A-Z0-9]{4}/.test(await texte(carte)), 'Code d’activation affiché dans la carte « Accès du gestionnaire »')
       await carte.getByRole('button', { name: 'Copier le message' }).waitFor()
+    }],
+    // Fiche et liste des associations réelles (lot 1.4 : pf.asso.get, pf.asso.list).
+    ['fiche-association', async (page) => {
+      await page.getByRole('link', { name: 'Voir l’association créée' }).click()
+      await page.waitForURL(u => /^\/plateforme\/associations\/[0-9a-f-]{36}$/.test(new URL(u).pathname))
+      // Le titre porte aussi le badge de statut : le nom seul est son premier nœud texte.
+      const nom = (await page.getByRole('heading', { level: 1 }).evaluate(h => h.firstChild?.textContent ?? '')).trim()
+      await assert(nom.length > 0, 'Nom de l’association lu dans le titre de la fiche')
+      await page.getByRole('navigation').getByRole('link', { name: 'Associations' }).first().click()
+      await page.waitForURL('**/plateforme/associations')
+      await contient(page, nom, `La nouvelle association « ${nom} » doit figurer dans la liste`)
     }],
   ]),
 }

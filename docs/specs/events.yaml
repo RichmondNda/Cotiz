@@ -79,7 +79,6 @@ events:
   - toPlanId
   - effectiveAt
   consumers:
-  - 'cache: quotas'
   - 'notifications: owner'
 - type: plan.updated
   emitter: billing

@@ -62,12 +62,14 @@ export function vueAssociationListe(a: Resume): AssociationListe {
 /** Libellé et ton des événements de la frise plateforme (types d'événements du contrat). */
 const EVENEMENTS: Record<string, { titre: string, ton: TonEvenement }> = {
   'association.created': { titre: 'Espace créé', ton: 'info' },
+  'association.updated': { titre: 'Informations modifiées', ton: 'info' },
   'plan.changed': { titre: 'Changement de plan', ton: 'brand' },
   'manager.added': { titre: 'Gestionnaire ajoutée', ton: 'success' },
   'subscription.past_due': { titre: 'Abonnement impayé', ton: 'warning' },
   'onboarding.in_progress': { titre: 'Onboarding en cours', ton: 'info' },
   'request.approved': { titre: 'Demande approuvée', ton: 'success' },
   'association.suspended': { titre: 'Association suspendue', ton: 'danger' },
+  'association.reactivated': { titre: 'Association réactivée', ton: 'success' },
 }
 
 /** Activité du tableau de bord plateforme (« Nouvelle association · Jeunesse solidaire de Bouaké · 24 sept. »). */
@@ -76,6 +78,8 @@ const ACTIVITE: Record<string, { titre: string, ton: TonEvenement }> = {
   'subscription.past_due': { titre: 'Abonnement impayé', ton: 'warning' },
   'plan.changed': { titre: 'Changement de plan', ton: 'brand' },
   'request.approved': { titre: 'Demande approuvée', ton: 'success' },
+  'association.suspended': { titre: 'Association suspendue', ton: 'danger' },
+  'association.reactivated': { titre: 'Association réactivée', ton: 'success' },
 }
 
 export function vueActivite(a: { type: string, at: string, associationName: string }, i: number): EvenementPlateforme {

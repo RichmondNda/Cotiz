@@ -1,6 +1,6 @@
 import { plans, subscriptions } from '@cotiz/db';
 import { type BillingPeriod, firstSubscriptionPeriod, newId } from '@cotiz/domain';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 export interface NewSubscription {
@@ -45,4 +45,35 @@ export async function openSubscription(input: NewSubscription): Promise<{ id: st
     managerSeatsOverride: input.managerSeats === plan.maxManagers ? null : input.managerSeats,
   });
   return { id };
+}
+
+/**
+ * Comptes gestionnaires autorisés de l'abonnement en cours (pf.asso.patch), dans la transaction de l'appelant : la
+ * surcharge n'est posée que si elle diffère du plan (domain-rules § 10). Renvoie la surcharge avant et après, ou
+ * `null` sans abonnement en cours. Espace plateforme seulement.
+ */
+export async function setManagerSeats(
+  associationId: string,
+  seats: number | null,
+): Promise<{ before: number | null; after: number | null } | null> {
+  if (currentContext()?.space !== 'platform') throw new Error('setManagerSeats : espace plateforme seulement');
+  const tx = currentTx();
+  // Au plus un abonnement en cours par association (index unique partiel `subscriptions_one_active`).
+  const [current] = await tx
+    .select({ id: subscriptions.id, override: subscriptions.managerSeatsOverride, planMax: plans.maxManagers })
+    .from(subscriptions)
+    .innerJoin(plans, eq(plans.id, subscriptions.planId))
+    .where(
+      and(
+        eq(subscriptions.associationId, associationId),
+        inArray(subscriptions.status, ['trialing', 'active', 'past_due']),
+      ),
+    )
+    .for('update', { of: subscriptions });
+  if (!current) return null;
+  const after = seats === current.planMax ? null : seats;
+  if (after !== current.override) {
+    await tx.update(subscriptions).set({ managerSeatsOverride: after }).where(eq(subscriptions.id, current.id));
+  }
+  return { before: current.override, after };
 }

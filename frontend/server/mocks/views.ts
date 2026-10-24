@@ -6,7 +6,7 @@ import type {
   PersonRef, Project, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
 } from '@cotiz/contracts'
 import { db } from './db'
-import type { AssociationRow, EnrollmentRow, NotificationRow, PaymentRow, PlanRow, ProjectRow, RequestRow, UserRow } from './db'
+import type { AssociationRow, EnrollmentRow, NotificationRow, PaymentRow, PlanRow, ProjectRow, UserRow } from './db'
 import { enrollmentFigures, installmentView, projectFigures, projectById, today } from './ledger'
 import type { InstallmentView } from './ledger'
 import { problem } from './http'
@@ -212,18 +212,6 @@ export function notification(n: NotificationRow): In<typeof Notification> {
   return {
     id: n.id, type: n.type, title: n.title, body: n.body, actionUrl: n.actionUrl,
     data: n.actionLabel ? { actionLabel: n.actionLabel } : {}, associationId: n.associationId, readAt: n.readAt, createdAt: n.createdAt,
-  }
-}
-
-// ---------------------------------------------------------------- Demandes
-
-export function requestSummary(r: RequestRow) {
-  const desired = r.needs.desiredPlanId ? db.plans.find(p => p.id === r.needs.desiredPlanId) : undefined
-  return {
-    id: r.id, reference: r.reference, status: r.status, associationName: r.association.name, associationType: r.association.type,
-    city: r.association.city, country: r.association.country,
-    contact: { firstName: r.contact.firstName, lastName: r.contact.lastName, email: r.contact.email },
-    estimatedSubscribers: r.needs.estimatedSubscribers, desiredPlan: desired ? planRef(desired) : null, createdAt: r.createdAt,
   }
 }
 

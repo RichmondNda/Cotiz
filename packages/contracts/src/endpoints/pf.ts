@@ -189,6 +189,7 @@ export const PlatformAssociationSummary = z.object({
   lastActivityAt: Instant.nullable(),
   createdAt: Instant,
 });
+export type PlatformAssociationSummary = z.infer<typeof PlatformAssociationSummary>;
 
 export const PlatformAssociationsQuery = ListQuery.extend({
   status: AssociationStatus.optional(),
@@ -412,6 +413,9 @@ export const pfPlans = defineEndpoint({
   },
 });
 
+/** Prix d'un plan : en F CFA (XOF) seulement, devise de la plateforme (lot 1.4). */
+export const PlanPrice = z.object({ amount: z.int(), currency: z.literal('XOF') });
+
 export const PlanInput = z.object({
   code: z
     .string()
@@ -419,9 +423,8 @@ export const PlanInput = z.object({
     .max(40),
   name: z.string().min(1).max(60),
   description: z.string().max(200).nullable(),
-  /** Montants dans la devise du plan (F CFA par défaut). */
-  priceMonthly: Money,
-  priceYearly: Money,
+  priceMonthly: PlanPrice,
+  priceYearly: PlanPrice,
   limits: z.object({ projects: Quota, subscribers: Quota, managers: Quota }),
   features: z.array(FeatureSchema),
   isFeatured: z.boolean(),

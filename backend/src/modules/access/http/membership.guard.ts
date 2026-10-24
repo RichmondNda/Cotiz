@@ -20,6 +20,8 @@ export function verifiedMembershipRole(request: object): ManagementRole | null {
  * choix Q1) : sur une route `/associations/{aid}/…`, le `{aid}` de l'URL est vérifié en base contre une appartenance
  * active owner, manager ou viewer de la personne du jeton ; alors seulement le contexte porte cette association. Sinon
  * (non-membre, souscripteur, invitée, retirée, aid invalide) : 404 `not_found`, comme une association inexistante.
+ * Association suspendue (pf.asso.suspend) : 403 `association_suspended` dès la requête suivante, vérifié après le 404
+ * (un non-membre n'apprend rien du statut).
  * Jeton association ailleurs (/me, routes communes) : la personne, sans association.
  */
 @Injectable()
@@ -45,9 +47,10 @@ export class MembershipGuard implements CanActivate {
     if (raw === undefined || !UUID.test(raw)) throw new DomainProblem('not_found');
     // Forme canonique : la casse de l'URL ne doit ni changer une clé (débit par association) ni fausser une comparaison.
     const aid = raw.toLowerCase();
-    const role = await this.selfRoles.managementRole(claims.sub, aid);
-    if (role === null) throw new DomainProblem('not_found');
-    roles.set(request, role);
+    const held = await this.selfRoles.managementAccess(claims.sub, aid);
+    if (held === null) throw new DomainProblem('not_found');
+    if (held.associationStatus === 'suspended') throw new DomainProblem('association_suspended');
+    roles.set(request, held.role);
     setRequestContext(request, { space: 'association', associationId: aid, userId: claims.sub });
     return true;
   }

@@ -5,7 +5,7 @@
   Menus : app/config/navigation.ts ; compteurs : API mockée.
 -->
 <script setup lang="ts">
-import { NAV_GESTIONNAIRE, NAV_PLATEFORME } from '~/config/navigation'
+import { type EntreeNavigation, NAV_GESTIONNAIRE, NAV_PLATEFORME } from '~/config/navigation'
 
 const props = withDefaults(defineProps<{
   espace: 'gestionnaire' | 'superadmin'
@@ -18,7 +18,13 @@ const { deconnecter } = useSession()
 const { data: moi } = useMoi()
 const { actif, compteur } = useEntreesNavigation()
 
-const nav = computed(() => (props.espace === 'superadmin' ? NAV_PLATEFORME : NAV_GESTIONNAIRE))
+const { peut } = usePermissions()
+// Entrée réservée à une permission (Réinitialisations : owner et admin plateforme) : masquée sans elle.
+const nav = computed(() => {
+  const menu = props.espace === 'superadmin' ? NAV_PLATEFORME : NAV_GESTIONNAIRE
+  const visibles = (entrees: EntreeNavigation[]) => entrees.filter(e => !e.permission || peut(e.permission))
+  return { principal: visibles(menu.principal), bas: visibles(menu.bas) }
+})
 const accueil = computed(() => (props.espace === 'superadmin' ? '/plateforme' : '/asso'))
 </script>
 

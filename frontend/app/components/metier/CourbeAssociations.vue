@@ -1,6 +1,7 @@
 <!--
   Évolution d'un effectif sur 12 mois (SaDashboard : associations actives) : courbe `brand` avec aire légère,
-  3 lignes de repère (échelle par pas de 50), mois abrégés tous les trimestres et au dernier point.
+  3 lignes de repère (pas « rond » le plus petit qui couvre les valeurs en deux intervalles : 50 pour le jeu de
+  référence), mois abrégés tous les trimestres et au dernier point.
 -->
 <script setup lang="ts">
 import { formatMois } from '~/utils/format'
@@ -15,10 +16,29 @@ const BASE = 150
 const HAUT = 50
 const GAUCHE = 40
 const DROITE = 546
-const PAS = 50
+const PAS_RONDS = [1, 2, 5]
 
-const min = computed(() => Math.floor(Math.min(...props.points.map(p => p.valeur), PAS) / PAS) * PAS)
-const max = computed(() => Math.max(min.value + 2 * PAS, Math.ceil(Math.max(...props.points.map(p => p.valeur)) / PAS) * PAS))
+/** Bornes de l'échelle pour un pas : repère bas au plus au pas, repère haut au-dessus de la plus grande valeur. */
+function bornes(pas: number, valeurs: number[]) {
+  const min = Math.floor(Math.min(...valeurs, pas) / pas) * pas
+  return { pas, min, max: Math.max(min + 2 * pas, Math.ceil(Math.max(...valeurs) / pas) * pas) }
+}
+
+/**
+ * Plus petit pas 1, 2, 5, 10, 20, 50… dont l'échelle tient en deux intervalles (repère du milieu entier), la courbe
+ * au-dessus du repère bas (sauf à zéro).
+ */
+const echelle = computed(() => {
+  const valeurs = props.points.length ? props.points.map(p => p.valeur) : [0]
+  for (let puissance = 1; ; puissance *= 10) {
+    for (const r of PAS_RONDS) {
+      const b = bornes(r * puissance, valeurs)
+      if (b.max - b.min === 2 * b.pas && (b.min === 0 || b.min < Math.min(...valeurs))) return b
+    }
+  }
+})
+const min = computed(() => echelle.value.min)
+const max = computed(() => echelle.value.max)
 const y = (v: number) => BASE - ((v - min.value) / (max.value - min.value)) * (BASE - HAUT)
 const reperes = computed(() => [min.value, (min.value + max.value) / 2, max.value])
 

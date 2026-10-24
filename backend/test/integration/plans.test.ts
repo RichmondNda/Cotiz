@@ -13,7 +13,15 @@ import {
 import { Redis } from 'ioredis';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { EventConsumers } from '../../src/shared/outbox/index.js';
-import { A, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
+import {
+  A,
+  errorOf,
+  type IsolationHarness,
+  pgCode,
+  seedAssociations,
+  startIsolationHarness,
+  USERS,
+} from '../isolation/harness.js';
 
 /**
  * Lot 1.2 · étape 4 : plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) à travers les vraies gardes, la
@@ -322,7 +330,11 @@ describe('plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive)', () => {
       ['fonctionnalité non soumise au plan', { features: ['payments'] }, 'features'],
       ['fonctionnalité en double', { features: ['contracts', 'contracts'] }, 'features'],
       ['prix négatif', { priceMonthly: xof(-1) }, 'priceMonthly'],
-      ['devises différentes', { priceYearly: { amount: 50000, currency: 'XAF' } }, 'priceYearly'],
+      [
+        'prix hors F CFA (plans en XOF seulement)',
+        { priceYearly: { amount: 50000, currency: 'XAF' } },
+        'priceYearly.currency',
+      ],
       ['montant décimal', { priceMonthly: xof(5000.5) }, 'priceMonthly.amount'],
       ['quota négatif', { limits: { projects: -1, subscribers: 50, managers: 1 } }, 'limits.projects'],
       ['aucun compte gestionnaire', { limits: { projects: 2, subscribers: 50, managers: 0 } }, 'limits.managers'],
@@ -369,15 +381,18 @@ describe('plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive)', () => {
       expect(rows[0]).toEqual({ name: 'v2', version: 2 });
     });
 
-    it('devise figée à la création : un prix dans une autre devise est refusé (422), même les deux', async () => {
+    it('plans en XOF seulement : un prix dans une autre devise est refusé (422), même les deux', async () => {
       const xaf = (amount: number) => ({ amount, currency: 'XAF' });
       for (const body of [{ priceMonthly: xaf(10000) }, { priceMonthly: xaf(10000), priceYearly: xaf(120000) }]) {
         const res = await patch(PLANS.essentiel, body, 1);
         expect(res.status).toBe(422);
-        expect(await res.json()).toMatchObject({ fields: { priceMonthly: 'currency_mismatch' } });
+        expect(Object.keys(((await res.json()) as { fields: object }).fields)).toContain('priceMonthly.currency');
       }
       const { rows } = await h.superuser('SELECT currency, version FROM plans WHERE id = $1', [PLANS.essentiel]);
       expect(rows[0]).toEqual({ currency: 'XOF', version: 1 });
+      // Hors API aussi : contrainte plans_currency_xof (migration 0010).
+      const write = h.superuser(`UPDATE plans SET currency = 'XAF' WHERE id = $1`, [PLANS.essentiel]);
+      expect(pgCode(await errorOf(write))).toBe('23514');
     });
 
     it('désactivé par modification : archivé comme par /archive (mise en avant retirée), hors de pub.plans', async () => {

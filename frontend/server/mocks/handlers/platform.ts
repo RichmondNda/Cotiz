@@ -1,36 +1,19 @@
-// Espace plateforme (super-admin) : demandes, associations, tableau de bord, factures, personnel.
-// Les chiffres globaux de la plateforme (147 associations, 15 impayés…) sont illustratifs dans les maquettes : seules
-// trois associations sont détaillées. Ils sont déclarés ici comme complément, à côté des trois associations calculées.
+// Espace plateforme (super-admin) : onglets de la fiche d'une association, factures, personnel.
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
-import { checkVersion, nowInstant, problem } from '../http'
 import { uid } from '../ids'
 import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
 import {
-  associationRow, money, personContact, personRef, planRef, planRow, requestSummary, userRow,
+  associationRow, money, personContact, personRef, planRef, planRow, userRow,
 } from '../views'
 import { page } from './list'
-
-// ---------------------------------------------------------------- Complément plateforme (illustratif)
-
-/** Puces de SaAssociations : 148 associations dont 3 détaillées. */
-const PLATFORM_COUNTS = { active: 132, past_due: 15, suspended: 0, onboarding: 1 }
-const PLATFORM_KPI = { activeAssociations: 147, newAssociationsThisMonth: 6, subscriptionsUpToDate: 132, subscriptionsUnpaid: 15, totalAssociations: 147 }
-/** Associations actives d'octobre 2025 à septembre 2026 (courbe de SaDashboard). */
-const ACTIVE_BY_MONTH = [98, 102, 105, 110, 114, 120, 124, 130, 134, 138, 143, 147]
 
 // ---------------------------------------------------------------- Associations
 
 function ownerOf(a: AssociationRow) {
   const m = db.memberships.find(x => x.associationId === a.id && x.role === 'owner')
   return m ? userRow(m.userId) : null
-}
-
-/** Scénario `etat-suspendue` (SaAssociation) : Entraide Yopougon suspendue, sans toucher au jeu. */
-function withSuspendScenario(a: AssociationRow, scenario: string | undefined): AssociationRow {
-  if (scenario !== 'etat-suspendue') return a
-  return { ...a, status: 'suspended', suspendedAt: '2026-09-25T09:00:00Z', suspensionReason: 'Abonnement impayé depuis plus de 30 jours', statusBeforeSuspension: a.status }
 }
 
 function summary(a: AssociationRow) {
@@ -90,54 +73,12 @@ function subscription(id: string) {
   }
 }
 
-export function associationsList(ctx: MockContext<'pf.asso.list', 'list'>) {
-  const q = ctx.query
-  if (ctx.scenario === 'vide') return page([], q, { facets: { status: { ...PLATFORM_COUNTS } } })
-  let rows = [...db.associations]
-  if (q.status) rows = rows.filter(a => a.status === q.status)
-  if (q.planId) rows = rows.filter(a => a.planId === q.planId)
-  if (q.q) rows = rows.filter(a => a.name.toLowerCase().includes(q.q!.toLowerCase()))
-  return page(rows.map(summary), q, { facets: { status: { ...PLATFORM_COUNTS } } })
-}
-
-export function associationGet(ctx: MockContext<'pf.asso.get', 'get'>) {
-  return platformDetail(withSuspendScenario(associationRow(ctx.params.id), ctx.scenario))
-}
-
-export function associationPatch(ctx: MockContext<'pf.asso.patch', 'patch'>) {
-  const a = associationRow(ctx.params.id)
-  checkVersion(ctx, a.version)
-  const { managerSeatsOverride, ...rest } = ctx.body
-  Object.assign(a, rest, managerSeatsOverride === undefined ? {} : { managerSeatsOverride }, { version: a.version + 1 })
-  return platformDetail(a)
-}
-
-export function associationSuspend(ctx: MockContext<'pf.asso.suspend', 'suspend'>) {
-  const a = associationRow(ctx.params.id)
-  if (a.status === 'suspended') problem('invalid_state')
-  Object.assign(a, { statusBeforeSuspension: a.status, status: 'suspended', suspendedAt: nowInstant(), suspensionReason: ctx.body.reason, version: a.version + 1 })
-  return platformDetail(a)
-}
-
-export function associationReactivate(ctx: MockContext<'pf.asso.suspend', 'reactivate'>) {
-  const a = associationRow(ctx.params.id)
-  if (a.status !== 'suspended') problem('invalid_state')
-  Object.assign(a, { status: a.statusBeforeSuspension ?? 'active', statusBeforeSuspension: null, suspendedAt: null, suspensionReason: null, version: a.version + 1 })
-  return platformDetail(a)
-}
-
-export function associationChangePlan(ctx: MockContext<'pf.asso.plan', 'changePlan'>) {
-  const a = associationRow(ctx.params.id)
-  const p = planRow(ctx.body.planId)
-  const f = associationFigures(a.id)
-  if (p.limits.projects !== null && f.projectsCount > p.limits.projects) problem('quota_exceeded')
-  a.planId = p.id
-  const s = db.subscriptions.find(x => x.associationId === a.id)!
-  Object.assign(s, { planId: p.id, billingPeriod: ctx.body.billingPeriod ?? s.billingPeriod })
-  return subscription(s.id)
-}
+// Association réelle (pf.asso.get basculé au lot 1.4) inconnue des mocks, créée par le vrai back : encore aucun projet
+// ni souscripteur, comme le renverra pf.asso.sub une fois basculé.
+const associationInconnue = (id: string) => !db.associations.some(a => a.id === id)
 
 export function associationProjects(ctx: MockContext<'pf.asso.sub', 'projects'>) {
+  if (associationInconnue(ctx.params.id)) return page([], ctx.query, { total: 0 })
   const a = associationRow(ctx.params.id)
   const rows = db.projects.filter(p => p.associationId === a.id).map((p) => {
     const f = projectFigures(p)
@@ -147,6 +88,7 @@ export function associationProjects(ctx: MockContext<'pf.asso.sub', 'projects'>)
 }
 
 export function associationMembers(ctx: MockContext<'pf.asso.sub', 'members'>) {
+  if (associationInconnue(ctx.params.id)) return page([], ctx.query, { total: 0 })
   const a = associationRow(ctx.params.id)
   const projectIds = new Set(db.projects.filter(p => p.associationId === a.id).map(p => p.id))
   const rows = db.memberships
@@ -161,34 +103,7 @@ export function associationMembers(ctx: MockContext<'pf.asso.sub', 'members'>) {
 
 // Plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) : vrai back depuis le lot 1.2.
 
-// ---------------------------------------------------------------- Tableau de bord
-
-export function dashboard(ctx: MockContext<'pf.dashboard', 'get'>) {
-  const pending = ctx.scenario === 'aucune-demande' ? [] : db.requests.filter(r => r.status === 'pending').sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-  const subscribers = db.associations.reduce((t, a) => t + associationFigures(a.id).membersCount, 0)
-  const revenue = db.subscriptions.filter(s => s.status === 'active' || s.status === 'past_due').reduce((t, s) => t + planRow(s.planId).priceMonthly, 0)
-  const man = associationRow(uid('association', 'ressortissants-man'))
-  const bouake = associationRow(uid('association', 'jeunesse-bouake'))
-  const entraide = associationRow(uid('association', 'entraide-yopougon'))
-  return {
-    pendingRequests: pending.length,
-    oldestPendingRequests: pending.slice(0, 3).map(requestSummary),
-    kpi: { ...PLATFORM_KPI, subscribers, monthlyRecurringRevenue: money(revenue) },
-    activeAssociationsByMonth: ACTIVE_BY_MONTH.map((count, i) => ({ month: `${i < 3 ? 2025 : 2026}-${String(((9 + i) % 12) + 1).padStart(2, '0')}-01`, count })),
-    associationsByPlan: db.plans.filter(p => p.isActive).map(p => ({ plan: planRef(p), count: p.subscribersCount })),
-    watchlist: [
-      { associationId: man.id, name: man.name, signal: 'unpaid' as const, since: '2026-09-05' },
-      { associationId: bouake.id, name: bouake.name, signal: 'inactive' as const, since: '2026-09-24' },
-      { associationId: entraide.id, name: entraide.name, signal: 'quota' as const, since: null },
-    ],
-    activity: [
-      { type: 'association.created', at: '2026-09-24T09:00:00Z', associationId: bouake.id, associationName: bouake.name },
-      { type: 'subscription.past_due', at: '2026-09-05T09:00:00Z', associationId: man.id, associationName: man.name },
-      { type: 'plan.changed', at: '2025-06-01T09:00:00Z', associationId: entraide.id, associationName: entraide.name },
-      { type: 'request.approved', at: '2026-09-24T09:00:00Z', associationId: bouake.id, associationName: bouake.name },
-    ],
-  }
-}
+// Tableau de bord (pf.dashboard) : vrai back depuis le lot 1.4.
 
 // ---------------------------------------------------------------- Factures (V2) et personnel (V2)
 

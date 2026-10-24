@@ -1,5 +1,5 @@
 import { platformStaff } from '@cotiz/db';
-import { eq } from 'drizzle-orm';
+import { type AnyColumn, eq, type SQL, sql } from 'drizzle-orm';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 
 // Personnel de la plateforme (table globale sans RLS, lot 1.1).
@@ -19,4 +19,12 @@ export async function platformRoleOf(userId: string): Promise<PlatformRole | nul
     .where(eq(platformStaff.userId, userId))
     .limit(1);
   return staff?.role ?? null;
+}
+
+/**
+ * Condition SQL « la personne de cette colonne fait partie du personnel de la plateforme », pour filtrer une liste
+ * dans la requête même (pagination et compteurs justes) sans lire `platform_staff` hors du module access.
+ */
+export function isPlatformStaff(userId: AnyColumn): SQL {
+  return sql`EXISTS (SELECT 1 FROM ${platformStaff} WHERE ${platformStaff.userId} = ${userId})`;
 }

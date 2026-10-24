@@ -1,8 +1,9 @@
 // Menus de chaque espace, construits à partir de cette configuration (barres latérales, navigations basses).
 // `compteur` : clé des compteurs de navigation servis par l'API (`GET /me`, `as.dashboard`, `pf.dashboard`, `nt.list` : useCompteursNavigation).
+import type { Permission } from '@cotiz/contracts'
 import type { NomIcone } from '~/utils/icons'
 
-export type CleCompteur = 'paiementsAValider' | 'notificationsNonLues' | 'demandesATraiter' | 'souscripteursEnRetard'
+export type CleCompteur = 'paiementsAValider' | 'notificationsNonLues' | 'demandesATraiter' | 'souscripteursEnRetard' | 'reinitialisationsATraiter'
 
 export interface EntreeNavigation {
   cle: string
@@ -18,6 +19,8 @@ export interface EntreeNavigation {
   aussi?: string[]
   /** Entrée d'action (déconnexion) plutôt qu'un lien. */
   action?: 'deconnexion'
+  /** Masquée sans cette permission (`GET /me`) : le front masque, le back refuse. */
+  permission?: Permission
 }
 
 export const NAV_GESTIONNAIRE: { principal: EntreeNavigation[], bas: EntreeNavigation[] } = {
@@ -73,6 +76,11 @@ export const NAV_PLATEFORME: { principal: EntreeNavigation[], bas: EntreeNavigat
   principal: [
     { cle: 'dashboard', label: 'Tableau de bord', to: '/plateforme', icone: 'tableau-de-bord', exact: true },
     { cle: 'demandes', label: 'Demandes', to: '/plateforme/demandes', icone: 'contrat', compteur: 'demandesATraiter' },
+    // Écran ajouté après la maquette (ui-deviations.md, sa-resets, lot 1.4).
+    {
+      cle: 'reinitialisations', label: 'Réinitialisations', to: '/plateforme/reinitialisations', icone: 'cadenas',
+      compteur: 'reinitialisationsATraiter', permission: 'platform.associations.manage',
+    },
     { cle: 'associations', label: 'Associations', to: '/plateforme/associations', icone: 'association' },
     { cle: 'plans', label: 'Plans', to: '/plateforme/plans', icone: 'plans' },
     { cle: 'facturation', label: 'Facturation', to: '/plateforme/facturation', icone: 'facturation' },

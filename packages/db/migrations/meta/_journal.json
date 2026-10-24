@@ -64,6 +64,20 @@
       "when": 1792710224096,
       "tag": "0008_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792790952063,
+      "tag": "0009_reporting",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792793353825,
+      "tag": "0010_plans_xof",
+      "breakpoints": true
     }
   ]
 }

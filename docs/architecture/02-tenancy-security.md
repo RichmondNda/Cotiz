@@ -44,7 +44,7 @@ Pour **chaque endpoint** de `/associations/{aid}` et `/me` : un utilisateur de l
 La matrice complète est dans `docs/specs/permissions.yaml`, chargée par `packages/contracts/src/permissions.ts`, exposée au front par `GET /me` pour masquer les boutons. **Le front ne fait que refléter ; la barrière est le back.**
 
 ## Quotas de plan
-Vérifiés dans les cas d'usage qui créent projets, inscriptions et gestionnaires, en lisant l'abonnement (cache 5 min). Dépassement : `quota_exceeded` avec `limit` et `usage`.
+Vérifiés dans les cas d'usage qui créent projets, inscriptions et gestionnaires : verrou de transaction par association et quota, puis limite (abonnement en cours, lu en base, jamais en cache) et usage comptés dans la transaction. Un changement de plan prend les mêmes verrous. Dépassement : `quota_exceeded` avec `limit` et `usage`.
 
 ## Sécurité applicative (OWASP ASVS niveau 2)
 | Domaine | Mesures |

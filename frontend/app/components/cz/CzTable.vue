@@ -2,7 +2,8 @@
   Tableau de données : en-tête overline, colonnes triables, montants alignés à droite (`num`),
   sélection multiple avec barre d'actions groupées (`cz-bulk`), pied avec pagination,
   états vide / chargement (squelettes) / erreur (« Réessayer ») dans le cadre du tableau.
-  Mobile (< 768 px) : si le slot `carte` est fourni, la liste devient des cartes `cz-rowcard`.
+  Mobile (< 768 px) : si le slot `carte` est fourni, la liste devient des cartes `cz-rowcard` (vide ou en erreur : le
+  message seul, sans en-tête de colonnes).
 
   Slots : `cell-<cle>` (cellule, reçoit { ligne, valeur }), `actions` (colonne ⋯), `actions-groupees`,
   `vide`, `carte` ({ ligne }), `pied`.
@@ -126,7 +127,10 @@ const etat = computed(() => (props.erreur ? 'erreur' : props.chargement ? 'charg
 
     <div
       class="cz-table-wrap"
-      :class="{ 'a-cartes': $slots.carte && etat === 'donnees' }"
+      :class="{
+        'a-cartes': $slots.carte && etat === 'donnees',
+        'sans-entete': $slots.carte && (etat === 'vide' || etat === 'erreur'),
+      }"
     >
       <table
         class="cz-table"
@@ -396,6 +400,11 @@ const etat = computed(() => (props.erreur ? 'erreur' : props.chargement ? 'charg
 
 @media (max-width: 767px) {
   .cz-table-wrap.a-cartes {
+    display: none;
+  }
+
+  /* Liste vide ou en erreur, présentée en cartes : le message seul, sans en-tête de colonnes (captures mobiles). */
+  .cz-table-wrap.sans-entete .cz-table {
     display: none;
   }
 

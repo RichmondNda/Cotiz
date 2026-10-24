@@ -1,7 +1,7 @@
 <!--
   SaDashboard — savoir en un regard ce qui demande une action (demandes à traiter, impayés) et si la plateforme va bien.
   File prioritaire (3 plus anciennes demandes, bordure orange) ou état positif « Aucune demande en attente » ;
-  4 KPI cliquables (liste filtrée) ; courbe 12 mois et répartition par plan (données illustratives) ;
+  4 KPI cliquables (liste filtrée) ; courbe 12 mois et répartition par plan (vues matérialisées, lot 1.4) ;
   associations à surveiller ; activité récente. Scénarios : `aucune-demande` (+ `chargement`, `erreur`).
 -->
 <script setup lang="ts">
@@ -190,7 +190,6 @@ const totalRepartition = computed(() => (data.value?.repartition ?? []).reduce((
             <h2 class="sa-dash__h2">
               Associations actives — 12 mois
             </h2>
-            <span class="sa-dash__note">Données illustratives</span>
           </div>
           <CzSkeleton
             v-if="chargement"
@@ -206,7 +205,6 @@ const totalRepartition = computed(() => (data.value?.repartition ?? []).reduce((
             <h2 class="sa-dash__h2">
               Répartition par plan
             </h2>
-            <span class="sa-dash__note">Données illustratives</span>
           </div>
           <ul class="sa-dash__repartition">
             <li
@@ -412,11 +410,6 @@ const totalRepartition = computed(() => (data.value?.repartition ?? []).reduce((
 .sa-dash__carte {
   min-width: 0;
   padding: var(--space-6);
-}
-
-.sa-dash__note {
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .sa-dash__repartition {

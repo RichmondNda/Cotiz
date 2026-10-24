@@ -19,7 +19,9 @@ export type DomainErrorCode =
   | 'invalid_status'
   // Abonnement (domain-rules § 10) : période de facturation ou durée d'essai invalides.
   | 'invalid_billing_period'
-  | 'invalid_trial_days';
+  | 'invalid_trial_days'
+  // Transitions de statut (domain-rules § 8).
+  | 'invalid_state';
 
 /** Erreur d'une règle métier : `code` stable, `details` facultatifs (ex. `maxAmount`). */
 export class DomainError extends Error {

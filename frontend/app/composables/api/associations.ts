@@ -114,8 +114,7 @@ export function useActionsAssociationPlateforme() {
       return { association: vueAssociationListe(r.association), acces: r.handoff ? vueAcces(r.handoff) : null }
     },
     suspendre: async (id: string, s: SuspensionAssociation) => {
-      const d = await client.call('pf.asso.get', 'get', { params: { id } })
-      await client.call('pf.asso.suspend', 'suspend', { params: { id }, body: { reason: s.motif, confirmName: d.name } })
+      await client.call('pf.asso.suspend', 'suspend', { params: { id }, body: { reason: s.motif, confirmName: s.nomSaisi } })
       return fiche(client, id)
     },
     reactiver: async (id: string) => {

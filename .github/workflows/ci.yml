@@ -165,6 +165,9 @@ jobs:
           S3_ENDPOINT: http://127.0.0.1:9000
           NODE_ENV: development
           LOG_PRETTY: 'false'
+          # Tout le trafic des parcours et de l'audit d'accessibilité arrive d'une seule IP (proxy Nitro) : la limite
+          # par IP par défaut (300/min) coupe l'audit depuis que l'espace plateforme lit le vrai back (lot 1.4).
+          RATE_LIMIT_IP_PER_MIN: '5000'
       - name: Serveur de dev (mocks Nitro)
         working-directory: frontend
         run: |

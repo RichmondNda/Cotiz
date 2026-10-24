@@ -86,8 +86,8 @@ const terms = { entryFee: money(50000), installmentAmount: money(10000), frequen
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
   'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
-  'pf.asso.list list': {}, 'pf.asso.get get': { params: { id: aid } }, 'pf.asso.sub projects': { params: { id: aid } },
-  'pf.asso.sub members': { params: { id: aid } }, 'pf.dashboard get': {}, 'pf.invoices list': {}, 'pf.staff list': {},
+  'pf.asso.sub projects': { params: { id: aid } },
+  'pf.asso.sub members': { params: { id: aid } }, 'pf.invoices list': {}, 'pf.staff list': {},
   'as.get get': { params: { aid } }, 'as.pm list': { params: { aid } }, 'as.dashboard get': { params: { aid } },
   'bl.sub get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P }, 'pr.list list': { params: { aid } }, 'pr.get get': { params: P },
@@ -110,10 +110,6 @@ const WRITES: Record<string, () => Call> = {
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
   'nt.read read': () => ({ params: { id: uid('notification', 'nt-mb-1') } }),
   'nt.read readAll': () => ({}),
-  'pf.asso.patch patch': () => ({ params: { id: aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
-  'pf.asso.suspend suspend': () => ({ params: { id: aid }, body: { reason: 'Impayé', confirmName: 'Entraide Yopougon' } }),
-  'pf.asso.suspend reactivate': () => ({ params: { id: aid }, setup: () => call('pf.asso.suspend', 'suspend', { params: { id: aid }, body: { reason: 'x', confirmName: 'x' } }) } as Call),
-  'pf.asso.plan changePlan': () => ({ params: { id: aid }, body: { planId: uid('plan', 'pro'), effectiveOn: '2026-10-01' } }),
   'as.patch patch': () => ({ params: { aid }, body: { city: 'Abidjan' }, ifMatch: 1 }),
   'as.pm replace': () => ({ params: { aid }, body: { items: [{ kind: 'cash', label: 'Espèces', details: {}, isActive: true }] } }),
   'as.onb complete': () => ({ params: { aid } }),
@@ -293,7 +289,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   })
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
-    expect(await problem('pf.dashboard', 'get', { as: 'association' })).toBe('forbidden')
+    expect(await problem('pf.staff', 'list', { as: 'association' })).toBe('forbidden')
     expect(await problem('me.dash', 'get', { as: null })).toBe('session_expired')
   })
 })

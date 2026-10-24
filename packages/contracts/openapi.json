@@ -14094,10 +14094,34 @@
                     ]
                   },
                   "priceMonthly": {
-                    "$ref": "#/components/schemas/Money"
+                    "type": "object",
+                    "properties": {
+                      "amount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "XOF"
+                      }
+                    },
+                    "required": ["amount", "currency"]
                   },
                   "priceYearly": {
-                    "$ref": "#/components/schemas/Money"
+                    "type": "object",
+                    "properties": {
+                      "amount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "XOF"
+                      }
+                    },
+                    "required": ["amount", "currency"]
                   },
                   "limits": {
                     "type": "object",
@@ -14276,10 +14300,34 @@
                     ]
                   },
                   "priceMonthly": {
-                    "$ref": "#/components/schemas/Money"
+                    "type": "object",
+                    "properties": {
+                      "amount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "XOF"
+                      }
+                    },
+                    "required": ["amount", "currency"]
                   },
                   "priceYearly": {
-                    "$ref": "#/components/schemas/Money"
+                    "type": "object",
+                    "properties": {
+                      "amount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "XOF"
+                      }
+                    },
+                    "required": ["amount", "currency"]
                   },
                   "limits": {
                     "type": "object",

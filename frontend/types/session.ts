@@ -25,6 +25,8 @@ export interface CompteursNavigation {
   /** Gestionnaire : souscripteurs en retard, tous projets (entrée « Relances » du menu Plus). */
   souscripteursEnRetard: number
   demandesATraiter: number
+  /** Super-admin (owner, admin) : demandes de réinitialisation des gestionnaires en attente. */
+  reinitialisationsATraiter: number
 }
 
 // Types d'interface des écrans (lot 0.3) : les échanges suivent @cotiz/contracts, adaptés par composables/api/vues.

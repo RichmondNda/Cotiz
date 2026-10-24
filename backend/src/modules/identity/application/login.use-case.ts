@@ -4,6 +4,7 @@ import type { SessionSpace } from '@cotiz/contracts';
 import { credentials, users } from '@cotiz/db';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
+import { activeMembershipsOf, MANAGEMENT_ROLES, type ManagementRole } from '../../access/access.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant-context/index.js';
@@ -28,7 +29,9 @@ export interface LoginInput {
  *   sur un haché fictif (même temps de réponse) ;
  * - 5 échecs en 15 min verrouillent l'identifiant 15 min (`account_locked`), qu'il existe ou non, et le compte (ses
  *   email et téléphone partagent 5 essais ; qui connaît les deux peut constater qu'ils vont ensemble : accepté) ;
- * - `wrong_space` seulement après un mot de passe juste (message identique à l'écran).
+ * - `wrong_space` seulement après un mot de passe juste (message identique à l'écran) ;
+ * - espace association : `association_suspended` si toutes les associations que la personne gère sont suspendues
+ *   (après le mot de passe, comme `wrong_space`).
  * Un échec écrit son compteur puis lève l'erreur APRÈS le COMMIT (`afterCommit`) : l'erreur annulerait sinon l'écriture.
  */
 @Injectable()
@@ -89,6 +92,9 @@ export class LoginUseCase {
     // Mot de passe juste : les essais sont effacés, et wrong_space ne révèle plus rien.
     await this.throttle.succeed(subjects);
     if (!(await this.spaceAccess.allows(account.id, input.space))) throw new DomainProblem('wrong_space');
+    if (input.space === 'association' && (await allManagedSuspended(account.id))) {
+      throw new DomainProblem('association_suspended');
+    }
 
     await tx
       .update(credentials)
@@ -110,4 +116,12 @@ export class LoginUseCase {
 
     return session;
   }
+}
+
+/** Toutes les associations que la personne gère (au moins une, vérifié par SpaceAccess) sont-elles suspendues ? */
+async function allManagedSuspended(userId: string): Promise<boolean> {
+  const managed = (await activeMembershipsOf(userId)).filter((m) =>
+    MANAGEMENT_ROLES.includes(m.role as ManagementRole),
+  );
+  return managed.length > 0 && managed.every((m) => m.association.status === 'suspended');
 }
