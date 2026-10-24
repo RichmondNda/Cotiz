@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { AssociationType } from '../common/association.js';
 import { AssociationStatus, BillingPeriod, InvoiceStatus, SubscriptionStatus } from '../common/enums.js';
 import { listOf, ListQuery } from '../common/list.js';
-import { AssociationParams } from '../common/params.js';
+import { AssociationIdParams, AssociationParams } from '../common/params.js';
 import { PaymentMethod, PaymentMethodInput } from '../common/payment-method.js';
 import { Email, PersonRef, PhoneE164 } from '../common/people.js';
 import { PublicPlan, QuotaUsage } from '../common/plan.js';
@@ -10,6 +10,7 @@ import { PaymentSummary } from '../common/ledger.js';
 import { ProjectRef, ProjectSummary } from '../common/project.js';
 import { Currency, Instant, IsoDate, Money, Uuid } from '../common/scalars.js';
 import { defineEndpoint, noFlags } from '../registry.js';
+import { StoredFile, UploadRequest, UploadTicket } from './common.js';
 
 // Espace association : profil, moyens de paiement, onboarding, abonnement, tableau de bord (docs/ui/manager.md).
 
@@ -44,7 +45,7 @@ export const PatchAssociationProfile = z
     city: z.string().min(1).max(80),
     contactEmail: Email,
     contactPhone: PhoneE164,
-    /** Fichier déposé par `fl.upload` (purpose `logo`). */
+    /** Fichier de l'association déposé par `as.upload` (purpose `logo`), analysé et sain. */
     logoFileId: Uuid.nullable(),
     defaultGraceDays: z.int().min(0).max(90),
   })
@@ -78,6 +79,49 @@ export const asPatch = defineEndpoint({
       path: '/api/v1/associations/{aid}',
       request: { params: AssociationParams, body: PatchAssociationProfile },
       response: { status: 200, body: Association },
+    },
+  },
+});
+
+/** Dépôt d'un fichier de l'association : le logo seulement au lot 2.1 (couverture, imports, relevés ensuite). */
+export const AssociationUploadRequest = UploadRequest.extend({ purpose: z.literal('logo') });
+
+export const asUpload = defineEndpoint({
+  id: 'as.upload',
+  space: 'association',
+  permission: 'association.settings.manage',
+  errors: ['file_too_large', 'file_type_not_allowed', 'file_not_clean'],
+  flags: { ...noFlags, rateLimited: true },
+  operations: {
+    create: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/uploads',
+      request: { params: AssociationParams, body: AssociationUploadRequest },
+      response: { status: 201, body: UploadTicket },
+    },
+    /** Confirme le dépôt ; l'analyse se poursuit dans le worker. */
+    complete: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/uploads/{id}/complete',
+      request: { params: AssociationIdParams },
+      response: { status: 202, body: StoredFile },
+    },
+  },
+});
+
+export const asFile = defineEndpoint({
+  id: 'as.file',
+  space: 'association',
+  permission: 'association.read',
+  errors: ['not_found'],
+  flags: { ...noFlags, audited: true },
+  operations: {
+    /** Redirection 302 vers une URL signée valable 5 min. */
+    get: {
+      method: 'GET',
+      path: '/api/v1/associations/{aid}/files/{id}',
+      request: { params: AssociationIdParams },
+      response: { status: 302 },
     },
   },
 });

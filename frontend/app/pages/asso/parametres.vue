@@ -9,6 +9,8 @@
 <script setup lang="ts">
 import type { Association, ModalitePaiement } from '~~/types'
 import { initiales } from '~/utils/format'
+import { codeErreur, messageRefus } from '~/composables/api/client'
+import { erreursMoyens, MESSAGE_OPERATEUR } from '~/composables/api/vues/associations'
 
 definePageMeta({ middleware: 'espace-gestionnaire', layout: 'backoffice', espace: 'gestionnaire', titre: 'Paramètres de l’association' })
 useHead({ title: 'Paramètres de l’association · Cotiz' })
@@ -67,15 +69,24 @@ watch(modifie, v => v && (enregistre.value = false))
 
 const tentee = ref(false)
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const erreurs = computed(() => ({
-  nom: tentee.value && !form.nom.trim() ? 'Indiquez le nom de l’association' : undefined,
-  emailContact: tentee.value && form.emailContact.trim() && !EMAIL.test(form.emailContact.trim())
-    ? 'Indiquez un email valide, par exemple contact@association.ci'
-    : undefined,
-}))
+const erreurs = computed(() => {
+  // Moyens refusés par le contrat de as.pm.replace (même schéma que le back) ; l'opérateur a son propre champ.
+  const moyens = tentee.value && association.value ? erreursMoyens(modalites(association.value), form.instructionsPaiement.trim()) : {}
+  return {
+    nom: tentee.value && !form.nom.trim() ? 'Indiquez le nom de l’association' : undefined,
+    emailContact: tentee.value && form.emailContact.trim() && !EMAIL.test(form.emailContact.trim())
+      ? 'Indiquez un email valide, par exemple contact@association.ci'
+      : undefined,
+    numeroMobileMoney: moyens.mobile_money !== MESSAGE_OPERATEUR ? moyens.mobile_money : undefined,
+    operateur: moyens.mobile_money === MESSAGE_OPERATEUR ? moyens.mobile_money : undefined,
+    iban: moyens.virement,
+  }
+})
 
 // ---------------------------------------------------------------- Logo
 const champLogo = ref<HTMLInputElement | null>(null)
+/** Fichier choisi, déposé à l'enregistrement (as.upload). */
+const fichierLogo = ref<File>()
 const erreurLogo = ref<string>()
 function choisirLogo(e: Event) {
   const fichier = (e.target as HTMLInputElement).files?.[0]
@@ -90,6 +101,7 @@ function choisirLogo(e: Event) {
     return
   }
   erreurLogo.value = undefined
+  fichierLogo.value = fichier
   form.logoUrl = `[LOGO] ${fichier.name}`
 }
 
@@ -103,7 +115,10 @@ function modalites(a: Association): ModalitePaiement[] {
     liste.push({ ...ancienMm, moyen: 'mobile_money', numeroMobileMoney: form.numeroMobileMoney.trim() || undefined, operateur: form.operateur.trim() || undefined })
   }
   const ancienVir = a.modalitesPaiement.find(m => m.moyen === 'virement')
-  if (ancienVir || form.iban.trim()) liste.push({ ...ancienVir, moyen: 'virement', iban: form.iban.trim() || undefined })
+  if (ancienVir || form.iban.trim()) {
+    // « Instructions complémentaires » = instructions du virement.
+    liste.push({ ...ancienVir, moyen: 'virement', iban: form.iban.trim() || undefined, instructions: form.instructionsPaiement.trim() || undefined })
+  }
   return [...liste, ...autres]
 }
 
@@ -112,7 +127,7 @@ async function enregistrer() {
   const a = association.value
   if (!a) return
   tentee.value = true
-  if (erreurs.value.nom || erreurs.value.emailContact) return
+  if (Object.values(erreurs.value).some(Boolean)) return
   envoi.value = true
   try {
     await modifier(a.id, {
@@ -121,11 +136,12 @@ async function enregistrer() {
       description: form.description.trim(),
       telephoneContact: form.telephoneContact.trim(),
       emailContact: form.emailContact.trim(),
-      logoUrl: form.logoUrl || undefined,
+      logo: fichierLogo.value,
       instructionsPaiement: form.instructionsPaiement.trim(),
       modalitesPaiement: modalites(a),
     })
     reference.value = { ...form }
+    fichierLogo.value = undefined
     tentee.value = false
     enregistre.value = true
     if (!estMobile.value) {
@@ -136,8 +152,12 @@ async function enregistrer() {
     }
     await Promise.all([refresh(), rafraichirSession()])
   }
-  catch {
-    toast.erreur('Les paramètres n’ont pas pu être enregistrés', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Les paramètres n’ont pas pu être enregistrés', {
+      message: codeErreur(e) === 'logo_en_analyse'
+        ? 'Le logo est en cours de vérification : réessayez dans un instant.'
+        : messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.',
+    })
   }
   finally {
     envoi.value = false
@@ -148,6 +168,7 @@ function annuler() {
   if (reference.value) Object.assign(form, reference.value)
   tentee.value = false
   erreurLogo.value = undefined
+  fichierLogo.value = undefined
 }
 
 const { confirmation, quitter } = useGardeModifications(() => modifie.value)
@@ -403,7 +424,7 @@ const sigle = computed(() => association.value?.sigle ?? initiales(form.nom || a
             Les paiements ne transitent pas par Cotiz : vos souscripteurs vous paient directement, puis déclarent leur versement.
           </p>
           <div class="parametres__deux">
-            <CzField>
+            <CzField :erreur="erreurs.numeroMobileMoney">
               <template #label>
                 <span class="cz-desktop">Numéro mobile money</span><span class="cz-mobile">Mobile money</span>
               </template>
@@ -413,11 +434,14 @@ const sigle = computed(() => association.value?.sigle ?? initiales(form.nom || a
                 inputmode="tel"
               />
             </CzField>
-            <CzField label="Opérateur">
+            <CzField
+              label="Opérateur"
+              :erreur="erreurs.operateur"
+            >
               <CzInput v-model="form.operateur" />
             </CzField>
           </div>
-          <CzField>
+          <CzField :erreur="erreurs.iban">
             <template #label>
               IBAN / RIB<span class="cz-desktop">&nbsp;(facultatif)</span>
             </template>

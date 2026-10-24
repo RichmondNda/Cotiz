@@ -1,4 +1,4 @@
-// Associations : espace gestionnaire (as.get, as.patch, as.pm, as.onb) et espace plateforme (pf.asso.*).
+// Associations : espace gestionnaire (as.get, as.patch, as.upload, as.pm, as.onb) et espace plateforme (pf.asso.*).
 import type { ApiClient } from './client'
 import type {
   Association, AssociationCreee, AssociationListe, FicheAssociationPlateforme, ListeAssociations, ModificationAssociation,
@@ -16,29 +16,51 @@ export async function chargerAssociation(client: ApiClient, aid: string): Promis
   const [a, moyens, tdb, sub, equipe] = await Promise.all([
     client.call('as.get', 'get', { params: { aid } }),
     client.call('as.pm', 'list', { params: { aid } }),
-    client.call('as.dashboard', 'get', { params: { aid } }),
+    // Tableau de bord et équipe encore simulés (lots 2.6, 4.5) : inconnus des mocks pour une association créée en réel.
+    client.call('as.dashboard', 'get', { params: { aid } }).catch(() => null),
     client.call('bl.sub', 'get', { params: { aid } }),
     client.call('tm.team', 'list', { params: { aid } }).catch(() => null),
   ])
   return vueAssociation(a, moyens.items, {
-    planId: sub.plan.id, projets: tdb.projectsCount, souscripteurs: tdb.subscribersCount,
-    gestionnaires: equipe?.items.length ?? sub.quotas.managers.used + 1, limiteSecondaires: equipe?.seats.limit ?? sub.quotas.managers.limit ?? undefined,
+    planId: sub.plan.id, projets: tdb?.projectsCount ?? sub.quotas.projects.used, souscripteurs: tdb?.subscribersCount ?? sub.quotas.subscribers.used,
+    gestionnaires: equipe?.items.length ?? sub.quotas.managers.used, limiteSecondaires: equipe?.seats.limit ?? sub.quotas.managers.limit ?? undefined,
     prochaineEcheance: sub.currentPeriodEnd ?? undefined,
   })
+}
+
+/** Onboarding de l'association courante encore à faire (pas de date de clôture) : premier accès d'un gestionnaire. */
+export async function onboardingAFaire(client: ApiClient): Promise<boolean> {
+  const a = await client.call('as.get', 'get', { params: { aid: await associationCourante(client) } })
+  return a.onboardingCompletedAt === null
 }
 
 /** Association du gestionnaire connecté (profil, moyens de paiement par défaut). */
 export const useAssociationGestionnaire = () =>
   useLecture<Association>('mon-association', async client => chargerAssociation(client, await associationCourante(client)))
 
+/**
+ * Dépôt du logo (décision 24) : ticket `as.upload`, envoi direct à MinIO, confirmation. Le fichier n'est rattachable
+ * qu'une fois analysé sain : encore en analyse à la confirmation → erreur `logo_en_analyse` (réessayer).
+ */
+async function deposerLogo(client: ApiClient, aid: string, logo: File): Promise<string> {
+  const ticket = await client.call('as.upload', 'create', {
+    params: { aid }, body: { purpose: 'logo', fileName: logo.name, mimeType: logo.type, sizeBytes: logo.size },
+  })
+  await $fetch(ticket.uploadUrl, { method: ticket.method, headers: ticket.headers, body: logo })
+  const fichier = await client.call('as.upload', 'complete', { params: { aid, id: ticket.fileId } })
+  if (fichier.scanStatus !== 'clean') throw Object.assign(new Error('logo_en_analyse'), { data: { code: 'logo_en_analyse' } })
+  return fichier.id
+}
+
 /** Mise à jour du profil ou des moyens de paiement de l'association (onboarding, paramètres). */
 export function useModificationAssociation() {
   const client = useClient()
   return async (aid: string, modification: ModificationAssociation) => {
     const a = await client.call('as.get', 'get', { params: { aid } })
+    const logoFileId = modification.logo ? await deposerLogo(client, aid, modification.logo) : undefined
     const profil = Object.fromEntries(Object.entries({
       name: modification.nom, description: modification.description, city: modification.ville, contactEmail: modification.emailContact,
-      contactPhone: modification.telephoneContact ? versE164(modification.telephoneContact) : undefined,
+      contactPhone: modification.telephoneContact ? versE164(modification.telephoneContact) : undefined, logoFileId,
     }).filter(([, v]) => v !== undefined))
     if (Object.keys(profil).length) await client.call('as.patch', 'patch', { params: { aid }, body: profil, ifMatch: a.version })
     if (modification.modalitesPaiement) {

@@ -1,4 +1,4 @@
-// Espace association : profil, moyens de paiement, onboarding, tableau de bord, abonnement, équipe, contrats.
+// Espace association : tableau de bord, factures, équipe, contrats (profil, moyens, onboarding et abonnement : NestJS, lot 2.1).
 import { createHash } from 'node:crypto'
 import { db } from '../db'
 import type { AssociationRow } from '../db'
@@ -7,8 +7,7 @@ import { checkVersion, nowInstant, problem, requireSession } from '../http'
 import { uid } from '../ids'
 import { associationFigures, daysSince, enrollmentsOfProject, monthOf, projectFigures, today } from '../ledger'
 import {
-  association, associationRow, money, paymentMethodsOf, paymentSummary, personRef, projectRef, projectRow,
-  projectSummary, publicPlan, planRow, userRow,
+  associationRow, money, paymentSummary, personRef, projectRef, projectRow, projectSummary, planRow, userRow,
 } from '../views'
 import { handoff } from './handoff'
 import { page } from './list'
@@ -16,40 +15,6 @@ import { page } from './list'
 /** Association de la session gestionnaire (le contrôle `aid` = session est fait par l'enveloppe). */
 export function sessionAssociation(ctx: { session: MockSession | null }): AssociationRow {
   return associationRow(requireSession(ctx).associationId ?? problem('forbidden'))
-}
-
-export function associationGet(ctx: MockContext<'as.get', 'get'>) {
-  return association(associationRow(ctx.params.aid))
-}
-
-export function associationPatch(ctx: MockContext<'as.patch', 'patch'>) {
-  const a = associationRow(ctx.params.aid)
-  checkVersion(ctx, a.version)
-  Object.assign(a, ctx.body, { version: a.version + 1 })
-  return association(a)
-}
-
-export function paymentMethodsList(ctx: MockContext<'as.pm', 'list'>) {
-  return { items: paymentMethodsOf(ctx.params.aid) }
-}
-
-export function paymentMethodsReplace(ctx: MockContext<'as.pm', 'replace'>) {
-  const aid = ctx.params.aid
-  db.paymentMethods = [
-    ...db.paymentMethods.filter(m => m.associationId !== aid),
-    ...ctx.body.items.map((m, position) => ({
-      id: m.id ?? uid('payment-method', `${aid}-${m.kind}-${position}-${Date.now()}`), associationId: aid, kind: m.kind, label: m.label,
-      details: { ...m.details }, instructions: m.instructions ?? null, position, isActive: m.isActive,
-    })),
-  ]
-  return { items: paymentMethodsOf(aid) }
-}
-
-export function onboardingComplete(ctx: MockContext<'as.onb', 'complete'>) {
-  const a = associationRow(ctx.params.aid)
-  if (!paymentMethodsOf(a.id).length) problem('onboarding_incomplete')
-  Object.assign(a, { onboardingCompletedAt: a.onboardingCompletedAt ?? nowInstant(), status: a.status === 'onboarding' ? 'active' : a.status, version: a.version + 1 })
-  return association(a)
 }
 
 // ---------------------------------------------------------------- Tableau de bord
@@ -100,25 +65,6 @@ export function dashboard(ctx: MockContext<'as.dashboard', 'get'>) {
 }
 
 // ---------------------------------------------------------------- Abonnement et factures
-
-export function subscription(ctx: MockContext<'bl.sub', 'get'>) {
-  const a = associationRow(ctx.params.aid)
-  const s = db.subscriptions.find(x => x.associationId === a.id) ?? problem('not_found')
-  const p = planRow(s.planId)
-  const f = associationFigures(a.id)
-  const managers = db.memberships.filter(m => m.associationId === a.id && m.role !== 'subscriber' && m.role !== 'owner' && m.status !== 'removed').length
-  return {
-    plan: publicPlan(p), billingPeriod: s.billingPeriod,
-    status: ctx.scenario === 'suspendu' ? 'suspended' as const : s.status,
-    price: money(s.billingPeriod === 'yearly' ? p.priceYearly : p.priceMonthly), currentPeriodStart: s.currentPeriodStart,
-    currentPeriodEnd: s.currentPeriodEnd, trialEndsOn: s.trialEndsOn,
-    quotas: {
-      projects: { used: f.projectsCount, limit: p.limits.projects },
-      subscribers: { used: f.membersCount, limit: p.limits.subscribers },
-      managers: { used: managers, limit: a.managerSeatsOverride ?? p.limits.managers },
-    },
-  }
-}
 
 export function invoices(ctx: MockContext<'bl.inv', 'list'>) {
   let rows = db.invoices.filter(i => i.associationId === ctx.params.aid).sort((a, b) => b.periodStart.localeCompare(a.periodStart))

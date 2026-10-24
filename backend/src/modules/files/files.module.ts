@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { CompleteUploadUseCase } from './application/complete-upload.use-case.js';
 import { GetFileUseCase } from './application/get-file.use-case.js';
 import { RequestUploadUseCase } from './application/request-upload.use-case.js';
+import { AssociationFilesController } from './http/association-files.controller.js';
 import { FilesController } from './http/files.controller.js';
 
-/** Module storage (endpoints.yaml : fl.upload, fl.get ; architecture/08). */
+/** Module storage (endpoints.yaml : fl.upload, fl.get, as.upload, as.file ; architecture/08). */
 @Module({
-  controllers: [FilesController],
+  controllers: [FilesController, AssociationFilesController],
   providers: [RequestUploadUseCase, CompleteUploadUseCase, GetFileUseCase],
 })
 export class FilesModule {}

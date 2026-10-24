@@ -42,7 +42,6 @@ endpoints:
   rateLimited: true
   audited: false
   screens:
-  - mg-onboarding
   - mg-projet-new
   - mg-import
   - mb-declarer
@@ -800,6 +799,47 @@ endpoints:
   audited: false
   screens:
   - mg-onboarding
+- id: as.upload
+  lot: '2.1'
+  space: association
+  permission: association.settings.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/uploads
+  - method: POST
+    path: /api/v1/associations/{aid}/uploads/{id}/complete
+  summary: Dépôt d'un fichier de l'association (logo), mêmes étapes que fl.upload ; association lue dans l'URL (décision 24)
+  errors:
+  - file_too_large
+  - file_type_not_allowed
+  - file_not_clean
+  emits:
+  - file.uploaded
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - mg-onboarding
+  - mg-params
+- id: as.file
+  lot: '2.1'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/files/{id}
+  summary: Lecture d'un fichier de l'association (logo), redirection 302 vers une URL signée de 5 min (décision 24)
+  errors:
+  - not_found
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: true
+  screens:
+  - mg-onboarding
+  - mg-params
 - id: bl.sub
   lot: '2.1'
   space: association

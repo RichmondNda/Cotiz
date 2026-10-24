@@ -3,13 +3,15 @@
   Plein écran, sans barre latérale : logo, progression en 4 étapes, « Terminer plus tard » (→ tableau de bord).
   1 Bienvenue · 2 Votre association (logo, nom, description, ville, contacts) · 3 Moyens de paiement (cases,
   coordonnées de chaque moyen retenu, aperçu côté souscripteur) · 4 C'est prêt (récapitulatif, deux choix).
-  Chaque étape est enregistrée à la validation (`as.patch`).
+  Chaque étape est enregistrée à la validation (`as.patch`, puis `as.pm` et la clôture `as.onb` à l'étape 3).
   Mobile : une étape par écran, progression en segments, barre d'action fixe en bas.
 -->
 <script setup lang="ts">
 import type { FichierDepose } from '~/components/cz/CzFileDrop.vue'
 import type { ModalitePaiement, MoyenPaiement } from '~~/types'
 import { emailValide } from '~/utils/validation'
+import { codeErreur, messageRefus } from '~/composables/api/client'
+import { erreursMoyens } from '~/composables/api/vues/associations'
 import { MOYENS_PAIEMENT } from '~/utils/statuts'
 
 definePageMeta({ middleware: 'espace-gestionnaire', layout: false })
@@ -18,6 +20,7 @@ useHead({ title: 'Bienvenue · Cotiz', bodyAttrs: { 'data-theme': 'manager' } })
 const { data: moi, error: erreurMoi, refresh: rechargerMoi } = useMoi()
 const { data: association, error: erreurAssociation, refresh: rechargerAssociation } = useAssociationGestionnaire()
 const modifier = useModificationAssociation()
+const terminerOnboarding = useFinOnboarding()
 const toast = useToast()
 
 /** Rien ne s'enregistre ni n'avance tant que l'association et la session ne sont pas chargées. */
@@ -74,7 +77,11 @@ const erreurs = computed(() => {
     if (!profil.nom.trim()) e.nom = 'Indiquez le nom de l’association.'
     if (profil.email.trim() && !emailValide(profil.email)) e.email = 'Adresse email invalide.'
   }
-  if (etape.value === 3 && !ORDRE.some(m => moyens[m].actif)) e.moyens = 'Choisissez au moins un moyen de paiement.'
+  if (etape.value === 3) {
+    if (!ORDRE.some(m => moyens[m].actif)) e.moyens = 'Choisissez au moins un moyen de paiement.'
+    // Même schéma que le back (as.pm.replace) : opérateur, numéro, IBAN, instructions.
+    Object.assign(e, erreursMoyens(modalites()))
+  }
   return e
 })
 
@@ -111,12 +118,18 @@ async function continuer() {
             ville: profil.ville.trim(),
             telephoneContact: profil.telephone.trim() || undefined,
             emailContact: profil.email.trim() || undefined,
-            logoUrl: logo.value ? `[LOGO] ${logo.value.nom}` : undefined,
+            logo: logo.value?.fichier,
           }
         : { modalitesPaiement: modalites() })
+      // Moyens enregistrés : l'onboarding est clos (as.onb, sans effet s'il l'est déjà) avant « C'est prêt ».
+      if (etape.value === 3) await terminerOnboarding(association.value.id)
     }
-    catch {
-      toast.erreur('Enregistrement impossible', { message: 'Vérifiez votre connexion, puis réessayez.' })
+    catch (e) {
+      toast.erreur('Enregistrement impossible', {
+        message: codeErreur(e) === 'logo_en_analyse'
+          ? 'Le logo est en cours de vérification : réessayez dans un instant.'
+          : messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.',
+      })
       return
     }
     finally {
@@ -363,6 +376,7 @@ function retour() {
                   <CzField
                     v-if="moyens[m].actif"
                     :label="CHAMPS_MOYENS[m]"
+                    :erreur="erreurs[m]"
                   >
                     <CzInput v-model="moyens[m].valeur" />
                   </CzField>

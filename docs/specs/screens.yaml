@@ -268,7 +268,8 @@ screens:
   - as.patch
   - as.pm
   - as.onb
-  - fl.upload
+  - as.upload
+  - as.file
   uiDeviations: 0
 - id: mg-dashboard
   space: manager
@@ -552,6 +553,8 @@ screens:
   - as.get
   - as.patch
   - as.pm
+  - as.upload
+  - as.file
   uiDeviations: 0
 - id: mg-notifs
   space: manager

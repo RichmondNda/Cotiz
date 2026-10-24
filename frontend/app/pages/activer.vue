@@ -15,6 +15,7 @@ useHead({ title: 'Activer mon compte — Cotiz', meta: [{ name: 'robots', conten
 const route = useRoute()
 const { activer } = useAuth()
 const { connecter } = useSession()
+const client = useClient()
 
 const ESPACE: Record<string, Role> = { plateforme: 'superadmin', association: 'gestionnaire', souscripteur: 'souscripteur' }
 const role: Role = ESPACE[String(route.query.espace)] ?? 'souscripteur'
@@ -51,7 +52,9 @@ async function soumettre() {
   erreurApi.value = null
   try {
     await activer({ espace: role, identifiant: identifiant.value, code: code.value, motDePasse: nouveau.value })
-    await connecter(role)
+    // Gestionnaire dont l'association n'est pas encore configurée : assistant de démarrage (mg-onboarding).
+    const onboarding = role === 'gestionnaire' && await onboardingAFaire(client).catch(() => false)
+    await connecter(role, onboarding ? '/asso/bienvenue' : undefined)
   }
   catch (e) {
     erreurApi.value = codeErreur<CodeErreurAuth>(e) ?? 'reseau'

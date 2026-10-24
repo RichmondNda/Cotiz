@@ -1,5 +1,5 @@
 // Liste explicite (types littéraux pour le client) ; le test du registre vérifie qu'elle couvre endpoints.yaml.
-import { asDashboard, asGet, asOnb, asPatch, asPm, blInv, blSub } from './association.js';
+import { asDashboard, asFile, asGet, asOnb, asPatch, asPm, asUpload, blInv, blSub } from './association.js';
 import {
   authActivate,
   authForgot,
@@ -93,6 +93,8 @@ export const ENDPOINTS = {
   'as.patch': asPatch,
   'as.pm': asPm,
   'as.onb': asOnb,
+  'as.upload': asUpload,
+  'as.file': asFile,
   'bl.sub': blSub,
   'bl.inv': blInv,
   'as.dashboard': asDashboard,

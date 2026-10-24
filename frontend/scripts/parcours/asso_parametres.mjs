@@ -3,7 +3,8 @@ const modifier = async (page) => {
   const champ = page.getByLabel('Ville')
   await champ.fill('Abidjan ')
   await champ.fill('Abidjan')
-  await page.getByLabel('Opérateur').fill('[Opérateur] ')
+  // Opérateur reconnu par le contrat (as.pm.replace) : l'espace final suffit à marquer la page modifiée.
+  await page.getByLabel('Opérateur').fill('Orange Money ')
   await page.waitForTimeout(300)
 }
 export default {

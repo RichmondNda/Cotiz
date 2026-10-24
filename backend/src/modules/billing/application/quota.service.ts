@@ -49,7 +49,7 @@ export class QuotaService {
     await lockQuota(associationId, kind);
     const limit = (await this.limits(associationId))[kind];
     if (limit === null) return;
-    const usage = await this.usage(associationId, kind);
+    const usage = await quotaUsageOf(associationId, kind);
     if (usage >= limit) throw new DomainProblem('quota_exceeded', { limit, usage });
   }
 
@@ -68,14 +68,22 @@ export class QuotaService {
       ? { projects: row.projects, subscribers: row.subscribers, managers: row.managerSeatsOverride ?? row.managers }
       : NONE;
   }
+}
 
-  /** Gestionnaires : owner, manager, viewer invités ou actifs ; souscripteurs : non retirés (choix Q7). */
-  private async usage(associationId: string, kind: 'subscribers' | 'managers'): Promise<number> {
-    const roles = kind === 'managers' ? inArray(memberships.role, MANAGER_ROLES) : eq(memberships.role, 'subscriber');
-    const [row] = await currentTx()
-      .select({ n: count() })
-      .from(memberships)
-      .where(and(eq(memberships.associationId, associationId), roles, ne(memberships.status, 'removed')));
-    return row?.n ?? 0;
+/**
+ * Usage d'un quota, compté en base comme pour un ajout (QuotaService.assert) et pour l'affichage (bl.sub) :
+ * gestionnaires = owner, manager, viewer invités ou actifs ; souscripteurs = non retirés (choix Q7). Contexte de
+ * l'association seulement (jamais la connexion plateforme, qui contourne la RLS).
+ */
+export async function quotaUsageOf(associationId: string, kind: 'subscribers' | 'managers'): Promise<number> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('quotaUsageOf : contexte de l’association attendu');
   }
+  const roles = kind === 'managers' ? inArray(memberships.role, MANAGER_ROLES) : eq(memberships.role, 'subscriber');
+  const [row] = await currentTx()
+    .select({ n: count() })
+    .from(memberships)
+    .where(and(eq(memberships.associationId, associationId), roles, ne(memberships.status, 'removed')));
+  return row?.n ?? 0;
 }
