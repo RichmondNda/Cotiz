@@ -2,14 +2,19 @@ import { Injectable } from '@nestjs/common';
 import type { PaymentMethod, PaymentMethodInput, PaymentMethodList } from '@cotiz/contracts';
 import { associationPaymentMethods } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, eq, notInArray, sql } from 'drizzle-orm';
+import { and, eq, notInArray } from 'drizzle-orm';
 import type { z } from 'zod';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { contextAssociationId } from './association-records.js';
-import { paymentMethodsOf, toAuditedPaymentMethod, toPaymentMethod } from './payment-method-records.js';
+import {
+  lockPaymentMethods,
+  paymentMethodsOf,
+  toAuditedPaymentMethod,
+  toPaymentMethod,
+} from './payment-method-records.js';
 
 /** JSON à clés triées : `details` relu de jsonb n'a pas l'ordre de clés de la saisie. */
 function canonical(value: unknown): string {
@@ -26,7 +31,7 @@ function canonical(value: unknown): string {
  * validé par type (PaymentMethodInput) ; l'ordre de la liste donne `position`. Moyen avec `id` : mis à jour (il doit
  * être de cette association, une seule fois, sinon 422) ; sans `id` : créé ; absent de la liste : supprimé (choix Q5,
  * aucun moyen n'est encore référencé ; lot 2.2 : désactiver un moyen référencé). Deux remplacements concurrents
- * s'ordonnent par un verrou de transaction. Audité ; association.updated si la liste change.
+ * s'ordonnent par un verrou de transaction, partagé avec la clôture de l'onboarding. Audité ; association.updated si la liste change.
  */
 @Injectable()
 export class ReplacePaymentMethodsUseCase {
@@ -36,9 +41,7 @@ export class ReplacePaymentMethodsUseCase {
   async execute(aid: string, items: z.infer<typeof PaymentMethodInput>[]): Promise<z.infer<typeof PaymentMethodList>> {
     const actor = requireActor();
     const associationId = contextAssociationId(aid);
-    await currentTx().execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`payment-methods:${associationId}`}, 0))`,
-    );
+    await lockPaymentMethods(associationId);
     const before = (await paymentMethodsOf(associationId)).map(toPaymentMethod);
 
     const known = new Set(before.map((m) => m.id));
