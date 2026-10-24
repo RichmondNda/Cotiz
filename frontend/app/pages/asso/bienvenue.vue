@@ -3,7 +3,7 @@
   Plein écran, sans barre latérale : logo, progression en 4 étapes, « Terminer plus tard » (→ tableau de bord).
   1 Bienvenue · 2 Votre association (logo, nom, description, ville, contacts) · 3 Moyens de paiement (cases,
   coordonnées de chaque moyen retenu, aperçu côté souscripteur) · 4 C'est prêt (récapitulatif, deux choix).
-  Chaque étape est enregistrée à la validation (`as.patch`).
+  Chaque étape est enregistrée à la validation (`as.patch`, puis `as.pm` et la clôture `as.onb` à l'étape 3).
   Mobile : une étape par écran, progression en segments, barre d'action fixe en bas.
 -->
 <script setup lang="ts">
@@ -20,6 +20,7 @@ useHead({ title: 'Bienvenue · Cotiz', bodyAttrs: { 'data-theme': 'manager' } })
 const { data: moi, error: erreurMoi, refresh: rechargerMoi } = useMoi()
 const { data: association, error: erreurAssociation, refresh: rechargerAssociation } = useAssociationGestionnaire()
 const modifier = useModificationAssociation()
+const terminerOnboarding = useFinOnboarding()
 const toast = useToast()
 
 /** Rien ne s'enregistre ni n'avance tant que l'association et la session ne sont pas chargées. */
@@ -120,6 +121,8 @@ async function continuer() {
             logo: logo.value?.fichier,
           }
         : { modalitesPaiement: modalites() })
+      // Moyens enregistrés : l'onboarding est clos (as.onb, sans effet s'il l'est déjà) avant « C'est prêt ».
+      if (etape.value === 3) await terminerOnboarding(association.value.id)
     }
     catch (e) {
       toast.erreur('Enregistrement impossible', {

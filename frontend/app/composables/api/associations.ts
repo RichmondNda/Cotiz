@@ -16,15 +16,22 @@ export async function chargerAssociation(client: ApiClient, aid: string): Promis
   const [a, moyens, tdb, sub, equipe] = await Promise.all([
     client.call('as.get', 'get', { params: { aid } }),
     client.call('as.pm', 'list', { params: { aid } }),
-    client.call('as.dashboard', 'get', { params: { aid } }),
+    // Tableau de bord et équipe encore simulés (lots 2.6, 4.5) : inconnus des mocks pour une association créée en réel.
+    client.call('as.dashboard', 'get', { params: { aid } }).catch(() => null),
     client.call('bl.sub', 'get', { params: { aid } }),
     client.call('tm.team', 'list', { params: { aid } }).catch(() => null),
   ])
   return vueAssociation(a, moyens.items, {
-    planId: sub.plan.id, projets: tdb.projectsCount, souscripteurs: tdb.subscribersCount,
+    planId: sub.plan.id, projets: tdb?.projectsCount ?? sub.quotas.projects.used, souscripteurs: tdb?.subscribersCount ?? sub.quotas.subscribers.used,
     gestionnaires: equipe?.items.length ?? sub.quotas.managers.used, limiteSecondaires: equipe?.seats.limit ?? sub.quotas.managers.limit ?? undefined,
     prochaineEcheance: sub.currentPeriodEnd ?? undefined,
   })
+}
+
+/** Onboarding de l'association courante encore à faire (pas de date de clôture) : premier accès d'un gestionnaire. */
+export async function onboardingAFaire(client: ApiClient): Promise<boolean> {
+  const a = await client.call('as.get', 'get', { params: { aid: await associationCourante(client) } })
+  return a.onboardingCompletedAt === null
 }
 
 /** Association du gestionnaire connecté (profil, moyens de paiement par défaut). */
