@@ -1,4 +1,5 @@
-// Parcours de /asso/projets/nouveau (MgNouveauProjet) : étapes 1 à 6 et succès, avec les données de la maquette.
+// Parcours de /asso/projets/nouveau (MgNouveauProjet) : étapes et succès, avec les données de la maquette.
+// Étape « Contrat » masquée jusqu'au lot 4.1 (ui-deviations) : pas d'état `5`, l'état `6` (récapitulatif) est la 5e étape.
 const DESCRIPTION = 'Construction d’un centre communautaire pour les familles du quartier : salle de réunion, bibliothèque et espace pour les enfants.'
 
 const continuer = page => page.getByRole('button', { name: 'Continuer' }).click()
@@ -21,11 +22,7 @@ async function etape3(page) {
 async function etape4(page) {
   await page.getByRole('textbox', { name: 'Instructions spécifiques' }).fill('Indiquez votre nom et « Centre » en référence du virement.')
 }
-async function etape5(page) {
-  await page.getByRole('checkbox', { name: /Je signe ce contrat/ }).check({ force: true })
-}
-
-const ETAPES = [etape1, etape2, etape3, etape4, etape5]
+const ETAPES = [etape1, etape2, etape3, etape4]
 
 /** Remplit et valide les étapes 1 à n − 1, puis s'arrête sur l'étape n. */
 const jusqua = n => async (page) => {
@@ -33,7 +30,7 @@ const jusqua = n => async (page) => {
     await ETAPES[i](page)
     await continuer(page)
   }
-  if (n <= 5) await ETAPES[n - 1](page)
+  if (n <= ETAPES.length) await ETAPES[n - 1](page)
   await page.mouse.click(1, 1) // referme un éventuel focus / infobulle
 }
 
@@ -42,10 +39,9 @@ export default {
   '2': jusqua(2),
   '3': jusqua(3),
   '4': jusqua(4),
-  '5': jusqua(5),
-  '6': jusqua(6),
+  '6': jusqua(5),
   'succes': async (page) => {
-    await jusqua(6)(page)
+    await jusqua(5)(page)
     await page.getByRole('button', { name: 'Créer le projet' }).click()
     await page.getByText('Projet créé !').waitFor()
   },

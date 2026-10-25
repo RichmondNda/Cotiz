@@ -55,4 +55,6 @@ export interface Projet {
   /** Contrat : signataire pour l'association (étape 5 de la création). */
   signataire?: { nom: string, fonction: string }
   creeLe?: DateISO
+  /** Version lue (If-Match de pr.patch et pr.delete). */
+  version?: number
 }

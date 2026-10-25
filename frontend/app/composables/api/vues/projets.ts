@@ -34,7 +34,10 @@ export function vueProjet(p: ProjectSummary | Project, x: ExtrasProjet): Projet 
   const s = p.stats
   const { premiere, derniere } = bornesEcheancier(p)
   const choisis = 'paymentMethods' in p ? p.paymentMethods : []
-  const moyens = choisis.map((c: { paymentMethodId: string }) => x.moyens?.find((pm: PaymentMethod) => pm.id === c.paymentMethodId)).filter((pm): pm is PaymentMethod => Boolean(pm))
+  // Projet sans moyen propre (liste vide de pr.create) : ceux de l'association, actifs. Un résumé (liste) n'en a pas.
+  const moyens = 'paymentMethods' in p && !choisis.length
+    ? (x.moyens ?? []).filter(pm => pm.isActive)
+    : choisis.map((c: { paymentMethodId: string }) => x.moyens?.find((pm: PaymentMethod) => pm.id === c.paymentMethodId)).filter((pm): pm is PaymentMethod => Boolean(pm))
   const modalites: ModalitePaiement[] = vueModalites(moyens)
   return {
     id: p.id,
@@ -69,6 +72,7 @@ export function vueProjet(p: ProjectSummary | Project, x: ExtrasProjet): Projet 
     ...(x.apercu ? { apercuSouscripteurs: x.apercu } : {}),
     ...(x.contrat ? { signataire: { nom: x.contrat.signer.name, fonction: x.contrat.signer.title } } : {}),
     creeLe: jour(p.createdAt),
+    version: p.version,
   }
 }
 
@@ -156,7 +160,7 @@ const FREQUENCES = { weekly: 'hebdomadaires', monthly: 'mensuelles', quarterly: 
 
 /** Modèle de contrat avec les valeurs du projet ; `{nom_souscripteur}` et `{telephone}` restent pour chaque souscripteur. */
 export function rendreModele(modele: string, p: ProjectSummary, association: string): string {
-  const F = (n: number) => formatMoney({ amount: n, currency: 'XOF' })
+  const F = (n: number) => formatMoney({ amount: n, currency: p.installmentAmount.currency })
   const valeurs: Record<string, string> = {
     association, projet: p.name, montant: p.stats.totalPerSubscriber ? F(p.stats.totalPerSubscriber.amount) : '[MONTANT]',
     fonds_entree: F(p.entryFee?.amount ?? 0), nb_echeances: String(p.stats.installmentsCount ?? '[N]'), frequence: FREQUENCES[p.frequency],

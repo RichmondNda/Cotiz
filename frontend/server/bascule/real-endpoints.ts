@@ -59,4 +59,13 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['as.pm.list', 'all'],
   ['as.onb', 'all'],
   ['bl.sub', 'all'],
+  // Lot 2.2 : projets (liste, assistant de création et aperçu, paramètres, cycle de vie, vue d'ensemble).
+  ['pr.list', 'all'],
+  ['pr.create', 'all'],
+  ['pr.preview', 'all'],
+  ['pr.get', 'all'],
+  ['pr.patch', 'all'],
+  ['pr.lifecycle', 'all'],
+  ['pr.delete', 'all'],
+  ['pr.overview', 'all'],
 ])

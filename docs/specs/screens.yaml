@@ -298,7 +298,7 @@ screens:
   endpoints:
   - pr.list
   - pr.lifecycle
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-projet-new
   space: manager
   title: Création de projet
@@ -314,7 +314,7 @@ screens:
   - as.pm.list
   - pr.upload
   - as.file
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-projet-overview
   space: manager
   title: Détail projet — Vue d'ensemble
@@ -328,7 +328,7 @@ screens:
   - pr.get
   - pr.overview
   - rm.send
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-projet-souscripteurs
   space: manager
   title: Détail projet — Souscripteurs
@@ -391,7 +391,7 @@ screens:
   - pr.upload
   - as.pm.list
   - as.file
-  uiDeviations: 0
+  uiDeviations: 2
 - id: mg-projet-rapports
   space: manager
   title: Détail projet — Rapports

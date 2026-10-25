@@ -1,5 +1,5 @@
 <!--
-  MgNouveauProjet — création de projet en 6 étapes : configurer un projet complet sans erreur, en comprenant
+  MgNouveauProjet — création de projet en 6 étapes (5 tant que l'étape « Contrat » est masquée, lot 4.1) : configurer un projet complet sans erreur, en comprenant
   l'impact de chaque paramètre sur l'échéancier.
   Desktop : indicateur d'étapes, formulaire à gauche (60 %), aperçu côté souscripteur collant à droite (40 %),
   barre d'actions fixe en bas (« Enregistrer le brouillon », « Retour », « Continuer » / « Créer le projet »).
@@ -9,7 +9,10 @@
 -->
 <script setup lang="ts">
 import type { Projet } from '~~/types'
+import type { Component } from 'vue'
+import { messageRefus } from '~/composables/api/client'
 import { creerFormulaireProjet, ETAPES_PROJET, fournirFormulaireProjet } from '~/composables/useNouveauProjet'
+import type { EtapeProjet } from '~/composables/useNouveauProjet'
 import EtapeProjetCalendrier from '~/components/metier/creation-projet/EtapeProjetCalendrier.vue'
 import EtapeProjetContrat from '~/components/metier/creation-projet/EtapeProjetContrat.vue'
 import EtapeProjetFinancement from '~/components/metier/creation-projet/EtapeProjetFinancement.vue'
@@ -47,14 +50,15 @@ watch([association, modele], ([a, m]) => {
   f.preremplir(m)
 }, { immediate: true })
 
-const COMPOSANTS = [
-  EtapeProjetInformations,
-  EtapeProjetFinancement,
-  EtapeProjetCalendrier,
-  EtapeProjetPaiement,
-  EtapeProjetContrat,
-  EtapeProjetRecapitulatif,
-]
+// « Contrat » absent de ETAPES_PROJET tant que les contrats ne sont pas disponibles (lot 4.1).
+const COMPOSANTS: Record<EtapeProjet, Component> = {
+  Informations: EtapeProjetInformations,
+  Financement: EtapeProjetFinancement,
+  Calendrier: EtapeProjetCalendrier,
+  Paiement: EtapeProjetPaiement,
+  Contrat: EtapeProjetContrat,
+  Récapitulatif: EtapeProjetRecapitulatif,
+}
 const etapes = [...ETAPES_PROJET]
 const nomEtape = computed(() => ETAPES_PROJET[etape.value - 1])
 
@@ -83,8 +87,8 @@ async function creerProjet() {
     cree.value = await creer(f.corps())
     hautDePage()
   }
-  catch {
-    toast.erreur('Le projet n’a pas pu être créé', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Le projet n’a pas pu être créé', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     envoi.value = null
@@ -121,8 +125,8 @@ async function enregistrerBrouillon() {
     toast.succes('Brouillon enregistré', { message: `« ${etat.nom.trim()} » est dans vos brouillons.` })
     await sortir('/asso/projets?statut=brouillon')
   }
-  catch {
-    toast.erreur('Le brouillon n’a pas pu être enregistré', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Le brouillon n’a pas pu être enregistré', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     envoi.value = null
@@ -188,7 +192,7 @@ onBeforeRouteLeave((to) => {
 
       <div class="creation__grille">
         <CzCard class="creation__formulaire">
-          <component :is="COMPOSANTS[etape - 1]" />
+          <component :is="COMPOSANTS[ETAPES_PROJET[etape - 1]!]" />
         </CzCard>
         <ApercuProjetSouscripteur
           class="creation__apercu cz-desktop"
