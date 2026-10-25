@@ -5,6 +5,7 @@ export { grantPlatformRole, isPlatformStaff, type PlatformRole, platformRoleOf }
 export {
   type ActiveMembership,
   activeMembershipsOf,
+  associationsCountOf,
   holdsMembership,
   MANAGEMENT_ROLES,
   type ManagementRole,

@@ -39,3 +39,7 @@ PATCH /api/v1/platform/plans/{id} removed the enum value `XAF` of the request pr
 PATCH /api/v1/platform/plans/{id} removed the enum value `XAF` of the request property `priceYearly/currency`
 PATCH /api/v1/platform/plans/{id} removed the enum value `XOF` of the request property `priceMonthly/currency`
 PATCH /api/v1/platform/plans/{id} removed the enum value `XOF` of the request property `priceYearly/currency`
+
+# Lot 2.3 : mb.lookup, associationsCount peut valoir 0 (compte existant sans aucune appartenance, ex. personnel de la
+# plateforme ; décision Q10). Aucun consommateur réel : mb.lookup n'est appelé que par le mock Nitro avant l'étape 8.
+POST /api/v1/associations/{aid}/members/lookup the `oneOf[subschema #2]/associationsCount` response property's min was decreased from `1.00` to `0.00` for the response status `200`

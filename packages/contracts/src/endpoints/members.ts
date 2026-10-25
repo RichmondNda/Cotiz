@@ -26,7 +26,8 @@ export const LookupPerson = z.object({ id: Uuid, firstName: z.string(), lastInit
 
 export const LookupResult = z.discriminatedUnion('result', [
   z.object({ result: z.literal('new') }),
-  z.object({ result: z.literal('existing_user'), person: LookupPerson, associationsCount: z.int().min(1) }),
+  /** Associations où la personne a une appartenance non retirée, quel que soit le rôle (0 : aucune). */
+  z.object({ result: z.literal('existing_user'), person: LookupPerson, associationsCount: z.int().nonnegative() }),
   z.object({ result: z.literal('already_enrolled'), person: LookupPerson }),
 ]);
 

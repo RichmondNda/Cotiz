@@ -6,3 +6,4 @@ export { platformPersonContactsOf, platformPersonRefsOf } from './application/pe
 export { platformManagerActivityOf } from './application/session-activity.js';
 export { IdentityModule } from './identity.module.js';
 export { type ManagerAccount, ManagerAccounts, type ManagerContact } from './application/manager-accounts.js';
+export { accountByPhone, type PhoneAccount } from './application/subscriber-accounts.js';
