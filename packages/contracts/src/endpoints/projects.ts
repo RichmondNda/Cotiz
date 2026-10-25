@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { InstallmentKind, ProjectStatus } from '../common/enums.js';
 import { listOf, ListQuery } from '../common/list.js';
-import { AssociationParams, ProjectParams } from '../common/params.js';
+import { AssociationIdParams, AssociationParams, ProjectParams } from '../common/params.js';
 import { PersonRef } from '../common/people.js';
 import { FinancialTerms, Project, ProjectPaymentMethod, ProjectSummary } from '../common/project.js';
 import { Instant, IsoDate, Money, Uuid } from '../common/scalars.js';
 import { defineEndpoint, noFlags } from '../registry.js';
+import { StoredFile, UploadRequest, UploadTicket } from './common.js';
 
 // Projets (docs/ui/manager.md : mg-projets, mg-projet-new, mg-projet-overview, mg-projet-params).
 
@@ -87,7 +88,10 @@ export const ScheduleLine = z.object({
 export const SchedulePreview = z.object({
   installments: z.array(ScheduleLine),
   periodicCount: z.int().nonnegative(),
-  /** Dates fixes : total par souscripteur ; `null` pour un cycle roulant. */
+  /**
+   * Dates fixes : total par souscripteur ; `null` pour un cycle roulant, sans échéance (souscripteur entré après la
+   * dernière date) ou au-delà des entiers sûrs (refusé par pr.create).
+   */
   totalPerSubscriber: Money.nullable(),
 });
 
@@ -103,6 +107,32 @@ export const prPreview = defineEndpoint({
       path: '/api/v1/associations/{aid}/projects/schedule-preview',
       request: { params: AssociationParams, body: SchedulePreviewInput },
       response: { status: 200, body: SchedulePreview },
+    },
+  },
+});
+
+/** Dépôt de l'image de couverture d'un projet (`coverFileId`), par les gestionnaires qui gèrent les projets. */
+export const ProjectUploadRequest = UploadRequest.extend({ purpose: z.literal('cover') });
+
+export const prUpload = defineEndpoint({
+  id: 'pr.upload',
+  space: 'association',
+  permission: manage,
+  errors: ['file_too_large', 'file_type_not_allowed', 'file_not_clean'],
+  flags: { ...noFlags, rateLimited: true },
+  operations: {
+    create: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/projects/uploads',
+      request: { params: AssociationParams, body: ProjectUploadRequest },
+      response: { status: 201, body: UploadTicket },
+    },
+    /** Confirme le dépôt ; l'analyse se poursuit dans le worker. Lecture : as.file. */
+    complete: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/projects/uploads/{id}/complete',
+      request: { params: AssociationIdParams },
+      response: { status: 202, body: StoredFile },
     },
   },
 });

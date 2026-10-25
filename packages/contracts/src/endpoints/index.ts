@@ -1,5 +1,5 @@
 // Liste explicite (types littéraux pour le client) ; le test du registre vérifie qu'elle couvre endpoints.yaml.
-import { asDashboard, asFile, asGet, asOnb, asPatch, asPm, asUpload, blInv, blSub } from './association.js';
+import { asDashboard, asFile, asGet, asOnb, asPatch, asPm, asPmList, asUpload, blInv, blSub } from './association.js';
 import {
   authActivate,
   authForgot,
@@ -81,7 +81,17 @@ import {
   pfReqReject,
   pfStaff,
 } from './pf.js';
-import { prCreate, prDelete, prGet, prLifecycle, prList, prOverview, prPatch, prPreview } from './projects.js';
+import {
+  prCreate,
+  prDelete,
+  prGet,
+  prLifecycle,
+  prList,
+  prOverview,
+  prPatch,
+  prPreview,
+  prUpload,
+} from './projects.js';
 import { pubChallenge, pubLegal, pubPlans, pubRequest } from './pub.js';
 import { rpAnalytics, rpExport, rpReport } from './reports.js';
 import { asResets, pfResets } from './resets.js';
@@ -92,6 +102,7 @@ export const ENDPOINTS = {
   'as.get': asGet,
   'as.patch': asPatch,
   'as.pm': asPm,
+  'as.pm.list': asPmList,
   'as.onb': asOnb,
   'as.upload': asUpload,
   'as.file': asFile,
@@ -184,6 +195,7 @@ export const ENDPOINTS = {
   'pr.list': prList,
   'pr.create': prCreate,
   'pr.preview': prPreview,
+  'pr.upload': prUpload,
   'pr.get': prGet,
   'pr.patch': prPatch,
   'pr.lifecycle': prLifecycle,

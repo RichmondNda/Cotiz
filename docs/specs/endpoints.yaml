@@ -764,11 +764,9 @@ endpoints:
   space: association
   permission: association.settings.manage
   operations:
-  - method: GET
-    path: /api/v1/associations/{aid}/payment-methods
   - method: PUT
     path: /api/v1/associations/{aid}/payment-methods
-  summary: Moyens de paiement acceptés, remplacement complet
+  summary: Moyens de paiement acceptés, remplacement complet ; un moyen retenu par un projet est désactivé, pas supprimé
   errors:
   - validation_failed
   emits:
@@ -779,7 +777,25 @@ endpoints:
   audited: true
   screens:
   - mg-onboarding
+  - mg-params
+- id: as.pm.list
+  lot: '2.2'
+  space: association
+  permission: association.read
+  operations:
+  - method: GET
+    path: /api/v1/associations/{aid}/payment-methods
+  summary: Moyens de paiement de l'association, pour tous ses gestionnaires (choix des moyens d'un projet)
+  errors: []
+  emits: []
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: false
+  audited: false
+  screens:
+  - mg-onboarding
   - mg-projet-new
+  - mg-projet-params
   - mg-params
 - id: as.onb
   lot: '2.1'
@@ -924,6 +940,29 @@ endpoints:
   audited: false
   screens:
   - mg-projet-new
+- id: pr.upload
+  lot: '2.2'
+  space: association
+  permission: projects.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/uploads
+  - method: POST
+    path: /api/v1/associations/{aid}/projects/uploads/{id}/complete
+  summary: Dépôt de l'image de couverture d'un projet (purpose cover), mêmes étapes que as.upload ; lue par as.file
+  errors:
+  - file_too_large
+  - file_type_not_allowed
+  - file_not_clean
+  emits:
+  - file.uploaded
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - mg-projet-new
+  - mg-projet-params
 - id: pr.get
   lot: '2.2'
   space: association
@@ -978,6 +1017,7 @@ endpoints:
   - invalid_state
   - quota_exceeded
   emits:
+  - project.created
   - project.published
   - project.closed
   idempotencyKey: false

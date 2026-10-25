@@ -18,7 +18,9 @@ import {
 import { SeedDevMembershipsUseCase } from '../modules/access/access.public.js';
 import { SeedDevPlansUseCase, SeedDevSubscriptionsUseCase } from '../modules/billing/billing.public.js';
 import { SeedDevRequestsUseCase } from '../modules/onboarding/onboarding.public.js';
+import { REFERENCE_PROJECT_ASSOCIATIONS, SeedDevProjectsUseCase } from '../modules/projects/projects.public.js';
 import { SeedDevAssociationsUseCase } from '../modules/tenancy/tenancy.public.js';
+import { mockId } from '../shared/dev-seed/index.js';
 import { TenantDatabase } from '../shared/tenant-context/index.js';
 
 /**
@@ -35,7 +37,7 @@ const USAGE = [
   'Commandes :',
   '  create-platform-owner <email> <prénom> <nom>',
   '  reset-password <email>',
-  '  seed-dev                (développement : comptes, associations, plans et demandes de référence)',
+  '  seed-dev                (développement : comptes, associations, plans, demandes et projets de référence)',
 ].join('\n');
 
 const DATE = new Intl.DateTimeFormat('fr-FR', {
@@ -137,7 +139,8 @@ async function resetPassword(app: INestApplicationContext, args: string[], io: C
 
 /**
  * Données de développement (jamais en production) : comptes à mot de passe connu (ou code d'activation à remettre),
- * puis associations, plans, abonnements et appartenances de référence, aux identifiants des données simulées du front.
+ * puis associations, plans, abonnements, appartenances, demandes et projets de référence, aux identifiants des données
+ * simulées du front.
  */
 async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<number> {
   try {
@@ -175,7 +178,19 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
       },
       { platformConnection: true },
     );
-    io.out.write(`Plans de référence : ${codes.join(', ')}\nAssociations de référence : ${slugs.join(', ')}\n`);
+    // Projets : lignes d'une association, écrites dans son contexte (aucune politique plateforme sur projects).
+    const projectKeys: string[] = [];
+    for (const slug of REFERENCE_PROJECT_ASSOCIATIONS) {
+      projectKeys.push(
+        ...(await db.withTenantContext({ space: 'association', associationId: mockId('association', slug) }, () =>
+          app.get(SeedDevProjectsUseCase).execute(slug),
+        )),
+      );
+    }
+    io.out.write(
+      `Plans de référence : ${codes.join(', ')}\nAssociations de référence : ${slugs.join(', ')}\n` +
+        `Projets de référence : ${projectKeys.join(', ')}\n`,
+    );
     return 0;
   } catch (error) {
     if (error instanceof SeedRefusedError) {

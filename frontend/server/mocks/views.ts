@@ -3,7 +3,7 @@
 import type { z } from 'zod'
 import type {
   Association, Enrollment, Installment, Notification, PaymentDetail, PaymentMethod, PaymentSummary, PersonContact,
-  PersonRef, Project, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
+  PersonRef, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
 } from '@cotiz/contracts'
 import { db } from './db'
 import type { AssociationRow, EnrollmentRow, NotificationRow, PaymentRow, PlanRow, ProjectRow, UserRow } from './db'
@@ -95,10 +95,6 @@ export function projectSummary(p: ProjectRow): In<typeof ProjectSummary> {
     graceDays: p.graceDays, financialTermsLockedAt: p.financialTermsLockedAt, closedAt: p.closedAt, createdAt: p.createdAt,
     stats: projectStats(p), version: p.version,
   }
-}
-
-export function project(p: ProjectRow): In<typeof Project> {
-  return { ...projectSummary(p), description: p.description, paymentMethods: p.paymentMethods.map(m => ({ ...m })) }
 }
 
 // ---------------------------------------------------------------- Échéances, inscriptions

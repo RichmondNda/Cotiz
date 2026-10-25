@@ -2,6 +2,7 @@ import type { PlanRef, PlatformAssociationDetail, PlatformAssociationSummary } f
 import { type Currency, Money } from '@cotiz/domain';
 import { type AssociationTeam, membersOf, teamsOf } from '../../access/access.public.js';
 import { latestSubscriptionOf } from '../../billing/billing.public.js';
+import { type ProjectCounts, platformProjectCountsOf } from '../../projects/projects.public.js';
 import {
   platformManagerActivityOf,
   platformPersonContactsOf,
@@ -41,12 +42,13 @@ export async function lastActivitiesOf(teams: ReadonlyMap<string, AssociationTea
   return latest;
 }
 
-/** Ligne de la liste plateforme. Projets : aucun avant le lot 2.1. */
+/** Ligne de la liste plateforme. Projets : archivés exclus. */
 export function toSummary(
   row: AssociationRecord,
   plan: PlanRef,
   team: AssociationTeam | undefined,
   lastActivity: Date | undefined,
+  projects: ProjectCounts | undefined,
 ): PlatformAssociationSummary {
   return {
     id: row.id,
@@ -57,7 +59,7 @@ export function toSummary(
     logoFileId: row.logoFileId,
     status: row.status,
     plan,
-    projectsCount: 0,
+    projectsCount: projects?.total ?? 0,
     subscribersCount: team?.subscribers ?? 0,
     lastActivityAt: lastActivity?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
@@ -66,8 +68,8 @@ export function toSummary(
 
 /**
  * Fiche plateforme d'une association (pf.asso.get, réponse de pf.asso.create) : profil, abonnement en cours (à défaut
- * le plus récent), équipe, quotas, frise tirée du journal d'audit et close par la création. Projets et encaissements n'existent pas encore
- * (lots 2.1 et 2.4) : comptés à zéro, taux de recouvrement `null`. 404 si l'association n'existe pas.
+ * le plus récent), équipe, quotas, frise tirée du journal d'audit et close par la création. Encaissements : pas encore
+ * (lot 2.4), comptés à zéro, taux de recouvrement `null`. 404 si l'association n'existe pas.
  */
 export async function platformAssociationDetail(id: string): Promise<PlatformAssociationDetail> {
   const association = await platformAssociationOf(id);
@@ -77,6 +79,7 @@ export async function platformAssociationDetail(id: string): Promise<PlatformAss
   const members = await membersOf(id);
   const teams = await teamsOf([id]);
   const lastActivity = (await lastActivitiesOf(teams)).get(id);
+  const projects = (await platformProjectCountsOf([id])).get(id);
   const contacts = await platformPersonContactsOf(members.managers.map((m) => m.userId));
   const managers = members.managers.map(({ userId, role }) => {
     const contact = contacts.get(userId);
@@ -98,7 +101,7 @@ export async function platformAssociationDetail(id: string): Promise<PlatformAss
   const authorOf = (userId: string | null) => (userId === null ? null : (authors.get(userId) ?? null));
 
   return {
-    ...toSummary(association, current.subscription.plan, teams.get(id), lastActivity),
+    ...toSummary(association, current.subscription.plan, teams.get(id), lastActivity, projects),
     type: association.type,
     description: association.description,
     contactEmail: association.contactEmail,
@@ -112,12 +115,12 @@ export async function platformAssociationDetail(id: string): Promise<PlatformAss
     managers,
     subscription: current.subscription,
     quotas: {
-      projects: { used: 0, limit: current.limits.projects },
+      projects: { used: projects?.quota ?? 0, limit: current.limits.projects },
       subscribers: { used: members.subscribers, limit: current.limits.subscribers },
       managers: { used: managers.length, limit: current.limits.managers },
     },
     kpi: {
-      activeProjects: 0,
+      activeProjects: projects?.active ?? 0,
       subscribers: members.subscribers,
       collectedTotal: Money.zero(currency),
       recoveryRate: null,

@@ -4,7 +4,8 @@ import { A, B, USERS } from '../isolation/harness.js';
 import { codeOf, type PlatformFixture, startPlatformFixture } from './platform-associations.fixture.js';
 
 /**
- * Lot 2.1 · étape 2 : moyens de paiement de l'association (as.pm). GET : liste dans l'ordre ; PUT : remplacement
+ * Lot 2.1 · étape 2 : moyens de paiement de l'association (as.pm.list, lot 2.2 : GET, liste dans l'ordre, pour tous
+ * les gestionnaires ; as.pm : PUT, par l'owner). PUT : remplacement
  * complet (mise à jour par `id`, ajout, suppression des absents), `details` validé par type. Vérification de l'étape :
  * validation par type testée. Audité (numéro masqué), association.updated si la liste change. Isolation : un `id` d'une
  * autre association est refusé, ses moyens ne sont jamais touchés.
@@ -153,6 +154,41 @@ describe('moyens de paiement de l’association (as.pm)', () => {
     expect(await rows(B.id)).toHaveLength(1);
   });
 
+  it('moyens absents mais retenus par un projet (lot 2.2) : désactivés, conservés en fin de liste dans leur ordre', async () => {
+    const [sgbci, orange, cash] = PaymentMethodList.parse(await (await put([SGBCI, ORANGE, CASH])).json()).items;
+    const project = '00000000-0000-7000-8000-00000000c201';
+    await f.h.superuser(
+      `INSERT INTO projects (id, association_id, name, description, installment_amount, frequency, due_day,
+                             schedule_type, start_date, created_by)
+       VALUES ($1, $2, 'Tontine', '', 25000, 'monthly', 5, 'rolling', '2026-03-01', $3)`,
+      [project, A.id, USERS.awa],
+    );
+    await f.h.superuser(
+      `INSERT INTO project_payment_methods (project_id, payment_method_id, association_id)
+       VALUES ($1, $2, $4), ($1, $3, $4)`,
+      [project, cash?.id, sgbci?.id, A.id],
+    );
+    try {
+      const res = await put([{ ...ORANGE, id: orange?.id }]);
+      expect(res.status).toBe(200);
+      const items = PaymentMethodList.parse(await res.json()).items;
+      expect(items.map((m) => [m.id, m.position, m.isActive])).toEqual([
+        [orange?.id, 0, true],
+        [sgbci?.id, 1, false],
+        [cash?.id, 2, false],
+      ]);
+      expect(await list()).toEqual(items);
+      // Retenus par le projet : les liens restent. Absents de nouveau : conservés, rien ne change, aucun événement.
+      expect((await f.h.superuser('SELECT 1 FROM project_payment_methods')).rowCount).toBe(2);
+      const again = PaymentMethodList.parse(await (await put(items.slice(0, 1))).json()).items;
+      expect(again).toEqual(items);
+      expect(await events()).toHaveLength(2);
+    } finally {
+      await f.h.superuser('DELETE FROM project_payment_methods');
+      await f.h.superuser('DELETE FROM projects');
+    }
+  });
+
   describe('validation par type : 422 validation_failed sur le champ, rien n’est écrit', () => {
     it.each([
       [
@@ -255,15 +291,25 @@ describe('moyens de paiement de l’association (as.pm)', () => {
   });
 
   describe('droits et isolation', () => {
-    it('viewer : 403 en lecture comme en écriture (association.settings.manage)', async () => {
-      expect((await f.call(url(A.id), { token: koffi })).status).toBe(403);
-      expect((await put([CASH], A.id, koffi)).status).toBe(403);
+    it('viewer : lecture permise (as.pm.list, association.read, lot 2.2) ; écriture 403 (association.settings.manage)', async () => {
+      await put([CASH]);
+      expect((await list(A.id, koffi)).map((m) => m.label)).toEqual(['Espèces']);
+      expect((await put([ORANGE], A.id, koffi)).status).toBe(403);
+      expect((await list()).map((m) => m.label)).toEqual(['Espèces']);
     });
 
     it('association dont on n’est pas gestionnaire : 404, rien n’est écrit', async () => {
       expect((await f.call(url(B.id), { token: awa })).status).toBe(404);
       expect((await put([], B.id, awa)).status).toBe(404);
       expect(await rows(B.id)).toHaveLength(1);
+    });
+
+    it('jeton souscripteur : 404 en lecture (numéros et comptes de l’association) comme en écriture', async () => {
+      await put([CASH]);
+      const moussa = await f.login('subscriber', 'moussa@test.cotiz.app');
+      expect((await f.call(url(A.id), { token: moussa })).status).toBe(404);
+      expect((await put([], A.id, moussa)).status).toBe(404);
+      expect(await rows(A.id)).toHaveLength(1);
     });
 
     it('owner de B : ne voit que les moyens de B', async () => {

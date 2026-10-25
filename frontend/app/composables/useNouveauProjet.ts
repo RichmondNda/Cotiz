@@ -1,4 +1,4 @@
-// État du formulaire de création de projet (MgNouveauProjet), partagé entre les 6 étapes :
+// État du formulaire de création de projet (MgNouveauProjet), partagé entre les étapes :
 // la page appelle `creerFormulaireProjet()` et le fournit ; chaque étape le récupère avec `useFormulaireProjet()`.
 // Validation par étape (erreurs affichées après une tentative de « Continuer »), échéancier calculé, corps du POST.
 import type { InjectionKey, Ref } from 'vue'
@@ -7,7 +7,16 @@ import { formatDate, formatFCFA, formatMois } from '~/utils/format'
 import { lireDateSaisie, nbEcheances as compterEcheances, premieresEcheances, totalParSouscripteur, UNITES_FREQUENCE } from '~/utils/echeancier'
 import type { TermesEcheancier } from '~/utils/echeancier'
 
-export const ETAPES_PROJET = ['Informations', 'Financement', 'Calendrier', 'Paiement', 'Contrat', 'Récapitulatif'] as const
+const TOUTES_ETAPES = ['Informations', 'Financement', 'Calendrier', 'Paiement', 'Contrat', 'Récapitulatif'] as const
+export type EtapeProjet = typeof TOUTES_ETAPES[number]
+
+/** Étape « Contrat » masquée jusqu'aux contrats (lot 4.1) : pr.create refuse `contract` (docs/specs/ui-deviations.md). */
+export const CONTRAT_DISPONIBLE = false
+
+export const ETAPES_PROJET: readonly EtapeProjet[] = TOUTES_ETAPES.filter(e => CONTRAT_DISPONIBLE || e !== 'Contrat')
+
+/** Numéro (à partir de 1) d'une étape dans l'assistant affiché. */
+export const numeroEtape = (nom: EtapeProjet) => ETAPES_PROJET.indexOf(nom) + 1
 
 export const MOYENS_ORDRE: MoyenPaiement[] = ['virement', 'mobile_money', 'especes']
 
@@ -137,16 +146,16 @@ export function creerFormulaireProjet(
   // ---------------------------------------------------------------- Validation
   function erreursEtape(n: number): Erreurs {
     const e: Erreurs = {}
-    switch (n) {
-      case 1:
+    switch (ETAPES_PROJET[n - 1]) {
+      case 'Informations':
         if (!etat.nom.trim()) e.nom = 'Donnez un nom au projet.'
         if (!etat.sansLimite && etat.souscripteursRequis < 1) e.souscripteursRequis = 'Au moins 1 souscripteur, ou « Sans limite ».'
         break
-      case 2:
+      case 'Financement':
         if (etat.fondsEntreeActif && !(etat.fondsEntree && etat.fondsEntree > 0)) e.fondsEntree = 'Indiquez le montant du fonds d’entrée, ou désactivez-le.'
         if (!(etat.montantEcheance && etat.montantEcheance > 0)) e.montantEcheance = 'Indiquez le montant de chaque échéance.'
         break
-      case 3:
+      case 'Calendrier':
         if (!debutIso.value) e.dateDebut = 'Date au format JJ/MM/AAAA.'
         if (etat.typeCalendrier === 'dates_fixes') {
           if (!finIso.value) e.dateFin = 'Date au format JJ/MM/AAAA.'
@@ -154,10 +163,10 @@ export function creerFormulaireProjet(
         }
         if (etat.delaiGrace === null || etat.delaiGrace < 0) e.delaiGrace = 'Indiquez un nombre de jours (0 si aucun délai).'
         break
-      case 4:
+      case 'Paiement':
         if (!moyensChoisis.value.length) e.moyens = 'Choisissez au moins un moyen de paiement.'
         break
-      case 5:
+      case 'Contrat':
         if (!texteContrat.value.trim()) e.contrat = 'Le texte du contrat est obligatoire.'
         if (!etat.signataireNom.trim()) e.signataireNom = 'Indiquez le nom du signataire.'
         if (!etat.signe) e.signe = 'Cochez la case pour signer le contrat au nom de l’association.'
@@ -262,9 +271,9 @@ export function creerFormulaireProjet(
       souscripteursRequis: etat.sansLimite ? null : etat.souscripteursRequis,
       modalitesPaiement: modalites(),
       instructionsPaiement: etat.instructions.trim() || undefined,
-      contratModele: texteContrat.value,
+      contratModele: CONTRAT_DISPONIBLE ? texteContrat.value : '',
       signataire: { nom: etat.signataireNom.trim(), fonction: etat.signataireFonction.trim() },
-      contratSigne: etat.signe,
+      contratSigne: CONTRAT_DISPONIBLE && etat.signe,
       brouillon,
     }
   }

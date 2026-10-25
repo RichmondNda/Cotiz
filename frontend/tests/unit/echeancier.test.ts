@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { generateSchedule } from '@cotiz/domain'
-import { lignesEcheancier, nbEcheances, premieresEcheances, totalParSouscripteur } from '~/utils/echeancier'
+import { jourEcheanceDe, lignesEcheancier, nbEcheances, premieresEcheances, totalParSouscripteur } from '~/utils/echeancier'
 import type { TermesEcheancier } from '~/utils/echeancier'
 
 // Centre communautaire (seed-reference) : 50 000 F d'entrée, puis 25 000 F le 5 de chaque mois, mars 2026 → août 2027.
@@ -53,5 +53,29 @@ describe('échéancier délégué à generateSchedule (@cotiz/domain)', () => {
 describe('engagement hors des entiers sûrs', () => {
   it('saisie de 15 chiffres sur 18 mois : pas de total (aucune erreur au rendu)', () => {
     expect(totalParSouscripteur({ ...centre, montantEcheance: 999_999_999_999_999 })).toBeNull()
+  })
+})
+
+describe('jour d’échéance envoyé à pr.create (jourEcheanceDe) : celui de l’aperçu', () => {
+  // Mercredi 4 mars 2026 : jour ISO 3 (et non le 4 du mois).
+  const hebdo: TermesEcheancier = { ...centre, frequence: 'hebdomadaire', jourEcheance: undefined, dateDebut: '2026-03-04', dateFin: '2026-04-30' }
+
+  it('hebdomadaire sans jour saisi : jour ISO de la date de début', () => {
+    expect(jourEcheanceDe(hebdo)).toBe(3)
+    expect(jourEcheanceDe({ ...hebdo, dateDebut: '2026-03-15' })).toBe(7)
+  })
+
+  it('le back, avec ce jour, génère les dates de l’aperçu', () => {
+    const back = generateSchedule({
+      installmentAmount: 25000, entryFeeAmount: 50000, frequency: 'weekly', dueDay: jourEcheanceDe(hebdo),
+      scheduleType: 'fixed', startDate: '2026-03-04', endDate: '2026-04-30',
+    })
+    expect(back).toEqual(lignesEcheancier(hebdo))
+    expect(back.filter(l => l.kind === 'periodic')[0]!.dueDate).toBe('2026-03-04')
+  })
+
+  it('mensuel : jour saisi, sinon jour du mois de la date de début', () => {
+    expect(jourEcheanceDe(centre)).toBe(5)
+    expect(jourEcheanceDe({ ...centre, jourEcheance: undefined, dateDebut: '2026-03-17' })).toBe(17)
   })
 })

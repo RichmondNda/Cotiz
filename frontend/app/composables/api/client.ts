@@ -72,7 +72,10 @@ export function codeErreur<C extends string = string>(e: unknown): C | undefined
 
 /** Message d'un refus du back (titre du Problem, docs/specs/errors.yaml), sinon `undefined` (réseau, panne). */
 export function messageRefus(e: unknown): string | undefined {
-  return e instanceof ApiError && e.problem && e.status < 500 ? e.problem.title : undefined
+  if (e instanceof ApiError) return e.problem && e.status < 500 ? e.problem.title : undefined
+  // Erreur relancée par traduireErreur : le Problem d'origine est conservé.
+  const t = e as { problem?: { title?: string }, statusCode?: number } | null
+  return t?.problem?.title && (t.statusCode ?? 500) < 500 ? t.problem.title : undefined
 }
 
 /** Erreurs de champ d'un `validation_failed` (`fields.<champ>` = code de règle). */

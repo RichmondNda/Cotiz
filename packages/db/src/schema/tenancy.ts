@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
@@ -59,19 +60,26 @@ export const associations = pgTable('associations', {
   updatedAt: updatedAt(),
 });
 
-/** Comment les souscripteurs paient l'association. RLS : l'association, ses membres actifs (member_read). */
-export const associationPaymentMethods = pgTable('association_payment_methods', {
-  id: id(),
-  associationId: uuid('association_id')
-    .notNull()
-    .references(() => associations.id),
-  kind: associationPaymentMethodsKind('kind').notNull(),
-  /** « Orange Money », « SGBCI »… */
-  label: text('label').notNull(),
-  /** IBAN, banque, opérateur, numéro : schéma validé par type. */
-  details: jsonb('details').notNull().default({}),
-  instructions: text('instructions'),
-  position: integer('position').notNull().default(0),
-  isActive: boolean('is_active').notNull().default(true),
-  createdAt: createdAt(),
-});
+/**
+ * Comment les souscripteurs paient l'association. RLS : l'association, ses membres actifs (member_read). `(id,
+ * associationId)` unique : cible de la clé composite de project_payment_methods (lot 2.2).
+ */
+export const associationPaymentMethods = pgTable(
+  'association_payment_methods',
+  {
+    id: id(),
+    associationId: uuid('association_id')
+      .notNull()
+      .references(() => associations.id),
+    kind: associationPaymentMethodsKind('kind').notNull(),
+    /** « Orange Money », « SGBCI »… */
+    label: text('label').notNull(),
+    /** IBAN, banque, opérateur, numéro : schéma validé par type. */
+    details: jsonb('details').notNull().default({}),
+    instructions: text('instructions'),
+    position: integer('position').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [unique().on(t.id, t.associationId)],
+);

@@ -97,6 +97,7 @@ permissions:
   endpoints:
   - as.get
   - as.file
+  - as.pm.list
   - bl.sub
   - as.dashboard
   - pr.list
@@ -139,6 +140,7 @@ permissions:
   - pr.patch
   - pr.lifecycle
   - pr.delete
+  - pr.upload
 - permission: members.manage
   roles:
   - association:owner

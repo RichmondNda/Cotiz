@@ -9,6 +9,7 @@
 -->
 <script setup lang="ts">
 import type { ModalitePaiement, ModificationProjet, MoyenPaiement } from '~~/types'
+import { codeErreur, messageRefus } from '~/composables/api/client'
 import { estDate, formatFCFA, formatMois, pluriel } from '~/utils/format'
 
 definePageMeta({ ongletProjet: 'parametres' })
@@ -25,6 +26,14 @@ const termine = computed(() => projet.value?.statut === 'termine')
 const aDesPaiements = computed(() => {
   const c = projet.value?.montantCollecte
   return typeof c !== 'number' || c > 0
+})
+/** Seul un brouillon se supprime (pr.delete) ; un projet publié se clôture. */
+const supprimable = computed(() => projet.value?.statut === 'brouillon')
+const noteSuppression = computed(() => {
+  if (supprimable.value) return 'Le projet et ses inscriptions seront définitivement effacés.'
+  return aDesPaiements.value
+    ? 'Impossible : des paiements ont été enregistrés sur ce projet.'
+    : 'Impossible : seul un brouillon peut être supprimé. Clôturez le projet pour l’arrêter.'
 })
 
 // ---------------------------------------------------------------- Formulaire
@@ -91,7 +100,7 @@ function valider(): boolean {
         ? `Le projet compte déjà ${pluriel(inscrits, 'souscripteur')}.`
         : undefined
   const delai = entier(form.delaiGraceJours)
-  erreurs.delaiGraceJours = delai === null || delai > 60 ? 'Saisissez un nombre de jours entre 0 et 60.' : undefined
+  erreurs.delaiGraceJours = delai === null || delai > 90 ? 'Saisissez un nombre de jours entre 0 et 90.' : undefined
   return !erreurs.nom && !erreurs.souscripteursRequis && !erreurs.delaiGraceJours
 }
 
@@ -110,7 +119,7 @@ async function enregistrer() {
   if (!valider()) return
   const modification: ModificationProjet = {
     nom: form.nom.trim(),
-    description: form.description.trim() || undefined,
+    description: form.description.trim(),
     imageCouvertureNom: form.imageCouvertureNom || undefined,
     souscripteursRequis: entier(form.souscripteursRequis),
     delaiGraceJours: entier(form.delaiGraceJours)!,
@@ -119,13 +128,13 @@ async function enregistrer() {
   }
   enregistrement.value = true
   try {
-    await modifierProjet(id.value, modification)
+    await modifierProjet(id.value, modification, projet.value?.version)
     await refresh()
     enregistre.value = true
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  catch {
-    toast.erreur('Les modifications n’ont pas été enregistrées', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Les modifications n’ont pas été enregistrées', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     enregistrement.value = false
@@ -188,7 +197,7 @@ async function supprimer() {
   const nom = projet.value?.nom
   suppression.value = true
   try {
-    await supprimerProjet(id.value)
+    await supprimerProjet(id.value, projet.value?.version)
     confirmationSuppression.value = false
     await navigateTo('/asso/projets')
     await refreshNuxtData()
@@ -196,9 +205,9 @@ async function supprimer() {
   }
   catch (e) {
     toast.erreur('Le projet n’a pas pu être supprimé', {
-      message: codeErreur(e) === 'paiements_existants'
-        ? 'Des paiements ont été enregistrés entre-temps : clôturez le projet à la place.'
-        : 'Vérifiez votre connexion, puis réessayez.',
+      message: codeErreur(e) === 'pas_brouillon'
+        ? 'Seul un brouillon peut être supprimé : clôturez le projet à la place.'
+        : messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.',
     })
   }
   finally {
@@ -214,8 +223,8 @@ async function cloturer() {
     await refreshNuxtData()
     toast.succes('Projet clôturé', { message: 'Les souscripteurs ont été prévenus. Leur historique est conservé.' })
   }
-  catch {
-    toast.erreur('Le projet n’a pas pu être clôturé', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Le projet n’a pas pu être clôturé', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     cloture.value = false
@@ -540,17 +549,17 @@ async function cloturer() {
       <!-- Mobile : seulement quand la suppression est possible (la maquette, avec paiements, ne la montre pas). -->
       <div
         class="parametres__action-danger"
-        :class="{ 'cz-desktop': aDesPaiements }"
+        :class="{ 'cz-desktop': !supprimable }"
       >
         <div>
           <b>Supprimer le projet</b>
           <p class="parametres__note">
-            {{ aDesPaiements ? 'Impossible : des paiements ont été enregistrés sur ce projet.' : 'Le projet et ses inscriptions seront définitivement effacés.' }}
+            {{ noteSuppression }}
           </p>
         </div>
         <CzButton
           variante="danger"
-          :disabled="aDesPaiements"
+          :disabled="!supprimable"
           @click="confirmationSuppression = true"
         >
           Supprimer

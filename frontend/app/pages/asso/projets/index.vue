@@ -326,7 +326,7 @@ function prochaineTableau(p: Projet): string {
         >
           <template #pied>
             <span class="cz-help cz-desktop">{{ echeancePied(p) }}</span>
-            <span class="cz-help cz-mobile">{{ inscritsProjet(p) }} souscripteurs · {{ echeancePied(p, 'mobile') }}</span>
+            <span class="cz-help cz-mobile">{{ [`${inscritsProjet(p)} souscripteurs`, echeancePied(p, 'mobile')].filter(Boolean).join(' · ') }}</span>
             <template v-if="alerteProjet(p)">
               <CzBadge
                 :ton="alerteProjet(p)!.ton"

@@ -5,6 +5,7 @@ import { AccessCliModule } from '../modules/access/access-cli.module.js';
 import { BillingCliModule } from '../modules/billing/billing-cli.module.js';
 import { IdentityCliModule } from '../modules/identity/identity-cli.module.js';
 import { OnboardingCliModule } from '../modules/onboarding/onboarding-cli.module.js';
+import { ProjectsCliModule } from '../modules/projects/projects-cli.module.js';
 import { TenancyCliModule } from '../modules/tenancy/tenancy-cli.module.js';
 import { CryptoModule } from '../shared/crypto/index.js';
 import { createLogger, LoggingModule } from '../shared/logging/index.js';
@@ -26,6 +27,7 @@ export class CliModule {
         TenancyCliModule,
         BillingCliModule,
         OnboardingCliModule,
+        ProjectsCliModule,
       ],
     };
   }

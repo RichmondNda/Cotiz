@@ -10,6 +10,7 @@ import { and, asc, count, desc, eq, ilike, inArray, or, sql, type SQL } from 'dr
 import type { z } from 'zod';
 import { teamsOf } from '../../access/access.public.js';
 import { displayedPlansOf } from '../../billing/billing.public.js';
+import { platformProjectCountsOf } from '../../projects/projects.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { containsPattern, decodeCursor, encodeCursor } from '../../../shared/pagination/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
@@ -80,6 +81,7 @@ export class ListAssociationsUseCase {
     const last = page.at(-1);
     const teams = await teamsOf(page.map((r) => r.row.id));
     const activity = await lastActivitiesOf(teams);
+    const projects = await platformProjectCountsOf(page.map((r) => r.row.id));
     const status = Object.fromEntries(AssociationStatus.options.map((s) => [s, 0]));
     for (const { status: s, n } of statusCounts) status[s] = n;
     const plan: Record<string, number> = {};
@@ -91,7 +93,7 @@ export class ListAssociationsUseCase {
       items: page.map(({ row }) => {
         const displayed = plans.get(row.id);
         if (!displayed) throw new Error(`association ${row.id} sans abonnement`);
-        return toSummary(row, displayed, teams.get(row.id), activity.get(row.id));
+        return toSummary(row, displayed, teams.get(row.id), activity.get(row.id), projects.get(row.id));
       }),
       nextCursor: rows.length > query.limit && last ? encodeCursor({ at: last.at, id: last.row.id }) : null,
       total: totals?.n ?? 0,

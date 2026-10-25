@@ -2,12 +2,14 @@
 // relances ponctuelles (rm.send) et import (fl.upload, im.*).
 import type { Enrollment, Project, ProjectSummary as ProjectSummarySchema } from '@cotiz/contracts'
 import type { z } from 'zod'
+import { codeErreur } from './client'
 import type { ApiClient } from './client'
 import type {
   AnalyseImport, ContratProjet, LigneGrilleProjet, LigneImport, ModificationProjet, NouveauProjet, NouvelleInscription, Projet, RapportProjet,
   ResultatRechercheSouscripteur, SouscriptionAvecSouscripteur, SyntheseProjet,
 } from '~~/types'
 import { DATE_REFERENCE } from '~/utils/date-reference'
+import { jourEcheanceDe } from '~/utils/echeancier'
 import { formatTelephone } from '~/utils/format'
 import { associationCourante } from './session'
 import { CALENDRIER_INVERSE, FREQUENCE_INVERSE, MOYEN_INVERSE, STATUT_PROJET_INVERSE, versE164 } from './vues/communs'
@@ -20,6 +22,22 @@ async function inscriptions(client: ApiClient, aid: string, pid: string): Promis
   return (await toutesLesPages(cursor => client.call('en.list', 'list', { params: { aid, pid }, query: { limit: 100, cursor } }))).items
 }
 
+/**
+ * Inscriptions d'un projet pour les cartes et le détail : en.list reste simulé jusqu'au lot 2.3 et ne connaît que les
+ * projets du jeu de référence ; un projet créé en réel n'a encore aucun souscripteur.
+ */
+async function inscriptionsOuAucune(client: ApiClient, aid: string, pid: string): Promise<Enrollment[]> {
+  return inscriptions(client, aid, pid).catch(siInconnu([]))
+}
+
+/** Repli d'un appel simulé sur un projet que les mocks ne connaissent pas (404) ; toute autre erreur est relancée. */
+function siInconnu<T>(repli: T) {
+  return (e: unknown): T => {
+    if (codeErreur(e) === 'not_found') return repli
+    throw e
+  }
+}
+
 async function contratOuNull(client: ApiClient, aid: string, pid: string) {
   return client.call('ct.get', 'get', { params: { aid, pid } }).catch(() => null)
 }
@@ -27,8 +45,8 @@ async function contratOuNull(client: ApiClient, aid: string, pid: string) {
 /** Projet de l'interface : moyens de l'association, avatars et contrat (signataire, modèle). */
 async function enrichir(client: ApiClient, aid: string, p: ProjectSummary | Project, options: { contrat?: boolean } = {}): Promise<Projet> {
   const [moyens, enr, contrat] = await Promise.all([
-    client.call('as.pm', 'list', { params: { aid } }),
-    inscriptions(client, aid, p.id),
+    client.call('as.pm.list', 'list', { params: { aid } }),
+    inscriptionsOuAucune(client, aid, p.id),
     options.contrat ? contratOuNull(client, aid, p.id) : Promise.resolve(null),
   ])
   return vueProjet(p, { associationId: aid, moyens: moyens.items, apercu: apercuDepuis(enr.filter(e => e.status !== 'withdrawn')), contrat })
@@ -42,8 +60,9 @@ export const useProjets = (filtres: MaybeRefOrGetter<{ associationId?: string, s
   useLecture<Projet[]>(() => `projets:${JSON.stringify(toValue(filtres))}`, async (client) => {
     const aid = toValue(filtres).associationId ?? await associationCourante(client)
     const statut = toValue(filtres).statut
+    // Du plus ancien au plus récent, comme la maquette (le contrat renvoie le plus récent d'abord par défaut).
     const { items } = await toutesLesPages(cursor => client.call('pr.list', 'list', {
-      params: { aid }, query: { limit: 100, cursor, status: statut ? STATUT_PROJET_INVERSE[statut as keyof typeof STATUT_PROJET_INVERSE] as 'active' : undefined },
+      params: { aid }, query: { limit: 100, cursor, sort: 'createdAt', status: statut ? STATUT_PROJET_INVERSE[statut as keyof typeof STATUT_PROJET_INVERSE] as 'active' : undefined },
     }))
     return Promise.all(items.map(p => enrichir(client, aid, p)))
   })
@@ -56,7 +75,7 @@ export const useProjet = (id: MaybeRefOrGetter<string>, options: { immediat?: bo
 export const useSouscripteursProjet = (id: MaybeRefOrGetter<string>) =>
   useLecture<SouscriptionAvecSouscripteur[]>(() => `souscripteurs-projet:${toValue(id)}`, async (client) => {
     const aid = await associationCourante(client)
-    return (await inscriptions(client, aid, toValue(id))).map(e => vueSouscription(e, aid))
+    return (await inscriptionsOuAucune(client, aid, toValue(id))).map(e => vueSouscription(e, aid))
   })
 
 /** Grille d'échéances d'un projet (onglet Paiements). */
@@ -64,24 +83,31 @@ export const useGrilleProjet = (id: MaybeRefOrGetter<string>) =>
   useLecture<LigneGrilleProjet[]>(() => `grille-projet:${toValue(id)}`, async (client) => {
     const aid = await associationCourante(client)
     const pid = toValue(id)
+    // lg.grid reste simulé (lot 2.4) : projet créé en réel → aucune ligne, comme ses inscriptions.
     const [grille, enr] = await Promise.all([
-      client.call('lg.grid', 'get', { params: { aid, pid }, query: { limit: 100 } }),
-      inscriptions(client, aid, pid),
+      client.call('lg.grid', 'get', { params: { aid, pid }, query: { limit: 100 } }).catch(siInconnu(null)),
+      inscriptionsOuAucune(client, aid, pid),
     ])
-    return vueGrille(grille, enr.map(e => vueSouscription(e, aid)), pid)
+    return grille ? vueGrille(grille, enr.map(e => vueSouscription(e, aid)), pid) : []
   })
 
-/** Corps de création (MgNouveauProjet) → `CreateProjectInput` ; moyens choisis = moyens de l'association du même type. */
+/**
+ * Corps de création (MgNouveauProjet) → `CreateProjectInput` ; moyens choisis = moyens de l'association du même type,
+ * montants dans la devise de l'association.
+ */
 async function versProjet(client: ApiClient, aid: string, p: NouveauProjet) {
-  const moyens = (await client.call('as.pm', 'list', { params: { aid } })).items
+  const [moyens, { currency }] = await Promise.all([
+    client.call('as.pm.list', 'list', { params: { aid } }).then(r => r.items),
+    client.call('as.get', 'get', { params: { aid } }),
+  ])
   return {
     name: p.nom, description: p.description ?? '', requiredSubscribers: p.souscripteursRequis, graceDays: p.delaiGraceJours,
-    entryFee: p.fondsEntree ? { amount: p.fondsEntree, currency: 'XOF' as const } : null,
-    installmentAmount: { amount: p.montantEcheance, currency: 'XOF' as const },
-    frequency: FREQUENCE_INVERSE[p.frequence], dueDay: p.jourEcheance ?? Number(p.dateDebut.slice(8, 10)),
+    entryFee: p.fondsEntree ? { amount: p.fondsEntree, currency } : null,
+    installmentAmount: { amount: p.montantEcheance, currency },
+    frequency: FREQUENCE_INVERSE[p.frequence], dueDay: jourEcheanceDe(p),
     scheduleType: CALENDRIER_INVERSE[p.typeCalendrier], startDate: p.dateDebut, endDate: p.typeCalendrier === 'dates_fixes' ? p.dateFin ?? null : null,
     paymentMethods: p.modalitesPaiement
-      .map(x => moyens.find(pm => pm.kind === MOYEN_INVERSE[x.moyen]))
+      .map(x => moyens.find(pm => pm.isActive && pm.kind === MOYEN_INVERSE[x.moyen]))
       .filter(pm => pm !== undefined)
       .map(pm => ({ paymentMethodId: pm.id, instructionsOverride: p.instructionsPaiement || null })),
     ...(p.contratModele ? { contract: { bodyTemplate: p.contratModele, signerName: p.signataire.nom, signerTitle: p.signataire.fonction, signNow: p.contratSigne } } : {}),
@@ -179,13 +205,14 @@ export function useActionsProjet() {
       const r = await client.call('rm.send', 'send', { params: { aid: await associationCourante(client) }, body: { userIds: souscripteurIds, projectId: projetId } })
       return { envoyees: new Set(r.queued.map(q => q.member.id)).size }
     },
-    modifierProjet: async (projetId: string, mod: ModificationProjet) => {
+    /** `version` : celle du projet affiché (If-Match) ; une modification entre-temps → version_conflict. */
+    modifierProjet: async (projetId: string, mod: ModificationProjet, version?: number) => {
       const aid = await associationCourante(client)
       const p = await client.call('pr.get', 'get', { params: { aid, pid: projetId } })
-      const moyens = (await client.call('as.pm', 'list', { params: { aid } })).items
+      const moyens = (await client.call('as.pm.list', 'list', { params: { aid } })).items.filter(pm => pm.isActive)
       try {
         await client.call('pr.patch', 'patch', {
-          params: { aid, pid: projetId }, ifMatch: p.version,
+          params: { aid, pid: projetId }, ifMatch: version ?? p.version,
           body: {
             ...(mod.nom !== undefined ? { name: mod.nom } : {}),
             ...(mod.description !== undefined ? { description: mod.description } : {}),
@@ -199,7 +226,7 @@ export function useActionsProjet() {
         return chargerProjet(client, aid, projetId)
       }
       catch (e) {
-        traduireErreur(e, { validation_failed: 'nom_obligatoire' })
+        traduireErreur(e, { 'champ:name': 'nom_obligatoire' })
       }
     },
     cloturerProjet: async (projetId: string) => {
@@ -212,16 +239,16 @@ export function useActionsProjet() {
         traduireErreur(e, { invalid_state: 'deja_cloture' })
       }
     },
-    supprimerProjet: async (projetId: string) => {
+    supprimerProjet: async (projetId: string, version?: number) => {
       const aid = await associationCourante(client)
-      const p = await client.call('pr.get', 'get', { params: { aid, pid: projetId } })
+      const ifMatch = version ?? (await client.call('pr.get', 'get', { params: { aid, pid: projetId } })).version
       try {
-        await client.call('pr.delete', 'remove', { params: { aid, pid: projetId }, ifMatch: p.version })
+        await client.call('pr.delete', 'remove', { params: { aid, pid: projetId }, ifMatch })
         return { supprime: projetId }
       }
       catch (e) {
-        // Projet publié : la suppression est refusée, il faut le clôturer (données financières conservées).
-        traduireErreur(e, { invalid_state: 'paiements_existants' })
+        // Projet publié : la suppression est refusée (brouillon seulement), il faut le clôturer.
+        traduireErreur(e, { invalid_state: 'pas_brouillon' })
       }
     },
     /** Analyse d'un fichier d'import (V2) : dépôt (fl.upload), lancement (im.flow), lignes à examiner (im.read). */

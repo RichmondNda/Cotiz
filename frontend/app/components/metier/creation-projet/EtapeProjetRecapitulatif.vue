@@ -1,10 +1,10 @@
 <!--
-  Création de projet, étape 6 — Récapitulatif : informations groupées par étape avec « Modifier »,
+  Création de projet, dernière étape — Récapitulatif : informations groupées par étape avec « Modifier »,
   12 premières échéances (fonds d'entrée compris), total attendu par souscripteur.
   Mobile : résumé en lignes libellé / valeur (comme la capture).
 -->
 <script setup lang="ts">
-import { useFormulaireProjet } from '~/composables/useNouveauProjet'
+import { CONTRAT_DISPONIBLE, numeroEtape, useFormulaireProjet } from '~/composables/useNouveauProjet'
 import { formatDate, formatFCFA } from '~/utils/format'
 import { MOYENS_PAIEMENT } from '~/utils/statuts'
 
@@ -27,11 +27,11 @@ const engagement = computed(() => {
 })
 
 const BLOCS = computed(() => [
-  { etape: 1, libelle: 'Informations', valeur: `${etat.nom} · ${requis.value}` },
-  { etape: 2, libelle: 'Financement', valeur: financement.value },
-  { etape: 3, libelle: 'Calendrier', valeur: resumeCalendrier.value },
-  { etape: 4, libelle: 'Paiement', valeur: paiement.value },
-  { etape: 5, libelle: 'Contrat', valeur: contrat.value },
+  { etape: numeroEtape('Informations'), libelle: 'Informations', valeur: `${etat.nom} · ${requis.value}` },
+  { etape: numeroEtape('Financement'), libelle: 'Financement', valeur: financement.value },
+  { etape: numeroEtape('Calendrier'), libelle: 'Calendrier', valeur: resumeCalendrier.value },
+  { etape: numeroEtape('Paiement'), libelle: 'Paiement', valeur: paiement.value },
+  ...(CONTRAT_DISPONIBLE ? [{ etape: numeroEtape('Contrat'), libelle: 'Contrat', valeur: contrat.value }] : []),
 ])
 </script>
 
@@ -104,7 +104,9 @@ const BLOCS = computed(() => [
       <div><dt>Souscripteurs requis</dt><dd>{{ etat.sansLimite ? 'Sans limite' : etat.souscripteursRequis }}</dd></div>
       <div><dt>Engagement</dt><dd>{{ engagement }}</dd></div>
       <div><dt>Calendrier</dt><dd>{{ periodeCourte }}</dd></div>
-      <div><dt>Contrat</dt><dd>{{ etat.signe ? 'Signé par l’association' : 'Non signé' }}</dd></div>
+      <div v-if="CONTRAT_DISPONIBLE">
+        <dt>Contrat</dt><dd>{{ etat.signe ? 'Signé par l’association' : 'Non signé' }}</dd>
+      </div>
     </dl>
   </div>
 </template>

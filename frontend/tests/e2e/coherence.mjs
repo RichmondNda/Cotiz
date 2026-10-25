@@ -20,11 +20,13 @@ const ATTENDUS = [
   ['souscripteur', '/paiements/declarer', [`${F(50000)} en retard`, `reste ${F(325000)}`, F(70000)]],
   ['null', '/', [F(395000), F(50000), F(9594000)]],
   ['gestionnaire', '/asso/souscripteurs/moussa-diarra', [F(175000), F(325000), 'En retard · 2']],
-  ['gestionnaire', '/asso/projets/centre-communautaire', ['Moussa Diarra', F(50000), F(9594000), '82 %', '14']],
+  // Projets sur le vrai back (lot 2.2) : chiffres nuls jusqu'aux inscriptions et paiements réels (lots 2.3, 2.4).
+  ['gestionnaire', '/asso/projets/centre-communautaire', ['Centre communautaire']],
   ['gestionnaire', '/asso/souscripteurs/awa-kone', [F(200000), F(300000)]],
   ['gestionnaire', '/asso/paiements/pm-awa-kone', ['Awa Koné', F(75000)]],
-  ['gestionnaire', '/asso', [F(9594000), '82 %', '14', F(75000)]],
-  ['gestionnaire', '/asso/projets', [F(9594000)]],
+  // Tableau de bord : cartes projets réelles (pr.list, chiffres nuls jusqu'aux lots 2.3, 2.4), indicateurs encore simulés.
+  ['gestionnaire', '/asso', ['Centre communautaire', '82 %', '14', F(75000)]],
+  ['gestionnaire', '/asso/projets', ['Centre communautaire', 'Tontine solidaire 2027', 'Voyage solidaire']],
   // Espace plateforme sur le vrai back (lot 1.4 : pf.dashboard, pf.asso.list, pf.asso.get) : ses chiffres viennent de
   // seed-dev, plus du store des mocks gestionnaire ; les comparer reprendra quand l'espace association sera réel. Les
   // compteurs plateforme sont testés côté back (platform-dashboard.test.ts, platform-associations.test.ts).

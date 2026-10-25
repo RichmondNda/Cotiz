@@ -8,6 +8,7 @@ import { CliModule } from '../../src/cli/cli.module.js';
 import { runCli } from '../../src/cli/commands.js';
 import { CreatePlatformOwnerUseCase } from '../../src/modules/identity/application/create-platform-owner.use-case.js';
 import { type Config, loadConfig } from '../../src/config.js';
+import { SeedDevProjectsUseCase } from '../../src/modules/projects/application/seed-dev-projects.use-case.js';
 import { mockId } from '../../src/shared/dev-seed/index.js';
 import {
   DEV_PASSWORD,
@@ -448,6 +449,156 @@ describe('CLI : create-platform-owner', () => {
       expect(new Set(requests.map((r) => (r as { reference: string }).reference)).size).toBe(8);
     });
 
+    it('crée les projets de référence (identifiants des données simulées), sans rien changer à la seconde exécution', async () => {
+      // frontend/server/mocks/ids.ts : uid('project', clé), uid('payment-method', clé).
+      const PROJECT = {
+        centre: 'ad6c0481-1f65-5323-baa5-f52c024d01bd',
+        tontine: 'f44851a6-58ac-5125-81ea-9f3df5571d0a',
+        voyage: '8f487e6e-57d0-5f55-860c-258c95db4359',
+        mutuelle: '27dbfc83-378c-52d7-a8ce-a2f49100d86a',
+      };
+      for (let i = 0; i < 2; i++) {
+        const { status, out } = await run('seed-dev');
+        expect(status).toBe(0);
+        expect(out).toContain(
+          'Projets de référence : centre-communautaire, tontine-2027, voyage-solidaire, mutuelle-sante',
+        );
+      }
+      const { rows } = await h.superuser(
+        `SELECT p.id, p.association_id AS aid, p.status, p.schedule_type AS type, p.entry_fee_amount::text AS fee,
+                p.installment_amount::text AS amount, p.start_date::text AS start, p.end_date::text AS end,
+                p.required_subscribers AS required, p.financial_terms_locked_at IS NOT NULL AS locked, p.version,
+                (SELECT array_agg(m.payment_method_id ORDER BY m.payment_method_id) FROM project_payment_methods m
+                  WHERE m.project_id = p.id) AS methods
+           FROM projects p WHERE p.id = ANY($1::uuid[]) ORDER BY p.created_at`,
+        [Object.values(PROJECT)],
+      );
+      const entraide = mockId('association', 'entraide-yopougon');
+      const both = [mockId('payment-method', 'entraide-0'), mockId('payment-method', 'entraide-1')].sort();
+      expect(rows).toEqual([
+        {
+          id: PROJECT.centre,
+          aid: entraide,
+          status: 'active',
+          type: 'fixed',
+          fee: '50000',
+          amount: '25000',
+          start: '2026-03-01',
+          end: '2027-08-31',
+          required: 60,
+          locked: true,
+          version: 1,
+          methods: both,
+        },
+        {
+          id: PROJECT.voyage,
+          aid: entraide,
+          status: 'active',
+          type: 'fixed',
+          fee: '50000',
+          amount: '10000',
+          start: '2026-06-01',
+          end: '2027-05-31',
+          required: null,
+          locked: true,
+          version: 1,
+          methods: both,
+        },
+        {
+          id: PROJECT.mutuelle,
+          aid: mockId('association', 'ressortissants-man'),
+          status: 'active',
+          type: 'fixed',
+          fee: '20000',
+          amount: '10000',
+          start: '2026-07-01',
+          end: '2027-04-30',
+          required: null,
+          locked: true,
+          version: 1,
+          methods: null,
+        },
+        {
+          id: PROJECT.tontine,
+          aid: entraide,
+          status: 'enrolling',
+          type: 'rolling',
+          fee: null,
+          amount: '10000',
+          start: '2027-01-01',
+          end: null,
+          required: 30,
+          locked: false,
+          version: 1,
+          methods: [mockId('payment-method', 'entraide-0')],
+        },
+      ]);
+
+      // Conditions communes (mensuel, le 5, 5 jours de grâce, XOF), dates de verrouillage, créateur, consignes propres.
+      const { rows: terms } = await h.superuser(
+        `SELECT id, frequency, due_day AS day, grace_days AS grace, currency, created_by AS creator,
+                (financial_terms_locked_at AT TIME ZONE 'UTC')::date::text AS locked_on
+           FROM projects WHERE id = ANY($1::uuid[]) ORDER BY created_at`,
+        [Object.values(PROJECT)],
+      );
+      const common = { frequency: 'monthly', day: 5, grace: 5, currency: 'XOF' };
+      const awa = mockId('user', 'awa-kone');
+      expect(terms).toEqual([
+        { id: PROJECT.centre, ...common, creator: awa, locked_on: '2026-03-06' },
+        { id: PROJECT.voyage, ...common, creator: awa, locked_on: '2026-06-06' },
+        { id: PROJECT.mutuelle, ...common, creator: RICHY, locked_on: '2026-07-06' },
+        { id: PROJECT.tontine, ...common, creator: awa, locked_on: null },
+      ]);
+      const { rows: overrides } = await h.superuser(
+        `SELECT project_id AS pid, instructions_override AS text FROM project_payment_methods
+          WHERE project_id = ANY($1::uuid[]) ORDER BY project_id, payment_method_id`,
+        [[PROJECT.centre, PROJECT.voyage]],
+      );
+      const CENTRE = 'Indiquez votre nom et « Centre » en référence du virement.';
+      expect(overrides).toEqual(
+        [
+          { pid: PROJECT.centre, text: CENTRE },
+          { pid: PROJECT.centre, text: CENTRE },
+          { pid: PROJECT.voyage, text: null },
+          { pid: PROJECT.voyage, text: null },
+        ].sort((x, y) => x.pid.localeCompare(y.pid)),
+      );
+
+      // Projet déjà présent dont un moyen a été retiré (pr.patch) : une nouvelle exécution ne le remet pas.
+      const sgbciOfCentre = [PROJECT.centre, mockId('payment-method', 'entraide-1')];
+      await h.superuser(
+        'DELETE FROM project_payment_methods WHERE project_id = $1 AND payment_method_id = $2',
+        sgbciOfCentre,
+      );
+      expect((await run('seed-dev')).status).toBe(0);
+      const { rows: kept } = await h.superuser(
+        'SELECT payment_method_id AS pm FROM project_payment_methods WHERE project_id = $1',
+        [PROJECT.centre],
+      );
+      expect(kept).toEqual([{ pm: mockId('payment-method', 'entraide-0') }]);
+
+      // Base de développement dont un moyen de référence a été désactivé (as.pm) : seuls les moyens actifs sont repris.
+      const sgbci = mockId('payment-method', 'entraide-1');
+      await h.superuser('DELETE FROM project_payment_methods WHERE project_id = ANY($1::uuid[])', [
+        Object.values(PROJECT),
+      ]);
+      await h.superuser('DELETE FROM projects WHERE id = ANY($1::uuid[])', [Object.values(PROJECT)]);
+      await h.superuser('UPDATE association_payment_methods SET is_active = false WHERE id = $1', [sgbci]);
+      try {
+        expect((await run('seed-dev')).status).toBe(0);
+        const { rows: linked } = await h.superuser(
+          `SELECT project_id AS pid, payment_method_id AS pm FROM project_payment_methods
+            WHERE project_id = ANY($1::uuid[]) ORDER BY project_id`,
+          [[PROJECT.centre, PROJECT.voyage]],
+        );
+        expect(linked).toEqual(
+          [PROJECT.centre, PROJECT.voyage].sort().map((pid) => ({ pid, pm: mockId('payment-method', 'entraide-0') })),
+        );
+      } finally {
+        await h.superuser('UPDATE association_payment_methods SET is_active = true WHERE id = $1', [sgbci]);
+      }
+    });
+
     it('refusée hors développement et test, ou sans COTIZ_DEV_SEED=1', async () => {
       for (const config of [
         { NODE_ENV: 'production', COTIZ_DEV_SEED: true },
@@ -455,6 +606,9 @@ describe('CLI : create-platform-owner', () => {
       ]) {
         const useCase = new SeedDevAccountsUseCase(new SecretHasher(), {} as CodeService, config as Config);
         await expect(useCase.execute()).rejects.toThrow(/COTIZ_DEV_SEED/);
+        await expect(new SeedDevProjectsUseCase(config as Config).execute('entraide-yopougon')).rejects.toThrow(
+          /COTIZ_DEV_SEED/,
+        );
       }
     });
 

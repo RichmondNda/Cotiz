@@ -81,7 +81,6 @@ const moussaCentreLate = () => [
   { installmentId: uid('installment', 'centre-communautaire:moussa-diarra:6'), amount: money(25000) },
   { installmentId: uid('installment', 'centre-communautaire:moussa-diarra:7'), amount: money(25000) },
 ]
-const terms = { entryFee: money(50000), installmentAmount: money(10000), frequency: 'monthly', dueDay: 5, scheduleType: 'fixed', startDate: '2026-11-01', endDate: '2027-10-31' }
 
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
@@ -89,8 +88,8 @@ const READS: Record<string, Call> = {
   'pf.asso.sub projects': { params: { id: aid } },
   'pf.asso.sub members': { params: { id: aid } }, 'pf.invoices list': {}, 'pf.staff list': {},
   'as.dashboard get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
-  'ct.list list': { params: { aid } }, 'ct.get get': { params: P }, 'pr.list list': { params: { aid } }, 'pr.get get': { params: P },
-  'pr.overview get': { params: P }, 'rp.report get': { params: P }, 'en.list list': { params: P }, 'mb.list list': { params: { aid } },
+  'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
+  'rp.report get': { params: P }, 'en.list list': { params: P }, 'mb.list list': { params: { aid } },
   'mb.get get': { params: { aid, uid: ID.moussa } }, 'mb.timeline list': { params: { aid, uid: ID.moussa } },
   'mb.codes list': { params: { aid } }, 'lg.grid get': { params: P },
   'lg.inst get': { params: { aid, iid: uid('installment', 'centre-communautaire:moussa-diarra:7') } },
@@ -114,13 +113,6 @@ const WRITES: Record<string, () => Call> = {
   'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
   'ct.get update': () => ({ params: { aid, pid: ID.tontine }, body: { bodyTemplate: 'Texte', signerName: 'Awa Koné', signerTitle: 'trésorière' }, ifMatch: 1 }),
   'ct.get lock': () => ({ params: { aid, pid: ID.tontine }, ifMatch: 1 }),
-  'pr.create create': () => ({ params: { aid }, body: { ...terms, name: 'Bibliothèque', description: '', requiredSubscribers: null, graceDays: 5, paymentMethods: [] } }),
-  'pr.preview preview': () => ({ params: { aid }, body: terms }),
-  'pr.patch patch': () => ({ params: P, body: { description: 'Nouveau texte' }, ifMatch: 1 }),
-  'pr.lifecycle publish': () => ({ params: { aid, pid: uid('project', 'brouillon') }, setup: draft } as Call),
-  'pr.lifecycle close': () => ({ params: { aid, pid: ID.tontine } }),
-  'pr.lifecycle duplicate': () => ({ params: P }),
-  'pr.delete remove': () => ({ params: { aid, pid: uid('project', 'brouillon') }, setup: draft, ifMatch: 1 } as Call),
   'mb.lookup lookup': () => ({ params: { aid }, body: { phone: '+2250544218790', projectId: ID.tontine } }),
   'en.create create': () => ({ params: { aid, pid: ID.tontine }, body: { phone: '+2250709090909', firstName: 'Nina', lastName: 'Bamba' } }),
   'en.withdraw withdraw': () => ({ params: { aid, eid: uid('enrollment', 'centre-communautaire:koffi-brou') }, body: {} }),
@@ -147,10 +139,7 @@ const WRITES: Record<string, () => Call> = {
   'me.sign sign': () => ({ params: { pid: ID.voyage }, setup: async (c: Call) => { c.body = { renderedSha256: ((await call('me.contract', 'get', { params: { pid: ID.voyage } })) as { renderedSha256: string }).renderedSha256, accepted: true } } } as Call),
 }
 
-// Étapes préalables de certaines écritures (brouillon, dépôt, import) : elles remplissent les `X` de l'appel.
-async function draft() {
-  db.projects.push({ ...structuredClone(db.projects.find(p => p.id === ID.tontine)!), id: uid('project', 'brouillon'), key: 'brouillon', status: 'draft' })
-}
+// Étapes préalables de certaines écritures (dépôt, import) : elles remplissent les `X` de l'appel.
 async function upload(c: Call) {
   const t = await call('fl.upload', 'create', { as: 'subscriber', body: { purpose: 'payment_proof', fileName: 'recu.jpg', mimeType: 'image/jpeg', sizeBytes: 1000 } }) as { fileId: string }
   c.params = { id: t.fileId }
@@ -225,9 +214,12 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
   }
 
   it('aucun-retard : plus aucun souscripteur en retard ni montant en retard', async () => {
-    const o = await call('pr.overview', 'get', { params: P, scenario: 'aucun-retard' }) as { late: { count: number }, lateMembers: unknown[] }
-    expect(o.late.count).toBe(0)
-    expect(o.lateMembers).toEqual([])
+    type Rapport = { standingCounts: { late: number }, rows: { lateCount: number }[] }
+    // Contrôle : sans scénario, Centre communautaire a des retardataires.
+    expect((await call('rp.report', 'get', { params: P }) as Rapport).standingCounts.late).toBeGreaterThan(0)
+    const r = await call('rp.report', 'get', { params: P, scenario: 'aucun-retard' }) as Rapport
+    expect(r.standingCounts.late).toBe(0)
+    expect(r.rows.map(x => x.lateCount).filter(n => n > 0)).toEqual([])
   })
 
   it('file-vide : aucun paiement à valider', async () => {
@@ -252,9 +244,8 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   it('scénarios : allocation_mismatch, quota_exceeded, version_conflict, association_suspended, payment_already_reviewed', async () => {
     expect(await problem('me.declare', 'declare', { ...WRITES['me.declare declare']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
     expect(await problem('lg.pay.validate', 'validate', { ...WRITES['lg.pay.validate validate']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
-    expect(await problem('pr.create', 'create', { ...WRITES['pr.create create']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
     expect(await problem('en.create', 'create', { ...WRITES['en.create create']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
-    expect(await problem('pr.patch', 'patch', { ...WRITES['pr.patch patch']!(), scenario: 'version_conflict' })).toBe('version_conflict')
+    expect(await problem('mb.patch', 'patch', { ...WRITES['mb.patch patch']!(), scenario: 'version_conflict' })).toBe('version_conflict')
     expect(await problem('as.dashboard', 'get', { ...READS['as.dashboard get'], scenario: 'association_suspended' })).toBe('association_suspended')
     expect(await problem('lg.pay.reject', 'reject', { ...WRITES['lg.pay.reject reject']!(), scenario: 'payment_already_reviewed' })).toBe('payment_already_reviewed')
   })
@@ -265,7 +256,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   })
 
   it('If-Match périmé → version_conflict', async () => {
-    expect(await problem('pr.patch', 'patch', { ...WRITES['pr.patch patch']!(), ifMatch: 7 })).toBe('version_conflict')
+    expect(await problem('mb.patch', 'patch', { ...WRITES['mb.patch patch']!(), ifMatch: 7 })).toBe('version_conflict')
   })
 
   it('répartition qui ne fait pas le montant → allocation_mismatch ; au-delà du reste → amount_exceeds_remaining', async () => {
@@ -280,7 +271,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   })
 
   it('ressource d’une autre association → 404', async () => {
-    expect(await problem('pr.get', 'get', { params: { aid, pid: ID.mutuelle } })).toBe('not_found')
+    expect(await problem('rp.report', 'get', { params: { aid, pid: ID.mutuelle } })).toBe('not_found')
     expect(await problem('as.dashboard', 'get', { params: { aid: ID.man } })).toBe('not_found')
   })
 

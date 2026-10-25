@@ -1,7 +1,7 @@
 import type { PaymentMethod } from '@cotiz/contracts';
 import { associationPaymentMethods } from '@cotiz/db';
 import { and, asc, count, eq, sql } from 'drizzle-orm';
-import { currentTx } from '../../../shared/tenant-context/index.js';
+import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 export type PaymentMethodRecord = typeof associationPaymentMethods.$inferSelect;
 
@@ -10,6 +10,7 @@ export type PaymentMethodRecord = typeof associationPaymentMethods.$inferSelect;
  * (as.onb, qui exige un moyen actif) s'ordonnent l'un après l'autre.
  */
 export async function lockPaymentMethods(associationId: string): Promise<void> {
+  assertOwnAssociation(associationId, 'lockPaymentMethods');
   await currentTx().execute(
     sql`SELECT pg_advisory_xact_lock(hashtextextended(${`payment-methods:${associationId}`}, 0))`,
   );
@@ -26,8 +27,9 @@ export async function activePaymentMethodsCount(associationId: string): Promise<
   return row?.n ?? 0;
 }
 
-/** Moyens de paiement de l'association (RLS `tenant_isolation`), dans l'ordre d'affichage. */
+/** Moyens de paiement de l'association du contexte (RLS `tenant_isolation`), dans l'ordre d'affichage. */
 export function paymentMethodsOf(associationId: string): Promise<PaymentMethodRecord[]> {
+  assertOwnAssociation(associationId, 'paymentMethodsOf');
   return currentTx()
     .select()
     .from(associationPaymentMethods)
@@ -62,4 +64,12 @@ export function toAuditedPaymentMethod(method: PaymentMethod): Record<string, un
     instructions: method.instructions,
     isActive: method.isActive,
   };
+}
+
+/** Surface publique (tenancy.public) : seulement dans le contexte de cette association. */
+function assertOwnAssociation(associationId: string, name: string): void {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error(`${name} : contexte de l’association attendu`);
+  }
 }

@@ -77,7 +77,8 @@ Route `/asso/bienvenue` · version spec V1 · statut maquette : maquetté · ré
 |---|---|---|
 | `as.get` | `GET /associations/{aid}` | 2.1 |
 | `as.patch` | `PATCH /associations/{aid}` | 2.1 |
-| `as.pm` | `GET /associations/{aid}/payment-methods`<br>`PUT /associations/{aid}/payment-methods` | 2.1 |
+| `as.pm` | `PUT /associations/{aid}/payment-methods` | 2.1 |
+| `as.pm.list` | `GET /associations/{aid}/payment-methods` | 2.2 |
 | `as.onb` | `POST /associations/{aid}/onboarding/complete` | 2.1 |
 | `as.upload` | `POST /associations/{aid}/uploads`<br>`POST /associations/{aid}/uploads/{id}/complete` | 2.1 |
 | `as.file` | `GET /associations/{aid}/files/{id}` | 2.1 |
@@ -227,8 +228,9 @@ Route `/asso/projets/nouveau` · version spec V1 · statut maquette : maquetté 
 |---|---|---|
 | `pr.create` | `POST /associations/{aid}/projects` | 2.2 |
 | `pr.preview` | `POST /associations/{aid}/projects/schedule-preview` | 2.2 |
-| `as.pm` | `GET /associations/{aid}/payment-methods`<br>`PUT /associations/{aid}/payment-methods` | 2.1 |
-| `fl.upload` | `POST /uploads`<br>`POST /uploads/{id}/complete` | 0.5 |
+| `as.pm.list` | `GET /associations/{aid}/payment-methods` | 2.2 |
+| `pr.upload` | `POST /associations/{aid}/projects/uploads`<br>`POST /associations/{aid}/projects/uploads/{id}/complete` | 2.2 |
+| `as.file` | `GET /associations/{aid}/files/{id}` | 2.1 |
 
 <a id="mg-projet-overview"></a>
 
@@ -405,6 +407,9 @@ Route `/asso/projets/:id/parametres` · version spec V1 · statut maquette : maq
 | `pr.patch` | `PATCH /associations/{aid}/projects/{pid}` | 2.2 |
 | `pr.lifecycle` | `POST /associations/{aid}/projects/{pid}/publish`<br>`POST /associations/{aid}/projects/{pid}/close`<br>`POST /associations/{aid}/projects/{pid}/duplicate` | 2.2 |
 | `pr.delete` | `DELETE /associations/{aid}/projects/{pid}` | 2.2 |
+| `pr.upload` | `POST /associations/{aid}/projects/uploads`<br>`POST /associations/{aid}/projects/uploads/{id}/complete` | 2.2 |
+| `as.pm.list` | `GET /associations/{aid}/payment-methods` | 2.2 |
+| `as.file` | `GET /associations/{aid}/files/{id}` | 2.1 |
 
 <a id="mg-projet-rapports"></a>
 
@@ -806,7 +811,8 @@ Route `/asso/parametres` · version spec V1 · statut maquette : maquetté · r�
 |---|---|---|
 | `as.get` | `GET /associations/{aid}` | 2.1 |
 | `as.patch` | `PATCH /associations/{aid}` | 2.1 |
-| `as.pm` | `GET /associations/{aid}/payment-methods`<br>`PUT /associations/{aid}/payment-methods` | 2.1 |
+| `as.pm` | `PUT /associations/{aid}/payment-methods` | 2.1 |
+| `as.pm.list` | `GET /associations/{aid}/payment-methods` | 2.2 |
 | `as.upload` | `POST /associations/{aid}/uploads`<br>`POST /associations/{aid}/uploads/{id}/complete` | 2.1 |
 | `as.file` | `GET /associations/{aid}/files/{id}` | 2.1 |
 

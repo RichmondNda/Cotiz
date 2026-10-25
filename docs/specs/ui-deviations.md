@@ -20,6 +20,9 @@ Les maquettes Claude Design ont été produites avant la décision « aucun four
 | Utilisateurs plateforme (`sa-users`) | Invitation du personnel par email | Invitation par lien d'activation à usage unique affiché une fois, à transmettre soi-même. |
 | Comptes gestionnaires (`mg-equipe`) | Invitation de gestionnaires par email | Invitation par code d'activation affiché avec message prêt, comme pour les souscripteurs. |
 | Plans d'abonnement (`sa-plans`) | Note sous les cartes : « Nombre d'abonnés par plan : données illustratives. Quotas : seuls ceux du plan Pro figurent dans la spécification. » | Note retirée : abonnés et quotas viennent du back (lot 1.2). |
+| Création de projet (`mg-projet-new`, lot 2.2, **temporaire**) | Assistant en 6 étapes, dont « Contrat » (modèle, signataire, signature) | Étape « Contrat » masquée et absente du récapitulatif : assistant en 5 étapes jusqu'aux contrats (lot 4.1), `pr.create` refusant `contract`. |
+| Projets du gestionnaire (`mg-projets`, `mg-projet-overview`, lot 2.2, **temporaire**) | Chiffres de Centre communautaire : 9 594 000 F collectés, 82 % de recouvrement, 14 en retard, collecte par échéance | Chiffres réels du back : nuls (0 souscripteur, 0 F, recouvrement « — ») tant que les inscriptions (lot 2.3) et les paiements (lot 2.4) ne sont pas réels ; la structure des écrans est inchangée. Paramètres : cadenas « Non modifiable : fixé par le contrat » au lieu de « des paiements ont été enregistrés » tant qu'aucun paiement n'est réel. |
+| Paramètres d'un projet (`mg-projet-params`, lot 2.2) | « Supprimer » refusé seulement quand des paiements existent | Suppression d'un brouillon seulement (`pr.delete`) : bouton désactivé sinon, avec « Impossible : seul un brouillon peut être supprimé. Clôturez le projet pour l'arrêter. » (ou le texte des paiements enregistrés). |
 
 ## Écrans à maquetter (absents des maquettes)
 

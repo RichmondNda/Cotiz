@@ -7,7 +7,9 @@ import { startTestDatabase, type TestDatabase } from './testing/postgres.js';
 /**
  * Les migrations doivent produire, table par table, le schéma cible docs/specs/schema.sql (packages/db/CLAUDE.md).
  * Chaque table créée par les migrations est comparée à son homologue du schéma cible. Seules différences admises :
- * les clés étrangères vers une table d'un lot ultérieur, posées par la migration du lot qui la crée.
+ * les clés étrangères vers une table d'un lot ultérieur, et les politiques qui lisent une table d'un lot ultérieur
+ * (ex. projects.subscriber_enrolled_read lit enrollments, lot 2.3), posées par la migration du lot qui la crée. Une
+ * politique permissive absente ne fait que restreindre l'accès.
  */
 
 async function withClient<T>(url: string, fn: (client: pg.Client) => Promise<T>): Promise<T> {
@@ -53,9 +55,30 @@ const DESCRIBE_TABLE = `
   FROM pg_class c
   WHERE c.oid = to_regclass('public.' || $1)`;
 
+interface Policy {
+  name: string;
+  permissive: string;
+  qual: string | null;
+  withCheck: string | null;
+}
+
 interface TableDescription {
   foreign_keys: { name: string; def: string }[];
+  policies: Policy[];
   [key: string]: unknown;
+}
+
+/** Tables lues par une politique (sous-requêtes `FROM <table>`). */
+function tablesReadBy(policy: Policy): string[] {
+  return [...`${policy.qual ?? ''} ${policy.withCheck ?? ''}`.matchAll(/\bFROM (\w+)/g)].map((m) => m[1] ?? '');
+}
+
+/**
+ * Politique cible reportée au lot d'une table qu'elle lit : permissive seulement (son absence restreint l'accès ; celle
+ * d'une politique restrictive l'élargirait).
+ */
+function isDeferred(policy: Policy, migrated: ReadonlySet<string>): boolean {
+  return policy.permissive === 'PERMISSIVE' && tablesReadBy(policy).some((t) => !migrated.has(t));
 }
 
 async function describeTable(url: string, table: string): Promise<TableDescription | undefined> {
@@ -134,11 +157,33 @@ describe('conformité des migrations au schéma cible (docs/specs/schema.sql)', 
     expect(tables.filter((t) => !target.has(t))).toEqual([]);
   });
 
-  it('chaque table migrée est identique à sa définition cible (hors clés étrangères)', async () => {
+  it('chaque table migrée est identique à sa définition cible (hors clés étrangères et politiques d’un lot ultérieur)', async () => {
+    const present = new Set(tables);
     for (const table of tables) {
       const [actual, expected] = await Promise.all([describeTable(migrated, table), describeTable(spec, table)]);
-      expect({ table, ...actual, foreign_keys: undefined }).toEqual({ table, ...expected, foreign_keys: undefined });
+      const policies = expected?.policies.filter((p) => !isDeferred(p, present));
+      expect({ table, ...actual, foreign_keys: undefined }).toEqual({
+        table,
+        ...expected,
+        policies,
+        foreign_keys: undefined,
+      });
     }
+  });
+
+  it('politiques reportées : exactement celles attendues, chacune à poser par le lot qui crée la table lue', async () => {
+    const present = new Set(tables);
+    const deferred: string[] = [];
+    for (const table of tables) {
+      const expected = await describeTable(spec, table);
+      for (const p of expected?.policies ?? []) if (isDeferred(p, present)) deferred.push(`${table}.${p.name}`);
+    }
+    // Liste complète, à mettre à jour à chaque lot. Lot 2.2 : lectures souscripteur des projets, en attente
+    // d'enrollments (lot 2.3, choix Q5).
+    expect(deferred.sort()).toEqual([
+      'project_payment_methods.subscriber_enrolled_read',
+      'projects.subscriber_enrolled_read',
+    ]);
   });
 
   it('les clés étrangères migrées existent toutes dans le schéma cible', async () => {

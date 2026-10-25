@@ -66,6 +66,14 @@ export interface TermesEcheancier {
 /** Jour ISO (1 = lundi … 7 = dimanche) d'une date `AAAA-MM-JJ`. */
 const jourIso = (date: string) => ((new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7) + 1
 
+/**
+ * `dueDay` des termes, pour l'aperçu comme pour pr.create : jour saisi, sinon jour de la date de début (jour ISO de la
+ * semaine en hebdomadaire, jour du mois sinon).
+ */
+export function jourEcheanceDe(t: Pick<TermesEcheancier, 'jourEcheance' | 'frequence' | 'dateDebut'>): number {
+  return t.jourEcheance ?? (t.frequence === 'hebdomadaire' ? jourIso(t.dateDebut) : Number(t.dateDebut.slice(8, 10)))
+}
+
 /** Lignes de l'échéancier (fonds d'entrée compris) ; termes incomplets ou invalides (saisie en cours) : aucune ligne. */
 export function lignesEcheancier(t: TermesEcheancier): ScheduleLine[] {
   try {
@@ -73,7 +81,7 @@ export function lignesEcheancier(t: TermesEcheancier): ScheduleLine[] {
       installmentAmount: t.montantEcheance,
       entryFeeAmount: t.fondsEntree,
       frequency: FREQUENCES_DOMAINE[t.frequence],
-      dueDay: t.jourEcheance ?? (t.frequence === 'hebdomadaire' ? jourIso(t.dateDebut) : Number(t.dateDebut.slice(8, 10))),
+      dueDay: jourEcheanceDe(t),
       scheduleType: t.typeCalendrier === 'dates_fixes' ? 'fixed' : 'rolling',
       startDate: t.dateDebut,
       endDate: t.dateFin ?? null,

@@ -6,7 +6,10 @@ import { ReplacePaymentMethodsUseCase } from '../application/replace-payment-met
 
 const ReplaceBody = ENDPOINTS['as.pm'].operations.replace.request.body;
 
-/** as.pm : moyens de paiement de l'association (owner ; association lue dans l'URL, MembershipGuard). */
+/**
+ * Moyens de paiement de l'association (association lue dans l'URL, MembershipGuard) : as.pm.list en lecture pour tout
+ * gestionnaire (choix des moyens d'un projet), as.pm pour les remplacer (owner).
+ */
 @Controller('associations/:aid/payment-methods')
 export class AssociationPaymentMethodsController {
   constructor(
@@ -15,8 +18,8 @@ export class AssociationPaymentMethodsController {
   ) {}
 
   @Get()
-  @Endpoint('as.pm', 'list')
-  @Can('association.settings.manage')
+  @Endpoint('as.pm.list', 'list')
+  @Can('association.read')
   list(@Param() params: unknown) {
     return this.listMethods.execute(parseInput(AssociationParams, params).aid);
   }
