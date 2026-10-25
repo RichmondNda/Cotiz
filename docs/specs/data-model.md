@@ -318,13 +318,15 @@ Participation d'une personne à un projet.
 |---|---|---|
 | `id` | `uuid PK` |  |
 | `association_id` | `uuid FK` | RLS |
-| `project_id` | `uuid FK` |  |
+| `project_id` | `uuid FK` | clé composite `(project_id, association_id)` → `projects (id, association_id)` |
 | `user_id` | `uuid FK` |  |
 | `status` | `enum` | pending_signature · active · withdrawn · completed |
 | `starts_from` | `date` | permet l'entrée en cours de projet |
 | `joined_at / activated_at / withdrawn_at` | `timestamptz` |  |
 | `withdrawn_by / withdraw_reason` | `uuid / text` |  |
 | `UNIQUE` | `(project_id, user_id)` |  |
+| `UNIQUE` | `(id, association_id, project_id, user_id)` | cible de la clé composite des échéances |
+| Déclencheur | `enrollments_guard` | association, projet et personne immuables ; en espace subscriber, seulement `pending_signature → active` et `activated_at` (signature) |
 
 ## `installments` — lot 2.3
 
@@ -334,7 +336,7 @@ Participation d'une personne à un projet.
 |---|---|---|
 | `id` | `uuid PK` |  |
 | `association_id` | `uuid FK` | RLS |
-| `project_id / enrollment_id / user_id` | `uuid FK` | user_id dénormalisé pour l'espace souscripteur |
+| `project_id / enrollment_id / user_id` | `uuid FK` | user_id dénormalisé pour l'espace souscripteur ; clé composite `(enrollment_id, association_id, project_id, user_id)` → `enrollments` (association, projet et personne de l'inscription) |
 | `kind` | `enum` | entry_fee · periodic |
 | `sequence` | `int` | 0 = entrée, puis 1, 2… |
 | `due_date` | `date` | dans le fuseau de l'association |
@@ -345,6 +347,9 @@ Participation d'une personne à un projet.
 | `late_since` | `date NULL` |  |
 | `paid_at` | `timestamptz NULL` |  |
 | `CHECK` | `amount_paid ≤ amount_due` | pas de trop-perçu sur une échéance |
+| `UNIQUE` | `(enrollment_id, kind, sequence)` | une case par rang : extension du cycle roulant idempotente |
+| `CHECK` | `installments_kind_sequence` | fonds d'entrée au rang 0, cotisations à partir de 1 |
+| Déclencheur | `installments_guard` | association, projet, inscription et personne immuables ; en espace subscriber, seulement `amount_pending` et `status` (déclaration) |
 
 ## `payments` — lot 2.4
 

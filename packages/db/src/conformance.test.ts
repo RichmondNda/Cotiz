@@ -7,9 +7,10 @@ import { startTestDatabase, type TestDatabase } from './testing/postgres.js';
 /**
  * Les migrations doivent produire, table par table, le schéma cible docs/specs/schema.sql (packages/db/CLAUDE.md).
  * Chaque table créée par les migrations est comparée à son homologue du schéma cible. Seules différences admises :
- * les clés étrangères vers une table d'un lot ultérieur, et les politiques qui lisent une table d'un lot ultérieur
- * (ex. projects.subscriber_enrolled_read lit enrollments, lot 2.3), posées par la migration du lot qui la crée. Une
- * politique permissive absente ne fait que restreindre l'accès.
+ * les clés étrangères vers une table d'un lot ultérieur (toutes les autres doivent être posées : les clés composites
+ * portent une part de l'isolation), et les politiques qui lisent une table d'un lot ultérieur (ex.
+ * projects.subscriber_enrolled_read lisait enrollments, posée au lot 2.3), posées par la migration du lot qui la crée.
+ * Une politique permissive absente ne fait que restreindre l'accès.
  */
 
 async function withClient<T>(url: string, fn: (client: pg.Client) => Promise<T>): Promise<T> {
@@ -178,12 +179,9 @@ describe('conformité des migrations au schéma cible (docs/specs/schema.sql)', 
       const expected = await describeTable(spec, table);
       for (const p of expected?.policies ?? []) if (isDeferred(p, present)) deferred.push(`${table}.${p.name}`);
     }
-    // Liste complète, à mettre à jour à chaque lot. Lot 2.2 : lectures souscripteur des projets, en attente
-    // d'enrollments (lot 2.3, choix Q5).
-    expect(deferred.sort()).toEqual([
-      'project_payment_methods.subscriber_enrolled_read',
-      'projects.subscriber_enrolled_read',
-    ]);
+    // Liste complète, à mettre à jour à chaque lot. Lot 2.3 : les lectures souscripteur des projets (reportées au
+    // lot 2.2) sont posées avec enrollments ; aucune politique en attente.
+    expect(deferred.sort()).toEqual([]);
   });
 
   it('les clés étrangères migrées existent toutes dans le schéma cible', async () => {
@@ -191,6 +189,17 @@ describe('conformité des migrations au schéma cible (docs/specs/schema.sql)', 
       const [actual, expected] = await Promise.all([describeTable(migrated, table), describeTable(spec, table)]);
       const target = new Set(expected?.foreign_keys.map((k) => k.def));
       expect({ table, extra: actual?.foreign_keys.filter((k) => !target.has(k.def)) }).toEqual({ table, extra: [] });
+    }
+  });
+
+  it('les clés étrangères cibles entre tables migrées sont toutes posées (dont les clés composites d’isolation)', async () => {
+    const present = new Set(tables);
+    for (const table of tables) {
+      const [actual, expected] = await Promise.all([describeTable(migrated, table), describeTable(spec, table)]);
+      const posed = new Set(actual?.foreign_keys.map((k) => k.def));
+      // Seule exception admise : une clé vers une table d'un lot ultérieur (posée par la migration qui la crée).
+      const due = expected?.foreign_keys.filter((k) => present.has(/REFERENCES (\w+)\(/.exec(k.def)?.[1] ?? ''));
+      expect({ table, missing: due?.filter((k) => !posed.has(k.def)) }).toEqual({ table, missing: [] });
     }
   });
 

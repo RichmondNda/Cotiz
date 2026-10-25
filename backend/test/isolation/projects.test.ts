@@ -18,8 +18,8 @@ import { paymentMethodsInUse, platformProjectCountsOf } from '../../src/modules/
 
 /**
  * Isolation des tables du module projects (lot 2.2, base migrée) : projects (tenant_isolation, system_access) et
- * project_payment_methods (tenant_isolation). Les lectures souscripteur (subscriber_enrolled_read) attendent la table
- * enrollments (lot 2.3, choix Q5) : d'ici là, un souscripteur ne voit aucun projet. Chaque politique est aussi testée
+ * project_payment_methods (tenant_isolation). Les lectures souscripteur (subscriber_enrolled_read, lot 2.3) sont testées
+ * avec les inscriptions dans enrollments.test.ts : ici, personne n'est inscrit. Chaque politique est aussi testée
  * affaiblie.
  */
 
@@ -147,7 +147,7 @@ describe('isolation : projects, project_payment_methods (base migrée)', () => {
 
   describe('autres espaces', () => {
     it.each([
-      ['souscripteur (lecture des projets suivis au lot 2.3)', asSubscriber(USERS.moussa)],
+      ['souscripteur sans inscription', asSubscriber(USERS.moussa)],
       ['plateforme', { space: 'platform', userId: USERS.awa }],
       ['public', { space: 'public' }],
       ['auth', { space: 'auth', userId: USERS.awa }],
