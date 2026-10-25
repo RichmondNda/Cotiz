@@ -29,18 +29,23 @@ export async function associationCurrencyOf(associationId: string): Promise<Curr
 
 /**
  * Un projet de l'association du contexte (RLS) ; `null` s'il n'existe pas ou n'est pas le sien. `lock` : verrouillé
- * jusqu'à la fin de la transaction (FOR NO KEY UPDATE), pour une modification qui dépend de son état.
+ * jusqu'à la fin de la transaction, pour une modification qui dépend de son état (FOR NO KEY UPDATE), ou avant sa
+ * suppression (`delete` : FOR UPDATE, qui bloque aussi les clés étrangères qui le visent).
  */
 export async function projectOf(
   associationId: string,
   projectId: string,
-  options: { lock?: boolean } = {},
+  options: { lock?: boolean | 'delete' } = {},
 ): Promise<ProjectRecord | null> {
   const query = currentTx()
     .select()
     .from(projects)
     .where(and(eq(projects.associationId, associationId), eq(projects.id, projectId)));
-  const [row] = await (options.lock ? query.for('no key update') : query);
+  const [row] = await (options.lock === 'delete'
+    ? query.for('update')
+    : options.lock
+      ? query.for('no key update')
+      : query);
   return row ?? null;
 }
 

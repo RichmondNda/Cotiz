@@ -1017,6 +1017,7 @@ endpoints:
   - invalid_state
   - quota_exceeded
   emits:
+  - project.created
   - project.published
   - project.closed
   idempotencyKey: false

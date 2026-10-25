@@ -8,6 +8,7 @@ import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, expectedVersion, requireActor } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
+import { EDITABLE_STATUSES } from '../domain/project-lifecycle.js';
 import { currencyProblems, projectScheduleOf } from '../domain/project-terms.js';
 import { paymentMethodProblems, replaceProjectPaymentMethods } from './project-payment-methods.js';
 import { associationCurrencyOf, contextAssociationId, projectOf, toProject } from './project-records.js';
@@ -34,8 +35,6 @@ const FIELDS = [
   'graceDays',
   'paymentMethods',
 ] as const;
-/** Choix Q8 : modifiable tant que le projet n'est ni terminé ni archivé. */
-const EDITABLE = new Set(['draft', 'enrolling', 'active']);
 
 /**
  * pr.patch : modification d'un projet sous verrou optimiste (`If-Match`, 412) ; seuls les champs envoyés changent, la
@@ -57,7 +56,7 @@ export class UpdateProjectUseCase {
     // Verrouillé : le verrouillage des conditions (premier paiement validé) attend la fin de cette modification.
     const current = await projectOf(associationId, pid, { lock: true });
     if (!current) throw new DomainProblem('not_found');
-    if (!EDITABLE.has(current.status)) throw new DomainProblem('invalid_state');
+    if (!EDITABLE_STATUSES.includes(current.status)) throw new DomainProblem('invalid_state');
     const before = await toProject(current);
 
     const currency = await associationCurrencyOf(associationId);
