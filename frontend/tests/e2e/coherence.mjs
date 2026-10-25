@@ -24,7 +24,8 @@ const ATTENDUS = [
   ['gestionnaire', '/asso/projets/centre-communautaire', ['Centre communautaire']],
   ['gestionnaire', '/asso/souscripteurs/awa-kone', [F(200000), F(300000)]],
   ['gestionnaire', '/asso/paiements/pm-awa-kone', ['Awa Koné', F(75000)]],
-  ['gestionnaire', '/asso', [F(9594000), '82 %', '14', F(75000)]],
+  // Tableau de bord : cartes projets réelles (pr.list, chiffres nuls jusqu'aux lots 2.3, 2.4), indicateurs encore simulés.
+  ['gestionnaire', '/asso', ['Centre communautaire', '82 %', '14', F(75000)]],
   ['gestionnaire', '/asso/projets', ['Centre communautaire', 'Tontine solidaire 2027', 'Voyage solidaire']],
   // Espace plateforme sur le vrai back (lot 1.4 : pf.dashboard, pf.asso.list, pf.asso.get) : ses chiffres viennent de
   // seed-dev, plus du store des mocks gestionnaire ; les comparer reprendra quand l'espace association sera réel. Les
