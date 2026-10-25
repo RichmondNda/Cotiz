@@ -100,7 +100,8 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
   passent par `scripts/route-mock.mjs` (slug → UUID déterministe), partagé par les e2e et `capture-ecran.mjs`.
 - Dépendance chargée par import dynamique (solveur ALTCHA `altcha/lib` + workers, markdown-it) : l'ajouter à `vite.optimizeDeps.include` de `nuxt.config.ts`, sinon Vite recharge la page au premier passage et les e2e expirent en CI.
 - Comparer deux captures `.verif/` au pixel près : en `nuxt dev`, seul le badge de Nuxt devtools (temps en ms) varie.
-- Lecture qui combine endpoints réels et simulés : les mocks ne connaissent que le jeu de référence ; un appel simulé facultatif (`.catch(() => null)` + repli sur une donnée réelle), sinon une entité créée en réel (démonstration, e2e) casse l'écran.
+- Lecture qui combine endpoints réels et simulés : les mocks ne connaissent que le jeu de référence ; un appel simulé facultatif (`.catch(() => null)` + repli sur une donnée réelle), sinon une entité créée en réel (démonstration, e2e) casse l'écran. Limiter le repli au 404 (`codeErreur(e) === 'not_found'`) pour ne pas masquer un 401/403/5xx.
+- Refus du back dans une page : `messageRefus(e)` (titre du Problem, conservé aussi par `traduireErreur`) plutôt qu'un « Vérifiez votre connexion » ; If-Match = la version affichée à l'écran, jamais celle d'une relecture juste avant l'écriture.
 - Après une bascule, un parcours de `scripts/parcours/` qui saisit un placeholder (`[Opérateur]`…) peut être refusé par le vrai back : y saisir une valeur valide du contrat.
 - Capture de `/plateforme` sur le vrai back : `pnpm db:migrate` puis rafraîchir les statistiques (`BEGIN; SET LOCAL app.space = 'system'; SELECT refresh_platform_stats(); COMMIT;` en psql) ; sinon les vues matérialisées sont vides jusqu'au prochain `stats.refresh` (15 min).
 
