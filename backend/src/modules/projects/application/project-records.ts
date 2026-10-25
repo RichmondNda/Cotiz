@@ -1,6 +1,6 @@
 import type { Project, ProjectPaymentMethod, ProjectSummary } from '@cotiz/contracts';
 import { projectPaymentMethods, projects } from '@cotiz/db';
-import { type Currency, Money } from '@cotiz/domain';
+import { type Currency, Money, type ScheduleLine } from '@cotiz/domain';
 import { and, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
@@ -63,17 +63,21 @@ function termsOf(row: ProjectRecord) {
   };
 }
 
+/** Calendrier du projet (depuis son début) par generateSchedule() ; conditions contrôlées à l'écriture. */
+export function projectScheduleLines(row: ProjectRecord): ScheduleLine[] {
+  const lines = scheduleOf(scheduleInputOf(termsOf(row)));
+  // Une erreur ici est une ligne incohérente : jamais des indicateurs muets.
+  if (!Array.isArray(lines)) throw new Error(`projet ${row.id} : conditions refusées par generateSchedule()`);
+  return lines;
+}
+
 /**
  * Indicateurs d'un projet. Avant les inscriptions (lot 2.3) et les paiements (lot 2.4) : aucun souscripteur, rien
  * d'attendu ni d'encaissé ; dates fixes : nombre d'échéances et engagement par souscripteur, par generateSchedule().
  */
 function statsOf(row: ProjectRecord): z.infer<typeof Project>['stats'] {
   const currency = row.currency as Currency;
-  const terms = termsOf(row);
-  const lines = scheduleOf(scheduleInputOf(terms));
-  // Conditions contrôlées à l'écriture : une erreur ici est une ligne incohérente, jamais des indicateurs muets.
-  if (!Array.isArray(lines)) throw new Error(`projet ${row.id} : conditions refusées par generateSchedule()`);
-  const preview = previewOf(lines, terms.scheduleType, currency);
+  const preview = previewOf(projectScheduleLines(row), row.scheduleType, currency);
   const fixed = row.scheduleType === 'fixed';
   return {
     subscribersCount: 0,

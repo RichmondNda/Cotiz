@@ -12,6 +12,7 @@ import { CloseProjectUseCase, PublishProjectUseCase } from '../application/chang
 import { CreateProjectUseCase } from '../application/create-project.use-case.js';
 import { DeleteProjectUseCase } from '../application/delete-project.use-case.js';
 import { DuplicateProjectUseCase } from '../application/duplicate-project.use-case.js';
+import { GetProjectOverviewUseCase } from '../application/get-project-overview.use-case.js';
 import { GetProjectUseCase } from '../application/get-project.use-case.js';
 import { ListProjectsUseCase } from '../application/list-projects.use-case.js';
 import { PreviewScheduleUseCase } from '../application/preview-schedule.use-case.js';
@@ -20,7 +21,7 @@ import { UpdateProjectUseCase } from '../application/update-project.use-case.js'
 const PatchBody = ENDPOINTS['pr.patch'].operations.patch.request.body;
 
 /** Projets d'une association (pr.list, pr.create, pr.preview, pr.get, pr.patch, pr.lifecycle,
- * pr.delete) ; association lue dans l'URL (MembershipGuard). */
+ * pr.delete, pr.overview) ; association lue dans l'URL (MembershipGuard). */
 @Controller('associations/:aid/projects')
 export class ProjectsController {
   constructor(
@@ -33,6 +34,7 @@ export class ProjectsController {
     private readonly closeProject: CloseProjectUseCase,
     private readonly duplicateProject: DuplicateProjectUseCase,
     private readonly deleteProject: DeleteProjectUseCase,
+    private readonly getOverview: GetProjectOverviewUseCase,
   ) {}
 
   @Get()
@@ -111,5 +113,13 @@ export class ProjectsController {
   async remove(@Param() params: unknown): Promise<void> {
     const { aid, pid } = parseInput(ProjectParams, params);
     await this.deleteProject.execute(aid, pid);
+  }
+
+  @Get(':pid/overview')
+  @Endpoint('pr.overview', 'get')
+  @Can('association.read')
+  overview(@Param() params: unknown) {
+    const { aid, pid } = parseInput(ProjectParams, params);
+    return this.getOverview.execute(aid, pid);
   }
 }
