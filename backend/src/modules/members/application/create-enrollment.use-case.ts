@@ -6,7 +6,12 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { admitSubscriber, platformRoleOf, subscriberMembershipOf } from '../../access/access.public.js';
 import { QuotaService } from '../../billing/billing.public.js';
-import { accountByPhone, SubscriberAccounts, type SubscriberContact } from '../../identity/identity.public.js';
+import {
+  accountByPhone,
+  type PreparedCode,
+  SubscriberAccounts,
+  type SubscriberContact,
+} from '../../identity/identity.public.js';
 import { enrollmentScheduleOf, type ProjectRecord, projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
@@ -49,8 +54,21 @@ export class CreateEnrollmentUseCase {
     private readonly outbox: OutboxService,
   ) {}
 
-  @Audited('enrollment.create')
   async execute(aid: string, projectId: string, input: Input): Promise<Result> {
+    return (await this.enroll(aid, projectId, input)).created;
+  }
+
+  /**
+   * Le cas d'usage, pour en.create et pour chaque ligne de en.bulk (dans sa propre transaction) : la réponse, et s'il a
+   * créé le compte. `activationCode` : code préparé d'avance (en.bulk), pris seulement si un code est émis.
+   */
+  @Audited('enrollment.create')
+  async enroll(
+    aid: string,
+    projectId: string,
+    input: Input,
+    options: { activationCode?: (() => Promise<PreparedCode>) | undefined } = {},
+  ): Promise<{ created: Result; isNewAccount: boolean }> {
     const actor = requireActor();
     const associationId = contextAssociationId(aid);
     const project = await projectOf(associationId, projectId, { lock: 'share' });
@@ -132,7 +150,14 @@ export class CreateEnrollmentUseCase {
     const createdHere = isNewAccount || (await profileCreatorOf(member.id)) === associationId;
     const handoff =
       member.status === 'pending_activation' && createdHere
-        ? (await this.accounts.issueActivation(member.id, associationId, actor.userId)).handoff
+        ? (
+            await this.accounts.issueActivation(
+              member.id,
+              associationId,
+              actor.userId,
+              await options.activationCode?.(),
+            )
+          ).handoff
         : null;
     await this.outbox.publish(tx, {
       type: 'member.enrolled',
@@ -155,7 +180,7 @@ export class CreateEnrollmentUseCase {
         account: handoff ? 'activation_code_issued' : member.status,
       },
     });
-    return { enrollment: await toEnrollment(row, project, member, today), handoff };
+    return { created: { enrollment: await toEnrollment(row, project, member, today), handoff }, isNewAccount };
   }
 
   /**

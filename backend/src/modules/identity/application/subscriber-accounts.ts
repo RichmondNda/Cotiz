@@ -6,7 +6,7 @@ import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { CONFIG, type Config } from '../../../config.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import { buildHandoff } from '../domain/handoff.js';
-import { CodeService } from './code-service.js';
+import { CodeService, type PreparedCode } from './code-service.js';
 
 /**
  * Compte retrouvé par son téléphone (ajout d'un souscripteur) : prénom, initiale du nom et statut seulement, jamais le
@@ -153,6 +153,7 @@ export class SubscriberAccounts {
     userId: string,
     associationId: string,
     issuedBy: string,
+    prepared?: PreparedCode,
   ): Promise<{ codeId: string; handoff: Handoff }> {
     assertAssociation('SubscriberAccounts.issueActivation');
     const code = await this.codes.issue({
@@ -161,8 +162,14 @@ export class SubscriberAccounts {
       associationId,
       issuedBy,
       redisplayable: true,
+      prepared,
     });
     return { codeId: code.id, handoff: await this.handoff(userId, code.code, code.expiresAt) };
+  }
+
+  /** Code d'activation tiré et haché d'avance, hors transaction (ajout en lot) ; à passer à `issueActivation`. */
+  prepareActivation(): Promise<PreparedCode> {
+    return this.codes.prepare('activation');
   }
 
   /**

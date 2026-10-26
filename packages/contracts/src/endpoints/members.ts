@@ -122,12 +122,16 @@ export const enWithdraw = defineEndpoint({
   },
 });
 
+/** Une personne de l'ajout en lot ; une ligne invalide est rapportée (`validation_failed`), les autres sont traitées. */
+export const BulkEnrollmentRow = NewMemberInput.extend({ startsFrom: IsoDate.optional() });
+
+/**
+ * Le serveur valide chaque ligne à part : une ligne invalide ressort `failed` + `validation_failed` (champs) dans le
+ * rapport au lieu de faire échouer le lot ; seule l'enveloppe (projet, 1 à 200 lignes) répond 422.
+ */
 export const BulkEnrollmentInput = z.object({
   projectId: Uuid,
-  rows: z
-    .array(NewMemberInput.extend({ startsFrom: IsoDate.optional() }))
-    .min(1)
-    .max(200),
+  rows: z.array(BulkEnrollmentRow).min(1).max(200),
 });
 
 export const BulkEnrollmentReport = z.object({

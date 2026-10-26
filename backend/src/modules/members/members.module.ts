@@ -5,6 +5,7 @@ import { ListActivationCodesUseCase } from './application/list-activation-codes.
 import { MarkActivationCodeHandedUseCase } from './application/mark-activation-code-handed.use-case.js';
 import { RegenerateActivationCodeUseCase } from './application/regenerate-activation-code.use-case.js';
 import { ActivationCodesController } from './http/activation-codes.controller.js';
+import { BulkEnrollUseCase } from './application/bulk-enroll.use-case.js';
 import { CreateEnrollmentUseCase } from './application/create-enrollment.use-case.js';
 import { LookupMemberUseCase } from './application/lookup-member.use-case.js';
 import { EnrollmentsController } from './http/enrollments.controller.js';
@@ -17,6 +18,7 @@ import { MembersController } from './http/members.controller.js';
   providers: [
     LookupMemberUseCase,
     CreateEnrollmentUseCase,
+    BulkEnrollUseCase,
     RegenerateActivationCodeUseCase,
     ListActivationCodesUseCase,
     MarkActivationCodeHandedUseCase,

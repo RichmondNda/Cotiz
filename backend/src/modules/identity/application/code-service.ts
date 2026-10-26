@@ -24,6 +24,15 @@ export interface IssueCodeInput {
   issuedBy: string | null;
   /** Ré-affichable par les gestionnaires jusqu'à consommation : activation d'un souscripteur seulement (lot 2.3). */
   redisplayable?: boolean;
+  /** Code tiré et haché d'avance (`prepare`, ajout en lot) ; sinon tiré et haché ici. */
+  prepared?: PreparedCode | undefined;
+}
+
+/** Code tiré et haché hors transaction (argon2 coûteux), à émettre ensuite par `issue`. Jamais journalisé. */
+export interface PreparedCode {
+  purpose: CodePurpose;
+  code: string;
+  hash: string;
 }
 
 export interface IssuedCode {
@@ -79,7 +88,19 @@ export class CodeService {
     );
   }
 
+  /**
+   * Tire et hache un code d'avance, hors transaction (ajout en lot : hachages en parallèle). Jamais d'accès à la base :
+   * l'appel peut partir du contexte d'une transaction qui sera validée avant qu'il aboutisse.
+   */
+  async prepare(purpose: CodePurpose): Promise<PreparedCode> {
+    const code = generateCode(purpose);
+    return { purpose, code, hash: await this.hasher.hash(code) };
+  }
+
   async issue(input: IssueCodeInput, now = new Date()): Promise<IssuedCode> {
+    if (input.prepared && input.prepared.purpose !== input.purpose) {
+      throw new Error('CodeService.issue : code préparé pour un autre usage');
+    }
     const tx = currentTx();
     await this.lockIssuance(input.userId, input.purpose);
     await tx
@@ -95,7 +116,7 @@ export class CodeService {
       );
 
     const id = newId();
-    const code = generateCode(input.purpose);
+    const code = input.prepared?.code ?? generateCode(input.purpose);
     const expiresAt = new Date(now.getTime() + CODE_RULES[input.purpose].ttlMs);
     const redisplayable = input.redisplayable === true && input.purpose === 'activation';
     await tx.insert(oneTimeCodes).values({
@@ -103,7 +124,7 @@ export class CodeService {
       userId: input.userId,
       purpose: input.purpose,
       delivery: 'manual',
-      codeHash: await this.hasher.hash(code),
+      codeHash: input.prepared?.hash ?? (await this.hasher.hash(code)),
       expiresAt,
       associationId: input.associationId,
       codeEncrypted: redisplayable ? this.box.seal(code, sealContext(id)) : null,
