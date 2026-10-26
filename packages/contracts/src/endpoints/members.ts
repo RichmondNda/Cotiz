@@ -102,6 +102,9 @@ export const enCreate = defineEndpoint({
   },
 });
 
+export const EnrollmentIdParams = AssociationParams.extend({ eid: Uuid });
+export const WithdrawInput = z.object({ reason: z.string().max(500).optional() });
+
 export const enWithdraw = defineEndpoint({
   id: 'en.withdraw',
   space: 'association',
@@ -113,10 +116,7 @@ export const enWithdraw = defineEndpoint({
     withdraw: {
       method: 'POST',
       path: '/api/v1/associations/{aid}/enrollments/{eid}/withdraw',
-      request: {
-        params: AssociationParams.extend({ eid: Uuid }),
-        body: z.object({ reason: z.string().max(500).optional() }),
-      },
+      request: { params: EnrollmentIdParams, body: WithdrawInput },
       response: { status: 200, body: Enrollment },
     },
   },
@@ -240,6 +240,13 @@ export const MemberSummary = z.object({
   standing: MemberStanding,
 });
 
+export const MembersQuery = ListQuery.extend({
+  /** Nom ou téléphone (recherche trigramme). */
+  q: z.string().min(1).optional(),
+  projectId: Uuid.optional(),
+  standing: MemberStanding.optional(),
+});
+
 export const mbList = defineEndpoint({
   id: 'mb.list',
   space: 'association',
@@ -252,12 +259,7 @@ export const mbList = defineEndpoint({
       path: '/api/v1/associations/{aid}/members',
       request: {
         params: AssociationParams,
-        query: ListQuery.extend({
-          /** Nom ou téléphone (recherche trigramme). */
-          q: z.string().min(1).optional(),
-          projectId: Uuid.optional(),
-          standing: MemberStanding.optional(),
-        }),
+        query: MembersQuery,
       },
       response: { status: 200, body: listOf(MemberSummary) },
     },
@@ -304,7 +306,11 @@ export const mbPatch = defineEndpoint({
   id: 'mb.patch',
   space: 'association',
   permission: manage,
-  errors: ['phone_taken', 'version_conflict'],
+  /**
+   * `invalid_state` : nom, téléphone ou email d'un compte activé, ou créé par une autre association (adresse et ville
+   * restent modifiables). Email déjà porté par une autre personne : `validation_failed` (`email: taken`).
+   */
+  errors: ['phone_taken', 'version_conflict', 'invalid_state'],
   flags: { ...noFlags, ifMatch: true, audited: true },
   operations: {
     patch: {

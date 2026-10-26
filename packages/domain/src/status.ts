@@ -72,3 +72,22 @@ export function memberStanding(
       throw new DomainError('invalid_status', { enrollmentStatus });
   }
 }
+
+/** Du plus grave au moins grave : « le pire de ses projets » (annuaire, fiche). */
+const STANDING_SEVERITY: readonly MemberStanding[] = [
+  'late',
+  'signature_required',
+  'activation_pending',
+  'up_to_date',
+  'withdrawn',
+];
+
+/**
+ * Situation globale d'un souscripteur dans une association : la plus grave de ses inscriptions (`memberStanding`, plus
+ * `activation_pending` posé par le back). Retiré seulement s'il l'est de tous ses projets.
+ */
+export function overallStanding(standings: readonly MemberStanding[]): MemberStanding {
+  const worst = STANDING_SEVERITY.find((standing) => standings.includes(standing));
+  if (!worst) throw new DomainError('invalid_status', { standings: [...standings] });
+  return worst;
+}

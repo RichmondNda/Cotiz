@@ -1,16 +1,21 @@
-import { Body, Controller, Header, HttpCode, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Param, Post, Query, Req } from '@nestjs/common';
 import {
   AssociationParams,
   BulkEnrollmentInput,
   CreateEnrollmentInput,
   EnrollmentCreated,
+  EnrollmentIdParams,
+  EnrollmentsQuery,
   IdParams,
   ProjectParams,
+  WithdrawInput,
 } from '@cotiz/contracts';
 import { z } from 'zod';
 import { Can, Endpoint, idempotentReplay, parseInput, ReplayInHandler } from '../../../shared/http/index.js';
 import { BulkEnrollUseCase } from '../application/bulk-enroll.use-case.js';
 import { CreateEnrollmentUseCase } from '../application/create-enrollment.use-case.js';
+import { ListEnrollmentsUseCase } from '../application/list-enrollments.use-case.js';
+import { WithdrawEnrollmentUseCase } from '../application/withdraw-enrollment.use-case.js';
 
 /** Ce que le rejeu retrouve de l'opération mémorisée : l'inscription créée, jamais le code. */
 const Reference = z.object({ enrollmentId: IdParams.shape.id });
@@ -24,7 +29,17 @@ export class EnrollmentsController {
   constructor(
     private readonly createEnrollment: CreateEnrollmentUseCase,
     private readonly bulkEnroll: BulkEnrollUseCase,
+    private readonly listEnrollments: ListEnrollmentsUseCase,
+    private readonly withdrawEnrollment: WithdrawEnrollmentUseCase,
   ) {}
+
+  @Get('projects/:pid/enrollments')
+  @Endpoint('en.list', 'list')
+  @Can('association.read')
+  list(@Param() params: unknown, @Query() query: unknown) {
+    const { aid, pid } = parseInput(ProjectParams, params);
+    return this.listEnrollments.execute(aid, pid, parseInput(EnrollmentsQuery, query));
+  }
 
   // Réponse avec le code d'activation : seul l'identifiant de l'inscription est mémorisé, le rejeu reconstruit le reste.
   @Post('projects/:pid/enrollments')
@@ -49,5 +64,14 @@ export class EnrollmentsController {
   @Can('members.manage')
   bulk(@Param() params: unknown, @Body() body: unknown) {
     return this.bulkEnroll.execute(parseInput(AssociationParams, params).aid, parseInput(BulkEnvelope, body));
+  }
+
+  @Post('enrollments/:eid/withdraw')
+  @HttpCode(200)
+  @Endpoint('en.withdraw', 'withdraw')
+  @Can('members.manage')
+  withdraw(@Param() params: unknown, @Body() body: unknown) {
+    const { aid, eid } = parseInput(EnrollmentIdParams, params);
+    return this.withdrawEnrollment.execute(aid, eid, parseInput(WithdrawInput, body ?? {}));
   }
 }

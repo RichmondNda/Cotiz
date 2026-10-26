@@ -1,9 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Handoff } from '@cotiz/contracts';
-import { credentials, oneTimeCodes, users } from '@cotiz/db';
+import { credentials, oneTimeCodes, updateWithVersion, users } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
+import { and, type AnyColumn, desc, eq, gte, inArray, isNull, ne, or, type SQL, sql } from 'drizzle-orm';
 import { CONFIG, type Config } from '../../../config.js';
+import { DomainProblem } from '../../../shared/http/index.js';
+import { containsPattern } from '../../../shared/pagination/index.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import { buildHandoff } from '../domain/handoff.js';
 import { CodeService, type PreparedCode } from './code-service.js';
@@ -43,6 +45,29 @@ export async function accountByPhone(phone: string): Promise<PhoneAccount | null
   return row
     ? { id: row.id, firstName: row.firstName, lastInitial: initialOf(row.lastName, row.firstName), status: row.status }
     : null;
+}
+
+/**
+ * Condition SQL « le compte de cette colonne correspond à la recherche » (annuaire, inscriptions d'un projet) : nom
+ * complet ou téléphone contenant le texte, sans casse (index trigramme users_name_trgm). Lire `users` hors du module
+ * identity sans exposer ses colonnes.
+ */
+export function accountMatches(userId: AnyColumn, q: string): SQL {
+  const pattern = containsPattern(q.trim());
+  const digits = q.replace(/\D/g, '');
+  return sql`EXISTS (SELECT 1 FROM ${users} WHERE ${users.id} = ${userId} AND ${or(
+    sql`(${users.firstName} || ' ' || ${users.lastName}) ILIKE ${pattern}`,
+    digits.length >= 4 ? sql`${users.phoneE164} LIKE ${containsPattern(digits)}` : undefined,
+  )})`;
+}
+
+/** Identité d'un souscripteur modifiable par l'association qui a créé le compte, tant qu'il n'est pas activé (Q7). */
+export interface IdentityChanges {
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  /** E.164, revalidé par l'appelant (libphonenumber-js). */
+  phone?: string | undefined;
+  email?: string | null | undefined;
 }
 
 /** Coordonnées d'un souscripteur (réponses des inscriptions, message prêt) et état de son compte. */
@@ -101,6 +126,74 @@ export class SubscriberAccounts {
       .limit(1);
     const [row] = options.lock ? await query.for('share') : await query;
     return row ?? null;
+  }
+
+  /** Coordonnées de plusieurs comptes (listes) ; les identifiants inconnus sont absents. */
+  async contactsOf(userIds: readonly string[]): Promise<Map<string, SubscriberContact>> {
+    assertAssociation('SubscriberAccounts.contactsOf');
+    if (userIds.length === 0) return new Map();
+    const rows = await currentTx()
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phoneE164,
+        email: users.email,
+        status: users.status,
+      })
+      .from(users)
+      .where(inArray(users.id, [...userIds]));
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
+  /** Version du compte (verrou optimiste de la fiche, mb.patch) ; `null` s'il n'existe pas. */
+  async versionOf(userId: string): Promise<number | null> {
+    assertAssociation('SubscriberAccounts.versionOf');
+    const [row] = await currentTx().select({ version: users.version }).from(users).where(eq(users.id, userId));
+    return row?.version ?? null;
+  }
+
+  /**
+   * Fiche modifiée (mb.patch) sous verrou optimiste : identité (`changes`, vide pour l'adresse seule), version
+   * incrémentée dans tous les cas ; la nouvelle version. Téléphone déjà porté par une autre personne : `phone_taken` ;
+   * email : `validation_failed` (`email: taken`, choix de l'étape). Version périmée : VersionConflictError (412).
+   */
+  async updateIdentity(userId: string, version: number, changes: IdentityChanges): Promise<number> {
+    assertAssociation('SubscriberAccounts.updateIdentity');
+    const tx = currentTx();
+    if (changes.phone !== undefined) {
+      await this.lockPhone(changes.phone);
+      const [taken] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.phoneE164, changes.phone), ne(users.id, userId)))
+        .limit(1);
+      if (taken) throw new DomainProblem('phone_taken');
+    }
+    if (changes.email) {
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${`users:email:${changes.email.toLowerCase()}`}, 0))`,
+      );
+      const [taken] = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.email, changes.email), ne(users.id, userId)))
+        .limit(1);
+      if (taken) throw new DomainProblem('validation_failed', { fields: { email: 'taken' } });
+    }
+    const updated = await updateWithVersion(
+      tx,
+      users,
+      { id: userId, version },
+      {
+        ...(changes.firstName === undefined ? {} : { firstName: changes.firstName }),
+        ...(changes.lastName === undefined ? {} : { lastName: changes.lastName }),
+        ...(changes.phone === undefined ? {} : { phoneE164: changes.phone }),
+        ...(changes.email === undefined ? {} : { email: changes.email }),
+      },
+    );
+    if (!updated) throw new DomainProblem('not_found');
+    return updated.version;
   }
 
   /**

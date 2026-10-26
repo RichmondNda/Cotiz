@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { CreateEnrollmentInput, EnrollmentCreated } from '@cotiz/contracts';
 import { enrollments, installments, subscriberProfiles } from '@cotiz/db';
-import { installmentStatus, type IsoDate, lateSince, newId, todayIn } from '@cotiz/domain';
+import { installmentStatus, lateSince, newId } from '@cotiz/domain';
 import { and, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { admitSubscriber, platformRoleOf, subscriberMembershipOf } from '../../access/access.public.js';
@@ -13,7 +13,6 @@ import {
   type SubscriberContact,
 } from '../../identity/identity.public.js';
 import { enrollmentScheduleOf, type ProjectRecord, projectOf } from '../../projects/projects.public.js';
-import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
@@ -21,7 +20,7 @@ import { currentTx } from '../../../shared/tenant-context/index.js';
 import { normalizePhone } from '../domain/phone.js';
 import { enrollmentOf, type EnrollmentRecord, profileCreatorOf } from './enrollment-records.js';
 import { toEnrollment } from './enrollment-views.js';
-import { contextAssociationId } from './member-context.js';
+import { associationToday, contextAssociationId } from './member-context.js';
 
 type Input = z.infer<typeof CreateEnrollmentInput>;
 type Result = z.infer<typeof EnrollmentCreated>;
@@ -75,7 +74,7 @@ export class CreateEnrollmentUseCase {
     if (!project) throw new DomainProblem('not_found');
     if (!OPEN.has(project.status)) throw new DomainProblem('invalid_state');
 
-    const today = await this.todayOf(aid);
+    const today = await associationToday(aid);
     const startsFrom = input.startsFrom ?? (today > project.startDate ? today : project.startDate);
     if (startsFrom < project.startDate) {
       throw new DomainProblem('validation_failed', { fields: { startsFrom: 'before_project_start' } });
@@ -195,7 +194,7 @@ export class CreateEnrollmentUseCase {
     const member = row ? await this.accounts.contactOf(row.userId) : null;
     if (!project || !row || !member) throw new DomainProblem('not_found');
     const handoff = await this.accounts.reissuedHandoff(member.id, associationId, actor.userId, row.createdAt);
-    return { enrollment: await toEnrollment(row, project, member, await this.todayOf(aid)), handoff };
+    return { enrollment: await toEnrollment(row, project, member, await associationToday(aid)), handoff };
   }
 
   /** Compte inscrit : par son identifiant, ou par son téléphone (sous verrou), créé s'il n'existe pas. */
@@ -228,12 +227,5 @@ export class CreateEnrollmentUseCase {
       .from(enrollments)
       .where(and(eq(enrollments.id, enrollmentId), eq(enrollments.projectId, projectId)));
     return row ?? null;
-  }
-
-  /** Aujourd'hui dans le fuseau de l'association (domain-rules § 6). */
-  private async todayOf(aid: string): Promise<IsoDate> {
-    const association = await ownAssociationOf(aid);
-    if (!association) throw new DomainProblem('not_found');
-    return todayIn(association.timezone);
   }
 }

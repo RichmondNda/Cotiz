@@ -67,6 +67,16 @@ export class SubscriberActivationCodes {
     };
   }
 
+  /** Codes d'activation émis par l'association pour cette personne (frise), consommés et remplacés compris. */
+  async codeIdsOf(userId: string): Promise<string[]> {
+    assertAssociation('SubscriberActivationCodes.codeIdsOf');
+    const rows = await currentTx()
+      .select({ id: oneTimeCodes.id })
+      .from(oneTimeCodes)
+      .where(and(eq(oneTimeCodes.userId, userId), eq(oneTimeCodes.purpose, 'activation')));
+    return rows.map((row) => row.id);
+  }
+
   /** Le code s'il est encore dans la liste ; `null` sinon (consommé, remplacé, autre association). */
   async find(codeId: string, now = new Date()): Promise<Entry | null> {
     const { latest, filter } = pendingCodes();

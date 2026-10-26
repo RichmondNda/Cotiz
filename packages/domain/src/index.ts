@@ -17,7 +17,7 @@ export { excludingPayment, proposeAllocation, remainingOf, validateAllocation } 
 export type { AllocationIssue, ValidateOptions, ValidationResult } from './allocation.js';
 export { enrollmentTotals } from './enrollment-totals.js';
 export type { EnrollmentTotals, TotalsInstallment } from './enrollment-totals.js';
-export { installmentStatus, lateSince, memberStanding, todayIn } from './status.js';
+export { installmentStatus, lateSince, memberStanding, overallStanding, todayIn } from './status.js';
 export type {
   Allocation,
   EnrollmentStatus,

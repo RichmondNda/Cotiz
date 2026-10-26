@@ -1,7 +1,7 @@
 import type { Project, ProjectPaymentMethod, ProjectSummary } from '@cotiz/contracts';
 import { projectPaymentMethods, projects } from '@cotiz/db';
 import { type Currency, Money, type ScheduleLine } from '@cotiz/domain';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
 import { ownAssociationOf, paymentMethodsOf } from '../../tenancy/tenancy.public.js';
@@ -50,6 +50,19 @@ export async function projectOf(
         ? query.for('no key update')
         : query);
   return row ?? null;
+}
+
+/** Projets de l'association du contexte (RLS) parmi `projectIds`, par identifiant (listes de membres, frise). */
+export async function projectsOf(
+  associationId: string,
+  projectIds: readonly string[],
+): Promise<Map<string, ProjectRecord>> {
+  if (projectIds.length === 0) return new Map();
+  const rows = await currentTx()
+    .select()
+    .from(projects)
+    .where(and(eq(projects.associationId, associationId), inArray(projects.id, [...new Set(projectIds)])));
+  return new Map(rows.map((row) => [row.id, row]));
 }
 
 /** Fonds d'entrée et montant par échéance du projet, en `Money` de sa devise. */

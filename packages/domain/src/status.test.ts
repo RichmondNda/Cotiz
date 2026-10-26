@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { installmentStatus, lateSince, memberStanding, todayIn } from './index.js';
+import { installmentStatus, lateSince, memberStanding, overallStanding, todayIn } from './index.js';
 import type { InstallmentState, InstallmentStatus, LedgerInstallment } from './index.js';
 import { loadVectors } from './test-vectors.js';
 
@@ -103,5 +103,24 @@ describe('todayIn', () => {
     expect(todayIn('Africa/Douala', lateEvening)).toBe('2026-09-30');
     expect(todayIn(undefined, lateEvening)).toBe('2026-09-29');
     expect(todayIn('America/Port-au-Prince', new Date('2026-09-30T02:00:00Z'))).toBe('2026-09-29');
+  });
+});
+
+describe('overallStanding — situation globale d’un souscripteur (le pire de ses projets)', () => {
+  it.each([
+    [['up_to_date', 'late'], 'late'],
+    [['late', 'signature_required'], 'late'],
+    [['up_to_date', 'signature_required'], 'signature_required'],
+    [['activation_pending', 'signature_required'], 'signature_required'],
+    [['up_to_date', 'activation_pending'], 'activation_pending'],
+    [['withdrawn', 'up_to_date'], 'up_to_date'],
+    [['withdrawn', 'withdrawn'], 'withdrawn'],
+    [['withdrawn', 'late'], 'late'],
+  ] as const)('%j → %s', (standings, expected) => {
+    expect(overallStanding(standings)).toBe(expected);
+  });
+
+  it('aucune inscription : erreur (un membre de l’annuaire en a toujours une)', () => {
+    expect(() => overallStanding([])).toThrow();
   });
 });

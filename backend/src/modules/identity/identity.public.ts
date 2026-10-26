@@ -8,6 +8,8 @@ export { IdentityModule } from './identity.module.js';
 export { type ManagerAccount, ManagerAccounts, type ManagerContact } from './application/manager-accounts.js';
 export {
   accountByPhone,
+  accountMatches,
+  type IdentityChanges,
   type NewSubscriber,
   type PhoneAccount,
   SubscriberAccounts,

@@ -12765,7 +12765,7 @@
         "tags": ["association"],
         "x-endpoint-id": "mb.patch",
         "x-permission": "members.manage",
-        "x-errors": ["phone_taken", "version_conflict"],
+        "x-errors": ["phone_taken", "version_conflict", "invalid_state"],
         "x-rate-limited": false,
         "x-audited": true,
         "parameters": [

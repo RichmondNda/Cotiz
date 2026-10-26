@@ -1239,6 +1239,7 @@ endpoints:
   errors:
   - phone_taken
   - version_conflict
+  - invalid_state
   emits:
   - member.updated
   idempotencyKey: false
