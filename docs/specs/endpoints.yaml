@@ -1162,6 +1162,7 @@ endpoints:
   summary: Régénère le code d'activation (l'ancien est invalidé) et renvoie le message prêt
   errors:
   - already_activated
+  - invalid_state
   emits:
   - activation.code_issued
   idempotencyKey: false

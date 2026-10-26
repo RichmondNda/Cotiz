@@ -1,6 +1,6 @@
 import { memberships } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, eq, sql } from 'drizzle-orm';
+import { type AnyColumn, and, eq, ne, type SQL, sql } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import type { MembershipStatus } from './memberships.js';
 
@@ -66,4 +66,17 @@ function assertAssociation(associationId: string, what: string): void {
   if (context?.space !== 'association' || context.associationId !== associationId) {
     throw new Error(`${what} : contexte de l’association attendu`);
   }
+}
+
+/**
+ * Condition SQL « la personne de cette colonne est souscriptrice (non retirée) de l'association », pour filtrer une liste
+ * dans la requête même (pagination et compteurs justes) sans lire `memberships` hors du module access.
+ */
+export function isSubscriberOf(associationId: string, userId: AnyColumn): SQL {
+  return sql`EXISTS (SELECT 1 FROM ${memberships} WHERE ${and(
+    eq(memberships.associationId, associationId),
+    eq(memberships.userId, userId),
+    eq(memberships.role, 'subscriber'),
+    ne(memberships.status, 'removed'),
+  )})`;
 }

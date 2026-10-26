@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Header, HttpCode, Param, Post, Req } from '@nestjs/common';
 import { CreateEnrollmentInput, EnrollmentCreated, IdParams, ProjectParams } from '@cotiz/contracts';
 import { z } from 'zod';
 import { Can, Endpoint, idempotentReplay, parseInput, ReplayInHandler } from '../../../shared/http/index.js';
@@ -15,6 +15,7 @@ export class EnrollmentsController {
   // Réponse avec le code d'activation : seul l'identifiant de l'inscription est mémorisé, le rejeu reconstruit le reste.
   @Post('projects/:pid/enrollments')
   @HttpCode(201)
+  @Header('Cache-Control', 'no-store')
   @Endpoint('en.create', 'create')
   @Can('members.manage')
   @ReplayInHandler((body) => ({ enrollmentId: (body as z.infer<typeof EnrollmentCreated>).enrollment.id }))

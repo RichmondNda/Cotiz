@@ -231,7 +231,9 @@ export function regenerateCode(ctx: MockContext<'mb.resend', 'regenerate'>) {
 function codeEntry(id: string) {
   const c = db.activationCodes.find(x => x.id === id) ?? problem('not_found')
   const u = userRow(c.userId)
-  return { id: c.id, member: personContact(u), handoff: { ...handoff(u, 'subscriber', undefined, c.code), expiresAt: c.expiresAt }, issuedAt: c.issuedAt, handedAt: c.handedAt }
+  const state = c.expiresAt <= nowInstant() ? 'expired' as const : 'live' as const
+  const ready = state === 'live' ? { ...handoff(u, 'subscriber', undefined, c.code), expiresAt: c.expiresAt } : null
+  return { id: c.id, member: personContact(u), state, handoff: ready, issuedAt: c.issuedAt, handedAt: c.handedAt }
 }
 
 export function codesList(ctx: MockContext<'mb.codes', 'list'>) {

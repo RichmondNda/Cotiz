@@ -132,7 +132,7 @@ export class CreateEnrollmentUseCase {
     const createdHere = isNewAccount || (await profileCreatorOf(member.id)) === associationId;
     const handoff =
       member.status === 'pending_activation' && createdHere
-        ? await this.accounts.issueActivation(member.id, associationId, actor.userId)
+        ? (await this.accounts.issueActivation(member.id, associationId, actor.userId)).handoff
         : null;
     await this.outbox.publish(tx, {
       type: 'member.enrolled',

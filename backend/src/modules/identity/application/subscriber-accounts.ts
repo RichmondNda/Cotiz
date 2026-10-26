@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Handoff } from '@cotiz/contracts';
 import { credentials, oneTimeCodes, users } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, desc, eq, gte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import { CONFIG, type Config } from '../../../config.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import { buildHandoff } from '../domain/handoff.js';
@@ -84,9 +84,10 @@ export class SubscriberAccounts {
     await currentTx().execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`users:phone:${phone}`}, 0))`);
   }
 
-  async contactOf(userId: string): Promise<SubscriberContact | null> {
+  /** `lock: 'share'` : le statut ne change pas avant la fin de la transaction (activation simultanée). */
+  async contactOf(userId: string, options: { lock?: 'share' } = {}): Promise<SubscriberContact | null> {
     assertAssociation('SubscriberAccounts.contactOf');
-    const [row] = await currentTx()
+    const query = currentTx()
       .select({
         id: users.id,
         firstName: users.firstName,
@@ -98,7 +99,26 @@ export class SubscriberAccounts {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+    const [row] = options.lock ? await query.for('share') : await query;
     return row ?? null;
+  }
+
+  /**
+   * Avant de régénérer le code d'activation de la personne, dans l'ordre de auth.activate (code puis compte) : verrou
+   * d'émission, codes non consommés de l'association verrouillés. Une activation en cours aboutit d'abord ; l'appelant
+   * relit ensuite le statut (`contactOf` avec `lock: 'share'`).
+   */
+  async lockActivation(userId: string): Promise<void> {
+    assertAssociation('SubscriberAccounts.lockActivation');
+    await this.codes.lockIssuance(userId, 'activation');
+    await currentTx()
+      .select({ id: oneTimeCodes.id })
+      .from(oneTimeCodes)
+      .where(
+        and(eq(oneTimeCodes.userId, userId), eq(oneTimeCodes.purpose, 'activation'), isNull(oneTimeCodes.consumedAt)),
+      )
+      .orderBy(oneTimeCodes.id)
+      .for('update');
   }
 
   /**
@@ -129,7 +149,11 @@ export class SubscriberAccounts {
   }
 
   /** Émet le code d'activation de l'association (invalide tout code précédent de la personne) ; le message prêt. */
-  async issueActivation(userId: string, associationId: string, issuedBy: string): Promise<Handoff> {
+  async issueActivation(
+    userId: string,
+    associationId: string,
+    issuedBy: string,
+  ): Promise<{ codeId: string; handoff: Handoff }> {
     assertAssociation('SubscriberAccounts.issueActivation');
     const code = await this.codes.issue({
       userId,
@@ -138,7 +162,7 @@ export class SubscriberAccounts {
       issuedBy,
       redisplayable: true,
     });
-    return this.handoff(userId, code.code, code.expiresAt);
+    return { codeId: code.id, handoff: await this.handoff(userId, code.code, code.expiresAt) };
   }
 
   /**
@@ -169,6 +193,11 @@ export class SubscriberAccounts {
     const contact = await this.contactOf(userId);
     if (!contact) throw new Error('SubscriberAccounts : compte introuvable');
     const { status: _status, ...recipient } = contact;
+    return this.message(recipient, code, expiresAt);
+  }
+
+  /** Message prêt d'un code d'activation (forme affichée) pour cette personne. */
+  message(recipient: Omit<SubscriberContact, 'status'>, code: string, expiresAt: Date): Handoff {
     return buildHandoff({
       purpose: 'activation',
       space: 'subscriber',
@@ -180,7 +209,7 @@ export class SubscriberAccounts {
   }
 }
 
-function assertAssociation(what: string): void {
+export function assertAssociation(what: string): void {
   const context = currentContext();
   if (context?.space !== 'association' || !context.associationId) {
     throw new Error(`${what} : contexte d’une association attendu`);

@@ -69,12 +69,19 @@ export class CodeService {
     this.decoyHash = hasher.hash(randomBytes(16).toString('hex'));
   }
 
+  /**
+   * Verrou d'émission (transaction) : deux émissions simultanées pour la même personne et le même usage se suivent, la
+   * seconde invalide la première. Ré-entrant : l'appelant peut le prendre avant `issue()` pour ordonner ses verrous.
+   */
+  async lockIssuance(userId: string, purpose: CodePurpose): Promise<void> {
+    await currentTx().execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`one_time_codes:${userId}:${purpose}`}, 0))`,
+    );
+  }
+
   async issue(input: IssueCodeInput, now = new Date()): Promise<IssuedCode> {
     const tx = currentTx();
-    // Deux émissions simultanées pour la même personne et le même usage : la seconde attend et invalide la première.
-    await tx.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`one_time_codes:${input.userId}:${input.purpose}`}, 0))`,
-    );
+    await this.lockIssuance(input.userId, input.purpose);
     await tx
       .update(oneTimeCodes)
       .set({ expiresAt: now, codeEncrypted: null })

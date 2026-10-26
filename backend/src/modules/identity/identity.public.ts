@@ -13,3 +13,8 @@ export {
   SubscriberAccounts,
   type SubscriberContact,
 } from './application/subscriber-accounts.js';
+export {
+  type CodePosition,
+  type CodesPage,
+  SubscriberActivationCodes,
+} from './application/subscriber-activation-codes.js';

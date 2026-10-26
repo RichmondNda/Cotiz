@@ -43,3 +43,26 @@ PATCH /api/v1/platform/plans/{id} removed the enum value `XOF` of the request pr
 # Lot 2.3 : mb.lookup, associationsCount peut valoir 0 (compte existant sans aucune appartenance, ex. personnel de la
 # plateforme ; décision Q10). Aucun consommateur réel : mb.lookup n'est appelé que par le mock Nitro avant l'étape 8.
 POST /api/v1/associations/{aid}/members/lookup the `oneOf[subschema #2]/associationsCount` response property's min was decreased from `1.00` to `0.00` for the response status `200`
+
+# Lot 2.3 : mb.codes, ActivationCodeEntry.handoff nullable et `state` (décision Q6 validée : code expiré ou bloqué,
+# plus de code en clair à remettre). Aucun consommateur réel : mb.codes n'est appelé que par le mock Nitro avant l'étape 8.
+GET /api/v1/associations/{aid}/activation-codes added `#/components/schemas/Handoff, subschema #2` to the `items/items/handoff` response property `anyOf` list for the response status `200`
+GET /api/v1/associations/{aid}/activation-codes the `items/items/handoff` response's property `type` changed from `object` to `any` for status `200`
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/activationUrl` from the response with the `200` status
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/code` from the response with the `200` status
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/expiresAt` from the response with the `200` status
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/mailtoUrl` from the response with the `200` status
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/message` from the response with the `200` status
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/recipient` from the response with the `200` status
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/smsUrl` from the response with the `200` status
+GET /api/v1/associations/{aid}/activation-codes removed the required property `items/items/handoff/whatsappUrl` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed added `#/components/schemas/Handoff, subschema #2` to the `handoff` response property `anyOf` list for the response status `200`
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed the `handoff` response's property `type` changed from `object` to `any` for status `200`
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/activationUrl` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/code` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/expiresAt` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/mailtoUrl` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/message` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/recipient` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/smsUrl` from the response with the `200` status
+POST /api/v1/associations/{aid}/activation-codes/{codeId}/handed removed the required property `handoff/whatsappUrl` from the response with the `200` status

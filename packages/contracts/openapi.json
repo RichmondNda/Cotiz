@@ -12114,7 +12114,7 @@
         "tags": ["association"],
         "x-endpoint-id": "mb.resend",
         "x-permission": "members.manage",
-        "x-errors": ["already_activated"],
+        "x-errors": ["already_activated", "invalid_state"],
         "x-rate-limited": true,
         "x-audited": true,
         "parameters": [
@@ -12239,8 +12239,19 @@
                           "member": {
                             "$ref": "#/components/schemas/PersonContact"
                           },
+                          "state": {
+                            "type": "string",
+                            "enum": ["live", "expired", "blocked"]
+                          },
                           "handoff": {
-                            "$ref": "#/components/schemas/Handoff"
+                            "anyOf": [
+                              {
+                                "$ref": "#/components/schemas/Handoff"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
                           "issuedAt": {
                             "type": "string",
@@ -12260,7 +12271,7 @@
                             ]
                           }
                         },
-                        "required": ["id", "member", "handoff", "issuedAt", "handedAt"],
+                        "required": ["id", "member", "state", "handoff", "issuedAt", "handedAt"],
                         "additionalProperties": false
                       }
                     },
@@ -12357,8 +12368,19 @@
                     "member": {
                       "$ref": "#/components/schemas/PersonContact"
                     },
+                    "state": {
+                      "type": "string",
+                      "enum": ["live", "expired", "blocked"]
+                    },
                     "handoff": {
-                      "$ref": "#/components/schemas/Handoff"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Handoff"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     },
                     "issuedAt": {
                       "type": "string",
@@ -12378,7 +12400,7 @@
                       ]
                     }
                   },
-                  "required": ["id", "member", "handoff", "issuedAt", "handedAt"],
+                  "required": ["id", "member", "state", "handoff", "issuedAt", "handedAt"],
                   "additionalProperties": false
                 }
               }

@@ -168,7 +168,8 @@ export const mbResend = defineEndpoint({
   id: 'mb.resend',
   space: 'association',
   permission: manage,
-  errors: ['already_activated'],
+  /** `invalid_state` : compte créé par une autre association (code d'origine), désactivé, anonymisé, personnel plateforme. */
+  errors: ['already_activated', 'invalid_state'],
   flags: { ...noFlags, rateLimited: true, audited: true },
   operations: {
     /** Régénère le code (l'ancien est invalidé). */
@@ -181,15 +182,26 @@ export const mbResend = defineEndpoint({
   },
 });
 
-/** Compte non activé et son code, lisible en clair jusqu'à consommation. */
+/** État du dernier code d'activation émis par l'association (un code consommé n'est plus listé). */
+export const ActivationCodeState = z.enum(['live', 'expired', 'blocked']);
+
+/** Compte non activé et le dernier code émis par l'association, lisible en clair jusqu'à consommation. */
 export const ActivationCodeEntry = z.object({
+  /** Identifiant du code. */
   id: Uuid,
   member: PersonContact,
-  handoff: Handoff,
+  /** `expired` (délai passé ou code remplacé), `blocked` (5 essais) : plus de code à remettre, « Régénérer ». */
+  state: ActivationCodeState,
+  /** Message prêt avec le code en clair, seulement si `state` = `live`. */
+  handoff: Handoff.nullable(),
   issuedAt: Instant,
   /** Marqué « remis » par un gestionnaire. */
   handedAt: Instant.nullable(),
 });
+
+export const ActivationCodeList = listOf(ActivationCodeEntry);
+export const ActivationCodesQuery = ListQuery.extend({ handed: z.stringbool().optional() });
+export const ActivationCodeParams = AssociationParams.extend({ codeId: Uuid });
 
 export const mbCodes = defineEndpoint({
   id: 'mb.codes',
@@ -201,13 +213,13 @@ export const mbCodes = defineEndpoint({
     list: {
       method: 'GET',
       path: '/api/v1/associations/{aid}/activation-codes',
-      request: { params: AssociationParams, query: ListQuery.extend({ handed: z.stringbool().optional() }) },
-      response: { status: 200, body: listOf(ActivationCodeEntry) },
+      request: { params: AssociationParams, query: ActivationCodesQuery },
+      response: { status: 200, body: ActivationCodeList },
     },
     markHanded: {
       method: 'POST',
       path: '/api/v1/associations/{aid}/activation-codes/{codeId}/handed',
-      request: { params: AssociationParams.extend({ codeId: Uuid }) },
+      request: { params: ActivationCodeParams },
       response: { status: 200, body: ActivationCodeEntry },
     },
   },
