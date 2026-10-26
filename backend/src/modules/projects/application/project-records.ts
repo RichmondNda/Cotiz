@@ -6,7 +6,7 @@ import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
 import { ownAssociationOf, paymentMethodsOf } from '../../tenancy/tenancy.public.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
-import { previewOf, scheduleInputOf, scheduleOf } from '../domain/project-terms.js';
+import { type FieldProblems, previewOf, scheduleInputOf, scheduleOf } from '../domain/project-terms.js';
 
 export type ProjectRecord = typeof projects.$inferSelect;
 
@@ -30,12 +30,13 @@ export async function associationCurrencyOf(associationId: string): Promise<Curr
 /**
  * Un projet de l'association du contexte (RLS) ; `null` s'il n'existe pas ou n'est pas le sien. `lock` : verrouillé
  * jusqu'à la fin de la transaction, pour une modification qui dépend de son état (FOR NO KEY UPDATE), ou avant sa
- * suppression (`delete` : FOR UPDATE, qui bloque aussi les clés étrangères qui le visent).
+ * suppression (`delete` : FOR UPDATE, qui bloque aussi les clés étrangères qui le visent), ou pour une inscription
+ * (`share` : FOR SHARE ; plusieurs inscriptions à la fois, mais ni modification ni clôture pendant ce temps, Q2).
  */
 export async function projectOf(
   associationId: string,
   projectId: string,
-  options: { lock?: boolean | 'delete' } = {},
+  options: { lock?: boolean | 'delete' | 'share' } = {},
 ): Promise<ProjectRecord | null> {
   const query = currentTx()
     .select()
@@ -43,9 +44,11 @@ export async function projectOf(
     .where(and(eq(projects.associationId, associationId), eq(projects.id, projectId)));
   const [row] = await (options.lock === 'delete'
     ? query.for('update')
-    : options.lock
-      ? query.for('no key update')
-      : query);
+    : options.lock === 'share'
+      ? query.for('share')
+      : options.lock
+        ? query.for('no key update')
+        : query);
   return row ?? null;
 }
 
@@ -69,6 +72,19 @@ export function projectScheduleLines(row: ProjectRecord): ScheduleLine[] {
   // Une erreur ici est une ligne incohérente : jamais des indicateurs muets.
   if (!Array.isArray(lines)) throw new Error(`projet ${row.id} : conditions refusées par generateSchedule()`);
   return lines;
+}
+
+/**
+ * Échéancier d'un souscripteur entré le `enrolledFrom` (en.create) par generateSchedule() : dates du projet à partir de
+ * cette date (aucune rétroactive), fonds d'entrée à la première ; cycle roulant : l'horizon par défaut (12). Date
+ * d'entrée refusée par le domaine (hors 1900–2199) : `{ startsFrom: <code> }`, comme le champ du corps de en.create.
+ */
+export function enrollmentScheduleOf(row: ProjectRecord, enrolledFrom: string): ScheduleLine[] | FieldProblems {
+  const lines = scheduleOf(scheduleInputOf(termsOf(row), { enrolledFrom }));
+  if (Array.isArray(lines)) return lines;
+  if (lines.enrolledFrom) return { startsFrom: lines.enrolledFrom };
+  // Toute autre erreur est une ligne de projet incohérente (conditions contrôlées à l'écriture).
+  throw new Error(`projet ${row.id} : conditions refusées par generateSchedule()`);
 }
 
 /**

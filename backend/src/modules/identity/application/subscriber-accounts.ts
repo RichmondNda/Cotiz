@@ -1,6 +1,12 @@
-import { users } from '@cotiz/db';
-import { eq } from 'drizzle-orm';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Handoff } from '@cotiz/contracts';
+import { credentials, oneTimeCodes, users } from '@cotiz/db';
+import { newId } from '@cotiz/domain';
+import { and, desc, eq, gte, sql } from 'drizzle-orm';
+import { CONFIG, type Config } from '../../../config.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
+import { buildHandoff } from '../domain/handoff.js';
+import { CodeService } from './code-service.js';
 
 /**
  * Compte retrouvé par son téléphone (ajout d'un souscripteur) : prénom, initiale du nom et statut seulement, jamais le
@@ -28,10 +34,7 @@ export function initialOf(lastName: string, firstName: string): string {
  * Contexte d'une association seulement : `users` est globale sans RLS, seuls le prénom et l'initiale du nom en sortent.
  */
 export async function accountByPhone(phone: string): Promise<PhoneAccount | null> {
-  const context = currentContext();
-  if (context?.space !== 'association' || !context.associationId) {
-    throw new Error('accountByPhone : contexte d’une association attendu');
-  }
+  assertAssociation('accountByPhone');
   const [row] = await currentTx()
     .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, status: users.status })
     .from(users)
@@ -40,4 +43,146 @@ export async function accountByPhone(phone: string): Promise<PhoneAccount | null
   return row
     ? { id: row.id, firstName: row.firstName, lastInitial: initialOf(row.lastName, row.firstName), status: row.status }
     : null;
+}
+
+/** Coordonnées d'un souscripteur (réponses des inscriptions, message prêt) et état de son compte. */
+export interface SubscriberContact {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string | null;
+  status: (typeof users.status.enumValues)[number];
+}
+
+export interface NewSubscriber {
+  /** E.164, revalidé par l'appelant (libphonenumber-js). */
+  phone: string;
+  firstName: string;
+  lastName: string;
+  email?: string | null | undefined;
+}
+
+/**
+ * Comptes des souscripteurs inscrits par une association (architecture/04 § 4.3), dans la transaction de l'appelant,
+ * contexte de cette association seulement (`users` est globale sans RLS). Code d'activation émis par l'association
+ * (RLS tenant_manage), chiffré pour le ré-afficher et reconstruire le message prêt au rejeu idempotent.
+ */
+@Injectable()
+export class SubscriberAccounts {
+  constructor(
+    private readonly codes: CodeService,
+    @Inject(CONFIG) private readonly config: Config,
+  ) {}
+
+  /**
+   * Verrou de transaction sur ce téléphone, avant de chercher puis créer son compte : deux inscriptions simultanées du
+   * même numéro (même projet, autre projet, autre association) se suivent, la seconde voit le compte de la première.
+   */
+  async lockPhone(phone: string): Promise<void> {
+    assertAssociation('SubscriberAccounts.lockPhone');
+    await currentTx().execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`users:phone:${phone}`}, 0))`);
+  }
+
+  async contactOf(userId: string): Promise<SubscriberContact | null> {
+    assertAssociation('SubscriberAccounts.contactOf');
+    const [row] = await currentTx()
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        phone: users.phoneE164,
+        email: users.email,
+        status: users.status,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  /**
+   * Nouveau compte en attente d'activation (sans mot de passe) ; son identifiant. Le téléphone doit être libre
+   * (appelant sous `lockPhone`). Email déjà porté par une autre personne : compte créé sans email, sans le signaler
+   * (l'endpoint ne doit pas révéler qu'une adresse a un compte).
+   */
+  async create(input: NewSubscriber): Promise<string> {
+    assertAssociation('SubscriberAccounts.create');
+    const tx = currentTx();
+    let email = input.email ?? null;
+    if (email) {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`users:email:${email.toLowerCase()}`}, 0))`);
+      const [taken] = await tx.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+      if (taken) email = null;
+    }
+    const userId = newId();
+    await tx.insert(users).values({
+      id: userId,
+      phoneE164: input.phone,
+      email,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      status: 'pending_activation',
+    });
+    await tx.insert(credentials).values({ userId });
+    return userId;
+  }
+
+  /** Émet le code d'activation de l'association (invalide tout code précédent de la personne) ; le message prêt. */
+  async issueActivation(userId: string, associationId: string, issuedBy: string): Promise<Handoff> {
+    assertAssociation('SubscriberAccounts.issueActivation');
+    const code = await this.codes.issue({
+      userId,
+      purpose: 'activation',
+      associationId,
+      issuedBy,
+      redisplayable: true,
+    });
+    return this.handoff(userId, code.code, code.expiresAt);
+  }
+
+  /**
+   * Message prêt du code émis par `issuedBy` pour l'association depuis `since` (rejeu de la même opération) ; `null` si
+   * ce code est consommé, expiré, bloqué, remplacé, ou s'il n'y en a pas eu (compte déjà actif).
+   */
+  async reissuedHandoff(userId: string, associationId: string, issuedBy: string, since: Date): Promise<Handoff | null> {
+    assertAssociation('SubscriberAccounts.reissuedHandoff');
+    const [row] = await currentTx()
+      .select({ id: oneTimeCodes.id, expiresAt: oneTimeCodes.expiresAt })
+      .from(oneTimeCodes)
+      .where(
+        and(
+          eq(oneTimeCodes.userId, userId),
+          eq(oneTimeCodes.purpose, 'activation'),
+          eq(oneTimeCodes.associationId, associationId),
+          eq(oneTimeCodes.issuedBy, issuedBy),
+          gte(oneTimeCodes.createdAt, since),
+        ),
+      )
+      .orderBy(desc(oneTimeCodes.createdAt), desc(oneTimeCodes.id))
+      .limit(1);
+    const code = row ? await this.codes.reveal(row.id) : null;
+    return row && code ? this.handoff(userId, code, row.expiresAt) : null;
+  }
+
+  private async handoff(userId: string, code: string, expiresAt: Date): Promise<Handoff> {
+    const contact = await this.contactOf(userId);
+    if (!contact) throw new Error('SubscriberAccounts : compte introuvable');
+    const { status: _status, ...recipient } = contact;
+    return buildHandoff({
+      purpose: 'activation',
+      space: 'subscriber',
+      code,
+      expiresAt,
+      recipient,
+      appUrl: this.config.APP_PUBLIC_URL ?? 'http://localhost:3000',
+    });
+  }
+}
+
+function assertAssociation(what: string): void {
+  const context = currentContext();
+  if (context?.space !== 'association' || !context.associationId) {
+    throw new Error(`${what} : contexte d’une association attendu`);
+  }
 }
