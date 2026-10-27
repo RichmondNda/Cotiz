@@ -10,6 +10,7 @@
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
 import type { ElementMenu } from '~/components/cz/CzMenu.vue'
 import type { SouscriptionAvecSouscripteur } from '~~/types'
+import { messageRefus } from '~/composables/api/client'
 import { formatDate, formatFCFA, pluriel } from '~/utils/format'
 import { telechargerCsv } from '~/utils/csv'
 
@@ -159,7 +160,7 @@ const titreRetrait = computed(() => (aRetirer.value.length === 1 ? `Retirer ${aR
 async function confirmerRetrait() {
   retrait.value = true
   try {
-    for (const l of aRetirer.value) await retirerSouscripteur(id.value, l.id)
+    for (const l of aRetirer.value) await retirerSouscripteur(l.source.id)
     toast.succes(aRetirer.value.length > 1 ? 'Souscripteurs retirés' : 'Souscripteur retiré', {
       message: aRetirer.value.length > 1
         ? `${pluriel(aRetirer.value.length, 'souscripteur')} ne recevront plus d’échéances. Historique conservé.`
@@ -169,8 +170,10 @@ async function confirmerRetrait() {
     selection.value = []
     await Promise.all([refresh(), rechargerProjet()])
   }
-  catch {
-    toast.erreur('Le retrait a échoué', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    // Retrait partiel possible : la liste relue montre qui a été retiré.
+    await Promise.all([refresh(), rechargerProjet()])
+    toast.erreur('Le retrait a échoué', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     retrait.value = false

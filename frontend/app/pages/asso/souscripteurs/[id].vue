@@ -10,7 +10,8 @@
 <script setup lang="ts">
 import type { ElementMenu } from '~/components/cz/CzMenu.vue'
 import type { EvenementFrise } from '~/components/metier/Frise.vue'
-import { codeErreur } from '~/composables/api/client'
+import type { AccesARemettre } from '~~/types'
+import { codeErreur, messageRefus } from '~/composables/api/client'
 import { estDate, formatDate, formatMois } from '~/utils/format'
 import { STATUTS_SOUSCRIPTION } from '~/utils/statuts'
 
@@ -24,6 +25,7 @@ const toast = useToast()
 const id = computed(() => String(route.params.id))
 const { data: fiche, pending, error, refresh } = useSouscripteur(id)
 const { modifier, renvoyerIdentifiants } = useActionsSouscripteur()
+const { data: association } = useAssociationGestionnaire()
 const envoyerRelance = useEnvoiRelance()
 
 const s = computed(() => fiche.value?.souscripteur)
@@ -80,15 +82,20 @@ async function relancer() {
   }
 }
 
+/** Nouveau code d'activation (l'ancien est invalidé), à remettre soi-même : carte « Code d'activation ». */
+const codeRenvoye = ref<AccesARemettre | null>(null)
 async function renvoyer() {
   if (!s.value || envoi.value) return
+  if (!fiche.value?.activationEnAttente) {
+    toast.info('Compte déjà activé', { message: `${nom.value} se connecte avec son mot de passe.` })
+    return
+  }
   envoi.value = 'identifiants'
   try {
-    const r = await renvoyerIdentifiants(s.value.id)
-    toast.succes('Identifiants renvoyés', { message: `Envoyés par SMS au ${r.telephone}.` })
+    codeRenvoye.value = await renvoyerIdentifiants(s.value.id)
   }
-  catch {
-    toast.erreur('Les identifiants n’ont pas pu être renvoyés', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Aucun nouveau code n’a pu être créé', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     envoi.value = null
@@ -125,13 +132,13 @@ async function enregistrer() {
   enregistrement.value = true
   erreurEmail.value = ''
   try {
-    fiche.value = await modifier(s.value.id, { email: email.value, adresse: adresse.value })
+    fiche.value = await modifier(s.value.id, { email: email.value, adresse: adresse.value }, fiche.value!.version)
     edition.value = false
     toast.succes('Coordonnées enregistrées')
   }
   catch (e) {
     if (codeErreur(e) === 'email-invalide') erreurEmail.value = 'Saisissez une adresse email valide (ex. nom@exemple.ci).'
-    else toast.erreur('Les coordonnées n’ont pas pu être enregistrées', { message: 'Vérifiez votre connexion, puis réessayez.' })
+    else toast.erreur('Les coordonnées n’ont pas pu être enregistrées', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     enregistrement.value = false
@@ -276,7 +283,7 @@ const menuMobile = computed<ElementMenu[]>(() => [
             variante="secondaire"
             bloc
             :chargement="envoi === 'identifiants'"
-            libelle-chargement="Envoi…"
+            libelle-chargement="Création du code…"
             @click="renvoyer"
           >
             Renvoyer les identifiants
@@ -474,6 +481,31 @@ const menuMobile = computed<ElementMenu[]>(() => [
           @click="enregistrer"
         >
           Enregistrer
+        </CzButton>
+      </template>
+    </CzModal>
+
+    <CzModal
+      :ouvert="codeRenvoye !== null"
+      titre="Nouveau code d’activation"
+      taille="md"
+      @update:ouvert="(o: boolean) => { if (!o) codeRenvoye = null }"
+    >
+      <HandoffCard
+        v-if="codeRenvoye"
+        titre="Code d’activation"
+        :destinataire="codeRenvoye.destinataire"
+        :code="codeRenvoye.code"
+        :expire-le="codeRenvoye.expireLe"
+        :message="codeRenvoye.message"
+        :whatsapp="codeRenvoye.whatsapp"
+        :sms="codeRenvoye.sms"
+        :lien="codeRenvoye.lien"
+        :association="association?.nom"
+      />
+      <template #pied>
+        <CzButton @click="codeRenvoye = null">
+          Terminer
         </CzButton>
       </template>
     </CzModal>

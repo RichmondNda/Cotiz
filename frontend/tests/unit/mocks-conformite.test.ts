@@ -85,13 +85,10 @@ const moussaCentreLate = () => [
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
   'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
-  'pf.asso.sub projects': { params: { id: aid } },
-  'pf.asso.sub members': { params: { id: aid } }, 'pf.invoices list': {}, 'pf.staff list': {},
+  'pf.invoices list': {}, 'pf.staff list': {},
   'as.dashboard get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
-  'rp.report get': { params: P }, 'en.list list': { params: P }, 'mb.list list': { params: { aid } },
-  'mb.get get': { params: { aid, uid: ID.moussa } }, 'mb.timeline list': { params: { aid, uid: ID.moussa } },
-  'mb.codes list': { params: { aid } }, 'lg.grid get': { params: P },
+  'rp.report get': { params: P }, 'lg.grid get': { params: P },
   'lg.inst get': { params: { aid, iid: uid('installment', 'centre-communautaire:moussa-diarra:7') } },
   'lg.pay.list list': { params: { aid }, query: { status: 'all' } }, 'lg.pay.get get': { params: { aid, payId: uid('payment', 'pm-awa-kone') } },
   'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
@@ -113,12 +110,6 @@ const WRITES: Record<string, () => Call> = {
   'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
   'ct.get update': () => ({ params: { aid, pid: ID.tontine }, body: { bodyTemplate: 'Texte', signerName: 'Awa Koné', signerTitle: 'trésorière' }, ifMatch: 1 }),
   'ct.get lock': () => ({ params: { aid, pid: ID.tontine }, ifMatch: 1 }),
-  'mb.lookup lookup': () => ({ params: { aid }, body: { phone: '+2250544218790', projectId: ID.tontine } }),
-  'en.create create': () => ({ params: { aid, pid: ID.tontine }, body: { phone: '+2250709090909', firstName: 'Nina', lastName: 'Bamba' } }),
-  'en.withdraw withdraw': () => ({ params: { aid, eid: uid('enrollment', 'centre-communautaire:koffi-brou') }, body: {} }),
-  'mb.patch patch': () => ({ params: { aid, uid: ID.moussa }, body: { address: 'Abobo, Abidjan' }, ifMatch: 1 }),
-  'mb.resend regenerate': () => ({ params: { aid, uid: uid('user', 'fatou-traore') } }),
-  'mb.codes markHanded': () => ({ params: { aid, codeId: uid('activation-code', 'fatou') } }),
   'lg.pay.validate validate': () => ({ params: { aid, payId: uid('payment', 'pm-awa-kone') }, body: {}, ifMatch: 1 }),
   'lg.pay.reject reject': () => ({ params: { aid, payId: uid('payment', 'pm-awa-kone') }, body: { reasonCode: 'unreadable_proof' }, ifMatch: 1 }),
   'lg.pay.revert revert': () => ({ params: { aid, payId: uid('payment', 'pm-awa-kone') }, setup: () => call('lg.pay.validate', 'validate', { params: { aid, payId: uid('payment', 'pm-awa-kone') }, body: {}, ifMatch: 1 }) } as Call),
@@ -244,8 +235,8 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   it('scénarios : allocation_mismatch, quota_exceeded, version_conflict, association_suspended, payment_already_reviewed', async () => {
     expect(await problem('me.declare', 'declare', { ...WRITES['me.declare declare']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
     expect(await problem('lg.pay.validate', 'validate', { ...WRITES['lg.pay.validate validate']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
-    expect(await problem('en.create', 'create', { ...WRITES['en.create create']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
-    expect(await problem('mb.patch', 'patch', { ...WRITES['mb.patch patch']!(), scenario: 'version_conflict' })).toBe('version_conflict')
+    expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
+    expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), scenario: 'version_conflict' })).toBe('version_conflict')
     expect(await problem('as.dashboard', 'get', { ...READS['as.dashboard get'], scenario: 'association_suspended' })).toBe('association_suspended')
     expect(await problem('lg.pay.reject', 'reject', { ...WRITES['lg.pay.reject reject']!(), scenario: 'payment_already_reviewed' })).toBe('payment_already_reviewed')
   })
@@ -256,7 +247,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   })
 
   it('If-Match périmé → version_conflict', async () => {
-    expect(await problem('mb.patch', 'patch', { ...WRITES['mb.patch patch']!(), ifMatch: 7 })).toBe('version_conflict')
+    expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), ifMatch: 7 })).toBe('version_conflict')
   })
 
   it('répartition qui ne fait pas le montant → allocation_mismatch ; au-delà du reste → amount_exceeds_remaining', async () => {
@@ -331,11 +322,5 @@ describe('mutations : état en mémoire', () => {
     const result = ENDPOINTS['me.declare'].operations.declare.request.body.safeParse(ctx.body)
     expect(result.success).toBe(false)
     expect(result.error?.issues[0]?.message).toBe('proof_required')
-  })
-
-  it('inscrire un nouveau souscripteur : inscription et code d’activation à remettre', async () => {
-    const r = await call('en.create', 'create', WRITES['en.create create']!()) as { enrollment: { status: string }, handoff: { code: string } | null }
-    expect(r.enrollment.status).toBe('active')
-    expect(r.handoff?.code).toBe('K7M4-P9QX')
   })
 })

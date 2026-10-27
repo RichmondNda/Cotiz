@@ -2,7 +2,8 @@
   MgAjoutSouscripteur — ajout d'un souscripteur à un projet, identifié par son téléphone.
   Desktop : modale ; mobile : écran plein écran (en-tête avec retour, barre d'action au pouce).
   4 cas : saisie du téléphone → compte existant retrouvé (rattacher) · nouveau compte (créer et inscrire,
-  échéances passées à rattraper) · déjà inscrit (voir sa fiche). Émet `inscrit` après une inscription.
+  échéances passées à rattraper) · déjà inscrit (voir sa fiche). Émet `inscrit` après une inscription ; un compte
+  créé par l'association affiche ensuite son code d'activation (Terminer, ou ajouter un autre souscripteur).
 -->
 <script setup lang="ts">
 import type { Projet, SouscriptionAvecSouscripteur } from '~~/types'
@@ -33,7 +34,7 @@ useScrollLock(mobileOuvert)
 useFocusTrap(pleinEcran, mobileOuvert, () => (ouvert.value = false))
 
 function retourMobile() {
-  if (etat.etape === 'telephone') ouvert.value = false
+  if (etat.etape === 'telephone' || etat.etape === 'code') ouvert.value = false
   else autreNumero()
 }
 const ficheDejaInscrit = computed(() => (etat.resultat?.cas === 'deja_inscrit' ? `/asso/souscripteurs/${etat.resultat.souscripteur.id}` : '/asso/souscripteurs'))
@@ -101,6 +102,21 @@ const ficheDejaInscrit = computed(() => (etat.resultat?.cas === 'deja_inscrit' ?
           Créer et inscrire
         </CzButton>
       </template>
+      <template v-else-if="etat.etape === 'code'">
+        <CzButton
+          variante="secondaire"
+          taille="sm"
+          @click="reinitialiser"
+        >
+          Ajouter un autre
+        </CzButton>
+        <CzButton
+          taille="sm"
+          @click="ouvert = false"
+        >
+          Terminer
+        </CzButton>
+      </template>
       <template v-else>
         <CzButton
           variante="fantome"
@@ -137,7 +153,7 @@ const ficheDejaInscrit = computed(() => (etat.resultat?.cas === 'deja_inscrit' ?
         titre="Ajouter un souscripteur"
         :sous-titre="projet.nom"
         bouton-retour
-        :libelle-retour="etat.etape === 'telephone' ? 'Fermer' : 'Saisir un autre numéro'"
+        :libelle-retour="etat.etape === 'telephone' || etat.etape === 'code' ? 'Fermer' : 'Saisir un autre numéro'"
         @retour="retourMobile"
       />
       <div class="ajout-mobile__corps">
@@ -167,6 +183,12 @@ const ficheDejaInscrit = computed(() => (etat.resultat?.cas === 'deja_inscrit' ?
           @click="inscrire()"
         >
           Créer et inviter
+        </CzButton>
+        <CzButton
+          v-else-if="etat.etape === 'code'"
+          @click="ouvert = false"
+        >
+          Terminer
         </CzButton>
         <CzButton
           v-else

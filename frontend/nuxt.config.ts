@@ -59,7 +59,7 @@ export default defineNuxtConfig({
   // Dépendances découvertes en cours de route (imports dynamiques, dont le solveur ALTCHA) : pré-optimisées au
   // démarrage du serveur de dev, sinon Vite recharge la page au premier passage (parcours e2e en CI).
   vite: {
-    optimizeDeps: { include: ['@sentry/vue', 'zod', 'markdown-it', 'altcha/lib'] },
+    optimizeDeps: { include: ['@sentry/vue', 'zod', 'markdown-it', 'altcha/lib', 'qrcode'] },
   },
 
   typescript: {

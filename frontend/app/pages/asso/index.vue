@@ -27,6 +27,16 @@ const { data: tdb, pending, error, refresh } = useTableauDeBordGestionnaire()
 const { data: projetsBruts, pending: projetsEnCours, error: erreurProjets, refresh: rechargerProjets } = useProjets()
 const { data: aValider, pending: paiementsEnCours, error: erreurPaiements, refresh: rechargerPaiements } = usePaiements({ statut: 'en_attente' })
 
+/** Comptes non activés dont le code n'est pas encore remis (mb.codes, gestionnaires qui inscrivent seulement). */
+const { peut } = usePermissions()
+const peutRemettre = computed(() => peut('members.manage'))
+const { data: codes, refresh: rechargerCodes } = useCodesARemettre({ immediat: false })
+watch(peutRemettre, (p) => {
+  if (p) rechargerCodes()
+}, { immediate: true })
+const nbCodes = computed(() => (peutRemettre.value ? (codes.value ?? []).filter(c => !c.remisLe).length : 0))
+const titreCodes = computed(() => `${pluriel(nbCodes.value, 'compte')} ${nbCodes.value > 1 ? 'non activés' : 'non activé'}`)
+
 const titre = computed(() => (moi.value ? `Bonjour ${moi.value.prenom}` : 'Bonjour'))
 const nomAssociation = computed(() => tdb.value?.association.nom ?? '')
 const sousTitre = computed(() => [nomAssociation.value, formatDate(maintenant(), 'complet')].filter(Boolean).join(' · '))
@@ -239,6 +249,22 @@ function reessayer() {
           </template>
         </CzAlert>
         <CzAlert
+          v-if="nbCodes"
+          ton="info"
+          icone="cadenas"
+        >
+          <b>{{ titreCodes }}</b> : codes d’activation à remettre.
+          <template #action>
+            <CzButton
+              taille="sm"
+              variante="secondaire"
+              to="/asso/souscripteurs/codes"
+            >
+              Voir
+            </CzButton>
+          </template>
+        </CzAlert>
+        <CzAlert
           v-if="toutAJour"
           ton="success"
         >
@@ -254,6 +280,14 @@ function reessayer() {
         :titre="`${pluriel(tdb.paiementsAValider.nombre, 'paiement')} à valider`"
         :description="anciennete ? `Le plus ancien date de ${anciennete}` : undefined"
         to="/asso/paiements"
+      />
+      <ActionCard
+        v-if="nbCodes"
+        class="cz-mobile"
+        icone="cadenas"
+        :titre="titreCodes"
+        description="Codes d’activation à remettre"
+        to="/asso/souscripteurs/codes"
       />
 
       <!-- KPI -->

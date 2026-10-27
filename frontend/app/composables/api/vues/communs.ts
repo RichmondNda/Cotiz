@@ -92,4 +92,5 @@ export const vueAcces = (h: Handoff): AccesARemettre => ({
   whatsapp: h.whatsappUrl,
   sms: h.smsUrl,
   mailto: h.mailtoUrl,
+  lien: h.activationUrl,
 })

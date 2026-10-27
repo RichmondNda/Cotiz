@@ -5,6 +5,7 @@ export { RevokedSessions } from './infra/revoked-sessions.js';
 export { platformPersonContactsOf, platformPersonRefsOf } from './application/person-refs.js';
 export { platformManagerActivityOf } from './application/session-activity.js';
 export { IdentityModule } from './identity.module.js';
+export { IdentityCliModule } from './identity-cli.module.js';
 export { type ManagerAccount, ManagerAccounts, type ManagerContact } from './application/manager-accounts.js';
 export {
   accountByPhone,

@@ -332,6 +332,7 @@ describe('CLI : create-platform-owner', () => {
         moussa: 'ba6d1860-ea09-5e51-9777-5b76740a4840',
         fatou: '345ba988-a626-553e-905f-22e385ef7598',
         jean: '0db8c984-945a-5e67-bb0d-1d5fb97b050d',
+        ibrahim: mockId('user', 'ibrahim-toure'),
       };
       let lastCode = '';
       for (let i = 0; i < 2; i++) {
@@ -340,6 +341,7 @@ describe('CLI : create-platform-owner', () => {
         expect(out).toContain(`awa@entraide.ci / ${DEV_PASSWORD}`);
         expect(out).toContain(`+2250544218790 / ${DEV_PASSWORD}`);
         expect(out).toContain(`+2250755667788 / ${DEV_PASSWORD}`);
+        expect(out).toContain(`+2250100000001 / ${DEV_PASSWORD}`);
         expect(out).toContain('Associations de référence : entraide-yopougon, ressortissants-man, jeunesse-bouake');
         const code = /\+2250122334455 : code d’activation (\S+)/.exec(out)?.[1];
         expect(code).toBeDefined();
@@ -402,13 +404,16 @@ describe('CLI : create-platform-owner', () => {
       expect(person(USER.moussa)).toMatchObject({ status: 'active', phone: '+2250544218790' });
       expect(person(USER.jean)).toMatchObject({ status: 'active', phone: '+2250755667788' });
       expect(person(USER.fatou)).toMatchObject({ status: 'pending_activation', phone: '+2250122334455' });
-      for (const key of ['awa', 'moussa', 'jean'] as const) {
+      expect(person(USER.ibrahim)).toMatchObject({ status: 'active', phone: '+2250100000001' });
+      for (const key of ['awa', 'moussa', 'jean', 'ibrahim'] as const) {
         expect(await verify(person(USER[key]).password_hash ?? '', DEV_PASSWORD)).toBe(true);
       }
-      // Un seul code d'activation valable pour Fatou : celui de la dernière exécution.
+      // Un seul code d'activation de la plateforme valable pour Fatou : celui de la dernière exécution (celui de son
+      // association, émis ensuite par les inscriptions de référence, est vérifié plus bas).
       const { rows: codes } = await h.superuser(
         `SELECT count(*)::int AS n FROM one_time_codes
-          WHERE user_id = $1 AND purpose = 'activation' AND consumed_at IS NULL AND expires_at > now()`,
+          WHERE user_id = $1 AND purpose = 'activation' AND consumed_at IS NULL AND expires_at > now()
+            AND association_id IS NULL`,
         [USER.fatou],
       );
       expect(codes[0]).toEqual({ n: 1 });
@@ -424,6 +429,7 @@ describe('CLI : create-platform-owner', () => {
         { aid: ASSOC.entraide, uid: USER.moussa, role: 'subscriber', status: 'active' },
         { aid: ASSOC.entraide, uid: USER.fatou, role: 'subscriber', status: 'active' },
         { aid: ASSOC.entraide, uid: USER.jean, role: 'subscriber', status: 'active' },
+        { aid: ASSOC.entraide, uid: USER.ibrahim, role: 'subscriber', status: 'active' },
         { aid: ASSOC.man, uid: USER.moussa, role: 'subscriber', status: 'active' },
       ];
       expect(links).toEqual(expect.arrayContaining(expected));
@@ -582,6 +588,9 @@ describe('CLI : create-platform-owner', () => {
       await h.superuser('DELETE FROM project_payment_methods WHERE project_id = ANY($1::uuid[])', [
         Object.values(PROJECT),
       ]);
+      // Inscriptions de référence (lot 2.3) d'abord : elles pointent vers les projets.
+      await h.superuser('DELETE FROM installments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
+      await h.superuser('DELETE FROM enrollments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('DELETE FROM projects WHERE id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('UPDATE association_payment_methods SET is_active = false WHERE id = $1', [sgbci]);
       try {
@@ -597,6 +606,59 @@ describe('CLI : create-platform-owner', () => {
       } finally {
         await h.superuser('UPDATE association_payment_methods SET is_active = true WHERE id = $1', [sgbci]);
       }
+    });
+
+    it('crée les inscriptions de référence (identifiants des données simulées) et le code de Fatou, sans doublon', async () => {
+      const first = await run('seed-dev');
+      expect(first.status).toBe(0);
+      expect(first.out).toContain(
+        'Inscriptions de référence : centre-communautaire:moussa-diarra, centre-communautaire:jean-kouassi, ' +
+          'centre-communautaire:fatou-traore, centre-communautaire:awa-kone, voyage-solidaire:moussa-diarra, ' +
+          'voyage-solidaire:ibrahim-toure, mutuelle-sante:moussa-diarra',
+      );
+      expect(first.out).toMatch(
+        /Codes à remettre :\n {2}Fatou Traoré, \+2250122334455 : code d’activation [A-Z0-9]{4}-[A-Z0-9]{4}/,
+      );
+      expect((await run('seed-dev')).status).toBe(0);
+      const { rows } = await h.superuser(
+        `SELECT e.id, e.status, e.starts_from::text AS starts, count(i.id)::int AS lines,
+                min(i.due_date)::text AS first, sum(i.amount_paid)::int AS paid
+           FROM enrollments e JOIN installments i ON i.enrollment_id = e.id
+          GROUP BY e.id ORDER BY e.id`,
+      );
+      const id = (key: string) => mockId('enrollment', key);
+      const byId = new Map(rows.map((r) => [(r as { id: string }).id, r]));
+      expect(rows).toHaveLength(7);
+      // Fonds d'entrée + 18 échéances de mars 2026 à août 2027, sans paiement (lot 2.4).
+      for (const key of ['moussa-diarra', 'jean-kouassi', 'awa-kone']) {
+        expect(byId.get(id(`centre-communautaire:${key}`))).toEqual({
+          id: id(`centre-communautaire:${key}`),
+          status: 'active',
+          starts: '2026-03-01',
+          lines: 19,
+          first: '2026-03-05',
+          paid: 0,
+        });
+      }
+      // Entrée le 2 septembre : fonds d'entrée + échéances de septembre 2026 à août 2027.
+      expect(byId.get(id('centre-communautaire:fatou-traore'))).toMatchObject({ starts: '2026-09-02', lines: 13 });
+      expect(byId.get(id('voyage-solidaire:moussa-diarra'))).toMatchObject({ starts: '2026-09-18' });
+      expect(byId.get(id('voyage-solidaire:ibrahim-toure'))).toMatchObject({ starts: '2026-09-15', paid: 0 });
+      expect(byId.get(id('mutuelle-sante:moussa-diarra'))).toMatchObject({ starts: '2026-07-01', status: 'active' });
+      const { rows: codes } = await h.superuser(
+        `SELECT count(*)::int AS n FROM one_time_codes
+          WHERE user_id = $1 AND purpose = 'activation' AND association_id = $2 AND consumed_at IS NULL`,
+        [mockId('user', 'fatou-traore'), mockId('association', 'entraide-yopougon')],
+      );
+      expect((codes[0] as { n: number }).n).toBeGreaterThan(0);
+      const { rows: profiles } = await h.superuser(
+        'SELECT user_id, created_by_association_id AS creator FROM subscriber_profiles ORDER BY user_id',
+      );
+      expect(profiles).toContainEqual({
+        user_id: mockId('user', 'fatou-traore'),
+        creator: mockId('association', 'entraide-yopougon'),
+      });
+      expect(profiles).toContainEqual({ user_id: mockId('user', 'moussa-diarra'), creator: null });
     });
 
     it('refusée hors développement et test, ou sans COTIZ_DEV_SEED=1', async () => {

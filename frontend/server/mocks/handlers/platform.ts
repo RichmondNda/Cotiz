@@ -3,7 +3,7 @@ import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
 import { uid } from '../ids'
-import { associationFigures, memberStandingIn as memberStandingFor, projectFigures } from '../ledger'
+import { associationFigures } from '../ledger'
 import {
   associationRow, money, personContact, personRef, planRef, planRow, userRow,
 } from '../views'
@@ -73,33 +73,7 @@ function subscription(id: string) {
   }
 }
 
-// Association réelle (pf.asso.get basculé au lot 1.4) inconnue des mocks, créée par le vrai back : encore aucun projet
-// ni souscripteur, comme le renverra pf.asso.sub une fois basculé.
-const associationInconnue = (id: string) => !db.associations.some(a => a.id === id)
-
-export function associationProjects(ctx: MockContext<'pf.asso.sub', 'projects'>) {
-  if (associationInconnue(ctx.params.id)) return page([], ctx.query, { total: 0 })
-  const a = associationRow(ctx.params.id)
-  const rows = db.projects.filter(p => p.associationId === a.id).map((p) => {
-    const f = projectFigures(p)
-    return { id: p.id, name: p.name, status: p.status, subscribersCount: f.subscribersCount, collected: money(f.collected), createdAt: p.createdAt }
-  })
-  return page(rows, ctx.query, { total: summary(a).projectsCount })
-}
-
-export function associationMembers(ctx: MockContext<'pf.asso.sub', 'members'>) {
-  if (associationInconnue(ctx.params.id)) return page([], ctx.query, { total: 0 })
-  const a = associationRow(ctx.params.id)
-  const projectIds = new Set(db.projects.filter(p => p.associationId === a.id).map(p => p.id))
-  const rows = db.memberships
-    .filter(m => m.associationId === a.id && m.role === 'subscriber' && m.status !== 'removed')
-    .map((m) => {
-      const enrollments = db.enrollments.filter(e => e.userId === m.userId && projectIds.has(e.projectId) && e.status !== 'withdrawn')
-      return { user: personContact(userRow(m.userId)), projectsCount: enrollments.length, standing: memberStandingFor(a.id, m.userId) }
-    })
-    .filter(r => !ctx.query.q || `${r.user.firstName} ${r.user.lastName}`.toLowerCase().includes(ctx.query.q.toLowerCase()))
-  return page(rows, ctx.query, { total: associationFigures(a.id).membersCount })
-}
+// Projets et souscripteurs d'une association (pf.asso.sub) : vrai back depuis le lot 2.3.
 
 // Plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) : vrai back depuis le lot 1.2.
 
