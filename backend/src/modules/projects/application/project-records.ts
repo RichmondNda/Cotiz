@@ -1,6 +1,6 @@
 import type { Project, ProjectPaymentMethod, ProjectSummary } from '@cotiz/contracts';
 import { projectPaymentMethods, projects } from '@cotiz/db';
-import { type Currency, Money, type ScheduleLine } from '@cotiz/domain';
+import { type Currency, extendRollingSchedule, type IsoDate, Money, type ScheduleLine } from '@cotiz/domain';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
@@ -65,6 +65,12 @@ export async function projectsOf(
   return new Map(rows.map((row) => [row.id, row]));
 }
 
+/** Tous les projets d'une association, lus par la plateforme (pf.asso.sub). Plateforme seulement. */
+export async function platformProjectsOf(associationId: string): Promise<ProjectRecord[]> {
+  if (currentContext()?.space !== 'platform') throw new Error('platformProjectsOf : espace plateforme seulement');
+  return currentTx().select().from(projects).where(eq(projects.associationId, associationId));
+}
+
 /** Fonds d'entrée et montant par échéance du projet, en `Money` de sa devise. */
 function termsOf(row: ProjectRecord) {
   const currency = row.currency as Currency;
@@ -85,6 +91,19 @@ export function projectScheduleLines(row: ProjectRecord): ScheduleLine[] {
   // Une erreur ici est une ligne incohérente : jamais des indicateurs muets.
   if (!Array.isArray(lines)) throw new Error(`projet ${row.id} : conditions refusées par generateSchedule()`);
   return lines;
+}
+
+/**
+ * Cycle roulant (tâche schedule.extend-rolling) : échéances à ajouter à une inscription entrée le `enrolledFrom` dont
+ * la dernière générée est au rang `lastSequence`, pour retrouver l'horizon au jour `today` (extendRollingSchedule()).
+ */
+export function rollingExtensionOf(
+  row: ProjectRecord,
+  enrolledFrom: string,
+  lastSequence: number,
+  today: IsoDate,
+): ScheduleLine[] {
+  return extendRollingSchedule(scheduleInputOf(termsOf(row), { enrolledFrom }), lastSequence, today);
 }
 
 /**

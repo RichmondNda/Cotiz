@@ -2,6 +2,7 @@
 // de paiement retenus par un projet : lot 2.2.
 export {
   type AssociationOverview,
+  associationTimezonesOf,
   type AssociationRecord,
   ownAssociationOf,
   platformAssociationOf,

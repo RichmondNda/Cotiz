@@ -42,6 +42,8 @@ const MONTH_STEP: Record<Exclude<Frequency, 'weekly'>, number> = {
 };
 const FREQUENCIES: readonly string[] = ['weekly', 'monthly', 'quarterly', 'semiannual', 'annual'];
 const MAX_HORIZON = 120;
+/** Rang le plus haut accepté par extendRollingSchedule() (borne la boucle : 10 000 dates, ~190 ans en hebdomadaire). */
+const MAX_SEQUENCE = 10_000;
 /** Années acceptées pour les dates d'entrée : borne la taille d'un échéancier et l'ordre des chaînes. */
 const MIN_YEAR = 1900;
 const MAX_YEAR = 2199;
@@ -123,4 +125,37 @@ export function generateSchedule(input: ScheduleInput): ScheduleLine[] {
   const first = periodic[0];
   if (!input.entryFeeAmount || !first) return periodic;
   return [{ sequence: 0, kind: 'entry_fee', dueDate: first.dueDate, amountDue: input.entryFeeAmount }, ...periodic];
+}
+
+/**
+ * Cycle roulant (domain-rules § 2.6, tâche `schedule.extend-rolling`) : échéances à ajouter après la dernière générée
+ * (`lastSequence`, rang du projet) pour que l'inscription ait de nouveau `horizon` échéances datées d'aujourd'hui ou
+ * plus tard (celle du jour comprise). Les dates manquées (tâche restée sans effet) sont créées aussi : jamais de trou
+ * dans la numérotation. Jamais de fonds d'entrée. `[]` si l'horizon est déjà atteint (idempotent).
+ */
+export function extendRollingSchedule(input: ScheduleInput, lastSequence: number, today: IsoDate): ScheduleLine[] {
+  validate(input);
+  if (input.scheduleType !== 'rolling') throw new DomainError('not_rolling');
+  if (!Number.isSafeInteger(lastSequence) || lastSequence < 0 || lastSequence > MAX_SEQUENCE) {
+    throw new DomainError('invalid_sequence', { lastSequence });
+  }
+  parseBounded(today);
+  const from =
+    input.enrolledFrom != null && input.enrolledFrom > input.startDate ? input.enrolledFrom : input.startDate;
+  const horizon = input.horizon ?? 12;
+  const added: ScheduleLine[] = [];
+  let ahead = 0;
+  let sequence = 0;
+  for (const dueDate of projectDates(input)) {
+    sequence += 1;
+    if (sequence <= lastSequence) {
+      if (dueDate >= from && dueDate >= today) ahead += 1;
+      continue;
+    }
+    if (ahead >= horizon) break;
+    if (dueDate < from) continue;
+    added.push({ sequence, kind: 'periodic', dueDate, amountDue: input.installmentAmount });
+    if (dueDate >= today) ahead += 1;
+  }
+  return added;
 }

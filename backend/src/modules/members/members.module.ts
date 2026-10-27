@@ -17,11 +17,14 @@ import { UpdateMemberUseCase } from './application/update-member.use-case.js';
 import { WithdrawEnrollmentUseCase } from './application/withdraw-enrollment.use-case.js';
 import { EnrollmentsController } from './http/enrollments.controller.js';
 import { MembersController } from './http/members.controller.js';
+import { PlatformAssociationSubController } from './http/platform-association-sub.controller.js';
+import { PlatformAssociationMembersUseCase } from './application/platform-association-members.use-case.js';
+import { PlatformAssociationProjectsUseCase } from './application/platform-association-projects.use-case.js';
 
 /** Module members (endpoints.yaml : mb.*, en.* ; lot 2.3) : souscripteurs, inscriptions, codes à remettre. */
 @Module({
   imports: [IdentityModule],
-  controllers: [MembersController, EnrollmentsController, ActivationCodesController],
+  controllers: [MembersController, EnrollmentsController, ActivationCodesController, PlatformAssociationSubController],
   providers: [
     LookupMemberUseCase,
     CreateEnrollmentUseCase,
@@ -36,6 +39,8 @@ import { MembersController } from './http/members.controller.js';
     GetMemberUseCase,
     UpdateMemberUseCase,
     MemberTimelineUseCase,
+    PlatformAssociationProjectsUseCase,
+    PlatformAssociationMembersUseCase,
     QuotaService,
   ],
 })

@@ -128,9 +128,12 @@ export class SubscriberAccounts {
     return row ?? null;
   }
 
-  /** Coordonnées de plusieurs comptes (listes) ; les identifiants inconnus sont absents. */
+  /**
+   * Coordonnées de plusieurs comptes (listes de l'association, ou de la plateforme : pf.asso.sub) ; les identifiants
+   * inconnus sont absents. L'appelant ne passe que des personnes inscrites chez l'association lue.
+   */
   async contactsOf(userIds: readonly string[]): Promise<Map<string, SubscriberContact>> {
-    assertAssociation('SubscriberAccounts.contactsOf');
+    if (currentContext()?.space !== 'platform') assertAssociation('SubscriberAccounts.contactsOf');
     if (userIds.length === 0) return new Map();
     const rows = await currentTx()
       .select({

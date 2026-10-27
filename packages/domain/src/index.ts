@@ -6,7 +6,7 @@ export { formatMoney, Money } from './money.js';
 export type { Currency } from './money.js';
 export { newId } from './id.js';
 export { COMMON_PASSWORDS, isStrongPassword, MIN_PASSWORD_LENGTH } from './password.js';
-export { generateSchedule } from './schedule.js';
+export { extendRollingSchedule, generateSchedule } from './schedule.js';
 export type { Frequency, InstallmentKind, ScheduleInput, ScheduleLine, ScheduleType } from './schedule.js';
 export type { IsoDate } from './dates.js';
 export { firstSubscriptionPeriod, periodEnd } from './subscription.js';

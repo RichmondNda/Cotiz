@@ -1,5 +1,5 @@
 import { associations } from '@cotiz/db';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 export type AssociationRecord = typeof associations.$inferSelect;
@@ -9,6 +9,23 @@ export async function platformAssociationOf(id: string): Promise<AssociationReco
   if (currentContext()?.space !== 'platform') throw new Error('platformAssociationOf : espace plateforme seulement');
   const [row] = await currentTx().select().from(associations).where(eq(associations.id, id));
   return row ?? null;
+}
+
+/**
+ * Fuseau de chaque association demandée (jour civil des échéances, domain-rules § 6), pour les tâches (espace system,
+ * politique `system_read`) et la plateforme ; les identifiants inconnus sont absents.
+ */
+export async function associationTimezonesOf(ids: readonly string[]): Promise<Map<string, string>> {
+  const space = currentContext()?.space;
+  if (space !== 'system' && space !== 'platform') {
+    throw new Error('associationTimezonesOf : espace system ou plateforme seulement');
+  }
+  if (ids.length === 0) return new Map();
+  const rows = await currentTx()
+    .select({ id: associations.id, timezone: associations.timezone })
+    .from(associations)
+    .where(inArray(associations.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.timezone]));
 }
 
 export type AssociationOverview = Pick<
