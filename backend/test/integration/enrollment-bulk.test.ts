@@ -120,13 +120,16 @@ describe('ajout en lot (en.bulk)', () => {
     const res = await bulk({ projectId: PROJECTS.a, rows: [person(phoneOf(1)), person(phoneOf(2))] });
     const text = await res.text();
     expect(res.status).toBe(200);
-    expect(text).not.toMatch(/[A-Z0-9]{4}-[A-Z0-9]{4}/);
     const codes = await f.call(`/associations/${A.id}/activation-codes`, { token: f.tokens.awa });
     const page = ENDPOINTS['mb.codes'].operations.list.response.body.parse(await codes.json());
     expect(page.items.map((e) => [e.member.phone, e.state])).toEqual([
       [phoneOf(2), 'live'],
       [phoneOf(1), 'live'],
     ]);
+    // Les codes émis, et non un motif : un UUID peut contenir « 7209-9951 ».
+    const issued = page.items.map((e) => e.handoff?.code);
+    expect(issued.every((c) => typeof c === 'string')).toBe(true);
+    for (const code of issued) expect(text).not.toContain(code);
   });
 
   it('codes distincts, chacun active son compte ; compte créé par une autre association : rattaché sans code de A', async () => {
