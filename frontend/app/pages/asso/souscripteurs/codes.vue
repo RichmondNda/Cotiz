@@ -147,6 +147,7 @@ async function nouveauCode(c: CodeARemettre) {
       :lignes="lignes"
       :chargement="chargement"
       :lignes-squelette="3"
+      :cliquable="false"
       :erreur="error ? 'Vérifiez votre connexion, puis réessayez.' : undefined"
       label="Codes d’activation à remettre"
       @reessayer="refresh()"
