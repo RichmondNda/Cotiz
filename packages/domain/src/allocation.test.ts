@@ -72,6 +72,11 @@ describe('répartition — cas limites', () => {
     expect(remainingOf(inst('a', { status: 'canceled' }))).toBe(0);
   });
 
+  it('remainingOf d’une échéance dispensée = 0 : plus rien n’est dû', () => {
+    expect(remainingOf(inst('a', { amountPaid: 10000, status: 'waived' }))).toBe(0);
+    expect(remainingOf(inst('a', { status: 'waived' }))).toBe(0);
+  });
+
   it('proposeAllocation : montant non entier ou non sûr → invalid_amount', () => {
     for (const amount of [0, 0.5, Number.NaN, 2 ** 53]) {
       expect(() => proposeAllocation(amount, [inst('a')])).toThrow(expect.objectContaining({ code: 'invalid_amount' }));

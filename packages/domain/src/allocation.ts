@@ -6,9 +6,9 @@ import type { Allocation, LedgerInstallment } from './ledger-types.js';
 
 const CLOSED = new Set(['paid', 'waived', 'canceled']);
 
-/** Reste dû : `amountDue − amountPaid − amountPending` ; 0 pour une échéance annulée (§ 3). */
+/** Reste dû : `amountDue − amountPaid − amountPending` ; 0 pour une échéance dispensée ou annulée (§ 3). */
 export function remainingOf(installment: LedgerInstallment): number {
-  if (installment.status === 'canceled') return 0;
+  if (installment.status === 'waived' || installment.status === 'canceled') return 0;
   return installment.amountDue - installment.amountPaid - installment.amountPending;
 }
 

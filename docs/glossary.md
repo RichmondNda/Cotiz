@@ -13,7 +13,7 @@
 | Déclarer un paiement | `declare` → `payment` (pending) | Le souscripteur signale un paiement fait hors plateforme |
 | Répartition | `allocation` | Part d'un paiement affectée à une échéance |
 | Valider / rejeter | `validate` / `reject` | Décision du gestionnaire |
-| Reste dû | `remaining` | `amountDue − amountPaid − amountPending` |
+| Reste dû | `remaining` | `amountDue − amountPaid − amountPending` ; 0 pour une échéance dispensée (`waived`) ou annulée (`canceled`) |
 | En retard | `late` | Échue depuis plus que le délai de grâce |
 | Délai de grâce | `grace_days` | Jours entre l'échéance et le passage en retard |
 | Code d'activation | `one_time_codes` (activation) | Remis par le gestionnaire pour la première connexion |
