@@ -1,7 +1,8 @@
 import { ENDPOINTS } from '@cotiz/contracts';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { A, B, USERS } from '../isolation/harness.js';
-import { type MembersFixture, PROJECTS, startMembersFixture } from './members.fixture.js';
+import { type LedgerFixture, startLedgerFixture } from './ledger.fixture.js';
+import { PROJECTS } from './members.fixture.js';
 import { METHODS, xof } from './projects.fixture.js';
 
 /**
@@ -13,49 +14,14 @@ import { METHODS, xof } from './projects.fixture.js';
  */
 
 const NOW = new Date('2026-11-08T10:00:00Z');
-const Created = ENDPOINTS['en.create'].operations.create.response.body;
 const List = ENDPOINTS['lg.pay.list'].operations.list.response.body;
 const Detail = ENDPOINTS['lg.pay.get'].operations.get.response.body;
 /** Problem sans son identifiant de requête (propre à chaque appel). */
 const problemOf = (body: unknown) => ({ ...(body as Record<string, unknown>), requestId: undefined });
 
-interface Line {
-  installmentId: string;
-  amount: number;
-  state: 'proposed' | 'confirmed' | 'voided';
-  /** Déclaration (0) ou relecture (1) : ordre de création des répartitions. */
-  round?: 0 | 1;
-}
-
-interface PaymentInput {
-  enrollmentId: string;
-  userId: string;
-  amount: number;
-  status: 'pending' | 'validated' | 'rejected';
-  declaredAt: string;
-  lines: Line[];
-  projectId?: string;
-  associationId?: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  rejection?: { code: string; message: string | null };
-  proofFileId?: string;
-  methodId?: string;
-}
-
 describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
-  let f: MembersFixture;
+  let f: LedgerFixture;
 
-  const enroll = async (body: unknown, options: { aid?: string; pid?: string; token?: string } = {}) => {
-    const res = await f.call(`/associations/${options.aid ?? A.id}/projects/${options.pid ?? PROJECTS.a}/enrollments`, {
-      token: options.token ?? f.tokens.awa,
-      method: 'POST',
-      body,
-      headers: { 'idempotency-key': crypto.randomUUID() },
-    });
-    expect(res.status).toBe(201);
-    return Created.parse(await res.json()).enrollment;
-  };
   const list = (query = '', options: { aid?: string; token?: string } = {}) =>
     f.call(`/associations/${options.aid ?? A.id}/payments${query}`, { token: options.token ?? f.tokens.awa });
   const listed = async (query = '', options: Parameters<typeof list>[1] = {}) => {
@@ -70,95 +36,28 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
     expect(res.status).toBe(200);
     return { body: Detail.parse(await res.json()), etag: res.headers.get('etag') };
   };
-  const installmentOf = async (enrollmentId: string, dueDate: string) =>
-    (
-      (
-        await f.h.superuser(`SELECT id FROM installments WHERE enrollment_id = $1 AND due_date = $2`, [
-          enrollmentId,
-          dueDate,
-        ])
-      ).rows as [{ id: string }]
-    )[0].id;
-  const userOf = async (enrollmentId: string) =>
-    (
-      (await f.h.superuser('SELECT user_id FROM enrollments WHERE id = $1', [enrollmentId])).rows as [
-        { user_id: string },
-      ]
-    )[0].user_id;
-
-  /** Paiement et ses répartitions en une instruction (contrôle différé au COMMIT). */
-  const record = async (p: PaymentInput): Promise<string> => {
-    const id = crypto.randomUUID();
-    await f.h.superuser(
-      `WITH p AS (
-         INSERT INTO payments (id, association_id, project_id, enrollment_id, user_id, amount_declared, paid_on,
-                               payment_method_id, transaction_reference, proof_file_id, status, declared_at,
-                               reviewed_by, reviewed_at, rejection_reason_code, rejection_message, idempotency_key)
-         VALUES ($1, $2, $3, $4, $5, $6, ($7::timestamptz)::date, $8, CASE WHEN $9::uuid IS NULL THEN 'REF-42' END, $9,
-                 $10::payments_status, $7, $11, $12, $13, $14, gen_random_uuid()::text)
-         RETURNING id)
-       INSERT INTO allocations (id, association_id, payment_id, installment_id, enrollment_id, amount, state, created_at)
-       SELECT gen_random_uuid(), $2, p.id, l.installment_id, $4, l.amount, l.state::allocations_state,
-              $7::timestamptz + make_interval(mins => l.round)
-         FROM p, unnest($15::uuid[], $16::bigint[], $17::text[], $18::int[]) AS l(installment_id, amount, state, round)`,
-      [
-        id,
-        p.associationId ?? A.id,
-        p.projectId ?? PROJECTS.a,
-        p.enrollmentId,
-        p.userId,
-        p.amount,
-        p.declaredAt,
-        p.methodId ?? null,
-        p.proofFileId ?? null,
-        p.status,
-        p.reviewedBy ?? null,
-        p.reviewedAt ?? null,
-        p.rejection?.code ?? null,
-        p.rejection?.message ?? null,
-        p.lines.map((l) => l.installmentId),
-        p.lines.map((l) => l.amount),
-        p.lines.map((l) => l.state),
-        p.lines.map((l) => l.round ?? 0),
-      ],
-    );
-    return id;
-  };
-
-  /** Preuve analysée de l'association (dépôt fait, rattachée). */
-  const proof = async (ownerUserId: string) => {
-    const id = crypto.randomUUID();
-    await f.h.superuser(
-      `INSERT INTO files (id, association_id, owner_user_id, purpose, bucket, object_key, original_name, mime_type,
-                          size_bytes, sha256, scan_status)
-       VALUES ($1, $2, $3, 'payment_proof', 'cotiz-proofs', $4, 'capture.jpg', 'image/jpeg', 1024, 'abc', 'clean')`,
-      [id, A.id, ownerUserId, `${A.id}/payment_proof/${id}.jpg`],
-    );
-    return id;
-  };
-
   /**
    * Kofi (entré au début du projet) : mars et avril validés par Awa (mars le 5 mars, avril il y a 2 min, répartition
    * ajustée), mai rejeté, juin et juillet déclarés hier (preuve en fichier, Orange Money) ; Moussa : novembre
    * déclaré il y a 6 jours, 10 000 F. Dans B : un paiement en attente de Fatou.
    */
   const scenario = async () => {
-    const kofi = await enroll({
+    const kofi = await f.enrollByApi({
       phone: '+2250711223344',
       firstName: 'Kofi',
       lastName: 'Annan',
       startsFrom: '2026-03-01',
     });
-    const moussa = await enroll({ userId: USERS.moussa, startsFrom: '2026-11-01' });
-    const kofiUser = await userOf(kofi.id);
-    const march = await installmentOf(kofi.id, '2026-03-05');
-    const april = await installmentOf(kofi.id, '2026-04-05');
-    const may = await installmentOf(kofi.id, '2026-05-05');
-    const june = await installmentOf(kofi.id, '2026-06-05');
-    const july = await installmentOf(kofi.id, '2026-07-05');
-    const novemberMoussa = await installmentOf(moussa.id, '2026-11-05');
+    const moussa = await f.enrollByApi({ userId: USERS.moussa, startsFrom: '2026-11-01' });
+    const kofiUser = await f.userOf(kofi.id);
+    const march = await f.installmentOf(kofi.id, '2026-03-05');
+    const april = await f.installmentOf(kofi.id, '2026-04-05');
+    const may = await f.installmentOf(kofi.id, '2026-05-05');
+    const june = await f.installmentOf(kofi.id, '2026-06-05');
+    const july = await f.installmentOf(kofi.id, '2026-07-05');
+    const novemberMoussa = await f.installmentOf(moussa.id, '2026-11-05');
     const ids = {
-      march: await record({
+      march: await f.record({
         enrollmentId: kofi.id,
         userId: kofiUser,
         amount: 25000,
@@ -169,7 +68,7 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
         lines: [{ installmentId: march, amount: 25000, state: 'confirmed' }],
       }),
       // Déclaré sur avril et mai, validé sur avril seulement (montant reçu = 25 000) : répartition ajustée.
-      april: await record({
+      april: await f.record({
         enrollmentId: kofi.id,
         userId: kofiUser,
         amount: 25000,
@@ -183,7 +82,7 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
           { installmentId: april, amount: 25000, state: 'confirmed', round: 1 },
         ],
       }),
-      may: await record({
+      may: await f.record({
         enrollmentId: kofi.id,
         userId: kofiUser,
         amount: 25000,
@@ -194,20 +93,20 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
         rejection: { code: 'not_received', message: 'Rien reçu sur Orange Money.' },
         lines: [{ installmentId: may, amount: 25000, state: 'voided' }],
       }),
-      juneJuly: await record({
+      juneJuly: await f.record({
         enrollmentId: kofi.id,
         userId: kofiUser,
         amount: 50000,
         status: 'pending',
         declaredAt: '2026-11-07T18:00:00Z',
         methodId: METHODS.orangeA,
-        proofFileId: await proof(kofiUser),
+        proofFileId: await f.proof(kofiUser),
         lines: [
           { installmentId: june, amount: 25000, state: 'proposed' },
           { installmentId: july, amount: 25000, state: 'proposed' },
         ],
       }),
-      moussa: await record({
+      moussa: await f.record({
         enrollmentId: moussa.id,
         userId: USERS.moussa,
         amount: 10000,
@@ -216,7 +115,7 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
         lines: [{ installmentId: novemberMoussa, amount: 10000, state: 'proposed' }],
       }),
     };
-    const fatou = await enroll(
+    const fatou = await f.enrollByApi(
       { userId: USERS.fatou, startsFrom: '2026-03-01' },
       {
         aid: B.id,
@@ -224,7 +123,7 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
         token: f.tokens.koffi,
       },
     );
-    const ofB = await record({
+    const ofB = await f.record({
       associationId: B.id,
       projectId: PROJECTS.b,
       enrollmentId: fatou.id,
@@ -232,7 +131,7 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
       amount: 25000,
       status: 'pending',
       declaredAt: '2026-11-06T08:00:00Z',
-      lines: [{ installmentId: await installmentOf(fatou.id, '2026-03-05'), amount: 25000, state: 'proposed' }],
+      lines: [{ installmentId: await f.installmentOf(fatou.id, '2026-03-05'), amount: 25000, state: 'proposed' }],
     });
     return { kofi, moussa, kofiUser, ids, ofB, installments: { march, april, may, june, july } };
   };
@@ -240,7 +139,7 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ['Date'], shouldAdvanceTime: true, now: NOW });
     // fl.get signe l'URL de lecture sans appeler MinIO : des identifiants fictifs suffisent.
-    f = await startMembersFixture({ S3_ACCESS_KEY_ID: 'test-access', S3_SECRET_ACCESS_KEY: 'test-secret' });
+    f = await startLedgerFixture({ S3_ACCESS_KEY_ID: 'test-access', S3_SECRET_ACCESS_KEY: 'test-secret' });
   });
 
   afterAll(async () => {
@@ -248,12 +147,7 @@ describe('file et détail des paiements (lg.pay.list, lg.pay.get)', () => {
     vi.useRealTimers();
   });
 
-  beforeEach(async () => {
-    await f.h.superuser('DELETE FROM allocations');
-    await f.h.superuser('DELETE FROM payments');
-    await f.h.superuser(`DELETE FROM files WHERE purpose = 'payment_proof'`);
-    await f.resetMembers();
-  });
+  beforeEach(() => f.resetLedger());
 
   describe('lg.pay.list', () => {
     it('file de validation par défaut : paiements en attente de l’association, les plus récents d’abord', async () => {
