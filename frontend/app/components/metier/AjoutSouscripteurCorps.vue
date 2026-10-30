@@ -1,17 +1,41 @@
 <!--
   Corps du formulaire d'ajout d'un souscripteur (partagé par la modale desktop et l'écran plein écran mobile) :
-  téléphone, puis selon la recherche : compte existant retrouvé · nouveau compte · déjà inscrit au projet.
+  téléphone, puis selon la recherche : compte existant retrouvé · nouveau compte · déjà inscrit au projet ; après la
+  création d'un compte, carte « Code d'activation » à remettre soi-même (docs/specs/ui-deviations.md).
 -->
 <script setup lang="ts">
 import { useAjoutSouscripteur } from '~/composables/useAjoutSouscripteur'
 import { formatMois } from '~/utils/format'
 
-const { etat, erreurs, passes, courant, libellePasses, masqueDate, rechercher } = useAjoutSouscripteur()
+const { etat, erreurs, passes, courant, libellePasses, masqueDate, rechercher, projet } = useAjoutSouscripteur()
 const r = computed(() => etat.resultat)
+const { data: association } = useAssociationGestionnaire()
 </script>
 
 <template>
-  <div class="ajout">
+  <div
+    v-if="etat.etape === 'code' && etat.acces"
+    class="ajout"
+  >
+    <HandoffCard
+      titre="Code d’activation"
+      :destinataire="etat.acces.destinataire"
+      :code="etat.acces.code"
+      :expire-le="etat.acces.expireLe"
+      :message="etat.acces.message"
+      :whatsapp="etat.acces.whatsapp"
+      :sms="etat.acces.sms"
+      :lien="etat.acces.lien"
+      :association="association?.nom"
+    />
+    <p class="ajout__aide">
+      Ce code reste disponible dans « Codes à remettre » jusqu’à l’activation du compte.
+    </p>
+  </div>
+  <div
+    v-else
+    class="ajout"
+  >
     <div class="ajout__bloc ajout__bloc--tel">
       <CzField
         label="Téléphone"
@@ -70,7 +94,7 @@ const r = computed(() => etat.resultat)
         sans-icone
         class="cz-mobile"
       >
-        Aucun compte avec ce numéro : un compte sera créé et les identifiants envoyés par {{ etat.canal === 'sms' ? 'SMS' : 'email' }}.
+        Aucun compte avec ce numéro : un compte sera créé, avec un code d’activation à lui remettre.
       </CzAlert>
       <div class="ajout__grille">
         <CzField
@@ -108,14 +132,6 @@ const r = computed(() => etat.resultat)
             autocomplete="street-address"
           />
         </CzField>
-        <CzField label="Envoi des identifiants">
-          <CzSegmented
-            v-model="etat.canal"
-            :options="[{ valeur: 'sms', label: 'SMS' }, { valeur: 'email', label: 'Email' }]"
-            label="Envoi des identifiants"
-            class="ajout__canal"
-          />
-        </CzField>
         <CzField
           label="Date d’entrée"
           :erreur="erreurs.dateEntree"
@@ -136,7 +152,11 @@ const r = computed(() => etat.resultat)
           Échéances à rattraper
         </legend>
         <div class="ajout__cases">
-          <CzCheckbox v-model="etat.rattrapage.fonds">
+          <CzCheckbox
+            v-if="projet().fondsEntree"
+            :model-value="true"
+            disabled
+          >
             Fonds d’entrée
           </CzCheckbox>
           <CzCheckbox
@@ -147,7 +167,9 @@ const r = computed(() => etat.resultat)
           </CzCheckbox>
           <CzCheckbox
             v-if="courant"
-            v-model="etat.rattrapage.courant"
+            :model-value="etat.rattrapage.courant || etat.rattrapage.passes"
+            :disabled="etat.rattrapage.passes"
+            @update:model-value="(v: boolean) => (etat.rattrapage.courant = v)"
           >
             {{ formatMois(courant.date, 'seul') }}
           </CzCheckbox>
@@ -220,10 +242,6 @@ const r = computed(() => etat.resultat)
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
-}
-
-.ajout__canal {
-  align-self: flex-start;
 }
 
 .ajout__rattrapage {

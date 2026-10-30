@@ -1,11 +1,12 @@
 // Souscripteurs : annuaire et fiche gestionnaire (mb.*), espace du souscripteur connecté (me.*).
 import type { ApiClient } from './client'
+import type { CallOutput } from '@cotiz/api-client'
 import type {
-  AssociationMembre, Contrat, DetailSouscriptionMembre, FicheSouscripteur, ModificationSouscripteur, Souscripteur, SouscripteurAnnuaire,
+  AccesARemettre, AssociationMembre, CodeARemettre, Contrat, DetailSouscriptionMembre, FicheSouscripteur, ModificationSouscripteur, Souscripteur, SouscripteurAnnuaire,
   SouscriptionMembre,
 } from '~~/types'
 import { associationCourante } from './session'
-import { email, jour, local, m, SITUATION, tel } from './vues/communs'
+import { email, jour, local, m, SITUATION, tel, vueAcces } from './vues/communs'
 import { traduireErreur } from './vues/erreurs'
 import { vueEcheance, vuePaiement } from './vues/paiements'
 import { vueProjet, vueSouscription } from './vues/projets'
@@ -46,6 +47,8 @@ async function fiche(client: ApiClient, aid: string, uid: string): Promise<Fiche
     statutGlobal: SITUATION[d.standing]!,
     membreDepuis: jour(d.memberSince),
     historique: frise.items.map(ev => ({ id: ev.id, date: local(ev.at), titre: ev.title, ...(ev.detail ? { detail: ev.detail } : {}), ton: TONS[ev.tone] })),
+    activationEnAttente: d.member.accountStatus === 'pending_activation',
+    version: d.version,
   }
 }
 
@@ -56,12 +59,12 @@ export const useSouscripteur = (id: MaybeRefOrGetter<string>) =>
 export function useActionsSouscripteur() {
   const client = useClient()
   return {
-    modifier: async (id: string, mod: ModificationSouscripteur) => {
+    /** `version` : celle de la fiche affichée (If-Match) ; une modification entre-temps → version_conflict. */
+    modifier: async (id: string, mod: ModificationSouscripteur, version: number) => {
       const aid = await associationCourante(client)
-      const d = await client.call('mb.get', 'get', { params: { aid, uid: id } })
       try {
         await client.call('mb.patch', 'patch', {
-          params: { aid, uid: id }, ifMatch: d.version,
+          params: { aid, uid: id }, ifMatch: version,
           body: { ...(mod.email !== undefined ? { email: mod.email || null } : {}), ...(mod.adresse !== undefined ? { address: mod.adresse || null } : {}) },
         })
         return fiche(client, aid, id)
@@ -71,15 +74,51 @@ export function useActionsSouscripteur() {
       }
     },
     /**
-     * « Renvoyer les identifiants » : nouveau code d'activation pour un compte non activé (mb.resend) ; rien n'est envoyé
-     * (sans fournisseur). La carte « Code d'activation » avec message prêt arrive au lot 2.3.
+     * « Renvoyer les identifiants » : nouveau code d'activation (mb.resend, l'ancien est invalidé), à remettre soi-même
+     * (aucun envoi sans fournisseur).
      */
-    renvoyerIdentifiants: async (id: string) => {
+    renvoyerIdentifiants: async (id: string): Promise<AccesARemettre> => {
       const aid = await associationCourante(client)
-      const d = await client.call('mb.get', 'get', { params: { aid, uid: id } })
-      if (d.member.accountStatus === 'pending_activation') await client.call('mb.resend', 'regenerate', { params: { aid, uid: id } })
-      return { envoye: true, canal: 'sms' as const, telephone: tel(d.member.phone) }
+      return vueAcces(await client.call('mb.resend', 'regenerate', { params: { aid, uid: id } }))
     },
+  }
+}
+
+/**
+ * « Codes à remettre » : comptes non activés de l'association et dernier code émis (mb.codes, `members.manage`).
+ * `immediat: false` : rien n'est lu avant `refresh()` (tableau de bord, une fois la permission connue).
+ */
+export const useCodesARemettre = (options: { immediat?: boolean } = {}) =>
+  useLecture<CodeARemettre[]>('codes-a-remettre', async (client) => {
+    const aid = await associationCourante(client)
+    const { items } = await toutesLesPages(cursor => client.call('mb.codes', 'list', { params: { aid }, query: { limit: 100, cursor } }))
+    return items.map(vueCode)
+  }, options)
+
+const ETAT_CODE = { live: 'valide', expired: 'expire', blocked: 'bloque' } as const
+
+function vueCode(c: CallOutput<'mb.codes', 'list'>['items'][number]): CodeARemettre {
+  return {
+    id: c.id,
+    souscripteur: {
+      id: c.member.id, prenom: c.member.firstName, nom: c.member.lastName, telephone: tel(c.member.phone), email: email(c.member.email),
+      associationIds: [], membreDepuis: '',
+    },
+    etat: ETAT_CODE[c.state],
+    acces: c.handoff ? vueAcces(c.handoff) : null,
+    emisLe: c.issuedAt,
+    remisLe: c.handedAt,
+  }
+}
+
+/** Actions de « Codes à remettre » : marquer remis, régénérer un code expiré ou bloqué. */
+export function useActionsCodes() {
+  const client = useClient()
+  return {
+    marquerRemis: async (codeId: string) =>
+      vueCode(await client.call('mb.codes', 'markHanded', { params: { aid: await associationCourante(client), codeId } })),
+    regenerer: async (souscripteurId: string) =>
+      vueAcces(await client.call('mb.resend', 'regenerate', { params: { aid: await associationCourante(client), uid: souscripteurId } })),
   }
 }
 

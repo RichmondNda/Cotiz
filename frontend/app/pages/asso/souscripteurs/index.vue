@@ -24,6 +24,7 @@ const toast = useToast()
 const { data, pending, error, refresh } = useSouscripteurs()
 const { data: projets } = useProjets()
 const { data: association } = useAssociationGestionnaire()
+const { peut } = usePermissions()
 
 // ---------------------------------------------------------------- Filtres
 const STATUTS: { valeur: Statut, label: string }[] = [
@@ -56,8 +57,9 @@ const pucesProjets = computed(() => [
 
 // ---------------------------------------------------------------- Données
 const souscripteurs = computed(() => data.value ?? [])
-const total = computed(() => Math.max(association.value?.nbSouscripteurs ?? 0, souscripteurs.value.length))
-const nbEnRetard = computed(() => (projets.value ?? []).reduce((n, p) => n + p.nbEnRetard, 0))
+// Annuaire chargé en entier (toutes les pages de mb.list) : son nombre fait foi ; avant, le compteur de l'association.
+const total = computed(() => (data.value ? data.value.length : association.value?.nbSouscripteurs ?? 0))
+const nbEnRetard = computed(() => souscripteurs.value.filter(s => s.statutGlobal === 'en_retard').length)
 
 const nom = (s: SouscripteurAnnuaire) => `${s.prenom} ${s.nom}`
 const lignes = computed(() => {
@@ -131,6 +133,14 @@ function exporter() {
       class="cz-desktop"
     >
       <template #actions>
+        <CzButton
+          v-if="peut('members.manage')"
+          variante="secondaire"
+          icone="cadenas"
+          to="/asso/souscripteurs/codes"
+        >
+          Codes à remettre
+        </CzButton>
         <CzButton
           variante="secondaire"
           icone="telecharger"

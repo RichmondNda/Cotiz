@@ -19,10 +19,11 @@ const ATTENDUS = [
   ['souscripteur', '/historique', [F(225000), F(395000)]],
   ['souscripteur', '/paiements/declarer', [`${F(50000)} en retard`, `reste ${F(325000)}`, F(70000)]],
   ['null', '/', [F(395000), F(50000), F(9594000)]],
-  ['gestionnaire', '/asso/souscripteurs/moussa-diarra', [F(175000), F(325000), 'En retard · 2']],
+  // Fiches sur le vrai back (lot 2.3) : inscriptions de seed-dev sans paiement, montants comparables au lot 2.4.
+  ['gestionnaire', '/asso/souscripteurs/moussa-diarra', ['Moussa Diarra', 'Centre communautaire', 'Voyage solidaire']],
   // Projets sur le vrai back (lot 2.2) : chiffres nuls jusqu'aux inscriptions et paiements réels (lots 2.3, 2.4).
   ['gestionnaire', '/asso/projets/centre-communautaire', ['Centre communautaire']],
-  ['gestionnaire', '/asso/souscripteurs/awa-kone', [F(200000), F(300000)]],
+  ['gestionnaire', '/asso/souscripteurs/awa-kone', ['Awa Koné', 'Centre communautaire']],
   ['gestionnaire', '/asso/paiements/pm-awa-kone', ['Awa Koné', F(75000)]],
   // Tableau de bord : cartes projets réelles (pr.list, chiffres nuls jusqu'aux lots 2.3, 2.4), indicateurs encore simulés.
   ['gestionnaire', '/asso', ['Centre communautaire', '82 %', '14', F(75000)]],

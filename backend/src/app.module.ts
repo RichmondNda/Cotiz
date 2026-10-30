@@ -10,6 +10,7 @@ import { PermissionGuard } from './modules/access/http/permission.guard.js';
 import { SpaceGuard } from './modules/access/http/space.guard.js';
 import { FilesModule } from './modules/files/files.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
+import { MembersModule } from './modules/members/members.module.js';
 import { OnboardingModule } from './modules/onboarding/onboarding.module.js';
 import { ProjectsModule } from './modules/projects/projects.module.js';
 import { ReportingModule } from './modules/reporting/reporting.module.js';
@@ -73,6 +74,7 @@ export class AppModule {
         OnboardingModule,
         TenancyModule,
         ProjectsModule,
+        MembersModule,
         ReportingModule,
         // Documentation interne (Scalar) : jamais en production.
         ...(config.NODE_ENV === 'production' ? [] : [ApiDocsModule]),

@@ -68,4 +68,18 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['pr.lifecycle', 'all'],
   ['pr.delete', 'all'],
   ['pr.overview', 'all'],
+  // Lot 2.3 : souscripteurs (recherche, inscription, ajout en lot, retrait, annuaire, fiche, frise), codes à remettre
+  // et onglets Projets / Souscripteurs de la fiche plateforme.
+  ['mb.lookup', 'all'],
+  ['en.list', 'all'],
+  ['en.create', 'all'],
+  ['en.withdraw', 'all'],
+  ['en.bulk', 'all'],
+  ['mb.resend', 'all'],
+  ['mb.codes', 'all'],
+  ['mb.list', 'all'],
+  ['mb.get', 'all'],
+  ['mb.patch', 'all'],
+  ['mb.timeline', 'all'],
+  ['pf.asso.sub', 'all'],
 ])

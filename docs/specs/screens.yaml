@@ -176,7 +176,7 @@ screens:
   - pf.asso.suspend
   - pf.asso.plan
   - pf.invoices
-  uiDeviations: 0
+  uiDeviations: 1
 - id: sa-association-new
   space: super-admin
   title: Création directe d'association
@@ -285,7 +285,7 @@ screens:
   - as.dashboard
   - mb.codes
   - lg.pay.list
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-projets
   space: manager
   title: Liste des projets
@@ -344,7 +344,7 @@ screens:
   - en.bulk
   - mb.resend
   - mb.codes
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-projet-paiements
   space: manager
   title: Détail projet — Paiements
@@ -418,7 +418,7 @@ screens:
   endpoints:
   - mb.lookup
   - en.create
-  uiDeviations: 1
+  uiDeviations: 2
 - id: mg-import
   space: manager
   title: Import Excel
@@ -475,7 +475,7 @@ screens:
   endpoints:
   - mb.list
   - rp.export
-  uiDeviations: 0
+  uiDeviations: 2
 - id: mg-fiche
   space: manager
   title: Fiche souscripteur
@@ -492,7 +492,7 @@ screens:
   - mb.resend
   - rm.send
   - mb.codes
-  uiDeviations: 0
+  uiDeviations: 2
 - id: mg-relances
   space: manager
   title: Relances

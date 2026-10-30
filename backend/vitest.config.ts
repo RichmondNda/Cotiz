@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [swc.vite({ module: { type: 'es6' } })],
   test: {
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
-    // Vrai clamd : job CI dédié (vitest.clamav.config.ts).
-    exclude: ['test/clamav/**', '**/node_modules/**'],
+    // Vrai clamd : job CI dédié (vitest.clamav.config.ts). Mesures de durée : seules, après (vitest.perf.config.ts).
+    exclude: ['test/clamav/**', 'test/perf/**', '**/node_modules/**'],
     // Démarrage des conteneurs (premier téléchargement des images compris).
     hookTimeout: 180_000,
     testTimeout: 30_000,

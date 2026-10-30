@@ -135,7 +135,8 @@ function assertValid(context: TenantContext | null): void {
  * contexte d'avant est rétabli. L'espace auth ouvre aussi les tables auth_access (codes, demandes de réinitialisation)
  * de toutes les associations : réservé au module access (self.ts, dependency-cruiser), qui n'y lit que des
  * appartenances et des rôles. `userId` : une personne authentifiée (jeton vérifié) ou trouvée par le serveur
- * (connexion, activation), jamais une valeur reçue du client. Pendant `fn`, la transaction d'avant est suspendue (toute
+ * (connexion, activation ; compte retrouvé par téléphone dans mb.lookup, pour un simple comptage :
+ * associationsCountOf), jamais une valeur reçue du client. Pendant `fn`, la transaction d'avant est suspendue (toute
  * requête par elle est refusée) et un second asSelf() concurrent est refusé. Hors transaction (gardes) :
  * `TenantDatabase[LOOKUP_AS_SELF]()`.
  */

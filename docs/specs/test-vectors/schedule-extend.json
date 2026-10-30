@@ -1,0 +1,371 @@
+{
+  "function": "extendRollingSchedule",
+  "cases": [
+    {
+      "name": "horizon-entame",
+      "description": "Inscrit au début (12 échéances de mars 2026 à février 2027) ; au 10 mai 2026, 9 échéances restent à venir : 3 ajoutées",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-01"
+        },
+        "lastSequence": 12,
+        "today": "2026-05-10"
+      },
+      "output": [
+        {
+          "sequence": 13,
+          "kind": "periodic",
+          "dueDate": "2027-03-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 14,
+          "kind": "periodic",
+          "dueDate": "2027-04-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 15,
+          "kind": "periodic",
+          "dueDate": "2027-05-05",
+          "amountDue": 25000
+        }
+      ]
+    },
+    {
+      "name": "horizon-complet",
+      "description": "Au premier jour, les 12 échéances sont à venir : rien à ajouter (idempotence)",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-01"
+        },
+        "lastSequence": 12,
+        "today": "2026-03-01"
+      },
+      "output": []
+    },
+    {
+      "name": "echeance-du-jour-comptee",
+      "description": "L'échéance du jour compte dans l'horizon : au 5 mai 2026, 10 à venir, 2 ajoutées",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-01"
+        },
+        "lastSequence": 12,
+        "today": "2026-05-05"
+      },
+      "output": [
+        {
+          "sequence": 13,
+          "kind": "periodic",
+          "dueDate": "2027-03-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 14,
+          "kind": "periodic",
+          "dueDate": "2027-04-05",
+          "amountDue": 25000
+        }
+      ]
+    },
+    {
+      "name": "rattrapage-sans-trou",
+      "description": "Tâche restée sans effet longtemps : toutes les dates manquantes sont créées (échues comprises), sans trou de numérotation, jusqu'à 12 à venir",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-01"
+        },
+        "lastSequence": 12,
+        "today": "2027-06-10"
+      },
+      "output": [
+        {
+          "sequence": 13,
+          "kind": "periodic",
+          "dueDate": "2027-03-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 14,
+          "kind": "periodic",
+          "dueDate": "2027-04-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 15,
+          "kind": "periodic",
+          "dueDate": "2027-05-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 16,
+          "kind": "periodic",
+          "dueDate": "2027-06-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 17,
+          "kind": "periodic",
+          "dueDate": "2027-07-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 18,
+          "kind": "periodic",
+          "dueDate": "2027-08-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 19,
+          "kind": "periodic",
+          "dueDate": "2027-09-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 20,
+          "kind": "periodic",
+          "dueDate": "2027-10-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 21,
+          "kind": "periodic",
+          "dueDate": "2027-11-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 22,
+          "kind": "periodic",
+          "dueDate": "2027-12-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 23,
+          "kind": "periodic",
+          "dueDate": "2028-01-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 24,
+          "kind": "periodic",
+          "dueDate": "2028-02-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 25,
+          "kind": "periodic",
+          "dueDate": "2028-03-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 26,
+          "kind": "periodic",
+          "dueDate": "2028-04-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 27,
+          "kind": "periodic",
+          "dueDate": "2028-05-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 28,
+          "kind": "periodic",
+          "dueDate": "2028-06-05",
+          "amountDue": 25000
+        }
+      ]
+    },
+    {
+      "name": "entree-en-cours",
+      "description": "Entré le 10 juin 2026 (échéances 5 à 16, juillet 2026 à juin 2027) ; au 20 septembre 2026, 9 à venir : 3 ajoutées, numérotation du projet",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-01",
+          "enrolledFrom": "2026-06-10"
+        },
+        "lastSequence": 16,
+        "today": "2026-09-20"
+      },
+      "output": [
+        {
+          "sequence": 17,
+          "kind": "periodic",
+          "dueDate": "2027-07-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 18,
+          "kind": "periodic",
+          "dueDate": "2027-08-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 19,
+          "kind": "periodic",
+          "dueDate": "2027-09-05",
+          "amountDue": 25000
+        }
+      ]
+    },
+    {
+      "name": "fin-de-mois",
+      "description": "Le 31 de chaque mois, ramené au dernier jour du mois",
+      "input": {
+        "schedule": {
+          "installmentAmount": 10000,
+          "frequency": "monthly",
+          "dueDay": 31,
+          "scheduleType": "rolling",
+          "startDate": "2026-01-01"
+        },
+        "lastSequence": 12,
+        "today": "2026-03-15"
+      },
+      "output": [
+        {
+          "sequence": 13,
+          "kind": "periodic",
+          "dueDate": "2027-01-31",
+          "amountDue": 10000
+        },
+        {
+          "sequence": 14,
+          "kind": "periodic",
+          "dueDate": "2027-02-28",
+          "amountDue": 10000
+        }
+      ]
+    },
+    {
+      "name": "hebdomadaire",
+      "description": "Chaque lundi depuis le lundi 2 mars 2026, 12 générées (jusqu'au 18 mai) ; au mercredi 25 mars, 8 à venir : 4 ajoutées",
+      "input": {
+        "schedule": {
+          "installmentAmount": 5000,
+          "frequency": "weekly",
+          "dueDay": 1,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-02"
+        },
+        "lastSequence": 12,
+        "today": "2026-03-25"
+      },
+      "output": [
+        {
+          "sequence": 13,
+          "kind": "periodic",
+          "dueDate": "2026-05-25",
+          "amountDue": 5000
+        },
+        {
+          "sequence": 14,
+          "kind": "periodic",
+          "dueDate": "2026-06-01",
+          "amountDue": 5000
+        },
+        {
+          "sequence": 15,
+          "kind": "periodic",
+          "dueDate": "2026-06-08",
+          "amountDue": 5000
+        },
+        {
+          "sequence": 16,
+          "kind": "periodic",
+          "dueDate": "2026-06-15",
+          "amountDue": 5000
+        }
+      ]
+    },
+    {
+      "name": "horizon-du-projet",
+      "description": "Horizon de 3 : au 10 avril 2026, échéances 1 à 3 (mars à mai), une seule à venir : 2 ajoutées",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-01",
+          "horizon": 3
+        },
+        "lastSequence": 3,
+        "today": "2026-04-10"
+      },
+      "output": [
+        {
+          "sequence": 4,
+          "kind": "periodic",
+          "dueDate": "2026-06-05",
+          "amountDue": 25000
+        },
+        {
+          "sequence": 5,
+          "kind": "periodic",
+          "dueDate": "2026-07-05",
+          "amountDue": 25000
+        }
+      ]
+    },
+    {
+      "name": "dates-fixes-refusees",
+      "description": "Projet à dates fixes : échéancier complet dès l'inscription, rien à prolonger",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "fixed",
+          "startDate": "2026-03-01",
+          "endDate": "2026-12-31"
+        },
+        "lastSequence": 10,
+        "today": "2026-05-10"
+      },
+      "error": {
+        "code": "not_rolling"
+      }
+    },
+    {
+      "name": "rang-invalide",
+      "description": "Dernier rang négatif ou non entier",
+      "input": {
+        "schedule": {
+          "installmentAmount": 25000,
+          "frequency": "monthly",
+          "dueDay": 5,
+          "scheduleType": "rolling",
+          "startDate": "2026-03-01"
+        },
+        "lastSequence": -1,
+        "today": "2026-05-10"
+      },
+      "error": {
+        "code": "invalid_sequence"
+      }
+    }
+  ]
+}

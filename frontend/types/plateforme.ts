@@ -86,6 +86,8 @@ export interface AccesARemettre {
   whatsapp: string | null
   sms: string | null
   mailto: string | null
+  /** Lien d'activation (QR de la fiche imprimable), sans le code. */
+  lien: string | null
 }
 
 /** Résultat de `pf.req.approve › approve` : la demande approuvée ; `acces` `null` si le responsable a déjà un compte. */

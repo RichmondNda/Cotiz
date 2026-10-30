@@ -66,6 +66,14 @@ const ACCOUNTS: readonly DevAccount[] = [
     status: 'active',
   },
   {
+    key: 'ibrahim-toure',
+    email: null,
+    phone: '+2250100000001',
+    firstName: 'Ibrahim',
+    lastName: 'Touré',
+    status: 'active',
+  },
+  {
     key: 'fatou-traore',
     email: null,
     phone: '+2250122334455',

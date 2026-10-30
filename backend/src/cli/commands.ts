@@ -17,6 +17,7 @@ import {
 } from '../modules/identity/application/seed-dev-accounts.use-case.js';
 import { SeedDevMembershipsUseCase } from '../modules/access/access.public.js';
 import { SeedDevPlansUseCase, SeedDevSubscriptionsUseCase } from '../modules/billing/billing.public.js';
+import { REFERENCE_MEMBER_ASSOCIATIONS, SeedDevMembersUseCase } from '../modules/members/members.public.js';
 import { SeedDevRequestsUseCase } from '../modules/onboarding/onboarding.public.js';
 import { REFERENCE_PROJECT_ASSOCIATIONS, SeedDevProjectsUseCase } from '../modules/projects/projects.public.js';
 import { SeedDevAssociationsUseCase } from '../modules/tenancy/tenancy.public.js';
@@ -37,7 +38,7 @@ const USAGE = [
   'Commandes :',
   '  create-platform-owner <email> <prénom> <nom>',
   '  reset-password <email>',
-  '  seed-dev                (développement : comptes, associations, plans, demandes et projets de référence)',
+  '  seed-dev                (développement : comptes, associations, plans, demandes, projets et inscriptions de référence)',
 ].join('\n');
 
 const DATE = new Intl.DateTimeFormat('fr-FR', {
@@ -187,9 +188,28 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
         )),
       );
     }
+    // Inscriptions (lot 2.3), dans le contexte de chaque association ; un compte non activé créé par l'association
+    // reçoit son code d'activation (« Codes à remettre »), qui remplace celui affiché plus haut.
+    const enrolled: string[] = [];
+    const handoffs: string[] = [];
+    for (const slug of REFERENCE_MEMBER_ASSOCIATIONS) {
+      const seeded = await db.withTenantContext(
+        { space: 'association', associationId: mockId('association', slug) },
+        () => app.get(SeedDevMembersUseCase).execute(slug),
+      );
+      enrolled.push(...seeded.enrolled);
+      handoffs.push(
+        ...seeded.codes.map(
+          (h) =>
+            `  ${h.recipient.firstName} ${h.recipient.lastName}, ${h.recipient.phone ?? ''} : code d’activation ${h.code} ` +
+            `(émis par ${slug}, valable jusqu’au ${DATE.format(new Date(h.expiresAt))}, heure d’Abidjan ; remplace le précédent)`,
+        ),
+      );
+    }
     io.out.write(
       `Plans de référence : ${codes.join(', ')}\nAssociations de référence : ${slugs.join(', ')}\n` +
-        `Projets de référence : ${projectKeys.join(', ')}\n`,
+        `Projets de référence : ${projectKeys.join(', ')}\nInscriptions de référence : ${enrolled.join(', ')}\n` +
+        (handoffs.length > 0 ? `Codes à remettre :\n${handoffs.join('\n')}\n` : ''),
     );
     return 0;
   } catch (error) {

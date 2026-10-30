@@ -5,6 +5,7 @@ import type { Association, Gestionnaire, RoleGestionnaire } from './association'
 import type { Contrat } from './contrat'
 import type { Echeance, RepartitionEcheance } from './echeance'
 import type { MotifRejet, Paiement, Preuve } from './paiement'
+import type { AccesARemettre } from './plateforme'
 import type { Projet } from './projet'
 import type { Souscripteur, Souscription, StatutSouscription } from './souscripteur'
 
@@ -39,6 +40,10 @@ export interface FicheSouscripteur {
   membreDepuis: DateISO
   /** Frise complète, plus récent d'abord : paiements, validations, retards et relances, contrats. */
   historique: EvenementSouscripteur[]
+  /** Compte pas encore activé : « Renvoyer les identifiants » (nouveau code à remettre). */
+  activationEnAttente: boolean
+  /** Version lue (If-Match de « Modifier »). */
+  version: number
 }
 
 /** Corps de `mb.patch › patch` (« Modifier » de la fiche). */
@@ -232,11 +237,27 @@ export interface NouvelleInscription {
   nom?: string
   email?: string
   adresse?: string
-  canal?: 'sms' | 'email'
-  /** Date d'entrée dans le projet (inscription en cours de route). */
+  /** Date d'entrée dans le projet : première échéance due (rattrapage des échéances passées compris). */
   dateEntree?: DateISO
-  /** Rangs des échéances passées à rattraper (0 = fonds d'entrée). */
-  rattrapage?: number[]
+}
+
+/** Résultat de `en.create › create` : l'inscription et, pour un compte créé par l'association, le code à remettre. */
+export interface InscriptionCreee {
+  souscription: SouscriptionAvecSouscripteur
+  acces: AccesARemettre | null
+}
+
+/** Ligne de « Codes à remettre » (`mb.codes › list`) : compte non activé et dernier code émis par l'association. */
+export interface CodeARemettre {
+  id: Identifiant
+  souscripteur: Souscripteur
+  /** `expire` : délai passé ou code remplacé ; `bloque` : trop d'essais. Plus de code à remettre : « Régénérer ». */
+  etat: 'valide' | 'expire' | 'bloque'
+  /** Code et message prêt, seulement si `etat` = `valide`. */
+  acces: AccesARemettre | null
+  emisLe: string
+  /** Instant ISO du marquage « remis », sinon `null`. */
+  remisLe: string | null
 }
 
 /** Ligne du tableau des rapports (`rp.report › get`). */

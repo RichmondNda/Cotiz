@@ -12,6 +12,9 @@ export type DomainErrorCode =
   | 'invalid_date'
   | 'invalid_schedule_type'
   | 'invalid_horizon'
+  // Cycle roulant (tâche schedule.extend-rolling) : projet à dates fixes, dernier rang généré invalide.
+  | 'not_rolling'
+  | 'invalid_sequence'
   // Répartition (domain-rules § 4) ; les erreurs de validateAllocation sont renvoyées, pas levées.
   | 'amount_exceeds_remaining'
   // Statuts : délai de grâce ou statut d'inscription invalides (non décrits par domain-rules).

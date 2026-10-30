@@ -32,6 +32,25 @@ export function decodeCursor(value: string): Cursor | null {
   }
 }
 
+const SerialShape = z.object({ at: z.string().regex(PG_TIMESTAMPTZ), id: z.string().regex(/^[1-9]\d{0,18}$/) });
+
+/** Curseur d'une table à identifiant séquentiel (bigserial, ex. audit_logs) : même forme, `id` en chiffres. */
+export function encodeSerialCursor(cursor: Cursor): string {
+  return encodeCursor(cursor);
+}
+
+/** `null` si le curseur est illisible. */
+export function decodeSerialCursor(value: string): Cursor | null {
+  try {
+    const parsed = SerialShape.safeParse(JSON.parse(Buffer.from(value, 'base64url').toString('utf8')));
+    if (!parsed.success) return null;
+    const [date = ''] = parsed.data.at.split(' ');
+    return new Date(`${date}T00:00:00Z`).toISOString().startsWith(date) ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Motif ILIKE « contient » : `%`, `_` et `\` sont des caractères, pas des jokers. */
 export function containsPattern(text: string): string {
   return `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;

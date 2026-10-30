@@ -1,6 +1,6 @@
 # ADR 0016 · Exception temporaire à l'audit des dépendances de production (outils de dev/build de Nuxt)
 
-**Statut :** adopté · 2026-10-09 · révisé le 2026-10-22 (2 GHSA restantes, voir « Révision ») · **réexamen au plus tard le 2026-11-09**
+**Statut :** adopté · 2026-10-09 · révisé le 2026-10-22 (2 GHSA restantes) et le 2026-10-29 (+ deepmerge), voir « Révision » · **réexamen au plus tard le 2026-11-09**
 
 ## Contexte
 
@@ -36,6 +36,14 @@ publiées entre le 20 et le 22 octobre) : `@nuxt/devtools` 3.4.4 n'entraîne plu
 Restent ignorées, sans correctif publié : GHSA-86w9-cpqp-85rv (`node-forge` 1.4.0) et GHSA-vfj7-8cjw-p6xm (`braces` 3.0.3).
 Vérification refaite sur un build : ni `node-forge`, `braces`, `micromatch`, `listhen` ni `nitropack` ne figurent dans
 `frontend/.output`. La date de réexamen est inchangée.
+
+## Révision du 2026-10-29
+
+Nouvelle alerte de sévérité basse, sans correctif publié (plage corrigée « <0.0.0 ») : GHSA-gcqx-w48m-w2h4, `deepmerge`
+4.3.1 (`mergeObject()` permet de polluer le prototype de l'objet renvoyé), par
+`nuxt > @nuxt/nitro-server > nitropack > @rollup/plugin-node-resolve > deepmerge`. C'est un outil de build : vérification
+faite sur un build, ni `deepmerge` ni `@rollup/plugin-node-resolve` ne figurent dans `frontend/.output`. La GHSA est
+ajoutée à `ignoreGhsas`, avec la même date de réexamen (2026-11-09).
 
 ## Conséquences
 

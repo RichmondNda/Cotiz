@@ -11,6 +11,7 @@ import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js'
 import {
   A,
   asManagerOf,
+  B,
   type IsolationHarness,
   seedAssociations,
   startIsolationHarness,
@@ -178,9 +179,8 @@ describe('décision sur une demande (pf.req.approve, pf.req.reject)', () => {
     await h.superuser(`DELETE FROM sessions`);
     await h.superuser(`DELETE FROM memberships`);
     await h.superuser(`DELETE FROM subscriptions`);
-    await h.superuser(
-      `DELETE FROM associations WHERE id NOT IN (SELECT id FROM associations ORDER BY created_at LIMIT 2)`,
-    );
+    // Par identifiant : « les deux plus anciennes » dépendait de l'ordre des created_at (aléa constaté sous charge).
+    await h.superuser(`DELETE FROM associations WHERE id NOT IN ($1, $2)`, [A.id, B.id]);
     await h.superuser(`DELETE FROM credentials WHERE user_id IN (SELECT id FROM users WHERE email = $1)`, [NEW_EMAIL]);
     await h.superuser(`DELETE FROM users WHERE email = $1`, [NEW_EMAIL]);
     await h.superuser(`UPDATE users SET status = 'active' WHERE id = $1`, [USERS.koffi]);

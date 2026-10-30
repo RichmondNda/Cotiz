@@ -2,7 +2,8 @@
   Message prêt à transmettre soi-même (docs/specs/ui-deviations.md, aucun fournisseur d'envoi) : titre, destinataire,
   code d'activation en police mono avec sa date d'expiration (s'il y en a un), message en lecture seule, puis
   « Copier le message », WhatsApp, SMS, messagerie (mailto) et « Partager » (partage natif, si le navigateur le permet).
-  Les liens viennent du back (handoff) ; un lien absent masque son bouton. Fiche imprimable et case « Remis » : lot 2.3.
+  Les liens viennent du back (handoff) ; un lien absent masque son bouton. « Imprimer la fiche » (A6 avec QR du lien
+  d'activation) si `lien` et `association` sont fournis ; case « Remis » si `v-model:remis` est lié.
 -->
 <script setup lang="ts">
 import { formatDateHeure } from '~/utils/format'
@@ -18,7 +19,22 @@ const props = withDefaults(defineProps<{
   whatsapp?: string | null
   sms?: string | null
   mailto?: string | null
-}>(), { code: undefined, expireLe: undefined, whatsapp: null, sms: null, mailto: null })
+  /** Lien d'activation (QR de la fiche imprimable). */
+  lien?: string | null
+  /** Nom de l'association, en tête de la fiche imprimable. */
+  association?: string
+}>(), { code: undefined, expireLe: undefined, whatsapp: null, sms: null, mailto: null, lien: null, association: undefined })
+
+/** Code remis à la personne (sans retour arrière) ; `undefined` : case masquée. */
+const remis = defineModel<boolean | undefined>('remis', { default: undefined })
+const { fiches, imprimer } = useImpressionFiches()
+const imprimable = computed(() => Boolean(props.lien && props.code && props.expireLe && props.association))
+function imprimerFiche() {
+  imprimer([{
+    destinataire: props.destinataire, code: props.code!, expireLe: props.expireLe!, message: props.message,
+    whatsapp: props.whatsapp, sms: props.sms, mailto: props.mailto, lien: props.lien,
+  }])
+}
 
 const toast = useToast()
 const partageable = ref(false)
@@ -121,8 +137,29 @@ async function partager() {
         >
           Partager
         </CzButton>
+        <CzButton
+          v-if="imprimable"
+          variante="secondaire"
+          taille="sm"
+          icone="imprimer"
+          @click="imprimerFiche"
+        >
+          Imprimer la fiche
+        </CzButton>
       </div>
+      <CzCheckbox
+        v-if="remis !== undefined"
+        v-model="remis"
+        :disabled="remis"
+      >
+        Remis à la personne
+      </CzCheckbox>
     </div>
+    <FichesActivation
+      v-if="association"
+      :fiches="fiches"
+      :association="association"
+    />
   </section>
 </template>
 

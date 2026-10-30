@@ -17,6 +17,7 @@ Mot de passe des comptes actifs : `Plateau-Dev-Cotiz-2026`.
 |---|---|---|---|---|
 | Souscripteur | `/connexion` | 05 44 21 87 90 | Moussa Diarra (Entraide Yopougon, Ressortissants de Man) | `/accueil` |
 | Souscripteur | `/connexion` | 07 55 66 77 88 | Jean Kouassi | `/accueil` |
+| Souscripteur | `/connexion` | 01 00 00 00 01 | Ibrahim Touré (Voyage solidaire) | `/accueil` |
 | Souscripteur | `/activer?espace=souscripteur&t=0122334455` | 01 22 33 44 55 | Fatou Traoré, **non activée** : code d'activation affiché par `seed-dev` (nouveau à chaque exécution), puis mot de passe au choix | `/accueil` |
 | Gestionnaire | `/connexion/association` | awa@entraide.ci | Awa Koné, owner d'Entraide Yopougon | `/asso` |
 | Super-admin | `/connexion/plateforme` | richy@cotiz.app | Richy, owner plateforme (pas de second facteur avant le lot 4.7) | `/plateforme` |
@@ -37,11 +38,13 @@ affiche un code à remettre et le lien `/activer?espace=plateforme`. Mot de pass
 
 ## Ajout d'un souscripteur — recherche du téléphone
 
+Vrai back depuis le lot 2.3 (`mb.lookup`, `en.create`), sur les comptes de `seed-dev` :
+
 | Téléphone | Résultat |
 |---|---|
 | 05 44 21 87 90 (sur un projet où Moussa est inscrit) | « déjà inscrit » |
-| 01 00 00 00 01 (Ibrahim Touré, hors du projet) | compte existant |
-| autre | nouveau compte (code d'activation `K7M4-P9QX`) |
+| 01 00 00 00 01 (Ibrahim Touré, hors du projet, ex. Centre communautaire) | compte existant |
+| autre | nouveau compte : code d'activation aléatoire à remettre, repris dans « Codes à remettre » |
 
 ## Identifiants (UUID)
 

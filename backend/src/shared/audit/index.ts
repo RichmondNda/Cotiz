@@ -2,6 +2,9 @@
 export { auditDiff, MASKED, maskPhone } from './audit-diff.js';
 export { Audited, type AuditRecord, recordAudit } from './audited.js';
 export {
+  type AssociationAuditEntry,
+  associationAuditTrailOf,
+  type AuditSubject,
   type AuditTrailEntry,
   platformAuditTrailOf,
   type PlatformActivityEntry,

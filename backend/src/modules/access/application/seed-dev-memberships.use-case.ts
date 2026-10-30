@@ -24,6 +24,7 @@ const REFERENCE_MEMBERSHIPS: readonly {
   { association: 'entraide-yopougon', user: 'moussa-diarra', role: 'subscriber', joinedAt: '2024-02-03' },
   { association: 'entraide-yopougon', user: 'jean-kouassi', role: 'subscriber', joinedAt: '2026-03-12' },
   { association: 'entraide-yopougon', user: 'fatou-traore', role: 'subscriber', joinedAt: '2026-09-02' },
+  { association: 'entraide-yopougon', user: 'ibrahim-toure', role: 'subscriber', joinedAt: '2026-09-15' },
   { association: 'ressortissants-man', user: 'moussa-diarra', role: 'subscriber', joinedAt: '2026-07-01' },
 ];
 

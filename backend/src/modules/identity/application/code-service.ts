@@ -24,6 +24,15 @@ export interface IssueCodeInput {
   issuedBy: string | null;
   /** Ré-affichable par les gestionnaires jusqu'à consommation : activation d'un souscripteur seulement (lot 2.3). */
   redisplayable?: boolean;
+  /** Code tiré et haché d'avance (`prepare`, ajout en lot) ; sinon tiré et haché ici. */
+  prepared?: PreparedCode | undefined;
+}
+
+/** Code tiré et haché hors transaction (argon2 coûteux), à émettre ensuite par `issue`. Jamais journalisé. */
+export interface PreparedCode {
+  purpose: CodePurpose;
+  code: string;
+  hash: string;
 }
 
 export interface IssuedCode {
@@ -69,12 +78,31 @@ export class CodeService {
     this.decoyHash = hasher.hash(randomBytes(16).toString('hex'));
   }
 
-  async issue(input: IssueCodeInput, now = new Date()): Promise<IssuedCode> {
-    const tx = currentTx();
-    // Deux émissions simultanées pour la même personne et le même usage : la seconde attend et invalide la première.
-    await tx.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`one_time_codes:${input.userId}:${input.purpose}`}, 0))`,
+  /**
+   * Verrou d'émission (transaction) : deux émissions simultanées pour la même personne et le même usage se suivent, la
+   * seconde invalide la première. Ré-entrant : l'appelant peut le prendre avant `issue()` pour ordonner ses verrous.
+   */
+  async lockIssuance(userId: string, purpose: CodePurpose): Promise<void> {
+    await currentTx().execute(
+      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`one_time_codes:${userId}:${purpose}`}, 0))`,
     );
+  }
+
+  /**
+   * Tire et hache un code d'avance, hors transaction (ajout en lot : hachages en parallèle). Jamais d'accès à la base :
+   * l'appel peut partir du contexte d'une transaction qui sera validée avant qu'il aboutisse.
+   */
+  async prepare(purpose: CodePurpose): Promise<PreparedCode> {
+    const code = generateCode(purpose);
+    return { purpose, code, hash: await this.hasher.hash(code) };
+  }
+
+  async issue(input: IssueCodeInput, now = new Date()): Promise<IssuedCode> {
+    if (input.prepared && input.prepared.purpose !== input.purpose) {
+      throw new Error('CodeService.issue : code préparé pour un autre usage');
+    }
+    const tx = currentTx();
+    await this.lockIssuance(input.userId, input.purpose);
     await tx
       .update(oneTimeCodes)
       .set({ expiresAt: now, codeEncrypted: null })
@@ -88,7 +116,7 @@ export class CodeService {
       );
 
     const id = newId();
-    const code = generateCode(input.purpose);
+    const code = input.prepared?.code ?? generateCode(input.purpose);
     const expiresAt = new Date(now.getTime() + CODE_RULES[input.purpose].ttlMs);
     const redisplayable = input.redisplayable === true && input.purpose === 'activation';
     await tx.insert(oneTimeCodes).values({
@@ -96,7 +124,7 @@ export class CodeService {
       userId: input.userId,
       purpose: input.purpose,
       delivery: 'manual',
-      codeHash: await this.hasher.hash(code),
+      codeHash: input.prepared?.hash ?? (await this.hasher.hash(code)),
       expiresAt,
       associationId: input.associationId,
       codeEncrypted: redisplayable ? this.box.seal(code, sealContext(id)) : null,

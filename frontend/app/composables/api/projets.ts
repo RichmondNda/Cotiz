@@ -5,14 +5,14 @@ import type { z } from 'zod'
 import { codeErreur } from './client'
 import type { ApiClient } from './client'
 import type {
-  AnalyseImport, ContratProjet, LigneGrilleProjet, LigneImport, ModificationProjet, NouveauProjet, NouvelleInscription, Projet, RapportProjet,
-  ResultatRechercheSouscripteur, SouscriptionAvecSouscripteur, SyntheseProjet,
+  AnalyseImport, ContratProjet, InscriptionCreee, LigneGrilleProjet, LigneImport, ModificationProjet, NouveauProjet, NouvelleInscription, Projet,
+  RapportProjet, ResultatRechercheSouscripteur, SouscriptionAvecSouscripteur, SyntheseProjet,
 } from '~~/types'
 import { DATE_REFERENCE } from '~/utils/date-reference'
 import { jourEcheanceDe } from '~/utils/echeancier'
 import { formatTelephone } from '~/utils/format'
 import { associationCourante } from './session'
-import { CALENDRIER_INVERSE, FREQUENCE_INVERSE, MOYEN_INVERSE, STATUT_PROJET_INVERSE, versE164 } from './vues/communs'
+import { CALENDRIER_INVERSE, FREQUENCE_INVERSE, MOYEN_INVERSE, STATUT_PROJET_INVERSE, versE164, vueAcces } from './vues/communs'
 import { traduireErreur } from './vues/erreurs'
 import { apercuDepuis, vueContratProjet, vueGrille, vueProjet, vueRapport, vueSouscription, vueSynthese } from './vues/projets'
 
@@ -20,14 +20,6 @@ type ProjectSummary = z.output<typeof ProjectSummarySchema>
 
 async function inscriptions(client: ApiClient, aid: string, pid: string): Promise<Enrollment[]> {
   return (await toutesLesPages(cursor => client.call('en.list', 'list', { params: { aid, pid }, query: { limit: 100, cursor } }))).items
-}
-
-/**
- * Inscriptions d'un projet pour les cartes et le détail : en.list reste simulé jusqu'au lot 2.3 et ne connaît que les
- * projets du jeu de référence ; un projet créé en réel n'a encore aucun souscripteur.
- */
-async function inscriptionsOuAucune(client: ApiClient, aid: string, pid: string): Promise<Enrollment[]> {
-  return inscriptions(client, aid, pid).catch(siInconnu([]))
 }
 
 /** Repli d'un appel simulé sur un projet que les mocks ne connaissent pas (404) ; toute autre erreur est relancée. */
@@ -46,7 +38,7 @@ async function contratOuNull(client: ApiClient, aid: string, pid: string) {
 async function enrichir(client: ApiClient, aid: string, p: ProjectSummary | Project, options: { contrat?: boolean } = {}): Promise<Projet> {
   const [moyens, enr, contrat] = await Promise.all([
     client.call('as.pm.list', 'list', { params: { aid } }),
-    inscriptionsOuAucune(client, aid, p.id),
+    inscriptions(client, aid, p.id),
     options.contrat ? contratOuNull(client, aid, p.id) : Promise.resolve(null),
   ])
   return vueProjet(p, { associationId: aid, moyens: moyens.items, apercu: apercuDepuis(enr.filter(e => e.status !== 'withdrawn')), contrat })
@@ -75,7 +67,7 @@ export const useProjet = (id: MaybeRefOrGetter<string>, options: { immediat?: bo
 export const useSouscripteursProjet = (id: MaybeRefOrGetter<string>) =>
   useLecture<SouscriptionAvecSouscripteur[]>(() => `souscripteurs-projet:${toValue(id)}`, async (client) => {
     const aid = await associationCourante(client)
-    return (await inscriptionsOuAucune(client, aid, toValue(id))).map(e => vueSouscription(e, aid))
+    return (await inscriptions(client, aid, toValue(id))).map(e => vueSouscription(e, aid))
   })
 
 /** Grille d'échéances d'un projet (onglet Paiements). */
@@ -83,10 +75,10 @@ export const useGrilleProjet = (id: MaybeRefOrGetter<string>) =>
   useLecture<LigneGrilleProjet[]>(() => `grille-projet:${toValue(id)}`, async (client) => {
     const aid = await associationCourante(client)
     const pid = toValue(id)
-    // lg.grid reste simulé (lot 2.4) : projet créé en réel → aucune ligne, comme ses inscriptions.
+    // lg.grid reste simulé (lot 2.4) : projet créé en réel → aucune ligne.
     const [grille, enr] = await Promise.all([
       client.call('lg.grid', 'get', { params: { aid, pid }, query: { limit: 100 } }).catch(siInconnu(null)),
-      inscriptionsOuAucune(client, aid, pid),
+      inscriptions(client, aid, pid),
     ])
     return grille ? vueGrille(grille, enr.map(e => vueSouscription(e, aid)), pid) : []
   })
@@ -179,7 +171,8 @@ export function useActionsProjet() {
         traduireErreur(e, { invalid_phone: 'telephone_invalide', validation_failed: 'telephone_invalide' })
       }
     },
-    inscrireSouscripteur: async (projetId: string, i: NouvelleInscription): Promise<SouscriptionAvecSouscripteur> => {
+    /** Code à remettre (`acces`) seulement pour un compte créé par l'association et pas encore activé. */
+    inscrireSouscripteur: async (projetId: string, i: NouvelleInscription): Promise<InscriptionCreee> => {
       const aid = await associationCourante(client)
       try {
         const r = await client.call('en.create', 'create', {
@@ -188,18 +181,16 @@ export function useActionsProjet() {
             ? { userId: i.souscripteurId, ...(i.dateEntree ? { startsFrom: i.dateEntree } : {}) }
             : { phone: versE164(i.telephone), firstName: i.prenom ?? '', lastName: i.nom ?? '', email: i.email || null, address: i.adresse || null, ...(i.dateEntree ? { startsFrom: i.dateEntree } : {}) },
         })
-        return vueSouscription(r.enrollment, aid)
+        return { souscription: vueSouscription(r.enrollment, aid), acces: r.handoff ? vueAcces(r.handoff) : null }
       }
       catch (e) {
         traduireErreur(e, { already_enrolled: 'deja_inscrit', validation_failed: 'identite_incomplete', invalid_phone: 'telephone_invalide' })
       }
     },
-    /** Retrait : par l'inscription du souscripteur sur le projet. */
-    retirerSouscripteur: async (projetId: string, souscripteurId: string) => {
+    /** Retrait : par l'inscription (`Souscription.id`) ; échéances futures annulées, historique conservé. */
+    retirerSouscripteur: async (inscriptionId: string, motif?: string) => {
       const aid = await associationCourante(client)
-      const e = (await inscriptions(client, aid, projetId)).find(x => x.member.id === souscripteurId)
-      if (!e) throw createError({ statusCode: 404, statusMessage: 'Souscription introuvable' })
-      return client.call('en.withdraw', 'withdraw', { params: { aid, eid: e.id }, body: {} })
+      return client.call('en.withdraw', 'withdraw', { params: { aid, eid: inscriptionId }, body: motif ? { reason: motif } : {} })
     },
     relancer: async (projetId: string, souscripteurIds: string[]) => {
       const r = await client.call('rm.send', 'send', { params: { aid: await associationCourante(client) }, body: { userIds: souscripteurIds, projectId: projetId } })

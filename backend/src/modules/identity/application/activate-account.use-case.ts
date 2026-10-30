@@ -85,7 +85,9 @@ export class ActivateAccountUseCase {
   private async statusOf(userId: string | undefined, lock = false) {
     if (!userId) return undefined;
     const query = currentTx().select({ status: users.status }).from(users).where(eq(users.id, userId)).limit(1);
-    const [row] = lock ? await query.for('update') : await query;
+    // FOR NO KEY UPDATE : suffit pour changer le statut, sans attendre les clés étrangères posées en même temps vers ce
+    // compte (inscription : FOR KEY SHARE), ce qui pourrait former un interblocage avec le verrou du code.
+    const [row] = lock ? await query.for('no key update') : await query;
     return row?.status;
   }
 

@@ -1,12 +1,12 @@
 import type { Project, ProjectPaymentMethod, ProjectSummary } from '@cotiz/contracts';
 import { projectPaymentMethods, projects } from '@cotiz/db';
-import { type Currency, Money, type ScheduleLine } from '@cotiz/domain';
-import { and, eq } from 'drizzle-orm';
+import { type Currency, extendRollingSchedule, type IsoDate, Money, type ScheduleLine } from '@cotiz/domain';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
 import { ownAssociationOf, paymentMethodsOf } from '../../tenancy/tenancy.public.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
-import { previewOf, scheduleInputOf, scheduleOf } from '../domain/project-terms.js';
+import { type FieldProblems, previewOf, scheduleInputOf, scheduleOf } from '../domain/project-terms.js';
 
 export type ProjectRecord = typeof projects.$inferSelect;
 
@@ -30,12 +30,13 @@ export async function associationCurrencyOf(associationId: string): Promise<Curr
 /**
  * Un projet de l'association du contexte (RLS) ; `null` s'il n'existe pas ou n'est pas le sien. `lock` : verrouillé
  * jusqu'à la fin de la transaction, pour une modification qui dépend de son état (FOR NO KEY UPDATE), ou avant sa
- * suppression (`delete` : FOR UPDATE, qui bloque aussi les clés étrangères qui le visent).
+ * suppression (`delete` : FOR UPDATE, qui bloque aussi les clés étrangères qui le visent), ou pour une inscription
+ * (`share` : FOR SHARE ; plusieurs inscriptions à la fois, mais ni modification ni clôture pendant ce temps, Q2).
  */
 export async function projectOf(
   associationId: string,
   projectId: string,
-  options: { lock?: boolean | 'delete' } = {},
+  options: { lock?: boolean | 'delete' | 'share' } = {},
 ): Promise<ProjectRecord | null> {
   const query = currentTx()
     .select()
@@ -43,10 +44,31 @@ export async function projectOf(
     .where(and(eq(projects.associationId, associationId), eq(projects.id, projectId)));
   const [row] = await (options.lock === 'delete'
     ? query.for('update')
-    : options.lock
-      ? query.for('no key update')
-      : query);
+    : options.lock === 'share'
+      ? query.for('share')
+      : options.lock
+        ? query.for('no key update')
+        : query);
   return row ?? null;
+}
+
+/** Projets de l'association du contexte (RLS) parmi `projectIds`, par identifiant (listes de membres, frise). */
+export async function projectsOf(
+  associationId: string,
+  projectIds: readonly string[],
+): Promise<Map<string, ProjectRecord>> {
+  if (projectIds.length === 0) return new Map();
+  const rows = await currentTx()
+    .select()
+    .from(projects)
+    .where(and(eq(projects.associationId, associationId), inArray(projects.id, [...new Set(projectIds)])));
+  return new Map(rows.map((row) => [row.id, row]));
+}
+
+/** Tous les projets d'une association, lus par la plateforme (pf.asso.sub). Plateforme seulement. */
+export async function platformProjectsOf(associationId: string): Promise<ProjectRecord[]> {
+  if (currentContext()?.space !== 'platform') throw new Error('platformProjectsOf : espace plateforme seulement');
+  return currentTx().select().from(projects).where(eq(projects.associationId, associationId));
 }
 
 /** Fonds d'entrée et montant par échéance du projet, en `Money` de sa devise. */
@@ -69,6 +91,32 @@ export function projectScheduleLines(row: ProjectRecord): ScheduleLine[] {
   // Une erreur ici est une ligne incohérente : jamais des indicateurs muets.
   if (!Array.isArray(lines)) throw new Error(`projet ${row.id} : conditions refusées par generateSchedule()`);
   return lines;
+}
+
+/**
+ * Cycle roulant (tâche schedule.extend-rolling) : échéances à ajouter à une inscription entrée le `enrolledFrom` dont
+ * la dernière générée est au rang `lastSequence`, pour retrouver l'horizon au jour `today` (extendRollingSchedule()).
+ */
+export function rollingExtensionOf(
+  row: ProjectRecord,
+  enrolledFrom: string,
+  lastSequence: number,
+  today: IsoDate,
+): ScheduleLine[] {
+  return extendRollingSchedule(scheduleInputOf(termsOf(row), { enrolledFrom }), lastSequence, today);
+}
+
+/**
+ * Échéancier d'un souscripteur entré le `enrolledFrom` (en.create) par generateSchedule() : dates du projet à partir de
+ * cette date (aucune rétroactive), fonds d'entrée à la première ; cycle roulant : l'horizon par défaut (12). Date
+ * d'entrée refusée par le domaine (hors 1900–2199) : `{ startsFrom: <code> }`, comme le champ du corps de en.create.
+ */
+export function enrollmentScheduleOf(row: ProjectRecord, enrolledFrom: string): ScheduleLine[] | FieldProblems {
+  const lines = scheduleOf(scheduleInputOf(termsOf(row), { enrolledFrom }));
+  if (Array.isArray(lines)) return lines;
+  if (lines.enrolledFrom) return { startsFrom: lines.enrolledFrom };
+  // Toute autre erreur est une ligne de projet incohérente (conditions contrôlées à l'écriture).
+  throw new Error(`projet ${row.id} : conditions refusées par generateSchedule()`);
 }
 
 /**

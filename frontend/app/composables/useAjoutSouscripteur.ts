@@ -1,14 +1,15 @@
 // Ajout d'un souscripteur à un projet (MgAjoutSouscripteur) : état partagé entre l'enveloppe (modale desktop,
 // plein écran mobile) et le corps du formulaire. 4 cas : saisie du téléphone, compte existant retrouvé,
-// nouveau compte, déjà inscrit au projet. Numéros mockés : server/mocks/IDENTIFIANTS.md.
+// nouveau compte, déjà inscrit au projet ; puis, pour un compte créé par l'association, le code à remettre (`code`).
 import type { InjectionKey } from 'vue'
-import type { Projet, ResultatRechercheSouscripteur, SouscriptionAvecSouscripteur } from '~~/types'
+import type { AccesARemettre, Projet, ResultatRechercheSouscripteur, SouscriptionAvecSouscripteur } from '~~/types'
+import { messageRefus } from '~/composables/api/client'
 import { maintenant } from '~/utils/date-reference'
 import { formatSaisieDate, lignesEcheancier, lireDateSaisie } from '~/utils/echeancier'
 import { formatDate, formatMois } from '~/utils/format'
 import { telephoneValide } from '~/utils/validation'
 
-export type EtapeAjout = 'telephone' | 'compte_existant' | 'nouveau' | 'deja_inscrit'
+export type EtapeAjout = 'telephone' | 'compte_existant' | 'nouveau' | 'deja_inscrit' | 'code'
 
 export function creerAjoutSouscripteur(projet: () => Projet, onInscrit: (s: SouscriptionAvecSouscripteur, encore: boolean) => void) {
   const { rechercherSouscripteur, inscrireSouscripteur } = useActionsProjet()
@@ -22,11 +23,12 @@ export function creerAjoutSouscripteur(projet: () => Projet, onInscrit: (s: Sous
     nom: '',
     email: '',
     adresse: '',
-    canal: 'sms' as 'sms' | 'email',
     dateEntree: formatDate(maintenant(), 'numerique'),
     rattrapage: { fonds: true, passes: false, courant: true },
     tentee: false,
     envoi: false,
+    /** Code à remettre après la création du compte (étape `code`). */
+    acces: null as AccesARemettre | null,
   })
 
   // ---------------------------------------------------------------- Échéances passées à rattraper
@@ -65,8 +67,9 @@ export function creerAjoutSouscripteur(projet: () => Projet, onInscrit: (s: Sous
 
   function reinitialiser() {
     Object.assign(etat, {
-      etape: 'telephone', telephone: '', resultat: null, prenom: '', nom: '', email: '', adresse: '', canal: 'sms',
+      etape: 'telephone', telephone: '', resultat: null, prenom: '', nom: '', email: '', adresse: '',
       dateEntree: formatDate(maintenant(), 'numerique'), rattrapage: { fonds: true, passes: false, courant: true }, tentee: false, envoi: false,
+      acces: null,
     })
   }
   function autreNumero() {
@@ -97,14 +100,9 @@ export function creerAjoutSouscripteur(projet: () => Projet, onInscrit: (s: Sous
     etat.tentee = true
     if (Object.keys(erreurs.value).length) return
     const r = etat.resultat
-    const rattrapage = [
-      ...(etat.rattrapage.fonds && projet().fondsEntree ? [0] : []),
-      ...(etat.rattrapage.passes ? passes.value.map(e => e.rang) : []),
-      ...(etat.rattrapage.courant && courant.value ? [courant.value.rang] : []),
-    ]
     etat.envoi = true
     try {
-      const inscrit = await inscrireSouscripteur(projet().id, r?.cas === 'compte_existant'
+      const { souscription: inscrit, acces } = await inscrireSouscripteur(projet().id, r?.cas === 'compte_existant'
         ? { telephone: etat.telephone, souscripteurId: r.souscripteur.id }
         : {
             telephone: etat.telephone,
@@ -112,28 +110,50 @@ export function creerAjoutSouscripteur(projet: () => Projet, onInscrit: (s: Sous
             nom: etat.nom.trim(),
             email: etat.email.trim() || undefined,
             adresse: etat.adresse.trim() || undefined,
-            canal: etat.canal,
-            dateEntree: lireDateSaisie(etat.dateEntree) ?? undefined,
-            rattrapage,
+            dateEntree: dateEntree(),
           })
       const nom = `${inscrit.souscripteur.prenom} ${inscrit.souscripteur.nom}`
       toast.succes('Souscripteur inscrit', {
-        message: r?.cas === 'compte_existant'
-          ? `${nom} rejoint le projet et reçoit une invitation à signer le contrat.`
-          : `${nom} a reçu ses identifiants par ${etat.canal === 'sms' ? 'SMS' : 'email'}.`,
+        message: acces
+          ? `Remettez maintenant son code d’activation à ${nom}.`
+          : `${nom} rejoint le projet et le retrouve dans son espace.`,
       })
-      reinitialiser()
-      onInscrit(inscrit, encore)
+      if (acces) {
+        // Le code reste aussi dans « Codes à remettre » ; la carte remplace le formulaire.
+        Object.assign(etat, { etape: 'code', acces, tentee: false })
+        onInscrit(inscrit, true)
+      }
+      else {
+        reinitialiser()
+        onInscrit(inscrit, encore)
+      }
     }
-    catch {
-      toast.erreur('L’inscription a échoué', { message: 'Vérifiez votre connexion, puis réessayez.' })
+    catch (e) {
+      toast.erreur('L’inscription a échoué', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
     }
     finally {
       etat.envoi = false
     }
   }
 
+  /**
+   * Échéances à rattraper → première échéance due (`startsFrom`, lot 2.3 Q3) : la date d'entrée saisie, avancée au
+   * début du projet (mois passés, qui comprennent le mois en cours) ou au 1er du mois en cours si la case est cochée ;
+   * jamais avant le début du projet. Le fonds d'entrée est toujours dû (case cochée, non modifiable).
+   */
+  function dateEntree(): string | undefined {
+    const debut = projet().dateDebut
+    const saisie = lireDateSaisie(etat.dateEntree) ?? undefined
+    const rattrapee = etat.rattrapage.passes && passes.value.length
+      ? debut
+      : etat.rattrapage.courant && courant.value ? `${debutMois.value}-01` : undefined
+    const choisie = [saisie, rattrapee].filter((d): d is string => Boolean(d)).sort()[0]
+    if (!choisie) return undefined
+    return /^\d{4}-\d{2}-\d{2}$/.test(debut) && choisie < debut ? debut : choisie
+  }
+
   return {
+    projet,
     etat,
     erreurs,
     passes,

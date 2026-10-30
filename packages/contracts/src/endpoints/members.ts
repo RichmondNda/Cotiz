@@ -26,7 +26,8 @@ export const LookupPerson = z.object({ id: Uuid, firstName: z.string(), lastInit
 
 export const LookupResult = z.discriminatedUnion('result', [
   z.object({ result: z.literal('new') }),
-  z.object({ result: z.literal('existing_user'), person: LookupPerson, associationsCount: z.int().min(1) }),
+  /** Associations où la personne a une appartenance non retirée, quel que soit le rôle (0 : aucune). */
+  z.object({ result: z.literal('existing_user'), person: LookupPerson, associationsCount: z.int().nonnegative() }),
   z.object({ result: z.literal('already_enrolled'), person: LookupPerson }),
 ]);
 
@@ -101,6 +102,9 @@ export const enCreate = defineEndpoint({
   },
 });
 
+export const EnrollmentIdParams = AssociationParams.extend({ eid: Uuid });
+export const WithdrawInput = z.object({ reason: z.string().max(500).optional() });
+
 export const enWithdraw = defineEndpoint({
   id: 'en.withdraw',
   space: 'association',
@@ -112,21 +116,22 @@ export const enWithdraw = defineEndpoint({
     withdraw: {
       method: 'POST',
       path: '/api/v1/associations/{aid}/enrollments/{eid}/withdraw',
-      request: {
-        params: AssociationParams.extend({ eid: Uuid }),
-        body: z.object({ reason: z.string().max(500).optional() }),
-      },
+      request: { params: EnrollmentIdParams, body: WithdrawInput },
       response: { status: 200, body: Enrollment },
     },
   },
 });
 
+/** Une personne de l'ajout en lot ; une ligne invalide est rapportée (`validation_failed`), les autres sont traitées. */
+export const BulkEnrollmentRow = NewMemberInput.extend({ startsFrom: IsoDate.optional() });
+
+/**
+ * Le serveur valide chaque ligne à part : une ligne invalide ressort `failed` + `validation_failed` (champs) dans le
+ * rapport au lieu de faire échouer le lot ; seule l'enveloppe (projet, 1 à 200 lignes) répond 422.
+ */
 export const BulkEnrollmentInput = z.object({
   projectId: Uuid,
-  rows: z
-    .array(NewMemberInput.extend({ startsFrom: IsoDate.optional() }))
-    .min(1)
-    .max(200),
+  rows: z.array(BulkEnrollmentRow).min(1).max(200),
 });
 
 export const BulkEnrollmentReport = z.object({
@@ -167,7 +172,8 @@ export const mbResend = defineEndpoint({
   id: 'mb.resend',
   space: 'association',
   permission: manage,
-  errors: ['already_activated'],
+  /** `invalid_state` : compte créé par une autre association (code d'origine), désactivé, anonymisé, personnel plateforme. */
+  errors: ['already_activated', 'invalid_state'],
   flags: { ...noFlags, rateLimited: true, audited: true },
   operations: {
     /** Régénère le code (l'ancien est invalidé). */
@@ -180,15 +186,26 @@ export const mbResend = defineEndpoint({
   },
 });
 
-/** Compte non activé et son code, lisible en clair jusqu'à consommation. */
+/** État du dernier code d'activation émis par l'association (un code consommé n'est plus listé). */
+export const ActivationCodeState = z.enum(['live', 'expired', 'blocked']);
+
+/** Compte non activé et le dernier code émis par l'association, lisible en clair jusqu'à consommation. */
 export const ActivationCodeEntry = z.object({
+  /** Identifiant du code. */
   id: Uuid,
   member: PersonContact,
-  handoff: Handoff,
+  /** `expired` (délai passé ou code remplacé), `blocked` (5 essais) : plus de code à remettre, « Régénérer ». */
+  state: ActivationCodeState,
+  /** Message prêt avec le code en clair, seulement si `state` = `live`. */
+  handoff: Handoff.nullable(),
   issuedAt: Instant,
   /** Marqué « remis » par un gestionnaire. */
   handedAt: Instant.nullable(),
 });
+
+export const ActivationCodeList = listOf(ActivationCodeEntry);
+export const ActivationCodesQuery = ListQuery.extend({ handed: z.stringbool().optional() });
+export const ActivationCodeParams = AssociationParams.extend({ codeId: Uuid });
 
 export const mbCodes = defineEndpoint({
   id: 'mb.codes',
@@ -200,13 +217,13 @@ export const mbCodes = defineEndpoint({
     list: {
       method: 'GET',
       path: '/api/v1/associations/{aid}/activation-codes',
-      request: { params: AssociationParams, query: ListQuery.extend({ handed: z.stringbool().optional() }) },
-      response: { status: 200, body: listOf(ActivationCodeEntry) },
+      request: { params: AssociationParams, query: ActivationCodesQuery },
+      response: { status: 200, body: ActivationCodeList },
     },
     markHanded: {
       method: 'POST',
       path: '/api/v1/associations/{aid}/activation-codes/{codeId}/handed',
-      request: { params: AssociationParams.extend({ codeId: Uuid }) },
+      request: { params: ActivationCodeParams },
       response: { status: 200, body: ActivationCodeEntry },
     },
   },
@@ -223,6 +240,13 @@ export const MemberSummary = z.object({
   standing: MemberStanding,
 });
 
+export const MembersQuery = ListQuery.extend({
+  /** Nom ou téléphone (recherche trigramme). */
+  q: z.string().min(1).optional(),
+  projectId: Uuid.optional(),
+  standing: MemberStanding.optional(),
+});
+
 export const mbList = defineEndpoint({
   id: 'mb.list',
   space: 'association',
@@ -235,12 +259,7 @@ export const mbList = defineEndpoint({
       path: '/api/v1/associations/{aid}/members',
       request: {
         params: AssociationParams,
-        query: ListQuery.extend({
-          /** Nom ou téléphone (recherche trigramme). */
-          q: z.string().min(1).optional(),
-          projectId: Uuid.optional(),
-          standing: MemberStanding.optional(),
-        }),
+        query: MembersQuery,
       },
       response: { status: 200, body: listOf(MemberSummary) },
     },
@@ -287,7 +306,11 @@ export const mbPatch = defineEndpoint({
   id: 'mb.patch',
   space: 'association',
   permission: manage,
-  errors: ['phone_taken', 'version_conflict'],
+  /**
+   * `invalid_state` : nom, téléphone ou email d'un compte activé, ou créé par une autre association (adresse et ville
+   * restent modifiables). Email déjà porté par une autre personne : `validation_failed` (`email: taken`).
+   */
+  errors: ['phone_taken', 'version_conflict', 'invalid_state'],
   flags: { ...noFlags, ifMatch: true, audited: true },
   operations: {
     patch: {

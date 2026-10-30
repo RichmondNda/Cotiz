@@ -462,7 +462,8 @@ CREATE TABLE enrollments (
   withdrawn_by uuid,
   withdraw_reason text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (project_id, user_id)
+  UNIQUE (project_id, user_id),
+  UNIQUE (id, association_id, project_id, user_id)
 );
 COMMENT ON TABLE enrollments IS 'Participation d''une personne à un projet.';
 COMMENT ON COLUMN enrollments.association_id IS 'RLS';
@@ -487,7 +488,8 @@ CREATE TABLE installments (
   late_since date,
   paid_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CHECK (amount_paid <= amount_due)
+  CHECK (amount_paid <= amount_due),
+  UNIQUE (enrollment_id, kind, sequence)
 );
 COMMENT ON TABLE installments IS 'Échéance attendue (fonds d''entrée ou cotisation périodique). Une ligne = une case de la grille.';
 COMMENT ON COLUMN installments.association_id IS 'RLS';
@@ -1056,12 +1058,14 @@ ALTER TABLE project_payment_methods ADD FOREIGN KEY (project_id, association_id)
 ALTER TABLE project_payment_methods ADD FOREIGN KEY (payment_method_id, association_id) REFERENCES association_payment_methods(id, association_id);
 ALTER TABLE project_payment_methods ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE enrollments ADD FOREIGN KEY (association_id) REFERENCES associations(id);
-ALTER TABLE enrollments ADD FOREIGN KEY (project_id) REFERENCES projects(id);
+-- Clés composites (lot 2.3) : le projet d'une inscription est de son association ; une échéance reprend l'association,
+-- le projet et la personne de son inscription (user_id dénormalisé, lu par la RLS souscripteur).
+ALTER TABLE enrollments ADD FOREIGN KEY (project_id, association_id) REFERENCES projects(id, association_id);
 ALTER TABLE enrollments ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE enrollments ADD FOREIGN KEY (withdrawn_by) REFERENCES users(id);
 ALTER TABLE installments ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE installments ADD FOREIGN KEY (project_id) REFERENCES projects(id);
-ALTER TABLE installments ADD FOREIGN KEY (enrollment_id) REFERENCES enrollments(id);
+ALTER TABLE installments ADD FOREIGN KEY (enrollment_id, association_id, project_id, user_id) REFERENCES enrollments(id, association_id, project_id, user_id);
 ALTER TABLE installments ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE payments ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE payments ADD FOREIGN KEY (project_id) REFERENCES projects(id);
@@ -1153,6 +1157,8 @@ CREATE CONSTRAINT TRIGGER payments_allocations_sum AFTER INSERT OR UPDATE ON pay
 -- 4. Échéance : amount_paid + amount_pending ne dépasse jamais amount_due
 ALTER TABLE installments ADD CONSTRAINT installments_no_overcommit CHECK (amount_paid + amount_pending <= amount_due);
 ALTER TABLE installments ADD CONSTRAINT installments_non_negative CHECK (amount_paid >= 0 AND amount_pending >= 0 AND amount_due > 0);
+-- Fonds d'entrée au rang 0, cotisations à partir de 1 (domain-rules § 2, règles 2 et 4).
+ALTER TABLE installments ADD CONSTRAINT installments_kind_sequence CHECK ((kind = 'entry_fee' AND sequence = 0) OR (kind = 'periodic' AND sequence >= 1));
 ALTER TABLE payments ADD CONSTRAINT payments_positive CHECK (amount_declared > 0 AND (amount_received IS NULL OR amount_received > 0));
 ALTER TABLE payments ADD CONSTRAINT payments_proof_or_reference CHECK (proof_file_id IS NOT NULL OR transaction_reference IS NOT NULL);
 
@@ -1164,6 +1170,38 @@ CREATE TRIGGER signatures_append_only BEFORE UPDATE OR DELETE ON contract_signat
 -- TRUNCATE ignore la RLS et les déclencheurs de ligne : refusé aussi au propriétaire et au superutilisateur.
 CREATE TRIGGER audit_no_truncate BEFORE TRUNCATE ON audit_logs FOR EACH STATEMENT EXECUTE FUNCTION forbid_mutation();
 CREATE TRIGGER signatures_no_truncate BEFORE TRUNCATE ON contract_signatures FOR EACH STATEMENT EXECUTE FUNCTION forbid_mutation();
+
+-- 6. Inscriptions et échéances (lot 2.3) : association, projet, inscription et personne ne changent jamais (une ligne
+--    ne passe pas d'un projet ou d'une association à l'autre, même là où une clé composite l'accepterait). Dans
+--    l'espace subscriber, seulement la signature d'une inscription (pending_signature → active, lot 4.1) et la
+--    déclaration sur une échéance (amount_pending, status, lot 3.3) : jamais les montants dus ou versés.
+CREATE FUNCTION guard_enrollment_update() RETURNS trigger LANGUAGE plpgsql AS
+$$ BEGIN
+  IF NEW.id <> OLD.id OR NEW.association_id <> OLD.association_id OR NEW.project_id <> OLD.project_id
+     OR NEW.user_id <> OLD.user_id THEN
+    RAISE EXCEPTION 'forbidden_update' USING ERRCODE = 'P0001';
+  END IF;
+  IF app_space() = 'subscriber' AND (
+       (to_jsonb(NEW) - 'status' - 'activated_at') IS DISTINCT FROM (to_jsonb(OLD) - 'status' - 'activated_at')
+       OR (NEW.status <> OLD.status AND NOT (OLD.status = 'pending_signature' AND NEW.status = 'active'))) THEN
+    RAISE EXCEPTION 'forbidden_update' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER enrollments_guard BEFORE UPDATE ON enrollments FOR EACH ROW EXECUTE FUNCTION guard_enrollment_update();
+CREATE FUNCTION guard_installment_update() RETURNS trigger LANGUAGE plpgsql AS
+$$ BEGIN
+  IF NEW.id <> OLD.id OR NEW.association_id <> OLD.association_id OR NEW.project_id <> OLD.project_id
+     OR NEW.enrollment_id <> OLD.enrollment_id OR NEW.user_id <> OLD.user_id THEN
+    RAISE EXCEPTION 'forbidden_update' USING ERRCODE = 'P0001';
+  END IF;
+  IF app_space() = 'subscriber'
+     AND (to_jsonb(NEW) - 'amount_pending' - 'status') IS DISTINCT FROM (to_jsonb(OLD) - 'amount_pending' - 'status') THEN
+    RAISE EXCEPTION 'forbidden_update' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER installments_guard BEFORE UPDATE ON installments FOR EACH ROW EXECUTE FUNCTION guard_installment_update();
 
 
 -- ---------------------------------------------------------------------

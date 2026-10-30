@@ -1,6 +1,6 @@
 import { associations, memberships } from '@cotiz/db';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
-import { currentTx } from '../../../shared/tenant-context/index.js';
+import { and, asc, countDistinct, eq, inArray, ne, sql } from 'drizzle-orm';
+import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import { asSelf } from '../../../shared/tenant-context/self.js';
 
 // Appartenances de la personne elle-même (architecture/02 ; lot 1.2). Toujours lues « de soi » (asSelf) : les
@@ -102,5 +102,26 @@ export function activeMembershipsOf(userId: string): Promise<ActiveMembership[]>
       .where(and(eq(memberships.userId, userId), eq(memberships.status, 'active')))
       .orderBy(sql`${memberships.joinedAt} ASC NULLS LAST`, asc(memberships.createdAt), asc(memberships.id));
     return rows.map(({ role, title, ...association }) => ({ association, role, title }));
+  });
+}
+
+/**
+ * Nombre d'associations où la personne a une appartenance non retirée, quel que soit le rôle (mb.lookup : « compte
+ * existant », sans détail, choix Q10 du lot 2.3). Lu « de soi » : un contexte d'association ne voit pas les
+ * appartenances d'une personne ailleurs (self_read). Seul cas d'asSelf pour un tiers : `userId` est un compte retrouvé
+ * par le serveur (accountByPhone), jamais une valeur du client, et seul un compte sort de l'espace auth. Contexte d'une
+ * association seulement. Rétablissement du contexte : tenant-context.test.ts (asSelf).
+ */
+export function associationsCountOf(userId: string): Promise<number> {
+  const context = currentContext();
+  if (context?.space !== 'association' || !context.associationId) {
+    return Promise.reject(new Error('associationsCountOf : contexte d’une association attendu'));
+  }
+  return asSelf(userId, async () => {
+    const [row] = await currentTx()
+      .select({ n: countDistinct(memberships.associationId) })
+      .from(memberships)
+      .where(and(eq(memberships.userId, userId), ne(memberships.status, 'removed')));
+    return row?.n ?? 0;
   });
 }

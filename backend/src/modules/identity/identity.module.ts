@@ -7,6 +7,8 @@ import { ListPlatformResetRequestsUseCase } from './application/list-platform-re
 import { LoginUseCase } from './application/login.use-case.js';
 import { LogoutUseCase } from './application/logout.use-case.js';
 import { ManagerAccounts } from './application/manager-accounts.js';
+import { SubscriberActivationCodes } from './application/subscriber-activation-codes.js';
+import { SubscriberAccounts } from './application/subscriber-accounts.js';
 import { RefreshSessionUseCase } from './application/refresh-session.use-case.js';
 import { RequestPasswordResetUseCase } from './application/request-password-reset.use-case.js';
 import { ResetPasswordUseCase } from './application/reset-password.use-case.js';
@@ -31,6 +33,7 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
 @Module({
   controllers: [AuthController, MeController, PlatformResetsController],
   providers: [
+    SubscriberActivationCodes,
     SecretHasher,
     AccessTokenSigner,
     LoginThrottle,
@@ -50,10 +53,11 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     VerifyResetCodeUseCase,
     ResetPasswordUseCase,
     ManagerAccounts,
+    SubscriberAccounts,
     ListPlatformResetRequestsUseCase,
     IssuePlatformResetCodeUseCase,
   ],
   // Garde d'authentification, enregistrée globalement par AppModule ; comptes des gestionnaires (onboarding).
-  exports: [JwtGuard, ManagerAccounts],
+  exports: [JwtGuard, ManagerAccounts, SubscriberAccounts, SubscriberActivationCodes],
 })
 export class IdentityModule {}

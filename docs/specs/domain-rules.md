@@ -28,6 +28,9 @@ Règles :
 4. **Fonds d'entrée** : `sequence = 0`, `kind = entry_fee`, dû à la **première** date périodique du souscripteur.
 5. **Dates fixes** : toutes les dates jusqu'à `endDate` incluse.
 6. **Cycle roulant** : seulement les `horizon` prochaines dates à partir de `enrolledFrom` ; la tâche `schedule.extend-rolling` maintient l'horizon.
+   La tâche (`extendRollingSchedule(input, lastSequence, today)`, lot 2.3) ajoute, à la suite de la dernière échéance
+   générée, les dates manquantes jusqu'à ce que `horizon` échéances soient datées d'aujourd'hui ou plus tard (celle du jour
+   comprise) ; jamais de date antérieure à `enrolledFrom` ni de fonds d'entrée. Vecteurs : `schedule-extend.json`.
 7. **Conditions d'un projet** (pr.create, pr.preview ; lot 2.2) : montants dans la devise de l'association
    (`currency_mismatch`) ; dates fixes : au moins une date périodique dans le projet (`endDate: no_installment`, sinon le
    fonds d'entrée n'aurait pas de date) ; total par souscripteur (fonds d'entrée compris) représentable en entier sûr,

@@ -13,7 +13,7 @@ describe('vueAcces', () => {
     }
     expect(vueAcces(h)).toEqual({
       destinataire: 'Mariam Ouattara', code: 'K7M4-P9QX', expireLe: '2026-10-30T10:00:00Z', message: 'Bonjour Mariam…',
-      whatsapp: 'https://wa.me/2250700000000?text=Bonjour', sms: 'sms:+2250700000000?body=Bonjour', mailto: null,
+      whatsapp: 'https://wa.me/2250700000000?text=Bonjour', sms: 'sms:+2250700000000?body=Bonjour', mailto: null, lien: null,
     })
   })
 })
