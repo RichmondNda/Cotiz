@@ -4,12 +4,14 @@ import { ConfigModule } from '../config.module.js';
 import { AccessCliModule } from '../modules/access/access-cli.module.js';
 import { BillingCliModule } from '../modules/billing/billing-cli.module.js';
 import { IdentityCliModule } from '../modules/identity/identity-cli.module.js';
+import { LedgerCliModule } from '../modules/ledger/ledger.public.js';
 import { MembersCliModule } from '../modules/members/members.public.js';
 import { OnboardingCliModule } from '../modules/onboarding/onboarding-cli.module.js';
 import { ProjectsCliModule } from '../modules/projects/projects-cli.module.js';
 import { TenancyCliModule } from '../modules/tenancy/tenancy-cli.module.js';
 import { CryptoModule } from '../shared/crypto/index.js';
 import { createLogger, LoggingModule } from '../shared/logging/index.js';
+import { StorageModule } from '../shared/storage/index.js';
 import { TenantContextModule } from '../shared/tenant-context/index.js';
 
 /** Contexte Nest des scripts d'exploitation (src/cli.ts) : configuration, journaux, base, cas d'usage. Pas de HTTP. */
@@ -23,6 +25,7 @@ export class CliModule {
         LoggingModule.register(createLogger(config, { name: 'cli' })),
         TenantContextModule,
         CryptoModule,
+        StorageModule,
         IdentityCliModule,
         AccessCliModule,
         TenancyCliModule,
@@ -30,6 +33,7 @@ export class CliModule {
         OnboardingCliModule,
         ProjectsCliModule,
         MembersCliModule,
+        LedgerCliModule,
       ],
     };
   }

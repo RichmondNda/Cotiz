@@ -9,7 +9,10 @@ import { runCli } from '../../src/cli/commands.js';
 import { CreatePlatformOwnerUseCase } from '../../src/modules/identity/application/create-platform-owner.use-case.js';
 import { type Config, loadConfig } from '../../src/config.js';
 import { SeedDevProjectsUseCase } from '../../src/modules/projects/application/seed-dev-projects.use-case.js';
+import { seedDevProof } from '../../src/modules/files/application/seed-dev-proof.js';
+import { SeedDevPaymentsUseCase } from '../../src/modules/ledger/application/seed-dev-payments.use-case.js';
 import { mockId } from '../../src/shared/dev-seed/index.js';
+import { StorageService } from '../../src/shared/storage/index.js';
 import {
   DEV_PASSWORD,
   SeedDevAccountsUseCase,
@@ -31,6 +34,8 @@ class Capture extends Writable {
 describe('CLI : create-platform-owner', () => {
   let h: IsolationHarness;
   let app: INestApplicationContext;
+  /** Dépôts du stockage (MinIO absent des tests) : preuves de paiement de seed-dev, conservés d'un test à l'autre. */
+  const deposits: Parameters<StorageService['putObject']>[] = [];
 
   const run = async (...argv: string[]) => {
     const out = new Capture();
@@ -51,6 +56,10 @@ describe('CLI : create-platform-owner', () => {
       COTIZ_DEV_SEED: '1',
     });
     app = await NestFactory.createApplicationContext(CliModule.register(config), { logger: false });
+    vi.spyOn(app.get(StorageService), 'putObject').mockImplementation((...args) => {
+      deposits.push(args);
+      return Promise.resolve();
+    });
   });
 
   /** Lignes créées par la commande pour cette adresse, toutes tables confondues. */
@@ -588,7 +597,12 @@ describe('CLI : create-platform-owner', () => {
       await h.superuser('DELETE FROM project_payment_methods WHERE project_id = ANY($1::uuid[])', [
         Object.values(PROJECT),
       ]);
-      // Inscriptions de référence (lot 2.3) d'abord : elles pointent vers les projets.
+      // Paiements (lot 2.4) puis inscriptions de référence (lot 2.3) d'abord : ils pointent vers les projets.
+      await h.superuser(
+        'DELETE FROM allocations WHERE payment_id IN (SELECT id FROM payments WHERE project_id = ANY($1::uuid[]))',
+        [Object.values(PROJECT)],
+      );
+      await h.superuser('DELETE FROM payments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('DELETE FROM installments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('DELETE FROM enrollments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('DELETE FROM projects WHERE id = ANY($1::uuid[])', [Object.values(PROJECT)]);
@@ -629,15 +643,16 @@ describe('CLI : create-platform-owner', () => {
       const id = (key: string) => mockId('enrollment', key);
       const byId = new Map(rows.map((r) => [(r as { id: string }).id, r]));
       expect(rows).toHaveLength(7);
-      // Fonds d'entrée + 18 échéances de mars 2026 à août 2027, sans paiement (lot 2.4).
-      for (const key of ['moussa-diarra', 'jean-kouassi', 'awa-kone']) {
+      // Fonds d'entrée + 18 échéances de mars 2026 à août 2027 ; versé : paiements de référence (lot 2.4).
+      const paid = { 'moussa-diarra': 175000, 'jean-kouassi': 212500, 'awa-kone': 200000 };
+      for (const key of ['moussa-diarra', 'jean-kouassi', 'awa-kone'] as const) {
         expect(byId.get(id(`centre-communautaire:${key}`))).toEqual({
           id: id(`centre-communautaire:${key}`),
           status: 'active',
           starts: '2026-03-01',
           lines: 19,
           first: '2026-03-05',
-          paid: 0,
+          paid: paid[key],
         });
       }
       // Entrée le 2 septembre : fonds d'entrée + échéances de septembre 2026 à août 2027.
@@ -661,6 +676,151 @@ describe('CLI : create-platform-owner', () => {
       expect(profiles).toContainEqual({ user_id: mockId('user', 'moussa-diarra'), creator: null });
     });
 
+    it('crée les paiements de référence : soldes des échéances = répartitions, preuves déposées, sans doublon', async () => {
+      const ENTRAIDE = mockId('association', 'entraide-yopougon');
+      const MAN = mockId('association', 'ressortissants-man');
+      const AMINATA = mockId('user', 'aminata-konate');
+      const RESPONSABLE = mockId('user', 'responsable-man');
+      const first = await run('seed-dev');
+      expect(first.status).toBe(0);
+      expect(first.out).toContain('Paiements de référence : 3 en attente, 20 validés');
+      const depositsBefore = deposits.length;
+      const second = await run('seed-dev');
+      expect(second.out).toContain('Paiements de référence : 3 en attente, 20 validés');
+      // Seconde exécution : aucun paiement, aucune répartition, aucun dépôt de plus.
+      expect(deposits.length).toBe(depositsBefore);
+      const { rows: counts } = await h.superuser(
+        `SELECT (SELECT count(*) FROM payments)::int AS payments, (SELECT count(*) FROM allocations)::int AS allocations`,
+      );
+      expect(counts[0]).toEqual({ payments: 23, allocations: 30 });
+
+      // Paiements des données simulées (uid('payment', clé)) pour les inscrits réels, plus l'historique de Jean et
+      // d'Awa (fonds d'entrée à juillet), découpé comme celui de Moussa.
+      const { rows: payments } = await h.superuser(
+        `SELECT id, association_id AS aid, enrollment_id AS eid, amount_declared::int AS amount, status,
+                reviewed_by AS reviewer, payment_method_id AS method, proof_file_id AS proof,
+                transaction_reference AS ref, paid_on::text AS paid_on
+           FROM payments ORDER BY declared_at`,
+      );
+      const payment = (key: string): unknown =>
+        payments.find((p) => (p as { id: string }).id === mockId('payment', key));
+      expect(payment('pm-awa-kone')).toEqual({
+        id: mockId('payment', 'pm-awa-kone'),
+        aid: ENTRAIDE,
+        eid: mockId('enrollment', 'centre-communautaire:awa-kone'),
+        amount: 75000,
+        status: 'pending',
+        reviewer: null,
+        method: mockId('payment-method', 'entraide-0'),
+        proof: mockId('file', 'pm-awa-kone'),
+        ref: null,
+        paid_on: '2026-09-22',
+      });
+      expect(payment('pm-jean-kouassi')).toMatchObject({ status: 'pending', proof: null, ref: '[RÉFÉRENCE]' });
+      expect(payment('pm-ibrahim-toure')).toMatchObject({
+        status: 'pending',
+        proof: mockId('file', 'pm-ibrahim-toure'),
+      });
+      expect(payment('pm-jk-09')).toMatchObject({ amount: 37500, status: 'validated', reviewer: AMINATA });
+      expect(payment('pm-ak-03-c')).toMatchObject({ amount: 75000, status: 'validated', reviewer: AMINATA });
+      expect(payment('pm-md-07-m')).toMatchObject({ aid: MAN, amount: 30000, reviewer: RESPONSABLE, method: null });
+      // Personnes du jeu de référence absentes en réel (Koffi, Kadiatou…) : aucun paiement.
+      expect(payment('pm-kadiatou-sanogo')).toBeUndefined();
+
+      // Invariant du registre : montant payé = Σ répartitions confirmées, en attente = Σ répartitions proposées.
+      const { rows: drift } = await h.superuser(
+        `SELECT i.id FROM installments i
+           LEFT JOIN LATERAL (
+             SELECT coalesce(sum(a.amount) FILTER (WHERE a.state = 'confirmed'), 0) AS paid,
+                    coalesce(sum(a.amount) FILTER (WHERE a.state = 'proposed'), 0) AS pending
+               FROM allocations a WHERE a.installment_id = i.id) s ON true
+          WHERE i.amount_paid <> s.paid OR i.amount_pending <> s.pending
+             OR (i.amount_paid = i.amount_due) <> (i.status = 'paid' AND i.paid_at IS NOT NULL)
+             OR (i.status <> 'paid' AND i.paid_at IS NOT NULL)
+             OR (i.status = 'late') <> (i.late_since IS NOT NULL)
+             OR (i.amount_paid < i.amount_due AND i.amount_pending > 0 AND i.status <> 'declared')`,
+      );
+      expect(drift).toEqual([]);
+      // Situations de docs/specs/seed-reference.yaml (versé, déclaré) par inscription.
+      const { rows: totals } = await h.superuser(
+        `SELECT enrollment_id AS eid, sum(amount_paid)::int AS paid, sum(amount_pending)::int AS pending
+           FROM installments GROUP BY enrollment_id`,
+      );
+      const total = (key: string): unknown =>
+        totals.find((t) => (t as { eid: string }).eid === mockId('enrollment', key));
+      expect(total('centre-communautaire:moussa-diarra')).toMatchObject({ paid: 175000, pending: 0 });
+      expect(total('centre-communautaire:jean-kouassi')).toMatchObject({ paid: 212500, pending: 12500 });
+      expect(total('centre-communautaire:awa-kone')).toMatchObject({ paid: 200000, pending: 75000 });
+      expect(total('voyage-solidaire:ibrahim-toure')).toMatchObject({ paid: 0, pending: 10000 });
+      expect(total('mutuelle-sante:moussa-diarra')).toMatchObject({ paid: 50000, pending: 0 });
+      expect(total('centre-communautaire:fatou-traore')).toMatchObject({ paid: 0, pending: 0 });
+      // Août de Jean payé à moitié, solde déclaré : « déclarée » ; ses échéances soldées sont payées à la validation.
+      const { rows: august } = await h.superuser(
+        `SELECT status, amount_paid::int AS paid, amount_pending::int AS pending FROM installments WHERE id = $1`,
+        [mockId('installment', 'centre-communautaire:jean-kouassi:6')],
+      );
+      expect(august[0]).toEqual({ status: 'declared', paid: 12500, pending: 12500 });
+      const { rows: entry } = await h.superuser(`SELECT status, paid_at FROM installments WHERE id = $1`, [
+        mockId('installment', 'centre-communautaire:awa-kone:0'),
+      ]);
+      expect(entry[0]).toEqual({ status: 'paid', paid_at: new Date('2026-03-06T09:00:00Z') });
+
+      // Preuves : fichiers analysés de l'association, déposés dans le compartiment des preuves (JPEG généré).
+      const { rows: proofs } = await h.superuser(
+        `SELECT id, association_id AS aid, owner_user_id AS owner, purpose, bucket, object_key AS key,
+                original_name AS name, mime_type AS mime, scan_status AS scan, sha256 IS NOT NULL AS hashed
+           FROM files WHERE id = ANY($1::uuid[]) ORDER BY original_name`,
+        [[mockId('file', 'pm-awa-kone'), mockId('file', 'pm-ibrahim-toure')]],
+      );
+      expect(proofs).toEqual([
+        {
+          id: mockId('file', 'pm-ibrahim-toure'),
+          aid: ENTRAIDE,
+          owner: mockId('user', 'ibrahim-toure'),
+          purpose: 'payment_proof',
+          bucket: 'cotiz-proofs',
+          key: `${ENTRAIDE}/payment_proof/${mockId('file', 'pm-ibrahim-toure')}.jpg`,
+          name: '[FICHIER]',
+          mime: 'image/jpeg',
+          scan: 'clean',
+          hashed: true,
+        },
+        expect.objectContaining({ id: mockId('file', 'pm-awa-kone'), name: 'capture_mobile_money.jpg', scan: 'clean' }),
+      ]);
+      const stored = deposits.find(([, key]) => key === (proofs[1] as { key: string }).key);
+      expect(stored?.[0]).toBe('cotiz-proofs');
+      expect(stored?.[3]).toBe('image/jpeg');
+      expect(stored?.[2].subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
+
+      // Relecteurs du jeu de référence : sans connexion possible (désactivés, sans mot de passe).
+      const { rows: reviewers } = await h.superuser(
+        `SELECT u.id, u.status, u.first_name AS first, u.last_name AS last,
+                (SELECT count(*) FROM credentials c WHERE c.user_id = u.id)::int AS credentials,
+                (SELECT array_agg(m.role || ':' || m.status) FROM memberships m WHERE m.user_id = u.id) AS links
+           FROM users u WHERE u.id = ANY($1::uuid[]) ORDER BY u.first_name COLLATE "C"`,
+        [[AMINATA, RESPONSABLE]],
+      );
+      expect(reviewers).toEqual([
+        {
+          id: AMINATA,
+          status: 'disabled',
+          first: 'Aminata',
+          last: 'Konaté',
+          credentials: 0,
+          links: ['manager:removed'],
+        },
+        {
+          id: RESPONSABLE,
+          status: 'disabled',
+          first: '[Responsable]',
+          last: '',
+          credentials: 0,
+          links: ['owner:active'],
+        },
+      ]);
+      expect(first.out).not.toContain('aminata');
+    });
+
     it('refusée hors développement et test, ou sans COTIZ_DEV_SEED=1', async () => {
       for (const config of [
         { NODE_ENV: 'production', COTIZ_DEV_SEED: true },
@@ -671,6 +831,18 @@ describe('CLI : create-platform-owner', () => {
         await expect(new SeedDevProjectsUseCase(config as Config).execute('entraide-yopougon')).rejects.toThrow(
           /COTIZ_DEV_SEED/,
         );
+        // Paiements validés et preuves sans analyse antivirus (lot 2.4) : refusés avant tout accès base ou stockage.
+        await expect(
+          new SeedDevPaymentsUseCase({} as StorageService, config as Config).execute('entraide-yopougon'),
+        ).rejects.toThrow(/COTIZ_DEV_SEED/);
+        await expect(
+          seedDevProof({} as StorageService, config as Config, {
+            id: mockId('file', 'pm-awa-kone'),
+            associationId: mockId('association', 'entraide-yopougon'),
+            ownerUserId: mockId('user', 'awa-kone'),
+            originalName: 'capture_mobile_money.jpg',
+          }),
+        ).rejects.toThrow(/COTIZ_DEV_SEED/);
       }
     });
 

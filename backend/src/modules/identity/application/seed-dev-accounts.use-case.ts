@@ -23,8 +23,11 @@ interface DevAccount {
   firstName: string;
   lastName: string;
   platformRole?: 'owner';
-  /** `pending_activation` : sans mot de passe, un code d'activation à remettre (première connexion). */
-  status: 'active' | 'pending_activation';
+  /**
+   * `pending_activation` : sans mot de passe, un code d'activation à remettre (première connexion). `disabled` : personne
+   * du jeu de référence qui n'a pas à se connecter (relecteur de paiements de seed-dev), sans mot de passe ni code.
+   */
+  status: 'active' | 'pending_activation' | 'disabled';
 }
 
 /**
@@ -81,6 +84,16 @@ const ACCOUNTS: readonly DevAccount[] = [
     lastName: 'Traoré',
     status: 'pending_activation',
   },
+  // Relecteurs des paiements de référence (lot 2.4) : Aminata, gestionnaire retirée d'Entraide ; le responsable de Man.
+  {
+    key: 'aminata-konate',
+    email: 'aminata.konate@entraide-yopougon.ci',
+    phone: null,
+    firstName: 'Aminata',
+    lastName: 'Konaté',
+    status: 'disabled',
+  },
+  { key: 'responsable-man', email: null, phone: null, firstName: '[Responsable]', lastName: '', status: 'disabled' },
 ];
 
 /** Compte prêt : mot de passe connu, ou code d'activation à remettre. */
@@ -118,12 +131,18 @@ export class SeedDevAccountsUseCase {
         ...(account.email ? [eq(users.email, account.email)] : []),
         ...(account.phone ? [eq(users.phoneE164, account.phone)] : []),
       ];
-      // Sans identifiant, `or()` serait vide et lirait toute la table : erreur de la liste ACCOUNTS.
-      if (identifiers.length === 0) throw new Error(`Compte de seed-dev ${account.key} sans email ni téléphone`);
-      const existing = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(or(...identifiers));
+      // Sans identifiant, `or()` serait vide et lirait toute la table : erreur de la liste ACCOUNTS (sauf compte
+      // désactivé, qui ne se connecte jamais).
+      if (identifiers.length === 0 && account.status !== 'disabled') {
+        throw new Error(`Compte de seed-dev ${account.key} sans email ni téléphone`);
+      }
+      const existing =
+        identifiers.length === 0
+          ? []
+          : await tx
+              .select({ id: users.id })
+              .from(users)
+              .where(or(...identifiers));
       const identifier = account.email ?? account.phone ?? account.key;
       if (existing.some((row) => row.id !== id)) {
         // La clé du compte, jamais son email ou son téléphone : le message peut finir dans un journal.
@@ -142,6 +161,15 @@ export class SeedDevAccountsUseCase {
         .insert(users)
         .values({ id, ...identity })
         .onConflictDoUpdate({ target: users.id, set: identity });
+      if (account.status === 'disabled') {
+        recordAudit({
+          entityType: 'user',
+          entityId: id,
+          associationId: null,
+          after: { key: account.key, status: account.status, seed: 'dev' },
+        });
+        continue;
+      }
       const secret = active
         ? { passwordHash, passwordChangedAt: new Date(), failedAttempts: 0, lockedUntil: null }
         : { passwordHash: null, passwordChangedAt: null, failedAttempts: 0, lockedUntil: null };
