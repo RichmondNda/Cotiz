@@ -78,6 +78,8 @@ types/                   types d'interface des écrans (Projet, Souscripteur, Ec
 scripts/, tests/         capture d'écran, tests unitaires (dont conformité des mocks), parcours e2e, cohérence, accessibilité
 ```
 
+- `CzTable` rend ses lignes cliquables par défaut (`cliquable: true`) : en mobile, la carte devient `role="button"`. Si les lignes n'émettent pas `ligne` mais contiennent des boutons, passer `:cliquable="false"` (axe : nested-interactive, bloquant en CI).
+
 ## Données : mocks, contrat et bascule
 
 - Le front n'importe **jamais** un mock directement : il passe par `composables/api/*`. Aucun `$fetch` hors de ce dossier.
