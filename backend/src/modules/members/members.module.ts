@@ -43,5 +43,7 @@ import { PlatformAssociationProjectsUseCase } from './application/platform-assoc
     PlatformAssociationMembersUseCase,
     QuotaService,
   ],
+  // Registre (module ledger) : grille d'un projet.
+  exports: [MemberDirectory],
 })
 export class MembersModule {}

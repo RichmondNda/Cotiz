@@ -39,7 +39,7 @@ Règles :
 Vecteurs : `schedule.json` (15 cas dont 4 erreurs).
 
 ## 3. Reste dû d'une échéance
-`remaining = amountDue − amountPaid − amountPending`. `amountPending` = somme des allocations **proposées** de paiements `pending`. Invariant base : `amountPaid + amountPending ≤ amountDue`.
+`remaining = amountDue − amountPaid − amountPending`, sauf pour une échéance `canceled` (retrait, clôture), dont le reste dû est 0. `amountPending` = somme des allocations **proposées** de paiements `pending`. Invariant base : `amountPaid + amountPending ≤ amountDue`.
 
 Une échéance est **ouverte** si son statut n'est ni `paid`, ni `waived`, ni `canceled`, et si `remaining > 0`.
 
