@@ -11,5 +11,5 @@ export {
   pageOf,
   standingFacets,
 } from './application/member-directory.js';
-export { installmentView } from './application/enrollment-views.js';
+export { installmentsByEnrollment, installmentView } from './application/enrollment-views.js';
 export { associationToday, contextAssociationId } from './application/member-context.js';

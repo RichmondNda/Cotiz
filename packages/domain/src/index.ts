@@ -15,6 +15,8 @@ export { monthlyEquivalent, monthlyRecurringRevenue } from './recurring-revenue.
 export type { RecurringRevenueLine } from './recurring-revenue.js';
 export { excludingPayment, proposeAllocation, remainingOf, validateAllocation } from './allocation.js';
 export type { AllocationIssue, ValidateOptions, ValidationResult } from './allocation.js';
+export { canRevert, REVERT_WINDOW_MS, revertDeadline } from './payment-review.js';
+export type { ReviewedPayment } from './payment-review.js';
 export { enrollmentTotals } from './enrollment-totals.js';
 export type { EnrollmentTotals, TotalsInstallment } from './enrollment-totals.js';
 export { installmentStatus, lateSince, memberStanding, overallStanding, todayIn } from './status.js';
