@@ -1,37 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import type { PaymentDetail, ValidatePaymentInput } from '@cotiz/contracts';
-import { allocations, installments, payments as t, updateWithVersion } from '@cotiz/db';
+import { payments as t, updateWithVersion } from '@cotiz/db';
 import {
   type Allocation,
   byDueOrder,
   type Currency,
   DomainError,
   excludingPayment,
-  installmentStatus,
-  type LedgerInstallment,
-  lateSince,
   Money,
   moveAllocations,
   proposeAllocation,
   validateAllocation,
 } from '@cotiz/domain';
-import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { SubscriberAccounts } from '../../identity/identity.public.js';
 import { associationToday, contextAssociationId } from '../../members/members.public.js';
 import { lockFinancialTerms, projectOf } from '../../projects/projects.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, expectedVersion, requireActor } from '../../../shared/http/index.js';
-import { sqlErrorOf } from '../../../shared/logging/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { allocationProblem } from '../domain/allocation-problem.js';
 import { GetPaymentUseCase } from './get-payment.use-case.js';
-import type { PaymentRecord } from './payment-views.js';
-
-type InstallmentRecord = typeof installments.$inferSelect;
-/** Refus des contrôles différés de la base (check_payment_allocations) : codes du catalogue, jamais un 500. */
-const DEFERRED_CODES = new Set(['allocation_mismatch', 'invalid_state']);
+import {
+  allocationsOf,
+  alreadyReviewed,
+  checkDeferred,
+  insertAllocations,
+  lockInstallments,
+  lockPayment,
+  voidAllocations,
+  writeBalances,
+} from './payment-review.js';
 
 /**
  * lg.pay.validate (architecture/04 § 4.5) : dans une transaction,
@@ -58,15 +59,9 @@ export class ValidatePaymentUseCase {
     const actor = requireActor();
     const version = expectedVersion();
     const associationId = contextAssociationId(aid);
-    const tx = currentTx();
 
-    const [row] = await tx
-      .select()
-      .from(t)
-      .where(and(eq(t.associationId, associationId), eq(t.id, payId)))
-      .for('update');
-    if (row?.associationId !== associationId) throw new DomainProblem('not_found');
-    if (row.status !== 'pending') throw await this.alreadyReviewed(row);
+    const row = await lockPayment(associationId, payId);
+    if (row.status !== 'pending') throw await alreadyReviewed(row, this.accounts);
     if (row.version !== version) throw new DomainProblem('version_conflict');
 
     // Verrous dans l'ordre paiement → projet → échéances par id (04-flows § 4.5), comme en.withdraw et en.create
@@ -74,50 +69,21 @@ export class ValidatePaymentUseCase {
     const project = await projectOf(associationId, row.projectId, { lock: true });
     if (!project) throw new Error(`paiement ${row.id} : projet introuvable`);
     const currency = row.currency as Currency;
-    const own: Allocation[] = (
-      await tx
-        .select({ installmentId: allocations.installmentId, amount: allocations.amount })
-        .from(allocations)
-        .where(
-          and(
-            eq(allocations.associationId, associationId),
-            eq(allocations.paymentId, row.id),
-            eq(allocations.state, 'proposed'),
-          ),
-        )
-    ).map((a) => ({ installmentId: a.installmentId, amount: Money.fromDb(a.amount, currency).amount }));
-    const final = input.allocations
+    const own = await allocationsOf(associationId, row.id, 'proposed', currency);
+    const final: Allocation[] = input.allocations
       ? input.allocations.map((a) => ({
           installmentId: a.installmentId,
           amount: this.amountOf(a.amount, currency, `allocations.${a.installmentId}`),
         }))
       : own;
-    const received = input.amountReceived
-      ? this.amountOf(input.amountReceived, currency, 'amountReceived')
-      : Money.fromDb(row.amountDeclared, currency).amount;
+    const declared = Money.fromDb(row.amountDeclared, currency).amount;
+    const received = input.amountReceived ? this.amountOf(input.amountReceived, currency, 'amountReceived') : declared;
     if (received <= 0) throw new DomainProblem('validation_failed', { fields: { amountReceived: 'invalid_amount' } });
 
-    // Verrous ordonnés : toutes les échéances de l'inscription (reste dû) et celles visées ailleurs (RLS : celles
-    // d'une autre association restent invisibles, donc « pas ouvertes »).
+    // Toutes les échéances de l'inscription (reste dû) et celles visées ailleurs (« pas ouvertes »).
     const finalIds = final.map((a) => a.installmentId);
-    const locked = await tx
-      .select()
-      .from(installments)
-      .where(
-        and(
-          eq(installments.associationId, associationId),
-          or(
-            eq(installments.enrollmentId, row.enrollmentId),
-            finalIds.length === 0 ? undefined : inArray(installments.id, finalIds),
-          ),
-        ),
-      )
-      .orderBy(asc(installments.id))
-      .for('update');
-    const ledger = excludingPayment(
-      locked.map((i) => toLedger(i, currency)),
-      own,
-    );
+    const stored = await lockInstallments(associationId, row.enrollmentId, currency, finalIds);
+    const ledger = excludingPayment(stored, own);
 
     const ofEnrollment = ledger.filter((i) => i.enrollmentId === row.enrollmentId);
     try {
@@ -133,46 +99,14 @@ export class ValidatePaymentUseCase {
     if (!check.ok) throw allocationProblem(check.errors);
 
     // Soldes et statuts : à partir des soldes stockés (le déclaré de ce paiement quitte le montant en attente).
-    const stored = locked.map((i) => toLedger(i, currency));
-    const today = await associationToday(associationId);
     const changed = moveAllocations(stored, { releasePending: own, addPaid: final });
-    await tx
-      .update(allocations)
-      .set({ state: 'voided' })
-      .where(
-        and(
-          eq(allocations.associationId, associationId),
-          eq(allocations.paymentId, row.id),
-          eq(allocations.state, 'proposed'),
-        ),
-      );
-    await tx.insert(allocations).values(
-      final.map((a) => ({
-        associationId,
-        paymentId: row.id,
-        installmentId: a.installmentId,
-        enrollmentId: row.enrollmentId,
-        amount: BigInt(a.amount),
-        state: 'confirmed' as const,
-      })),
-    );
-    for (const i of changed) {
-      const status = installmentStatus(i, today, project.graceDays);
-      await tx
-        .update(installments)
-        .set({
-          amountPaid: BigInt(i.amountPaid),
-          amountPending: BigInt(i.amountPending),
-          status,
-          lateSince: status === 'late' ? lateSince(i, project.graceDays) : null,
-          paidAt: status === 'paid' ? sql`coalesce(${installments.paidAt}, now())` : null,
-        })
-        .where(and(eq(installments.associationId, associationId), eq(installments.id, i.id)));
-    }
+    await voidAllocations(associationId, row.id, 'proposed');
+    await insertAllocations(row, final, 'confirmed');
+    await writeBalances(associationId, changed, await associationToday(associationId), project.graceDays);
 
-    const amountReceived = received === Money.fromDb(row.amountDeclared, currency).amount ? null : received;
+    const amountReceived = received === declared ? null : received;
     const validated = await updateWithVersion(
-      tx,
+      currentTx(),
       t,
       { id: row.id, version },
       {
@@ -189,7 +123,7 @@ export class ValidatePaymentUseCase {
       .filter((i) => finalIds.includes(i.id))
       .sort(byDueOrder)
       .map((i) => i.id);
-    await this.outbox.publish(tx, {
+    await this.outbox.publish(currentTx(), {
       type: 'payment.validated',
       associationId,
       actorUserId: actor.userId,
@@ -208,7 +142,7 @@ export class ValidatePaymentUseCase {
       },
       after: { status: validated.status, version: validated.version, amountReceived, allocations: final },
     });
-    await this.checkDeferred();
+    await checkDeferred();
     return this.getPayment.execute(aid, row.id);
   }
 
@@ -218,43 +152,4 @@ export class ValidatePaymentUseCase {
       throw new DomainProblem('validation_failed', { fields: { [field]: 'currency_mismatch' } });
     return money.amount;
   }
-
-  /** 409 avec le nom de la personne qui a traité le paiement (errors.yaml : reviewerName, paymentStatus). */
-  private async alreadyReviewed(row: PaymentRecord): Promise<DomainProblem> {
-    const reviewer = row.reviewedBy
-      ? (await this.accounts.contactsOf([row.reviewedBy])).get(row.reviewedBy)
-      : undefined;
-    return new DomainProblem('payment_already_reviewed', {
-      reviewerName: reviewer ? `${reviewer.firstName} ${reviewer.lastName}`.trim() : null,
-      paymentStatus: row.status,
-    });
-  }
-
-  /** Contrôles différés (Σ confirmées = montant reçu…) vérifiés avant la fin du cas d'usage, traduits en Problem. */
-  private async checkDeferred(): Promise<void> {
-    try {
-      await currentTx().execute(sql`SET CONSTRAINTS ALL IMMEDIATE`);
-    } catch (error) {
-      const pg = sqlErrorOf(error);
-      if (pg?.code === 'P0001' && DEFERRED_CODES.has(pg.message)) {
-        throw new DomainProblem(pg.message === 'allocation_mismatch' ? 'allocation_mismatch' : 'invalid_state');
-      }
-      throw error;
-    }
-  }
-}
-
-/** Échéance vue par le domaine : montants en entiers de la devise du paiement. */
-function toLedger(i: InstallmentRecord, currency: Currency): LedgerInstallment {
-  return {
-    id: i.id,
-    enrollmentId: i.enrollmentId,
-    kind: i.kind,
-    sequence: i.sequence,
-    dueDate: i.dueDate,
-    amountDue: Money.fromDb(i.amountDue, currency).amount,
-    amountPaid: Money.fromDb(i.amountPaid, currency).amount,
-    amountPending: Money.fromDb(i.amountPending, currency).amount,
-    status: i.status,
-  };
 }

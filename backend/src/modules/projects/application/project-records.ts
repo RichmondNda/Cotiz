@@ -69,6 +69,24 @@ export async function lockFinancialTerms(associationId: string, projectId: strin
     );
 }
 
+/**
+ * Annulation d'une validation (lg.pay.revert, décision C6) : conditions de nouveau modifiables seulement si c'est cette
+ * validation qui les a figées (`lockedAt` = son instant, texte exact de la base : microsecondes comprises) ; l'appelant
+ * vérifie qu'aucun autre paiement du projet n'est validé. Projet déjà verrouillé par la transaction.
+ */
+export async function unlockFinancialTerms(associationId: string, projectId: string, lockedAt: string): Promise<void> {
+  await currentTx()
+    .update(projects)
+    .set({ financialTermsLockedAt: null })
+    .where(
+      and(
+        eq(projects.associationId, associationId),
+        eq(projects.id, projectId),
+        sql`${projects.financialTermsLockedAt} = ${lockedAt}::timestamptz`,
+      ),
+    );
+}
+
 /** Projets de l'association du contexte (RLS) parmi `projectIds`, par identifiant (listes de membres, frise). */
 export async function projectsOf(
   associationId: string,

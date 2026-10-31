@@ -30,6 +30,18 @@ export function lateSince(installment: Pick<InstallmentState, 'dueDate'>, graceD
 }
 
 /**
+ * Date de retard à persister (`installments.late_since`) au jour `today` : un fait daté, pas un statut. Posée dès que
+ * le délai de grâce est dépassé tant que l'échéance n'est ni soldée, ni dispensée, ni annulée, même si son statut
+ * affiché est `declared` (décision du lot 2.4) ; une validation annulée rend donc la date d'avant. Sinon `null`.
+ */
+export function lateSinceOf(installment: InstallmentState, today: IsoDate, graceDays: number): IsoDate | null {
+  const status = installmentStatus(installment, today, graceDays);
+  if (status === 'paid' || status === 'waived' || status === 'canceled') return null;
+  const since = lateSince(installment, graceDays);
+  return today >= since ? since : null;
+}
+
+/**
  * Statut d'une échéance au jour `today` (date dans le fuseau de l'association). Le premier cas qui s'applique gagne :
  * waived/canceled persistés, paid, declared, late, partial, due, upcoming.
  */

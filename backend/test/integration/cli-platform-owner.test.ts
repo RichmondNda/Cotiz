@@ -737,7 +737,9 @@ describe('CLI : create-platform-owner', () => {
           WHERE i.amount_paid <> s.paid OR i.amount_pending <> s.pending
              OR (i.amount_paid = i.amount_due) <> (i.status = 'paid' AND i.paid_at IS NOT NULL)
              OR (i.status <> 'paid' AND i.paid_at IS NOT NULL)
-             OR (i.status = 'late') <> (i.late_since IS NOT NULL)
+             OR (i.status = 'late' AND i.late_since IS NULL)
+             -- late_since : fait daté, gardé sous declared (lateSinceOf, lot 2.4)
+             OR (i.late_since IS NOT NULL AND i.status NOT IN ('late', 'declared'))
              OR (i.amount_paid < i.amount_due AND i.amount_pending > 0 AND i.status <> 'declared')`,
       );
       expect(drift).toEqual([]);

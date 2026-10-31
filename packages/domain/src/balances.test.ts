@@ -66,8 +66,10 @@ describe('moveAllocations (soldes des échéances, architecture/04 § 4.5)', () 
 
   /**
    * Registre en mémoire : déclarations (proposeAllocation), validations (répartition du souscripteur ou ajustée,
-   * contrôlée par validateAllocation sur les échéances hors ce paiement) et rejets, soldes tenus par moveAllocations.
-   * Après chaque opération : soldes stockés = soldes recalculés depuis les répartitions, et 0 ≤ versé + en attente ≤ dû.
+   * contrôlée par validateAllocation sur les échéances hors ce paiement), rejets et annulations de validation (la
+   * déclaration est reproposée ; refusée si elle ne rentre plus), soldes tenus par moveAllocations.
+   * Après chaque opération : soldes stockés = soldes recalculés depuis les répartitions, et 0 ≤ versé + en attente ≤ dû ;
+   * une annulation juste après sa validation rend les soldes d'avant.
    */
   it('100 000 registres aléatoires : soldes stockés = soldes recalculés depuis les répartitions', () => {
     interface Payment {
@@ -77,7 +79,7 @@ describe('moveAllocations (soldes des échéances, architecture/04 § 4.5)', () 
       confirmed: Allocation[];
     }
     const op = fc.record({
-      kind: fc.constantFrom('declare', 'declare', 'validate', 'validate', 'reject'),
+      kind: fc.constantFrom('declare', 'declare', 'validate', 'validate', 'reject', 'revert'),
       amount: fc.integer({ min: 1, max: 80_000 }),
       pick: fc.nat(),
       adjust: fc.boolean(),
@@ -96,9 +98,29 @@ describe('moveAllocations (soldes des échéances, architecture/04 § 4.5)', () 
           stored = stored.map((x) => changed.find((c) => c.id === x.id) ?? x);
         };
 
+        let lastValidated: { payment: Payment; before: LedgerInstallment[] } | undefined;
         for (const o of ops) {
           const pending = payments.filter((p) => p.state === 'pending');
-          if (o.kind === 'declare') {
+          const validated = payments.filter((p) => p.state === 'validated');
+          if (o.kind === 'revert') {
+            const p = validated[o.pick % Math.max(validated.length, 1)];
+            if (!p) continue;
+            let changed: LedgerInstallment[];
+            try {
+              changed = moveAllocations(stored, { releasePaid: p.confirmed, addPending: p.proposed });
+            } catch {
+              continue; // la déclaration ne rentre plus : invalid_state
+            }
+            store(changed);
+            p.state = 'pending';
+            p.confirmed = [];
+            if (lastValidated?.payment === p && JSON.stringify(stored) !== JSON.stringify(lastValidated.before)) {
+              throw new Error(
+                `annulation : ${JSON.stringify(stored)} au lieu de ${JSON.stringify(lastValidated.before)}`,
+              );
+            }
+            lastValidated = undefined;
+          } else if (o.kind === 'declare') {
             let proposed: Allocation[];
             try {
               proposed = proposeAllocation(o.amount, stored);
@@ -107,12 +129,14 @@ describe('moveAllocations (soldes des échéances, architecture/04 § 4.5)', () 
             }
             payments.push({ amount: o.amount, state: 'pending', proposed, confirmed: [] });
             store(moveAllocations(stored, { addPending: proposed }));
+            lastValidated = undefined;
           } else if (pending.length > 0) {
             const p = pending[o.pick % pending.length];
             if (!p) continue;
             if (o.kind === 'reject') {
               store(moveAllocations(stored, { releasePending: p.proposed }));
               p.state = 'rejected';
+              lastValidated = undefined;
               continue;
             }
             const view = excludingPayment(stored, p.proposed);
@@ -127,6 +151,7 @@ describe('moveAllocations (soldes des échéances, architecture/04 § 4.5)', () 
               }
             }
             if (!validateAllocation(received, final, view, { enrollmentId: 'e1' }).ok) continue;
+            lastValidated = { payment: p, before: stored };
             store(moveAllocations(stored, { releasePending: p.proposed, addPaid: final }));
             p.state = 'validated';
             p.confirmed = final;

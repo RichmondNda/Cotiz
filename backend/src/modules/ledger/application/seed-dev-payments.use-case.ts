@@ -3,7 +3,7 @@ import { allocations, associationPaymentMethods, enrollments, installments, paym
 import {
   type Currency,
   installmentStatus,
-  lateSince,
+  lateSinceOf,
   type LedgerInstallment,
   Money,
   todayIn,
@@ -339,7 +339,7 @@ export class SeedDevPaymentsUseCase {
           amountPaid: BigInt(amountPaid),
           amountPending: BigInt(amountPending),
           status,
-          lateSince: status === 'late' ? lateSince(line, ctx.project.graceDays) : null,
+          lateSince: lateSinceOf({ ...line, amountPaid, amountPending }, ctx.today, ctx.project.graceDays),
           paidAt: status === 'paid' ? reviewedAt : null,
         })
         .where(eq(installments.id, line.id));
