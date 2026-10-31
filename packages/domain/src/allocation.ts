@@ -27,7 +27,7 @@ function assertInstallment(x: LedgerInstallment): void {
 }
 
 /** Date d'échéance croissante, fonds d'entrée avant mensualité à date égale, puis séquence (§ 4.2). */
-function byDueOrder(a: LedgerInstallment, b: LedgerInstallment): number {
+export function byDueOrder(a: LedgerInstallment, b: LedgerInstallment): number {
   if (a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
   if (a.kind !== b.kind) return a.kind === 'entry_fee' ? -1 : 1;
   return a.sequence - b.sequence;

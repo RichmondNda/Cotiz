@@ -1,7 +1,7 @@
 import type { Project, ProjectPaymentMethod, ProjectSummary } from '@cotiz/contracts';
 import { projectPaymentMethods, projects } from '@cotiz/db';
 import { type Currency, extendRollingSchedule, type IsoDate, Money, type ScheduleLine } from '@cotiz/domain';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
 import { ownAssociationOf, paymentMethodsOf } from '../../tenancy/tenancy.public.js';
@@ -50,6 +50,23 @@ export async function projectOf(
         ? query.for('no key update')
         : query);
   return row ?? null;
+}
+
+/**
+ * Conditions financières du projet figées au premier paiement validé (domain-rules § 9, architecture/04 § 4.5) : date
+ * posée une seule fois, dans la transaction de la validation, qui a déjà verrouillé le projet.
+ */
+export async function lockFinancialTerms(associationId: string, projectId: string): Promise<void> {
+  await currentTx()
+    .update(projects)
+    .set({ financialTermsLockedAt: sql`now()` })
+    .where(
+      and(
+        eq(projects.associationId, associationId),
+        eq(projects.id, projectId),
+        isNull(projects.financialTermsLockedAt),
+      ),
+    );
 }
 
 /** Projets de l'association du contexte (RLS) parmi `projectIds`, par identifiant (listes de membres, frise). */

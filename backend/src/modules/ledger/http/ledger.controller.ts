@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import {
   AssociationParams,
   GridQuery,
@@ -6,14 +6,16 @@ import {
   PaymentParams,
   PaymentsQuery,
   ProjectParams,
+  ValidatePaymentInput,
 } from '@cotiz/contracts';
 import { Can, Endpoint, parseInput } from '../../../shared/http/index.js';
 import { GetInstallmentUseCase } from '../application/get-installment.use-case.js';
 import { GetPaymentUseCase } from '../application/get-payment.use-case.js';
 import { ListPaymentsUseCase } from '../application/list-payments.use-case.js';
 import { ProjectGridUseCase } from '../application/project-grid.use-case.js';
+import { ValidatePaymentUseCase } from '../application/validate-payment.use-case.js';
 
-/** Registre d'une association (lg.*) : grille, échéances, paiements ; association lue dans l'URL (MembershipGuard). */
+/** Registre d'une association (lg.*) : grille, échéances, paiements et leur validation ; association lue dans l'URL (MembershipGuard). */
 @Controller('associations/:aid')
 export class LedgerController {
   constructor(
@@ -21,6 +23,7 @@ export class LedgerController {
     private readonly getInstallment: GetInstallmentUseCase,
     private readonly listPayments: ListPaymentsUseCase,
     private readonly getPayment: GetPaymentUseCase,
+    private readonly validatePayment: ValidatePaymentUseCase,
   ) {}
 
   @Get('projects/:pid/grid')
@@ -53,5 +56,14 @@ export class LedgerController {
   payment(@Param() params: unknown) {
     const { aid, payId } = parseInput(PaymentParams, params);
     return this.getPayment.execute(aid, payId);
+  }
+
+  @Post('payments/:payId/validate')
+  @HttpCode(200)
+  @Endpoint('lg.pay.validate', 'validate')
+  @Can('payments.review')
+  validate(@Param() params: unknown, @Body() body: unknown) {
+    const { aid, payId } = parseInput(PaymentParams, params);
+    return this.validatePayment.execute(aid, payId, parseInput(ValidatePaymentInput, body));
   }
 }
