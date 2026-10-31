@@ -1,7 +1,7 @@
 import type { Project, ProjectPaymentMethod, ProjectSummary } from '@cotiz/contracts';
 import { projectPaymentMethods, projects } from '@cotiz/db';
 import { type Currency, extendRollingSchedule, type IsoDate, Money, type ScheduleLine } from '@cotiz/domain';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
 import { ownAssociationOf, paymentMethodsOf } from '../../tenancy/tenancy.public.js';
@@ -85,6 +85,20 @@ export async function unlockFinancialTerms(associationId: string, projectId: str
         sql`${projects.financialTermsLockedAt} = ${lockedAt}::timestamptz`,
       ),
     );
+}
+
+/**
+ * Tous les projets d'une association, verrouillés en partage par identifiant croissant (tâche quotidienne des statuts,
+ * espace system) : mêmes verrous que l'inscription, avant les échéances ; une relecture de paiement (FOR NO KEY
+ * UPDATE) attend, ou est attendue.
+ */
+export async function lockAssociationProjects(associationId: string): Promise<ProjectRecord[]> {
+  return currentTx()
+    .select()
+    .from(projects)
+    .where(eq(projects.associationId, associationId))
+    .orderBy(asc(projects.id))
+    .for('share');
 }
 
 /** Projets de l'association du contexte (RLS) parmi `projectIds`, par identifiant (listes de membres, frise). */

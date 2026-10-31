@@ -77,6 +77,10 @@ Ordre d'évaluation (le premier qui s'applique gagne) :
 6. `today ≥ dueDate` → `due`.
 7. sinon → `upcoming`.
 
+`late_since` persisté (`lateSinceOf`) : `dueDate + graceDays + 1 jour` dès que cette date est atteinte, tant que l'échéance
+n'est ni soldée, ni dispensée, ni annulée, **y compris sous `declared`** (fait daté, pas un statut : une validation annulée
+ou un rejet rend la même date) ; sinon `null`.
+
 `today` est la date **dans le fuseau de l'association** (`Africa/Abidjan` par défaut). Correspondance avec les badges : `status-mapping.yaml`. Vecteurs : `status.json`.
 
 ## 7. Situation d'un souscripteur sur un projet — `memberStanding(enrollmentStatus, installmentStatuses)`

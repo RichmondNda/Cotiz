@@ -23,6 +23,12 @@ export function todayIn(timeZone = 'Africa/Abidjan', now: Date = new Date()): Is
   return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
 }
 
+/** Heure (0–23) dans le fuseau de l'association à l'instant `now` : tâches quotidiennes « à 01:00 locale ». */
+export function hourIn(timeZone: string, now: Date): number {
+  const hour = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(now);
+  return Number.parseInt(hour, 10);
+}
+
 /** Premier jour de retard : échéance + délai de grâce + 1 jour. */
 export function lateSince(installment: Pick<InstallmentState, 'dueDate'>, graceDays: number): IsoDate {
   assertGraceDays(graceDays);

@@ -1,6 +1,14 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { installmentStatus, lateSince, lateSinceOf, memberStanding, overallStanding, todayIn } from './index.js';
+import {
+  hourIn,
+  installmentStatus,
+  lateSince,
+  lateSinceOf,
+  memberStanding,
+  overallStanding,
+  todayIn,
+} from './index.js';
 import type { InstallmentState, InstallmentStatus, LedgerInstallment } from './index.js';
 import { loadVectors } from './test-vectors.js';
 
@@ -76,6 +84,16 @@ describe('lateSince', () => {
         expect(installmentStatus(x, before.toISOString().slice(0, 10), grace)).toBe('due');
       }),
     );
+  });
+});
+
+describe('hourIn', () => {
+  it('heure locale du fuseau, minuit = 0, heure d’été comprise', () => {
+    expect(hourIn('Africa/Abidjan', new Date('2026-03-11T01:30:00Z'))).toBe(1);
+    expect(hourIn('Africa/Abidjan', new Date('2026-03-11T00:00:00Z'))).toBe(0);
+    expect(hourIn('Europe/Paris', new Date('2026-03-21T00:00:00Z'))).toBe(1);
+    expect(hourIn('Europe/Paris', new Date('2026-07-01T23:00:00Z'))).toBe(1);
+    expect(hourIn('America/New_York', new Date('2026-11-06T06:00:00Z'))).toBe(1);
   });
 });
 

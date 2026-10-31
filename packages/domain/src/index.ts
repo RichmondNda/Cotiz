@@ -21,7 +21,15 @@ export { moveAllocations } from './balances.js';
 export type { AllocationMoves } from './balances.js';
 export { enrollmentTotals } from './enrollment-totals.js';
 export type { EnrollmentTotals, TotalsInstallment } from './enrollment-totals.js';
-export { installmentStatus, lateSince, lateSinceOf, memberStanding, overallStanding, todayIn } from './status.js';
+export {
+  hourIn,
+  installmentStatus,
+  lateSince,
+  lateSinceOf,
+  memberStanding,
+  overallStanding,
+  todayIn,
+} from './status.js';
 export type {
   Allocation,
   EnrollmentStatus,
