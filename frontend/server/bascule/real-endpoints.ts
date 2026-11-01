@@ -82,4 +82,13 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['mb.patch', 'all'],
   ['mb.timeline', 'all'],
   ['pf.asso.sub', 'all'],
+  // Lot 2.4 : registre (grille d'un projet, détail d'une échéance), file et détail des paiements, validation, rejet et
+  // annulation d'une validation.
+  ['lg.grid', 'all'],
+  ['lg.inst', 'all'],
+  ['lg.pay.list', 'all'],
+  ['lg.pay.get', 'all'],
+  ['lg.pay.validate', 'all'],
+  ['lg.pay.reject', 'all'],
+  ['lg.pay.revert', 'all'],
 ])

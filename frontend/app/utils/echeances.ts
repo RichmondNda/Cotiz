@@ -47,7 +47,7 @@ const deMois = (e: Pick<Echeance, 'date' | 'rang' | 'estFondsEntree'>) => {
  */
 export function couverturePaiement(
   paiement: { statut: string, repartition: { echeanceId: string, montantAffecte: number }[] },
-  echeances: Map<string, Pick<Echeance, 'date' | 'rang' | 'estFondsEntree' | 'montant' | 'statut'>>,
+  echeances: Map<string, Pick<Echeance, 'date' | 'rang' | 'estFondsEntree' | 'montant' | 'montantPaye' | 'statut'>>,
   formatMontant: (n: number) => string,
 ): string {
   const parts = paiement.repartition
@@ -60,8 +60,9 @@ export function couverturePaiement(
   const morceaux: string[] = []
   if (completes.length) morceaux.push(completes.map(x => moisCourt(x.e)).join(', '))
   for (const x of partielles) {
-    // Paiement en attente sur une échéance déjà partiellement payée : il en solde le reste.
-    morceaux.push(paiement.statut === 'en_attente' && x.e.statut === 'partielle'
+    // Paiement en attente sur une échéance déjà partiellement payée (statut `declared` côté back, domain-rules § 6 :
+    // le montant versé fait foi, pas le statut) : il en solde le reste.
+    morceaux.push(paiement.statut === 'en_attente' && x.e.montantPaye > 0 && x.e.montantPaye + x.r.montantAffecte >= x.e.montant
       ? `solde ${deMois(x.e)}`
       : `${formatMontant(x.r.montantAffecte)} ${moisCourt(x.e)}`)
   }
@@ -75,7 +76,7 @@ export function couverturePaiement(
  */
 export function couvertureFile(
   paiement: { statut: string, repartition: { echeanceId: string, montantAffecte: number }[] },
-  echeances: Pick<Echeance, 'id' | 'date' | 'rang' | 'estFondsEntree' | 'montant' | 'statut'>[],
+  echeances: Pick<Echeance, 'id' | 'date' | 'rang' | 'estFondsEntree' | 'montant' | 'montantPaye' | 'statut'>[],
   formatMontant: (n: number) => string,
   options: { annee?: boolean } = {},
 ): string {

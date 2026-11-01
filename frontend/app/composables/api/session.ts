@@ -57,8 +57,13 @@ export const useCompteursNavigation = () => {
     if (!role.value) return compteurs
     compteurs.notificationsNonLues = (await client.call('nt.list', 'unreadCount')).count
     if (role.value === 'gestionnaire') {
-      const tdb = await client.call('as.dashboard', 'get', { params: { aid: await associationCourante(client) } })
-      compteurs.paiementsAValider = tdb.paymentsToReview.count
+      const aid = await associationCourante(client)
+      // Paiements à valider : la file réelle (lg.pay.list, lot 2.4), pas le tableau de bord encore simulé.
+      const [tdb, file] = await Promise.all([
+        client.call('as.dashboard', 'get', { params: { aid } }),
+        client.call('lg.pay.list', 'list', { params: { aid }, query: { status: 'pending', limit: 1 } }),
+      ])
+      compteurs.paiementsAValider = file.total
       compteurs.souscripteursEnRetard = tdb.lateSubscribers.count
     }
     // Demandes en attente : la file réelle (pf.req.list), pas le tableau de bord (lot 1.4).

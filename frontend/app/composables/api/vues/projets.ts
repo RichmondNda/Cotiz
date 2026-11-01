@@ -67,6 +67,7 @@ export function vueProjet(p: ProjectSummary | Project, x: ExtrasProjet): Projet 
     nbEnRetard: s.lateSubscribersCount,
     nbSignaturesAttendues: s.pendingSignaturesCount,
     nbPaiementsAValider: s.pendingPaymentsCount,
+    financementVerrouille: p.financialTermsLockedAt !== null,
     ...(s.nextDueDate ? { prochaineEcheance: s.nextDueDate } : {}),
     ...(s.totalPerSubscriber ? { engagementParSouscripteur: m(s.totalPerSubscriber) } : {}),
     ...(x.apercu ? { apercuSouscripteurs: x.apercu } : {}),

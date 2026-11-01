@@ -47,6 +47,8 @@ export interface Projet {
   nbEnRetard: number
   nbSignaturesAttendues: number
   nbPaiementsAValider: number
+  /** Conditions financières figées au premier paiement validé (`financialTermsLockedAt`). */
+  financementVerrouille?: boolean
   prochaineEcheance?: DateISO
   /** Engagement total par souscripteur (dates fixes) : fonds d'entrée + n × échéance. */
   engagementParSouscripteur?: MontantFCFA

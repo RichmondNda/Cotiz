@@ -359,7 +359,7 @@ screens:
   - lg.inst
   - lg.pay.list
   - lg.pay.validate
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-projet-contrat
   space: manager
   title: Détail projet — Contrat
@@ -446,7 +446,7 @@ screens:
   completeAtLot: '2.4'
   endpoints:
   - lg.pay.list
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-paiement-detail
   space: manager
   title: Détail d'un paiement déclaré
@@ -462,7 +462,7 @@ screens:
   - lg.pay.validate
   - lg.pay.reject
   - lg.pay.revert
-  uiDeviations: 0
+  uiDeviations: 1
 - id: mg-annuaire
   space: manager
   title: Annuaire des souscripteurs
