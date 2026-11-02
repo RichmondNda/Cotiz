@@ -19,3 +19,6 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   dans `/usr/bin`, donc sudo). · Version imposée par `packageManager` ; rien à modifier sur le système.
 - **2026-11-02** · emplacement des notes — Notes dans `.claude/notes/`, versionnées (le `.gitignore` n'exclut que
   `.claude/settings.local.json`). · Demande explicite ; versionner permet de les retrouver sur toute machine.
+- **2026-11-02** · nuxt 4.6.4 — Branche `chore/nuxt-4.6.4` depuis `origin/backend` (pas un lot, d'où `chore/`) ; nouvelle date de
+  réexamen de l'ADR 0016 fixée au 2026-12-07 (environ un mois, comme les révisions précédentes). `/verifier-ecran` non lancé :
+  montée de correctif sans bascule, et le serveur MCP chrome-devtools ne se connectait pas.
