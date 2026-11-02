@@ -7,18 +7,18 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - **2026-11-02** · lot 2.4, revue humaine ligne à ligne de la transaction de validation (`lg.pay.validate`,
   `backend/src/modules/ledger/application/`) — à faire par un humain. Le lot est marqué `terminé` sous cette réserve.
   · Confirmer la revue.
-- **2026-11-02** · accès Docker — `dev` n'est pas dans le groupe `docker` : les tests base, intégration et isolation ne tournent pas
-  en local, et la démonstration locale est impossible. · Lancer `sudo usermod -aG docker dev`, puis ouvrir une nouvelle session.
-  Revérifié le 2026-11-02 : toujours non (`id -nG` → `dev sudo users`, `docker ps` → permission denied).
 
 ## Demandes d'accord (actions sensibles)
 
 - **2026-11-02** · `git push` de `chore/notes-claude` (vers GitHub, puis PR vers `backend`) — Non fait : l'utilisateur doit le demander.
 - **2026-11-02** · `git push` de `chore/nuxt-4.6.4` (commit `9db93b2`, part de `origin/backend`), puis PR vers `backend`
-  — Non fait : à demander. Les tests base, intégration et isolation n'ont pas tourné en local (pas de Docker) : la CI les jouera.
+  — Non fait : à demander. `pnpm verify` complet vert en local (voir « Tranché »).
 
 ## Tranché
 
+- **2026-11-02** · accès Docker → `dev` ajouté au groupe `docker` (`getent group docker`). En attendant une nouvelle session,
+  passer par `sg docker -c "<commande>"`. `pnpm verify` sur `chore/nuxt-4.6.4` : tout vert sauf `enrollment-create`,
+  tombé au démarrage (`Lock is not acquired/owned by you`, verrou du reaper testcontainers) ; relancé seul : 41/41.
 - **2026-11-02** · ADR 0016 → feu vert pour nuxt 4.6.4 : fait sur `chore/nuxt-4.6.4`. Aucune GHSA retirable ; chemin
   `nitropack > @vercel/nft > glob` ajouté à l'ADR ; prochain réexamen au plus tard le 2026-12-07.
 - **2026-11-02** · décision 11 (`due` affiché « À venir ») → adoptée, `docs/decisions.md` mis à jour.

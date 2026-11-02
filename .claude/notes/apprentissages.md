@@ -74,3 +74,6 @@ Format : **date** · contexte — apprentissage. *Source.*
   (port 3000). Tests unitaires : `frontend/tests/unit/**/*.test.ts`. *`.github/workflows/ci.yml`, `frontend/vitest.config.ts`.*
 - **2026-11-02** · exploration initiale — Pas de `README.md` à la racine ; `frontend/README.md` est le gabarit Nuxt complété d'une
   section « Vérifications de la V0 ». Le point d'entrée de la doc est `docs/README.md`. *`ls`, `frontend/README.md`.*
+- **2026-11-02** · Tests d'intégration du back : `pnpm verify` dure environ 15 min (121 fichiers, un conteneur par suite). Une suite peut tomber
+  au démarrage sur `Lock is not acquired/owned by you` (`proper-lockfile` dans `testcontainers/build/reaper`) : course au verrou
+  du reaper, pas un échec du test. Relancer le fichier seul (`pnpm exec vitest run <fichier>` dans `backend/`). Source : verify du 2026-11-02.
