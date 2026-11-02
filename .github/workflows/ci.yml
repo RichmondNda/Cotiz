@@ -181,8 +181,9 @@ jobs:
           done
           cat dev.log
           exit 1
-      - run: pnpm --filter frontend e2e
+      # Cohérence avant les parcours : le parcours gestionnaire valide en vrai le paiement d'Awa (lot 2.4).
       - run: pnpm --filter frontend coherence
+      - run: pnpm --filter frontend e2e
       - run: pnpm --filter frontend a11y
         env:
           # Runner à 2 cœurs : 4 pages en parallèle sur le serveur de dev dépassaient le délai de navigation.

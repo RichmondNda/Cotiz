@@ -1,5 +1,6 @@
 // Cohérence des données entre espaces (lot 09) : un même souscripteur, un même projet affichent les mêmes montants
 // sur tous les écrans. Chaque ligne : [rôle, route, textes attendus]. Données de référence (store réinitialisé).
+// Le vrai back n'est pas réinitialisé : lancer avant les parcours (tests/e2e/parcours.mjs valide le paiement d'Awa).
 //   node tests/e2e/coherence.mjs
 import { chromium } from 'playwright'
 import { BASE, texte } from './outils.mjs'
