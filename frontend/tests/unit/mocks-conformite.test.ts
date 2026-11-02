@@ -88,9 +88,7 @@ const READS: Record<string, Call> = {
   'pf.invoices list': {}, 'pf.staff list': {},
   'as.dashboard get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
-  'rp.report get': { params: P }, 'lg.grid get': { params: P },
-  'lg.inst get': { params: { aid, iid: uid('installment', 'centre-communautaire:moussa-diarra:7') } },
-  'lg.pay.list list': { params: { aid }, query: { status: 'all' } }, 'lg.pay.get get': { params: { aid, payId: uid('payment', 'pm-awa-kone') } },
+  'rp.report get': { params: P },
   'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
   'me.dash get': {}, 'me.projects list': {}, 'me.project get': { params: { pid: ID.centre } },
   'me.payment get': { params: { id: uid('payment', 'pm-md-07-c') } }, 'me.history list': {}, 'me.history series': {},
@@ -110,9 +108,6 @@ const WRITES: Record<string, () => Call> = {
   'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
   'ct.get update': () => ({ params: { aid, pid: ID.tontine }, body: { bodyTemplate: 'Texte', signerName: 'Awa Koné', signerTitle: 'trésorière' }, ifMatch: 1 }),
   'ct.get lock': () => ({ params: { aid, pid: ID.tontine }, ifMatch: 1 }),
-  'lg.pay.validate validate': () => ({ params: { aid, payId: uid('payment', 'pm-awa-kone') }, body: {}, ifMatch: 1 }),
-  'lg.pay.reject reject': () => ({ params: { aid, payId: uid('payment', 'pm-awa-kone') }, body: { reasonCode: 'unreadable_proof' }, ifMatch: 1 }),
-  'lg.pay.revert revert': () => ({ params: { aid, payId: uid('payment', 'pm-awa-kone') }, setup: () => call('lg.pay.validate', 'validate', { params: { aid, payId: uid('payment', 'pm-awa-kone') }, body: {}, ifMatch: 1 }) } as Call),
   'rm.rules create': () => ({ params: { aid }, body: { projectId: null, trigger: 'after_due', offsetDays: 30, channels: ['in_app'], message: 'Rappel', isActive: true } }),
   'rm.rules patch': () => ({ params: { aid, id: uid('reminder-rule', 'jour-j') }, body: { isActive: false } }),
   'rm.queue handled': () => ({ params: { aid, id: uid('reminder-run', `queue-${uid('installment', 'centre-communautaire:moussa-diarra:6')}`) }, body: { outcome: 'handled' } }),
@@ -213,11 +208,6 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
     expect(r.rows.map(x => x.lateCount).filter(n => n > 0)).toEqual([])
   })
 
-  it('file-vide : aucun paiement à valider', async () => {
-    const l = await call('lg.pay.list', 'list', { params: { aid }, scenario: 'file-vide' }) as { items: unknown[] }
-    expect(l.items).toEqual([])
-  })
-
   it('un scénario ne modifie jamais le jeu', async () => {
     const avant = JSON.stringify(db)
     await call('me.dash', 'get', { scenario: 'tout-est-paye' })
@@ -232,18 +222,11 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
     return e.code
   }
 
-  it('scénarios : allocation_mismatch, quota_exceeded, version_conflict, association_suspended, payment_already_reviewed', async () => {
+  it('scénarios : allocation_mismatch, quota_exceeded, version_conflict, association_suspended', async () => {
     expect(await problem('me.declare', 'declare', { ...WRITES['me.declare declare']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
-    expect(await problem('lg.pay.validate', 'validate', { ...WRITES['lg.pay.validate validate']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
     expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
     expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), scenario: 'version_conflict' })).toBe('version_conflict')
     expect(await problem('as.dashboard', 'get', { ...READS['as.dashboard get'], scenario: 'association_suspended' })).toBe('association_suspended')
-    expect(await problem('lg.pay.reject', 'reject', { ...WRITES['lg.pay.reject reject']!(), scenario: 'payment_already_reviewed' })).toBe('payment_already_reviewed')
-  })
-
-  it('valider deux fois le même paiement → payment_already_reviewed', async () => {
-    await call('lg.pay.validate', 'validate', WRITES['lg.pay.validate validate']!())
-    expect(await problem('lg.pay.validate', 'validate', { ...WRITES['lg.pay.validate validate']!(), ifMatch: 2 })).toBe('payment_already_reviewed')
   })
 
   it('If-Match périmé → version_conflict', async () => {
@@ -273,34 +256,12 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 })
 
 describe('mutations : état en mémoire', () => {
-  it('déclarer puis valider : les échéances d’août et septembre de Moussa passent payées', async () => {
+  it('déclarer : paiement en attente, plus de retard affiché (la validation est servie par NestJS depuis le lot 2.4)', async () => {
     const declared = await call('me.declare', 'declare', WRITES['me.declare declare']!()) as { id: string, status: string }
     expect(declared.status).toBe('pending')
-    let dash = await call('me.dash', 'get') as { late: unknown, remainingTotal: { amount: number } }
+    const dash = await call('me.dash', 'get') as { late: unknown }
     expect(dash.late).toBeNull()
-    await call('lg.pay.validate', 'validate', { params: { aid, payId: declared.id }, body: {}, ifMatch: 1 })
-    dash = await call('me.dash', 'get') as { late: unknown, remainingTotal: { amount: number } }
-    expect(dash.remainingTotal.amount).toBe(345000)
     expect(firstPending()).toBeDefined()
-  })
-
-  it('valider avec une répartition ajustée puis annuler : la répartition déclarée est reproposée, rien n’est supprimé', async () => {
-    const payId = uid('payment', 'pm-awa-kone')
-    const awa = (seq: number) => uid('installment', `centre-communautaire:awa-kone:${seq}`)
-    const avant = db.allocations.length
-    // Montant reçu 50 000 F au lieu de 75 000 F : septembre et octobre seulement.
-    await call('lg.pay.validate', 'validate', { params: { aid, payId }, ifMatch: 1, body: {
-      amountReceived: money(50000), allocations: [{ installmentId: awa(7), amount: money(25000) }, { installmentId: awa(8), amount: money(25000) }],
-    } })
-    expect(db.installments.find(i => i.id === awa(7))!.amountPaid).toBe(25000)
-    expect(db.projects.find(p => p.id === ID.centre)!.financialTermsLockedAt).not.toBeNull()
-    const annule = await call('lg.pay.revert', 'revert', { params: { aid, payId } }) as { status: string, covered: { installmentId: string, amount: { amount: number }, state: string }[] }
-    expect(annule.status).toBe('pending')
-    expect(annule.covered.map(c => [c.installmentId, c.amount.amount, c.state])).toEqual([7, 8, 9].map(s => [awa(s), 25000, 'proposed']))
-    expect(db.installments.find(i => i.id === awa(7))!.amountPaid).toBe(0)
-    expect(db.allocations.length).toBeGreaterThan(avant)
-    // Revalider sans corps : la répartition déclarée (75 000 F) passe.
-    await expect(call('lg.pay.validate', 'validate', { params: { aid, payId }, body: {}, ifMatch: 3 })).resolves.toBeDefined()
   })
 
   it('Idempotency-Key : même clé et même corps → même réponse ; corps différent → idempotency_key_reused', async () => {

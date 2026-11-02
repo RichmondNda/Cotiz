@@ -17,7 +17,7 @@ export const Installment = z
     amountPaid: Money,
     /** Allocations proposées de paiements en attente. */
     amountPending: Money,
-    /** `amountDue − amountPaid − amountPending`. */
+    /** `amountDue − amountPaid − amountPending` ; 0 pour une échéance dispensée ou annulée (domain-rules § 3). */
     remaining: Money,
     status: InstallmentStatus,
     lateSince: IsoDate.nullable(),

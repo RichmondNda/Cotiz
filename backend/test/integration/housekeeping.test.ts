@@ -162,17 +162,18 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
     try {
       // Enregistrement en arrière-plan au démarrage des workers.
       let schedulers = await queue.getJobSchedulers();
-      for (let i = 0; i < 50 && schedulers.length < 4; i++) {
+      for (let i = 0; i < 50 && schedulers.length < 6; i++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         schedulers = await queue.getJobSchedulers();
       }
-      // Chaque tâche du worker une seule fois (codes.expire : lot 1.1 ; stats.refresh : lot 1.4 ; projects.activate : lot 2.2).
+      // Chaque tâche du worker une seule fois (codes.expire : lot 1.1 ; stats.refresh : lot 1.4 ; projects.activate : lot 2.2 ; installments.refresh-statuses : lot 2.4).
       const byId = schedulers
         .map((s) => ({ id: s.key, pattern: s.pattern, tz: s.tz }))
         .sort((x, y) => x.id.localeCompare(y.id));
       expect(byId).toEqual([
         { id: 'codes.expire', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'housekeeping', pattern: '0 3 * * *', tz: 'Africa/Abidjan' },
+        { id: 'installments.refresh-statuses', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'projects.activate', pattern: '30 0 * * *', tz: 'Africa/Abidjan' },
         { id: 'schedule.extend-rolling', pattern: '0 1 1 * *', tz: 'Africa/Abidjan' },
         { id: 'stats.refresh', pattern: '*/15 * * * *', tz: 'Africa/Abidjan' },

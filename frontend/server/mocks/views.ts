@@ -2,12 +2,12 @@
 // Aucune règle métier ici : les chiffres viennent de ledger.ts (donc de @cotiz/domain).
 import type { z } from 'zod'
 import type {
-  Association, Enrollment, Installment, Notification, PaymentDetail, PaymentMethod, PaymentSummary, PersonContact,
+  Association, Enrollment, Installment, Notification, PaymentMethod, PaymentSummary, PersonContact,
   PersonRef, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
 } from '@cotiz/contracts'
 import { db } from './db'
 import type { AssociationRow, EnrollmentRow, NotificationRow, PaymentRow, PlanRow, ProjectRow, UserRow } from './db'
-import { enrollmentFigures, installmentView, projectFigures, projectById, today } from './ledger'
+import { enrollmentFigures, projectFigures, projectById, today } from './ledger'
 import type { InstallmentView } from './ledger'
 import { problem } from './http'
 
@@ -32,11 +32,6 @@ export function projectRow(id: string, associationId?: string): ProjectRow {
 }
 export function planRow(id: string): PlanRow {
   return db.plans.find(p => p.id === id) ?? problem('not_found')
-}
-export function paymentRow(id: string, associationId?: string): PaymentRow {
-  const p = db.payments.find(x => x.id === id)
-  if (!p || (associationId && p.associationId !== associationId)) problem('not_found')
-  return p
 }
 
 // ---------------------------------------------------------------- Personnes, références
@@ -144,26 +139,6 @@ export function paymentSummary(p: PaymentRow): In<typeof PaymentSummary> {
     paidOn: p.paidOn, declaredAt: p.declaredAt, paymentMethodKind: p.paymentMethodKind, member: personRef(userRow(p.userId)),
     project: projectRef(projectRow(p.projectId)), covered: covered(p), proof: proof(p), reviewedBy: personRefById(p.reviewedBy),
     reviewedAt: p.reviewedAt,
-  }
-}
-
-/** Fenêtre d'annulation d'une validation (10 min, heure réelle du serveur de dev). */
-export const revertibleUntil = new Map<string, number>()
-
-export function paymentDetail(p: PaymentRow): In<typeof PaymentDetail> {
-  const method = p.paymentMethodId ? paymentMethodsOf(p.associationId).find(m => m.id === p.paymentMethodId) ?? null : null
-  const recent = db.payments
-    .filter(x => x.id !== p.id && x.enrollmentId === p.enrollmentId && x.status === 'validated')
-    .sort((a, b) => b.declaredAt.localeCompare(a.declaredAt))
-    .slice(0, 3)
-  const until = revertibleUntil.get(p.id)
-  return {
-    ...paymentSummary(p), paymentMethod: method, comment: p.comment, allocationAdjusted: p.allocationAdjusted,
-    rejection: p.rejection ? { ...p.rejection } : null,
-    schedule: db.installments.filter(i => i.enrollmentId === p.enrollmentId).sort((a, b) => a.sequence - b.sequence).map(i => installment(installmentView(i))),
-    recentPayments: recent.map(paymentSummary),
-    revertibleUntil: p.status === 'validated' && until && until > Date.now() ? new Date(until).toISOString() : null,
-    version: p.version,
   }
 }
 

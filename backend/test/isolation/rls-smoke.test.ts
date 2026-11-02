@@ -19,8 +19,8 @@ import {
 
 /**
  * Portage de docs/specs/rls-smoke-test.sql (6 scénarios), sur une base construite depuis docs/specs/schema.sql et sur
- * la base migrée. Lot 2.3 : toutes les tables du jeu de données sont migrées, sauf payments et allocations (lot 2.4) ;
- * le scénario 4 reste sur schema.sql seulement, et le lot 2.4 retire cette dépendance.
+ * la base migrée. Lot 2.4 : toutes les tables du test sont migrées (payments et allocations comprises), chaque scénario
+ * tourne sur les deux bases.
  * Scénarios 1 à 3 : rôle cotiz_app, contexte posé par TenantDatabase (le chemin de l'api). 4 et 5 : superutilisateur.
  * Scénario 6 (audit_logs, lot 0.5) : sur la base migrée, dans audit-append-only.test.ts.
  */
@@ -148,50 +148,47 @@ describe.each(['spec', 'migrated'] as const)(
       await expect(scenario3d(h)).resolves.toBeUndefined();
     });
 
-    // payments et allocations : lot 2.4.
-    describe.runIf(base === 'spec')(
-      '4. un paiement validé dont les allocations ne font pas le compte est refusé au COMMIT',
-      () => {
-        const declare = `
+    describe('4. un paiement validé dont les allocations ne font pas le compte est refusé au COMMIT', () => {
+      const declare = `
       INSERT INTO payments (id, association_id, project_id, enrollment_id, user_id, amount_declared, paid_on,
                             transaction_reference, status, idempotency_key)
       VALUES ('${PAYMENT}', '${A.id}', '${PROJECT_A}', '${ENROLLMENT_MOUSSA}',
               '${USERS.moussa}', 50000, '2026-04-06', 'OM-123', 'pending', 'k1');`;
-        const allocate = (installment: string) => `
-      INSERT INTO allocations (id, association_id, payment_id, installment_id, amount, state)
-      VALUES (gen_random_uuid(), '${A.id}', '${PAYMENT}', '${installment}', 25000, 'confirmed');`;
-        const validate = `UPDATE payments SET status = 'validated' WHERE id = '${PAYMENT}';`;
-        const unbalanced = declare + allocate(INSTALLMENT_MOUSSA_1) + validate;
+      const allocate = (installment: string) => `
+      INSERT INTO allocations (id, association_id, payment_id, installment_id, enrollment_id, amount, state)
+      VALUES (gen_random_uuid(), '${A.id}', '${PAYMENT}', '${installment}', '${ENROLLMENT_MOUSSA}', 25000, 'confirmed');`;
+      const validate = `UPDATE payments SET status = 'validated', reviewed_by = '${USERS.awa}', reviewed_at = now()
+                        WHERE id = '${PAYMENT}';`;
+      const unbalanced = declare + allocate(INSTALLMENT_MOUSSA_1) + validate;
 
-        it('SET CONSTRAINTS … IMMEDIATE lève allocation_mismatch (comme le script)', async () => {
-          const error = await h.superuserRollback(async (client) => {
-            await client.query(unbalanced);
-            return errorOf(client.query('SET CONSTRAINTS payments_allocations_sum IMMEDIATE'));
-          });
-          expect(pgMessage(error)).toBe('allocation_mismatch');
-          expect(pgCode(error)).toBe('P0001');
+      it('SET CONSTRAINTS … IMMEDIATE lève allocation_mismatch (comme le script)', async () => {
+        const error = await h.superuserRollback(async (client) => {
+          await client.query(unbalanced);
+          return errorOf(client.query('SET CONSTRAINTS payments_allocations_sum IMMEDIATE'));
         });
+        expect(pgMessage(error)).toBe('allocation_mismatch');
+        expect(pgCode(error)).toBe('P0001');
+      });
 
-        it('témoin : allocations confirmées égales au montant, la contrainte est satisfaite', async () => {
-          const error = await h.superuserRollback(async (client) => {
-            await client.query(declare + allocate(INSTALLMENT_MOUSSA_1) + allocate(INSTALLMENT_MOUSSA_2) + validate);
-            return errorOf(client.query('SET CONSTRAINTS payments_allocations_sum IMMEDIATE'));
-          });
-          expect(error).toBeNull();
+      it('témoin : allocations confirmées égales au montant, la contrainte est satisfaite', async () => {
+        const error = await h.superuserRollback(async (client) => {
+          await client.query(declare + allocate(INSTALLMENT_MOUSSA_1) + allocate(INSTALLMENT_MOUSSA_2) + validate);
+          return errorOf(client.query('SET CONSTRAINTS payments_allocations_sum IMMEDIATE'));
         });
+        expect(error).toBeNull();
+      });
 
-        it('le COMMIT lui-même échoue et rien n’est enregistré', async () => {
-          const error = await errorOf(h.superuser(`BEGIN; ${unbalanced} COMMIT;`));
-          expect(pgMessage(error)).toBe('allocation_mismatch');
-          const { rows } = await h.superuser(
-            'SELECT (SELECT count(*)::int FROM payments WHERE id = $1) AS payments, ' +
-              '(SELECT count(*)::int FROM allocations WHERE payment_id = $1) AS allocations',
-            [PAYMENT],
-          );
-          expect(rows[0]).toEqual({ payments: 0, allocations: 0 });
-        });
-      },
-    );
+      it('le COMMIT lui-même échoue et rien n’est enregistré', async () => {
+        const error = await errorOf(h.superuser(`BEGIN; ${unbalanced} COMMIT;`));
+        expect(pgMessage(error)).toBe('allocation_mismatch');
+        const { rows } = await h.superuser(
+          'SELECT (SELECT count(*)::int FROM payments WHERE id = $1) AS payments, ' +
+            '(SELECT count(*)::int FROM allocations WHERE payment_id = $1) AS allocations',
+          [PAYMENT],
+        );
+        expect(rows[0]).toEqual({ payments: 0, allocations: 0 });
+      });
+    });
 
     describe('5. une échéance ne peut pas être sur-engagée', () => {
       const update = (paid: number, pending: number) =>

@@ -1,6 +1,6 @@
 // Paiements : PaymentSummary / PaymentDetail / SubscriberPayment et Installment du contrat → types d'interface.
 import type { Installment, PaymentDetail, PaymentSummary, SubscriberPayment } from '@cotiz/contracts'
-import type { Association, Echeance, Paiement, PaiementDetail, PaiementListe, Preuve, Projet, Souscripteur } from '~~/types'
+import type { Association, Echeance, Paiement, PaiementDetail, PaiementListe, Preuve, Projet, Souscripteur, Souscription } from '~~/types'
 import { ECHEANCE_FERMEE, jour, m, MOTIF_REJET, MOYEN, STATUT_ECHEANCE, STATUT_PAIEMENT } from './communs'
 
 /** Échéance du contrat → échéance de l'interface (grilles, échéanciers, couvertures). */
@@ -62,17 +62,19 @@ export function vuePaiementListe(p: PaymentSummary, c: Contexte): PaiementListe 
   }
 }
 
-/** Détail gestionnaire (MgPaiement) : échéancier du souscripteur et 3 derniers versements validés. */
-export function vuePaiementDetail(p: PaymentDetail, c: Contexte & { association: Association }): PaiementDetail {
+/** Détail gestionnaire (MgPaiement) : échéancier, inscription (reste à payer) et 3 derniers versements validés. */
+export function vuePaiementDetail(p: PaymentDetail, c: Contexte & { association: Association, inscriptions: Map<string, Souscription> }): PaiementDetail {
   const sid = p.member.id
   const echeancier = p.schedule.map(i => vueEcheance(i, sid))
   const parId = new Map(echeancier.map(e => [e.id, e]))
   const liste = vuePaiementListe(p, { ...c, echeances: new Map([...c.echeances, ...parId]) })
+  const souscription = c.inscriptions.get(`${sid}:${p.project.id}`)
   return {
     ...liste,
     ...vuePaiement(p, { souscripteurId: sid, projetId: p.project.id, associationId: c.associationId, traitePar: p.reviewedBy?.id, ajuste: p.allocationAdjusted, rejet: p.rejection, commentaire: p.comment }),
     echeances: liste.echeancesCouvertes,
     association: c.association,
+    ...(souscription ? { souscription } : {}),
     etat: { version: p.version, devise: p.amountDeclared.currency },
     echeancier,
     derniersVersements: p.recentPayments.flatMap(r => r.covered.map(cv => ({

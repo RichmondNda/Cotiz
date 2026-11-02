@@ -23,7 +23,7 @@
 | `enrollments` | members | 2.3 | tenant_isolation, subscriber_self_read, subscriber_sign_update, system_access | Participation d'une personne à un projet. |
 | `installments` | ledger | 2.3 | tenant_isolation, subscriber_self_read, subscriber_pending_update, system_access | Échéance attendue (fonds d'entrée ou cotisation périodique). Une ligne = une case de la grille. |
 | `payments` | ledger | 2.4 | tenant_isolation, subscriber_self_read, subscriber_declare | Un paiement déclaré par un souscripteur (un virement réel). |
-| `allocations` | ledger | 2.4 | tenant_isolation, subscriber_self | Répartition d'un paiement sur une ou plusieurs échéances. |
+| `allocations` | ledger | 2.4 | tenant_isolation, subscriber_self_read, subscriber_propose | Répartition d'un paiement sur une ou plusieurs échéances. |
 | `contracts` | contracts | 4.1 | tenant_isolation, subscriber_enrolled_read | Contrat d'un projet. Immuable une fois verrouillé. |
 | `contract_signatures` | contracts | 4.1 | tenant_isolation, subscriber_self_read, subscriber_sign | Contre-signature d'un souscripteur, avec éléments de preuve. |
 | `import_jobs` | imports | 4.4 | tenant_isolation | Import Excel. |
@@ -348,6 +348,7 @@ Participation d'une personne à un projet.
 | `paid_at` | `timestamptz NULL` |  |
 | `CHECK` | `amount_paid ≤ amount_due` | pas de trop-perçu sur une échéance |
 | `UNIQUE` | `(enrollment_id, kind, sequence)` | une case par rang : extension du cycle roulant idempotente |
+| `UNIQUE` | `(id, association_id, enrollment_id)` | cible de la clé composite des répartitions (lot 2.4) |
 | `CHECK` | `installments_kind_sequence` | fonds d'entrée au rang 0, cotisations à partir de 1 |
 | Déclencheur | `installments_guard` | association, projet, inscription et personne immuables ; en espace subscriber, seulement `amount_pending` et `status` (déclaration) |
 
@@ -359,12 +360,12 @@ Un paiement déclaré par un souscripteur (un virement réel).
 |---|---|---|
 | `id` | `uuid PK` |  |
 | `association_id` | `uuid FK` | RLS |
-| `project_id / enrollment_id / user_id` | `uuid FK` |  |
+| `project_id / enrollment_id / user_id` | `uuid FK` | clé composite `(enrollment_id, association_id, project_id, user_id)` → `enrollments` (association, projet et personne de l'inscription) |
 | `amount_declared` | `bigint` |  |
 | `amount_received` | `bigint NULL` | saisi par le gestionnaire si différent |
 | `currency` | `char(3)` |  |
 | `paid_on` | `date` | date du virement selon le souscripteur |
-| `payment_method_id` | `uuid NULL FK` |  |
+| `payment_method_id` | `uuid NULL FK` | clé composite `(payment_method_id, association_id)` → `association_payment_methods` (moyen de la même association) |
 | `transaction_reference` | `text NULL` |  |
 | `proof_file_id` | `uuid NULL FK files` | preuve OU référence obligatoire |
 | `comment` | `text NULL` |  |
@@ -372,9 +373,16 @@ Un paiement déclaré par un souscripteur (un virement réel).
 | `declared_at` | `timestamptz` |  |
 | `reviewed_by / reviewed_at` | `uuid / timestamptz` |  |
 | `rejection_reason_code / rejection_message` | `text NULL` |  |
-| `idempotency_key` | `text UNIQUE` | évite les doubles déclarations sur réseau mobile instable |
+| `idempotency_key` | `text` | évite les doubles déclarations sur réseau mobile instable ; `UNIQUE (user_id, idempotency_key)` (par personne) |
 | `version` | `int` | verrouillage optimiste |
 | `created_at / updated_at` | `timestamptz` |  |
+| `UNIQUE` | `(id, association_id, enrollment_id)` | cible de la clé composite des répartitions |
+| Déclencheur | `payments_guard` | déclaration immuable (seuls montant reçu, statut, relecture, motif de rejet et version évoluent) ; transitions de domain-rules § 8 ; paiement rejeté ou annulé figé ; sinon `invalid_state` |
+| Déclencheur | `payments_proof` | la preuve est une preuve de paiement de la personne (non rattachée) ou de l'association du paiement, sinon `invalid_proof` |
+| Déclencheurs différés | `payments_allocations_sum`, `allocations_payment_check` | au COMMIT, d'après l'état final du paiement : validé → confirmées = montant reçu (sinon déclaré) et aucune proposition vivante ; en attente → aucune confirmée ; rejeté ou annulé → rien de vivant |
+| `CHECK` | `payments_reviewed`, `payments_rejection_reason` | validé ou rejeté : relecteur et date ; rejeté : motif |
+| Politique | `subscriber_declare` | une déclaration naît `pending`, en version 1, datée de sa transaction, sans montant reçu, relecture ni rejet |
+| Droits | `REVOKE INSERT, UPDATE … FROM cotiz_platform`, TRUNCATE refusé (`payments_no_truncate`) | jamais écrit sous /platform |
 
 ## `allocations` — lot 2.4
 
@@ -384,11 +392,15 @@ Répartition d'un paiement sur une ou plusieurs échéances.
 |---|---|---|
 | `id` | `uuid PK` |  |
 | `association_id` | `uuid` | RLS |
-| `payment_id` | `uuid FK` |  |
-| `installment_id` | `uuid FK` |  |
+| `payment_id` | `uuid FK` | clé composite `(payment_id, association_id, enrollment_id)` → `payments` |
+| `installment_id` | `uuid FK` | clé composite `(installment_id, association_id, enrollment_id)` → `installments` |
+| `enrollment_id` | `uuid` | inscription du paiement, reprise : l'échéance est forcément de la même inscription |
 | `amount` | `bigint` | > 0 |
 | `state` | `enum` | proposed (par le souscripteur) · confirmed (validé) · voided |
-| `UNIQUE` | `(payment_id, installment_id)` |  |
+| Index unique | `allocations_live (payment_id, installment_id) WHERE state <> 'voided'` | une seule répartition vivante par paiement et par échéance ; une proposition annulée laisse la place à la confirmation (architecture/04 § 4.5) |
+| Déclencheur | `allocations_guard` | seul l'état change, vers `voided` (proposition remplacée, confirmation annulée), sinon `invalid_state` ; jamais le montant ni l'échéance |
+| TRUNCATE | `allocations_no_truncate` (et `installments_no_truncate`) | refusé, comme pour le journal d'audit |
+| Politiques souscripteur | `subscriber_self_read`, `subscriber_propose` | lecture des répartitions de ses paiements ; ajout seulement `proposed`, sur son paiement `pending` |
 
 ## `contracts` — lot 4.1
 

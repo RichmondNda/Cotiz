@@ -1,7 +1,7 @@
 import type { Project, ProjectPaymentMethod, ProjectSummary } from '@cotiz/contracts';
 import { projectPaymentMethods, projects } from '@cotiz/db';
 import { type Currency, extendRollingSchedule, type IsoDate, Money, type ScheduleLine } from '@cotiz/domain';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { fileNamesOf } from '../../files/files.public.js';
 import { ownAssociationOf, paymentMethodsOf } from '../../tenancy/tenancy.public.js';
@@ -50,6 +50,55 @@ export async function projectOf(
         ? query.for('no key update')
         : query);
   return row ?? null;
+}
+
+/**
+ * Conditions financières du projet figées au premier paiement validé (domain-rules § 9, architecture/04 § 4.5) : date
+ * posée une seule fois, dans la transaction de la validation, qui a déjà verrouillé le projet.
+ */
+export async function lockFinancialTerms(associationId: string, projectId: string): Promise<void> {
+  await currentTx()
+    .update(projects)
+    .set({ financialTermsLockedAt: sql`now()` })
+    .where(
+      and(
+        eq(projects.associationId, associationId),
+        eq(projects.id, projectId),
+        isNull(projects.financialTermsLockedAt),
+      ),
+    );
+}
+
+/**
+ * Annulation d'une validation (lg.pay.revert, décision C6) : conditions de nouveau modifiables seulement si c'est cette
+ * validation qui les a figées (`lockedAt` = son instant, texte exact de la base : microsecondes comprises) ; l'appelant
+ * vérifie qu'aucun autre paiement du projet n'est validé. Projet déjà verrouillé par la transaction.
+ */
+export async function unlockFinancialTerms(associationId: string, projectId: string, lockedAt: string): Promise<void> {
+  await currentTx()
+    .update(projects)
+    .set({ financialTermsLockedAt: null })
+    .where(
+      and(
+        eq(projects.associationId, associationId),
+        eq(projects.id, projectId),
+        sql`${projects.financialTermsLockedAt} = ${lockedAt}::timestamptz`,
+      ),
+    );
+}
+
+/**
+ * Tous les projets d'une association, verrouillés en partage par identifiant croissant (tâche quotidienne des statuts,
+ * espace system) : mêmes verrous que l'inscription, avant les échéances ; une relecture de paiement (FOR NO KEY
+ * UPDATE) attend, ou est attendue.
+ */
+export async function lockAssociationProjects(associationId: string): Promise<ProjectRecord[]> {
+  return currentTx()
+    .select()
+    .from(projects)
+    .where(eq(projects.associationId, associationId))
+    .orderBy(asc(projects.id))
+    .for('share');
 }
 
 /** Projets de l'association du contexte (RLS) parmi `projectIds`, par identifiant (listes de membres, frise). */

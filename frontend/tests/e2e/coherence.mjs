@@ -1,5 +1,6 @@
 // Cohérence des données entre espaces (lot 09) : un même souscripteur, un même projet affichent les mêmes montants
 // sur tous les écrans. Chaque ligne : [rôle, route, textes attendus]. Données de référence (store réinitialisé).
+// Le vrai back n'est pas réinitialisé : lancer avant les parcours (tests/e2e/parcours.mjs valide le paiement d'Awa).
 //   node tests/e2e/coherence.mjs
 import { chromium } from 'playwright'
 import { BASE, texte } from './outils.mjs'
@@ -19,13 +20,15 @@ const ATTENDUS = [
   ['souscripteur', '/historique', [F(225000), F(395000)]],
   ['souscripteur', '/paiements/declarer', [`${F(50000)} en retard`, `reste ${F(325000)}`, F(70000)]],
   ['null', '/', [F(395000), F(50000), F(9594000)]],
-  // Fiches sur le vrai back (lot 2.3) : inscriptions de seed-dev sans paiement, montants comparables au lot 2.4.
+  // Fiches sur le vrai back (lot 2.3).
   ['gestionnaire', '/asso/souscripteurs/moussa-diarra', ['Moussa Diarra', 'Centre communautaire', 'Voyage solidaire']],
-  // Projets sur le vrai back (lot 2.2) : chiffres nuls jusqu'aux inscriptions et paiements réels (lots 2.3, 2.4).
+  // Projets sur le vrai back (lot 2.2) : statistiques de pr.get encore nulles (report du lot 2.3).
   ['gestionnaire', '/asso/projets/centre-communautaire', ['Centre communautaire']],
   ['gestionnaire', '/asso/souscripteurs/awa-kone', ['Awa Koné', 'Centre communautaire']],
-  ['gestionnaire', '/asso/paiements/pm-awa-kone', ['Awa Koné', F(75000)]],
-  // Tableau de bord : cartes projets réelles (pr.list, chiffres nuls jusqu'aux lots 2.3, 2.4), indicateurs encore simulés.
+  // Registre sur le vrai back (lot 2.4 : lg.grid, lg.pay.get) : paiements et soldes de seed-dev.
+  ['gestionnaire', '/asso/projets/centre-communautaire/paiements', ['Moussa Diarra', F(325000), 'Awa Koné', F(300000)]],
+  ['gestionnaire', '/asso/paiements/pm-awa-kone', ['Awa Koné', F(75000), `Reste à payer : ${F(300000)}`]],
+  // Tableau de bord : cartes projets réelles (pr.list, statistiques nulles), indicateurs encore simulés (as.dashboard).
   ['gestionnaire', '/asso', ['Centre communautaire', '82 %', '14', F(75000)]],
   ['gestionnaire', '/asso/projets', ['Centre communautaire', 'Tontine solidaire 2027', 'Voyage solidaire']],
   // Espace plateforme sur le vrai back (lot 1.4 : pf.dashboard, pf.asso.list, pf.asso.get) : ses chiffres viennent de

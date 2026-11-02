@@ -48,6 +48,16 @@ export const Grid = listOf(GridRow).extend({
   columns: z.array(GridColumn),
 });
 
+export const GridQuery = ListQuery.extend({
+  q: z.string().min(1).optional(),
+  standing: MemberStanding.optional(),
+  /** Période affichée (dates d'échéance). */
+  from: IsoDate.optional(),
+  to: IsoDate.optional(),
+});
+
+export const InstallmentParams = AssociationParams.extend({ iid: Uuid });
+
 export const lgGrid = defineEndpoint({
   id: 'lg.grid',
   space: 'association',
@@ -60,13 +70,7 @@ export const lgGrid = defineEndpoint({
       path: '/api/v1/associations/{aid}/projects/{pid}/grid',
       request: {
         params: ProjectParams,
-        query: ListQuery.extend({
-          q: z.string().min(1).optional(),
-          standing: MemberStanding.optional(),
-          /** Période affichée (dates d'échéance). */
-          from: IsoDate.optional(),
-          to: IsoDate.optional(),
-        }),
+        query: GridQuery,
       },
       response: { status: 200, body: Grid },
     },
@@ -99,7 +103,7 @@ export const lgInst = defineEndpoint({
     get: {
       method: 'GET',
       path: '/api/v1/associations/{aid}/installments/{iid}',
-      request: { params: AssociationParams.extend({ iid: Uuid }) },
+      request: { params: InstallmentParams },
       response: { status: 200, body: InstallmentDetail },
     },
   },

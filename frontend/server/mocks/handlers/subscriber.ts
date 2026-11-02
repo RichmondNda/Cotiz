@@ -1,6 +1,7 @@
 // Espace souscripteur : tableau de bord, projets, aperçu et déclaration d'un paiement, historique, contrats, associations.
 import { createHash } from 'node:crypto'
 import { DomainError, formatMoney, proposeAllocation, validateAllocation } from '@cotiz/domain'
+import type { AllocationIssue } from '@cotiz/domain'
 import { formatTelephone } from '../../../app/utils/format'
 import { db } from '../db'
 import type { EnrollmentRow, PaymentRow, ProjectRow } from '../db'
@@ -13,7 +14,6 @@ import {
   associationRef, associationRow, enrollmentsOfUser, installment, money, moneyOrNull, paymentMethodsOf, projectRef, projectRow,
   subscriberPayment, subscriberProjectCard, userRow,
 } from '../views'
-import { allocationProblem } from './ledger'
 import { uploads } from './imports'
 import { page } from './list'
 
@@ -266,4 +266,14 @@ export function associationGet(ctx: MockContext<'me.assos', 'get'>) {
     projects: enrollmentsOfUser(userId).filter(e => projectRow(e.projectId).associationId === a.id).map(subscriberProjectCard),
     paymentMethods: paymentMethodsOf(a.id),
   }
+}
+
+// Répartition refusée par validateAllocation() (le registre gestionnaire est servi par NestJS depuis le lot 2.4).
+/** Première erreur de validateAllocation → code du catalogue (errors.yaml). */
+export function allocationProblem(errors: AllocationIssue[]): never {
+  const exceeds = errors.find(e => e.code === 'allocation_exceeds_remaining')
+  if (exceeds) problem('allocation_exceeds_remaining', { installmentId: exceeds.installmentId, remaining: exceeds.remaining })
+  const mismatch = errors.find(e => e.code === 'allocation_mismatch')
+  if (mismatch) problem('allocation_mismatch', { expected: mismatch.expected, allocated: mismatch.allocated })
+  problem('validation_failed', { fields: Object.fromEntries(errors.map(e => ['installmentId' in e ? `allocations.${e.installmentId}` : 'allocations', e.code])) })
 }

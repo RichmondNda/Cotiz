@@ -39,7 +39,7 @@ Règles :
 Vecteurs : `schedule.json` (15 cas dont 4 erreurs).
 
 ## 3. Reste dû d'une échéance
-`remaining = amountDue − amountPaid − amountPending`. `amountPending` = somme des allocations **proposées** de paiements `pending`. Invariant base : `amountPaid + amountPending ≤ amountDue`.
+`remaining = amountDue − amountPaid − amountPending`, sauf pour une échéance `waived` (dispensée) ou `canceled` (retrait, clôture), dont le reste dû est 0. `amountPending` = somme des allocations **proposées** de paiements `pending`. Invariant base : `amountPaid + amountPending ≤ amountDue`.
 
 Une échéance est **ouverte** si son statut n'est ni `paid`, ni `waived`, ni `canceled`, et si `remaining > 0`.
 
@@ -76,6 +76,10 @@ Ordre d'évaluation (le premier qui s'applique gagne) :
 5. `amountPaid > 0` → `partial`.
 6. `today ≥ dueDate` → `due`.
 7. sinon → `upcoming`.
+
+`late_since` persisté (`lateSinceOf`) : `dueDate + graceDays + 1 jour` dès que cette date est atteinte, tant que l'échéance
+n'est ni soldée, ni dispensée, ni annulée, **y compris sous `declared`** (fait daté, pas un statut : une validation annulée
+ou un rejet rend la même date) ; sinon `null`.
 
 `today` est la date **dans le fuseau de l'association** (`Africa/Abidjan` par défaut). Correspondance avec les badges : `status-mapping.yaml`. Vecteurs : `status.json`.
 

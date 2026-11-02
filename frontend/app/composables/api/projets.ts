@@ -2,7 +2,6 @@
 // relances ponctuelles (rm.send) et import (fl.upload, im.*).
 import type { Enrollment, Project, ProjectSummary as ProjectSummarySchema } from '@cotiz/contracts'
 import type { z } from 'zod'
-import { codeErreur } from './client'
 import type { ApiClient } from './client'
 import type {
   AnalyseImport, ContratProjet, InscriptionCreee, LigneGrilleProjet, LigneImport, ModificationProjet, NouveauProjet, NouvelleInscription, Projet,
@@ -20,14 +19,6 @@ type ProjectSummary = z.output<typeof ProjectSummarySchema>
 
 async function inscriptions(client: ApiClient, aid: string, pid: string): Promise<Enrollment[]> {
   return (await toutesLesPages(cursor => client.call('en.list', 'list', { params: { aid, pid }, query: { limit: 100, cursor } }))).items
-}
-
-/** Repli d'un appel simulé sur un projet que les mocks ne connaissent pas (404) ; toute autre erreur est relancée. */
-function siInconnu<T>(repli: T) {
-  return (e: unknown): T => {
-    if (codeErreur(e) === 'not_found') return repli
-    throw e
-  }
 }
 
 async function contratOuNull(client: ApiClient, aid: string, pid: string) {
@@ -75,12 +66,11 @@ export const useGrilleProjet = (id: MaybeRefOrGetter<string>) =>
   useLecture<LigneGrilleProjet[]>(() => `grille-projet:${toValue(id)}`, async (client) => {
     const aid = await associationCourante(client)
     const pid = toValue(id)
-    // lg.grid reste simulé (lot 2.4) : projet créé en réel → aucune ligne.
     const [grille, enr] = await Promise.all([
-      client.call('lg.grid', 'get', { params: { aid, pid }, query: { limit: 100 } }).catch(siInconnu(null)),
+      client.call('lg.grid', 'get', { params: { aid, pid }, query: { limit: 100 } }),
       inscriptions(client, aid, pid),
     ])
-    return grille ? vueGrille(grille, enr.map(e => vueSouscription(e, aid)), pid) : []
+    return vueGrille(grille, enr.map(e => vueSouscription(e, aid)), pid)
   })
 
 /**

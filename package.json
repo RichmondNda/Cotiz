@@ -15,6 +15,7 @@
     "test": "turbo run test",
     "check:docs": "node tools/check-docs.mjs",
     "db:migrate": "pnpm --filter @cotiz/db migrate",
+    "db:seed:demo": "COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:docs",
     "prepare": "husky"
   },
@@ -42,13 +43,15 @@
   "pnpm": {
     "auditConfig": {
       "ignoreGhsas": [
-        "GHSA-86w9-cpqp-85rv",
         "GHSA-vfj7-8cjw-p6xm",
-        "GHSA-gcqx-w48m-w2h4"
+        "GHSA-gcqx-w48m-w2h4",
+        "GHSA-3g3m-2fjr-6pw4",
+        "GHSA-g3hv-75wg-m249"
       ]
     },
     "overrides": {
-      "@nestjs/platform-express>multer": "^2.5.0"
+      "@nestjs/platform-express>multer": "^2.5.0",
+      "listhen>node-forge": "^1.4.1"
     }
   }
 }

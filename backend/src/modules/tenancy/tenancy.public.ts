@@ -15,4 +15,5 @@ export {
   lockPaymentMethods,
   type PaymentMethodRecord,
   paymentMethodsOf,
+  toPaymentMethod,
 } from './application/payment-method-records.js';

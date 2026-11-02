@@ -1,6 +1,14 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { installmentStatus, lateSince, memberStanding, overallStanding, todayIn } from './index.js';
+import {
+  hourIn,
+  installmentStatus,
+  lateSince,
+  lateSinceOf,
+  memberStanding,
+  overallStanding,
+  todayIn,
+} from './index.js';
 import type { InstallmentState, InstallmentStatus, LedgerInstallment } from './index.js';
 import { loadVectors } from './test-vectors.js';
 
@@ -75,6 +83,51 @@ describe('lateSince', () => {
         expect(installmentStatus(x, since, grace)).toBe('late');
         expect(installmentStatus(x, before.toISOString().slice(0, 10), grace)).toBe('due');
       }),
+    );
+  });
+});
+
+describe('hourIn', () => {
+  it('heure locale du fuseau, minuit = 0, heure d’été comprise', () => {
+    expect(hourIn('Africa/Abidjan', new Date('2026-03-11T01:30:00Z'))).toBe(1);
+    expect(hourIn('Africa/Abidjan', new Date('2026-03-11T00:00:00Z'))).toBe(0);
+    expect(hourIn('Europe/Paris', new Date('2026-03-21T00:00:00Z'))).toBe(1);
+    expect(hourIn('Europe/Paris', new Date('2026-07-01T23:00:00Z'))).toBe(1);
+    expect(hourIn('America/New_York', new Date('2026-11-06T06:00:00Z'))).toBe(1);
+  });
+});
+
+describe('lateSinceOf (late_since persisté)', () => {
+  it('posée après le délai de grâce, même déclarée ; jamais soldée, dispensée, annulée, ni avant la date', () => {
+    expect(lateSinceOf(base, '2026-10-11', 5)).toBe('2026-10-11');
+    expect(lateSinceOf(base, '2026-10-10', 5)).toBeNull();
+    expect(lateSinceOf({ ...base, amountPending: 10000 }, '2026-11-01', 5)).toBe('2026-10-11');
+    expect(lateSinceOf({ ...base, amountPaid: 5000 }, '2026-11-01', 5)).toBe('2026-10-11');
+    expect(lateSinceOf({ ...base, amountPaid: base.amountDue }, '2026-11-01', 5)).toBeNull();
+    expect(lateSinceOf({ ...base, status: 'waived' }, '2026-11-01', 5)).toBeNull();
+    expect(lateSinceOf({ ...base, status: 'canceled' }, '2026-11-01', 5)).toBeNull();
+  });
+
+  it('statut late ⇒ date posée ; date posée ⇒ late ou declared', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 60 }),
+        fc.integer({ min: 0, max: 400 }),
+        fc.integer({ min: 0, max: 25000 }),
+        fc.integer({ min: 0, max: 25000 }),
+        (grace, offset, paid, pending) => {
+          const today = new Date(Date.UTC(2026, 9, 1 + offset)).toISOString().slice(0, 10);
+          const x = {
+            ...base,
+            amountPaid: paid,
+            amountPending: Math.min(pending, base.amountDue - Math.min(paid, base.amountDue)),
+          };
+          const status = installmentStatus(x, today, grace);
+          const since = lateSinceOf(x, today, grace);
+          if (status === 'late') expect(since).toBe(lateSince(x, grace));
+          if (since !== null) expect(['late', 'declared']).toContain(status);
+        },
+      ),
     );
   });
 });

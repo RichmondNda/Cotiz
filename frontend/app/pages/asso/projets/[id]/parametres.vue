@@ -25,7 +25,7 @@ const termine = computed(() => projet.value?.statut === 'termine')
 /** Des paiements ont été enregistrés : financement figé, suppression impossible. */
 const aDesPaiements = computed(() => {
   const c = projet.value?.montantCollecte
-  return typeof c !== 'number' || c > 0
+  return projet.value?.financementVerrouille === true || typeof c !== 'number' || c > 0
 })
 /** Seul un brouillon se supprime (pr.delete) ; un projet publié se clôture. */
 const supprimable = computed(() => projet.value?.statut === 'brouillon')

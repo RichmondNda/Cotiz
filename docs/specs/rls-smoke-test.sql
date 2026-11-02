@@ -62,9 +62,9 @@ ROLLBACK;
 BEGIN;
 INSERT INTO payments (id, association_id, project_id, enrollment_id, user_id, amount_declared, paid_on, transaction_reference, status, idempotency_key)
 VALUES ('00000000-0000-7000-8000-0000000fa001', '00000000-0000-7000-8000-00000000a001', '00000000-0000-7000-8000-00000000c001', '00000000-0000-7000-8000-00000000e001', '00000000-0000-7000-8000-000000000002', 50000, '2026-04-06', 'OM-123', 'pending', 'k1');
-INSERT INTO allocations (id, association_id, payment_id, installment_id, amount, state) VALUES
- ('00000000-0000-7000-8000-0000000ab001', '00000000-0000-7000-8000-00000000a001', '00000000-0000-7000-8000-0000000fa001', '00000000-0000-7000-8000-00000000d001', 25000, 'confirmed');
-UPDATE payments SET status = 'validated' WHERE id = '00000000-0000-7000-8000-0000000fa001';
+INSERT INTO allocations (id, association_id, payment_id, installment_id, enrollment_id, amount, state) VALUES
+ ('00000000-0000-7000-8000-0000000ab001', '00000000-0000-7000-8000-00000000a001', '00000000-0000-7000-8000-0000000fa001', '00000000-0000-7000-8000-00000000d001', '00000000-0000-7000-8000-00000000e001', 25000, 'confirmed');
+UPDATE payments SET status = 'validated', reviewed_by = '00000000-0000-7000-8000-000000000001', reviewed_at = now() WHERE id = '00000000-0000-7000-8000-0000000fa001';
 DO $$ BEGIN
   BEGIN SET CONSTRAINTS payments_allocations_sum IMMEDIATE; RAISE EXCEPTION 'ÉCHEC 4 : somme incorrecte acceptée';
   EXCEPTION WHEN raise_exception THEN IF SQLERRM <> 'allocation_mismatch' THEN RAISE; END IF; END;

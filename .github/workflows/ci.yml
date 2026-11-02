@@ -132,8 +132,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter frontend exec playwright install --with-deps chromium
       # Espace plateforme basculé (lot 1.1) : vraie connexion avec le compte de développement (seed-dev).
-      - name: PostgreSQL, PgBouncer et Redis
-        run: docker compose -f infra/compose/local.yml up -d --wait postgres pgbouncer redis
+      # MinIO : preuves des paiements de seed-dev (lot 2.4) ; minio-init crée les compartiments puis s'arrête.
+      - name: PostgreSQL, PgBouncer, Redis et MinIO
+        run: |
+          docker compose -f infra/compose/local.yml up -d --wait postgres pgbouncer redis minio
+          docker compose -f infra/compose/local.yml run --rm minio-init
       - name: Migrations et compte de développement
         run: |
           pnpm db:migrate
@@ -178,8 +181,9 @@ jobs:
           done
           cat dev.log
           exit 1
-      - run: pnpm --filter frontend e2e
+      # Cohérence avant les parcours : le parcours gestionnaire valide en vrai le paiement d'Awa (lot 2.4).
       - run: pnpm --filter frontend coherence
+      - run: pnpm --filter frontend e2e
       - run: pnpm --filter frontend a11y
         env:
           # Runner à 2 cœurs : 4 pages en parallèle sur le serveur de dev dépassaient le délai de navigation.

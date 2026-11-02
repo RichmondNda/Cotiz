@@ -17,6 +17,7 @@ import {
 } from '../modules/identity/application/seed-dev-accounts.use-case.js';
 import { SeedDevMembershipsUseCase } from '../modules/access/access.public.js';
 import { SeedDevPlansUseCase, SeedDevSubscriptionsUseCase } from '../modules/billing/billing.public.js';
+import { REFERENCE_PAYMENT_ASSOCIATIONS, SeedDevPaymentsUseCase } from '../modules/ledger/ledger.public.js';
 import { REFERENCE_MEMBER_ASSOCIATIONS, SeedDevMembersUseCase } from '../modules/members/members.public.js';
 import { SeedDevRequestsUseCase } from '../modules/onboarding/onboarding.public.js';
 import { REFERENCE_PROJECT_ASSOCIATIONS, SeedDevProjectsUseCase } from '../modules/projects/projects.public.js';
@@ -38,7 +39,7 @@ const USAGE = [
   'Commandes :',
   '  create-platform-owner <email> <prénom> <nom>',
   '  reset-password <email>',
-  '  seed-dev                (développement : comptes, associations, plans, demandes, projets et inscriptions de référence)',
+  '  seed-dev                (développement : comptes, associations, plans, demandes, projets, inscriptions et paiements de référence)',
 ].join('\n');
 
 const DATE = new Intl.DateTimeFormat('fr-FR', {
@@ -140,8 +141,8 @@ async function resetPassword(app: INestApplicationContext, args: string[], io: C
 
 /**
  * Données de développement (jamais en production) : comptes à mot de passe connu (ou code d'activation à remettre),
- * puis associations, plans, abonnements, appartenances, demandes et projets de référence, aux identifiants des données
- * simulées du front.
+ * puis associations, plans, abonnements, appartenances, demandes, projets, inscriptions et paiements de référence, aux
+ * identifiants des données simulées du front.
  */
 async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<number> {
   try {
@@ -206,9 +207,20 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
         ),
       );
     }
+    // Paiements (lot 2.4), dans le contexte de chaque association, après les inscriptions qu'ils règlent.
+    const paid = { pending: 0, validated: 0 };
+    for (const slug of REFERENCE_PAYMENT_ASSOCIATIONS) {
+      const seeded = await db.withTenantContext(
+        { space: 'association', associationId: mockId('association', slug) },
+        () => app.get(SeedDevPaymentsUseCase).execute(slug),
+      );
+      paid.pending += seeded.pending;
+      paid.validated += seeded.validated;
+    }
     io.out.write(
       `Plans de référence : ${codes.join(', ')}\nAssociations de référence : ${slugs.join(', ')}\n` +
         `Projets de référence : ${projectKeys.join(', ')}\nInscriptions de référence : ${enrolled.join(', ')}\n` +
+        `Paiements de référence : ${String(paid.pending)} en attente, ${String(paid.validated)} validés\n` +
         (handoffs.length > 0 ? `Codes à remettre :\n${handoffs.join('\n')}\n` : ''),
     );
     return 0;

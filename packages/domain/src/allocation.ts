@@ -6,8 +6,9 @@ import type { Allocation, LedgerInstallment } from './ledger-types.js';
 
 const CLOSED = new Set(['paid', 'waived', 'canceled']);
 
-/** Reste dû : `amountDue − amountPaid − amountPending` (§ 3). */
+/** Reste dû : `amountDue − amountPaid − amountPending` ; 0 pour une échéance dispensée ou annulée (§ 3). */
 export function remainingOf(installment: LedgerInstallment): number {
+  if (installment.status === 'waived' || installment.status === 'canceled') return 0;
   return installment.amountDue - installment.amountPaid - installment.amountPending;
 }
 
@@ -26,7 +27,7 @@ function assertInstallment(x: LedgerInstallment): void {
 }
 
 /** Date d'échéance croissante, fonds d'entrée avant mensualité à date égale, puis séquence (§ 4.2). */
-function byDueOrder(a: LedgerInstallment, b: LedgerInstallment): number {
+export function byDueOrder(a: LedgerInstallment, b: LedgerInstallment): number {
   if (a.dueDate !== b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
   if (a.kind !== b.kind) return a.kind === 'entry_fee' ? -1 : 1;
   return a.sequence - b.sequence;

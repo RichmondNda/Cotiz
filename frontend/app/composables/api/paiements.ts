@@ -1,7 +1,7 @@
 // Paiements : file et détail gestionnaire (lg.pay.*), historique et confirmation souscripteur (me.history, me.payment),
 // échéances (me.project / lg.grid). Le rôle de la session choisit l'espace interrogé.
 import type { ApiClient } from './client'
-import type { Echeance, EtatPaiement, NouvelleDeclaration, Paiement, PaiementDetail, PaiementListe, Projet, RejetPaiement, Souscripteur, ValidationPaiement } from '~~/types'
+import type { Echeance, EtatPaiement, NouvelleDeclaration, Paiement, PaiementDetail, PaiementListe, Projet, RejetPaiement, Souscripteur, Souscription, ValidationPaiement } from '~~/types'
 import { useSession } from '~/composables/useSession'
 import { associationCourante } from './session'
 import { chargerAssociation } from './associations'
@@ -20,16 +20,20 @@ async function contexteAssociation(client: ApiClient, aid: string, seulement?: s
   const vues = new Map<string, Projet>(projets.map(p => [p.id, vueProjet(p, { associationId: aid })]))
   const souscripteurs = new Map<string, Souscripteur>()
   const echeances = new Map<string, Echeance>()
+  const inscriptions = new Map<string, Souscription>()
   await Promise.all(projets.map(async (p) => {
     const [grille, enr] = await Promise.all([
       client.call('lg.grid', 'get', { params: { aid, pid: p.id }, query: { limit: 100 } }),
       toutesLesPages(cursor => client.call('en.list', 'list', { params: { aid, pid: p.id }, query: { limit: 100, cursor } })),
     ])
     const souscriptions = enr.items.map(e => vueSouscription(e, aid))
-    for (const s of souscriptions) souscripteurs.set(s.souscripteurId, s.souscripteur)
+    for (const { souscripteur, ...s } of souscriptions) {
+      souscripteurs.set(s.souscripteurId, souscripteur)
+      inscriptions.set(`${s.souscripteurId}:${s.projetId}`, s)
+    }
     for (const ligne of vueGrille(grille, souscriptions, p.id)) for (const e of ligne.echeances) echeances.set(e.id, e)
   }))
-  return { projets: vues, souscripteurs, echeances, associationId: aid }
+  return { projets: vues, souscripteurs, echeances, inscriptions, associationId: aid }
 }
 
 export const usePaiements = (filtres: MaybeRefOrGetter<FiltresPaiements> = {}) => {

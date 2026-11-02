@@ -38,8 +38,10 @@ SET LOCAL app.association_id = $aid; SET LOCAL app.user_id = $uid; SET LOCAL app
 -- 1. verrouiller le paiement, vérifier statut et version (If-Match)
 SELECT … FROM payments WHERE id = $1 AND status = 'pending' AND version = $2 FOR UPDATE;
 -- 0 ligne → payment_already_reviewed (409) ou version_conflict (412)
--- 2. verrouiller les échéances visées dans un ordre stable (évite les interblocages)
-SELECT … FROM installments WHERE id = ANY($ids) ORDER BY id FOR UPDATE;
+-- 1 bis. verrouiller le projet (ordre paiement → projet → échéances, comme en.create et en.withdraw : aucun cycle)
+SELECT … FROM projects WHERE id = $project FOR NO KEY UPDATE;
+-- 2. verrouiller les échéances de l'inscription (reste dû) et celles visées, dans un ordre stable
+SELECT … FROM installments WHERE enrollment_id = $eid OR id = ANY($ids) ORDER BY id FOR UPDATE;
 -- 3. répartition finale (celle du souscripteur ou ajustée) vérifiée par validateAllocation()
 --    sur le montant reçu (amount_received ?? amount_declared), avec pending recalculé hors ce paiement
 UPDATE allocations SET state = 'voided' WHERE payment_id = $1;          -- anciennes propositions
@@ -48,7 +50,7 @@ UPDATE installments SET amount_pending = amount_pending - <proposé>,
                         amount_paid = amount_paid + <confirmé>, status = installmentStatus(…), paid_at = …;
 -- 4. clôturer, verrouiller les conditions financières, auditer, publier
 UPDATE payments SET status = 'validated', reviewed_by = $uid, reviewed_at = now(), version = version + 1;
-UPDATE projects SET financial_terms_locked_at = coalesce(financial_terms_locked_at, now());
+UPDATE projects SET financial_terms_locked_at = now() WHERE id = $project AND financial_terms_locked_at IS NULL;
 INSERT INTO audit_logs …; INSERT INTO outbox_events ('payment.validated', …);
 COMMIT;  -- le trigger différé vérifie Σ allocations confirmées = montant reçu
 ```
