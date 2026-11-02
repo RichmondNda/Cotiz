@@ -1,6 +1,6 @@
 # ADR 0016 · Exception temporaire à l'audit des dépendances de production (outils de dev/build de Nuxt)
 
-**Statut :** adopté · 2026-10-09 · révisé le 2026-10-22 (2 GHSA restantes) et le 2026-10-29 (+ deepmerge), voir « Révision » · **réexamen au plus tard le 2026-11-09**
+**Statut :** adopté · 2026-10-09 · révisé le 2026-10-22 (2 GHSA restantes), le 2026-10-29 (+ deepmerge) et le 2026-11-02 (− node-forge, + glob et minimatch de Sentry), voir « Révision » · **réexamen au plus tard le 2026-11-09**
 
 ## Contexte
 
@@ -44,6 +44,23 @@ Nouvelle alerte de sévérité basse, sans correctif publié (plage corrigée «
 `nuxt > @nuxt/nitro-server > nitropack > @rollup/plugin-node-resolve > deepmerge`. C'est un outil de build : vérification
 faite sur un build, ni `deepmerge` ni `@rollup/plugin-node-resolve` ne figurent dans `frontend/.output`. La GHSA est
 ajoutée à `ignoreGhsas`, avec la même date de réexamen (2026-11-09).
+
+## Révision du 2026-11-02
+
+Montée de `nuxt` en 4.6.3 (correctifs de GHSA-9v7c-q64q-vv33, GHSA-3xf4-9g3c-4h4w, GHSA-x287-wcfc-q46c et
+GHSA-648h-gw55-m2g7) et override `listhen>node-forge` en `^1.4.1` (node-forge 1.4.2, qui corrige toutes ses alertes) :
+GHSA-86w9-cpqp-85rv est retirée de `ignoreGhsas`.
+
+Deux alertes modérées, sans correctif compatible, touchent cette fois le back :
+GHSA-3g3m-2fjr-6pw4 (`glob` ≤ 14.0.1 : une recherche annulée continue de parcourir le disque) et GHSA-g3hv-75wg-m249
+(`minimatch` < 11.0.1 : déni de service par un motif contrôlé par l'attaquant), par
+`backend > @sentry/node > @sentry/bundler-plugins > glob > minimatch`. La dernière version de `@sentry/node` (11.10.0)
+dépend toujours de `glob ^13`. Ces paquets sont présents dans l'image `api`, mais jamais chargés : `@sentry/bundler-plugins`
+n'est atteint que par les sous-chemins `@sentry/node/vite`, `/webpack`, `/esbuild` et `/rollup` (plugins de build), et le
+back n'importe que l'entrée principale de `@sentry/node`. Le code n'appelle jamais `glob` avec un motif ou une annulation
+venant d'une requête. Les deux GHSA sont ajoutées à `ignoreGhsas`, avec la même date de réexamen (2026-11-09) ; on les
+retire dès qu'une version de `@sentry/node` passe à `glob` ≥ 14.0.2. Alternative écartée : forcer `glob` 14 et
+`minimatch` 11 par un override, version majeure imposée à un plugin de Sentry que rien ne teste ici.
 
 ## Conséquences
 

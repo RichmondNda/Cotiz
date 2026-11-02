@@ -43,9 +43,10 @@
   "pnpm": {
     "auditConfig": {
       "ignoreGhsas": [
-        "GHSA-86w9-cpqp-85rv",
         "GHSA-vfj7-8cjw-p6xm",
-        "GHSA-gcqx-w48m-w2h4"
+        "GHSA-gcqx-w48m-w2h4",
+        "GHSA-3g3m-2fjr-6pw4",
+        "GHSA-g3hv-75wg-m249"
       ]
     },
     "overrides": {
