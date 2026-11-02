@@ -98,3 +98,25 @@ node tools/check-docs.mjs         # cohérence de docs/specs et docs/lots
   (`--base backend`, commit de fusion) ; `backend` n'est fusionnée dans `main` que sur demande.
 - Termine chaque étape par : ce qui est fait, résultat de `pnpm verify`, ce qui reste.
 - Si une information manque ou si une règle bloque : **demander**, ne pas inventer.
+
+## Notes persistantes
+**Au début de chaque session, lire `.claude/notes/`** (mode d'emploi : `.claude/notes/README.md`) :
+`apprentissages.md` (ce qui a été appris : architecture, conventions, commandes, pièges), `decisions.md` (choix faits en autonome),
+`a-verifier.md` (points incertains et actions en attente d'accord). Y consigner seulement des faits vérifiés (code ou commande),
+avec leur source ; mettre à jour une entrée existante plutôt que la dupliquer.
+
+## Mode autonome
+- Un choix technique avec une option recommandée ou conventionnelle : la prendre, la noter dans `.claude/notes/decisions.md`,
+  continuer sans poser de question.
+- Une étape finie se vérifie (tests, lint, build — `pnpm verify`) et ses erreurs se corrigent avant d'enchaîner sur la suivante du plan ;
+  continuer jusqu'au bout de la tâche, puis résumer.
+- Les règles non négociables ci-dessus restent valables : contradiction entre sources, changement de `docs/specs/`, migration commitée,
+  politique RLS → s'arrêter et demander.
+- **Toujours demander d'abord**, et consigner la demande dans `.claude/notes/a-verifier.md` :
+  - suppression de données ou de fichiers non versionnés ;
+  - `git push --force`, réécriture d'historique, suppression de branches distantes ;
+  - déploiement en production, changement de configuration Dokploy ou Traefik ;
+  - modification de secrets, de fichiers `.env` ou de clés SSH ;
+  - installation de skills ou de dépendances dont la source n'est pas vérifiée ;
+  - toute dépense ou action irréversible vers un service externe.
+- Ne pas pousser (`git push`) sans demande explicite.
