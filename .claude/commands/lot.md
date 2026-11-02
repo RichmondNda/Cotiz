@@ -11,4 +11,6 @@ Nous démarrons le lot $ARGUMENTS.
 3. Vérifie dans `docs/decisions.md` les décisions listées par le lot. Si l'une est `ouvert`, pose-moi la question avant tout.
 4. Crée la branche `lot/$ARGUMENTS-<slug du fichier>` si elle n'existe pas.
 5. Propose un plan : pour chaque étape du lot, les fichiers que tu vas créer ou modifier, les tests que tu vas écrire, et la vérification prévue. Signale toute contradiction entre le lot et `docs/specs/`.
-6. **Ne modifie aucun fichier** avant que j'aie validé le plan. Ensuite, on avance étape par étape avec `/etape`.
+6. Consigne le plan dans `.claude/notes/decisions.md`, puis exécute-le sans attendre de validation (mode autonome de `CLAUDE.md`) :
+   étape par étape avec `/etape`, `pnpm verify` vert avant chaque étape suivante, jusqu'à `/fin-lot`. Une contradiction avec
+   `docs/specs/` ou une décision `ouvert` arrête toujours le travail.

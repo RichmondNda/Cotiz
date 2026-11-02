@@ -8,9 +8,10 @@ Format : **date** · contexte — apprentissage. *Source.*
   `main` (521a541, PR #8) n'a que le front V0 et la doc ; `origin/backend` a 176 commits de plus (0c15832, PR #25, lot 2.4).
   Chaque lot part de `origin/backend` dans `lot/<id>-<slug>` et sa PR est fusionnée dans `backend` ; `backend` ne va dans `main`
   que sur demande. *`git rev-list --count main..origin/backend`, `CLAUDE.md` (branche `backend`, « Méthode de travail »).*
-- **2026-11-02** · exploration initiale — Sur `backend`, `docs/progress.md` marque terminés les lots 0.1 à 2.3 (dernier : 2.3 le
-  2026-10-30) ; le lot 2.4 y est encore `à faire` alors que ses étapes 1 à 9 sont fusionnées (PR #25). Voir `a-verifier.md`.
-  *`git show origin/backend:docs/progress.md`, `git log --oneline origin/backend`.*
+- **2026-11-02** (mis à jour le même jour) · `/fin-lot 2.4` — Lots 0.1 à 2.4 `terminé` dans `docs/progress.md` ; 2.4 clôturé
+  avec deux points à confirmer (CI de la PR #25, revue humaine de la transaction de validation). Prochain lot : 2.5.
+  Les clôtures précédentes sont des commits `docs(progress): …` ou `docs(lot-x.y): clôture du lot`, qui touchent `docs/progress.md`
+  et un `CLAUDE.md` de paquet. *`git log --grep=progress origin/backend`.*
 - **2026-11-02** · exploration initiale — Modules back présents : access, billing, docs, files, identity, ledger, members,
   onboarding, projects, reporting, system, tenancy. *`git ls-tree origin/backend backend/src/modules/`.*
 
@@ -36,9 +37,18 @@ Format : **date** · contexte — apprentissage. *Source.*
 
 ## Environnement de cette machine
 
-- **2026-11-02** · exploration initiale — Node v22.23.4 présent ; `pnpm` absent du PATH (`corepack` disponible dans `/usr/bin`) ;
-  aucun `node_modules` (ni racine ni `frontend/`) : rien n'est installé, donc ni `pnpm verify` ni les hooks husky ne tournent
-  tant que `pnpm install` n'a pas été lancé. *`node -v`, `pnpm -v`, `ls node_modules`.*
+- **2026-11-02** (mis à jour le même jour) · installation — Node v22.23.4. pnpm 10.10.0 activé sans sudo par
+  `corepack enable --install-directory ~/.local/bin` ; dans une commande Bash, faire `export PATH=$HOME/.local/bin:$PATH` avant `pnpm`.
+  `pnpm install --frozen-lockfile` : ~25 s, hooks husky installés, `nuxt prepare` lancé ; scripts d'installation ignorés
+  (@swc/core, cpu-features, msgpackr-extract, protobufjs, ssh2, vue-demi) conformément à `onlyBuiltDependencies`. *Commandes de la session.*
+- **2026-11-02** · `pnpm verify` sans Docker — L'utilisateur `dev` n'est pas dans le groupe `docker` (socket `root:docker` 660) et sudo
+  demande un mot de passe. Testcontainers échoue (« Could not find a working container runtime strategy ») : `@cotiz/db` (4 fichiers)
+  et `backend` (70 fichiers sur 121) échouent, les autres `TypeError … reading 'stop'/'close'` viennent des `afterAll` sur des fixtures
+  jamais démarrées. Sans Docker, passent : lint, typecheck, `check:docs` (112 endpoints, 158 opérations, 60 écrans, 34 lots),
+  domain 261, contracts 580, api-client 12, frontend 200, backend 583 tests sans base. `pnpm verify` s'arrête au premier paquet en
+  échec : `pnpm turbo run test --continue` pour tout voir. *`id -nG`, `ls -l /var/run/docker.sock`, `pnpm verify`.*
+- **2026-11-02** · CI GitHub — `gh` n'est pas installé et le dépôt `RichmondNda/Cotiz` est privé (API publique : « Not Found ») :
+  impossible de lire l'état de la CI sans `gh auth login`. *`curl api.github.com/…/check-runs`.*
 
 ## Garde-fous Claude Code du dépôt
 
