@@ -10,11 +10,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 
 ## Demandes d'accord (actions sensibles)
 
-- **2026-11-02** · `git push` de `chore/notes-claude` (vers GitHub, puis PR vers `backend`) — Non fait : l'utilisateur doit le demander.
-- **2026-11-02** · `git push` de `chore/nuxt-4.6.4` (commit `9db93b2`, part de `origin/backend`), puis PR vers `backend`
-  — Non fait : à demander. `pnpm verify` complet vert en local (voir « Tranché »).
-
 ## Tranché
+
+- **2026-11-03** · `git push` des branches `lot/*` et `chore/*` + PR vers `backend` → autorisé durablement (règle ajoutée
+  dans « Mode autonome » de `CLAUDE.md`). Fusion d'une PR, `--force`, push vers `main`/`backend` : toujours sur demande.
+  Appliqué aussitôt à `chore/notes-claude` et `chore/nuxt-4.6.4`.
 
 - **2026-11-02** · accès Docker → `dev` ajouté au groupe `docker` (`getent group docker`). En attendant une nouvelle session,
   passer par `sg docker -c "<commande>"`. `pnpm verify` sur `chore/nuxt-4.6.4` : tout vert sauf `enrollment-create`,

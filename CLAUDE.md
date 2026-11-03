@@ -123,4 +123,6 @@ avec leur source ; mettre à jour une entrée existante plutôt que la dupliquer
   - modification de secrets, de fichiers `.env` ou de clés SSH ;
   - installation de skills ou de dépendances dont la source n'est pas vérifiée ;
   - toute dépense ou action irréversible vers un service externe.
-- Ne pas pousser (`git push`) sans demande explicite.
+- **Pousser sans demander** les branches `lot/*` et `chore/*` et ouvrir leur PR vers `backend` (`--base backend`), une fois
+  `pnpm verify` vert (ou, pour un changement limité à du Markdown, contrôle du diff). Jamais de `--force`, jamais de push
+  vers `main` ni `backend` directement ; fusionner une PR reste une demande explicite.
