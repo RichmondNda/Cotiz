@@ -97,7 +97,9 @@ export class EventsProcessor implements OnApplicationBootstrap, OnModuleDestroy 
         continue;
       }
       try {
-        await this.db.withTenantContext(context, () => consumer.handle(event));
+        await (consumer.ownTransactions
+          ? consumer.handle(event)
+          : this.db.withTenantContext(context, () => consumer.handle(event)));
         await this.redis.set(done, '1', 'EX', DEDUPE_TTL_SECONDS);
       } catch (error) {
         // Ni le contenu de l'événement ni ses identifiants personnels : type, id et consommateur suffisent.

@@ -377,6 +377,29 @@ describe('shared/outbox : publication, relais et consommation', () => {
       ]);
     });
 
+    it('ownTransactions : le consommateur est appelé hors transaction et ouvre les siennes, puis est marqué', async () => {
+      const seen: string[] = [];
+      let calls = 0;
+      register({
+        name: 'own-transactions',
+        types: ['file.uploaded'],
+        ownTransactions: true,
+        handle: async () => {
+          calls++;
+          expect(() => currentTx()).toThrow('hors contexte tenant');
+          const res = await tenantDb.withTenantContext({ space: 'system' }, () =>
+            currentTx().execute<{ space: string }>(sql`SELECT app_space() AS space`),
+          );
+          seen.push(res.rows[0]?.space ?? '');
+        },
+      });
+      const envelope = await publishAndRead();
+      await processor.process(envelope);
+      await processor.process(envelope);
+      expect(seen).toEqual(['system']);
+      expect(calls).toBe(1);
+    });
+
     it('refuse un nom de consommateur en double', () => {
       const consumer = { name: 'dup', types: ['file.uploaded'] as const, handle: () => Promise.resolve() };
       register(consumer);
