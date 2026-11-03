@@ -1,6 +1,8 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
+  DUE_SOON_DAYS,
+  dueSoonDate,
   hourIn,
   installmentStatus,
   lateSince,
@@ -175,5 +177,19 @@ describe('overallStanding — situation globale d’un souscripteur (le pire de 
 
   it('aucune inscription : erreur (un membre de l’annuaire en a toujours une)', () => {
     expect(() => overallStanding([])).toThrow();
+  });
+});
+
+describe('dueSoonDate (rappel J-3, jobs.yaml installments.due-soon)', () => {
+  it('trois jours après le jour de l’association, au-delà des fins de mois et d’année', () => {
+    expect(DUE_SOON_DAYS).toBe(3);
+    expect(dueSoonDate('2026-10-02')).toBe('2026-10-05');
+    expect(dueSoonDate('2026-02-27')).toBe('2026-03-02');
+    expect(dueSoonDate('2028-02-27')).toBe('2028-03-01');
+    expect(dueSoonDate('2026-12-30')).toBe('2027-01-02');
+  });
+
+  it('date invalide refusée', () => {
+    expect(() => dueSoonDate('2026-02-30')).toThrow();
   });
 });

@@ -6,7 +6,7 @@ import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { isActiveSubscriberIn, notifiedManagersOf, notifiedPlatformStaff } from '../../access/access.public.js';
 import { associationPersonNameOf } from '../../identity/identity.public.js';
-import { paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
+import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
 import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
@@ -16,6 +16,7 @@ import type { Recipient, RenderedMessage } from '../domain/channel.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
 import {
   associationRequestSubmittedMessage,
+  installmentDueSoonMessage,
   memberEnrolledMessage,
   passwordResetRequestedMessage,
   paymentDeclaredMessage,
@@ -26,7 +27,7 @@ import {
   userActivatedMessage,
 } from '../domain/messages.js';
 
-/** Événements notifiés en V1 par ce consommateur (le rappel J-3 arrive à l'étape 4 du lot 2.5). */
+/** Événements notifiés en V1 par ce consommateur (architecture/07). */
 export const NOTIFIED_TYPES = [
   'payment.declared',
   'payment.validated',
@@ -36,6 +37,7 @@ export const NOTIFIED_TYPES = [
   'user.activated',
   'password_reset.requested',
   'association.request_submitted',
+  'installment.due_soon',
 ] as const satisfies readonly EventType[];
 
 /** Regroupement (architecture/07) : au-delà de 5 déclarations en 1 h, une notification récapitulative. */
@@ -50,6 +52,7 @@ const Payloads = {
   activated: z.object({ userId: Id, associationIds: z.array(Id) }),
   reset: z.object({ userId: Id }),
   request: z.object({ requestId: Id, reference: z.string(), associationName: z.string() }),
+  dueSoon: z.object({ userId: Id, projectId: Id, installmentIds: z.array(Id), dueDate: z.iso.date() }),
 };
 
 /** Une notification à créer : message, destinataires, base de la clé de déduplication. */
@@ -133,6 +136,8 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         return this.planReset(event);
       case 'association.request_submitted':
         return this.planRequest(event);
+      case 'installment.due_soon':
+        return aid ? this.inAssociation(aid, () => this.planDueSoon(event, aid)) : [];
       default:
         return [];
     }
@@ -156,6 +161,24 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         msg,
         recipients: [{ userId: notice.userId, associationId: aid, audience: 'subscriber' }],
         dedupeBase: event.id,
+      },
+    ];
+  }
+
+  /**
+   * Rappel J-3 : reste dû relu au moment de notifier (déclaré ou soldé entre-temps → rien) ; souscripteur encore actif.
+   * Clé `due_soon:{projet}:{date}` (le routeur y ajoute la personne) : relancée le même jour, la tâche republie, la cloche reste unique.
+   */
+  private async planDueSoon(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { userId, projectId, installmentIds, dueDate } = Payloads.dueSoon.parse(event.payload);
+    if (!(await isActiveSubscriberIn(aid, userId))) return [];
+    const notice = await dueSoonNoticeOf(aid, { userId, projectId, installmentIds });
+    if (!notice || Money.isZero(notice.remaining)) return [];
+    return [
+      {
+        msg: installmentDueSoonMessage({ ...notice, dueDate }),
+        recipients: [{ userId, associationId: aid, audience: 'subscriber' }],
+        dedupeBase: `due_soon:${projectId}:${dueDate}`,
       },
     ];
   }

@@ -57,3 +57,15 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   test du chemin réel `withTenantContext({ space: 'system' })` + `InAppChannel`, et refus RLS du même appel en espace association.
   étape 3 : `nt.list`/`nt.read` filtrés par audience, association courante et appartenance active (test : ancien gestionnaire,
   personne à double rôle) ; `nt.read` ne modifie que `read_at`. Les politiques RLS restent celles de la spec.
+- **2026-11-03** · lot 2.5, étapes 2 à 4 — choix faits en autonome :
+  - Types d'événement → catégories du front (`app/composables/api/notifications.ts`) : `payment.reverted` → `paiement_declare`
+    (la déclaration redevient en attente) ; `member.enrolled`, `user.activated`, `association.request_submitted` → `inscriptions` ;
+    `password_reset.requested` → `relance`.
+  - Espace courant d'un gestionnaire = sa première appartenance de gestion, comme `GET /me` (pas d'en-tête d'association en V1).
+  - Montants : validation → `amountReceived` de l'événement ; rejet et annulation → montant déclaré (immuable) ; rappel J-3 →
+    reste dû relu au moment de notifier (`remainingOf`, hors montants en attente : déjà déclaré → aucun rappel).
+  - Compteur de non-lus : une clé Redis par personne et par espace (`cotiz:notifications:unread:{userId}:{scope}`, 60 s),
+    recensée dans l'ensemble `cotiz:notifications:unread:{userId}` ; invalidation = toutes les clés de la personne, après COMMIT.
+  - Rappel J-3 : tâche `installments.due-soon` dans le module ledger (lancée toutes les heures, traite les associations où il
+    est 08:00), un événement par souscripteur et par projet ; cloche dédupliquée par `due_soon:{projet}:{date}:{personne}`.
+    `dueSoonDate` / `DUE_SOON_DAYS` dans `@cotiz/domain`.

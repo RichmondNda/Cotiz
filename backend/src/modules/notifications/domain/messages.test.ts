@@ -1,6 +1,7 @@
 import { Money } from '@cotiz/domain';
 import { describe, expect, it } from 'vitest';
 import {
+  installmentDueSoonMessage,
   associationRequestSubmittedMessage,
   memberEnrolledMessage,
   passwordResetRequestedMessage,
@@ -78,6 +79,30 @@ describe('textes des notifications', () => {
     ).toBe(`/plateforme/demandes/${PAY}`);
   });
 
+  it('échéance dans 3 jours : date en toutes lettres, reste dû, lien de déclaration du projet', () => {
+    const m = installmentDueSoonMessage({
+      projectId: P,
+      projectName: 'Centre communautaire',
+      dueDate: '2026-10-05',
+      remaining: Money.of(25_000, 'XOF'),
+    });
+    expect(m).toEqual({
+      type: 'installment.due_soon',
+      title: 'Échéance dans 3 jours',
+      body: `Prochaine échéance le 5 octobre : 25${THIN}000${NBSP}F pour Centre communautaire.`,
+      actionUrl: `/paiements/declarer?projet=${P}`,
+      data: { actionLabel: 'Déclarer un paiement', projectId: P },
+    });
+    expect(
+      installmentDueSoonMessage({
+        projectId: P,
+        projectName: 'X',
+        dueDate: '2027-01-01',
+        remaining: Money.of(500, 'GNF'),
+      }).body,
+    ).toBe(`Prochaine échéance le 1er janvier : 500${NBSP}FG pour X.`);
+  });
+
   it('aucun mot interdit à l’écran (payer, approuver, encaisser, facture, adhérent, mensualité)', () => {
     const all = [
       paymentValidatedMessage(facts),
@@ -90,6 +115,12 @@ describe('textes des notifications', () => {
       passwordResetRequestedMessage({ audience: 'manager', name: 'Kofi Annan' }),
       passwordResetRequestedMessage({ audience: 'platform' }),
       associationRequestSubmittedMessage({ requestId: PAY, reference: 'REQ-1', associationName: 'Entraide' }),
+      installmentDueSoonMessage({
+        projectId: P,
+        projectName: 'X',
+        dueDate: '2026-10-05',
+        remaining: Money.of(1, 'XOF'),
+      }),
     ];
     for (const m of all) {
       // Liste blanche de `data` : jamais de code, de téléphone, de preuve ni de commentaire.

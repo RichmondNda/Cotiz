@@ -1,4 +1,4 @@
-import { formatMoney, type Money } from '@cotiz/domain';
+import { DUE_SOON_DAYS, formatMoney, type Money } from '@cotiz/domain';
 import type { RenderedMessage } from './channel.js';
 
 /**
@@ -126,5 +126,43 @@ export function associationRequestSubmittedMessage(p: {
     body: `${p.associationName} demande l’ouverture d’un espace (réf. ${p.reference}).`,
     actionUrl: `/plateforme/demandes/${p.requestId}`,
     data: { actionLabel: 'Examiner la demande', requestId: p.requestId },
+  };
+}
+
+const MONTHS = [
+  'janvier',
+  'février',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'août',
+  'septembre',
+  'octobre',
+  'novembre',
+  'décembre',
+] as const;
+
+/** `2026-10-05` → « 5 octobre » ; « 1er » pour le premier du mois. */
+function dayAndMonth(isoDate: string): string {
+  const [, month, day] = isoDate.split('-').map((part) => Number.parseInt(part, 10));
+  if (!month || !day || month > 12) throw new Error(`date illisible : ${isoDate}`);
+  return `${day === 1 ? '1er' : String(day)} ${MONTHS[month - 1] ?? ''}`;
+}
+
+/** Rappel J-3 (architecture/07, DUE_SOON_DAYS) : reste dû des échéances visées, lien vers la déclaration pour ce projet. */
+export function installmentDueSoonMessage(p: {
+  projectId: string;
+  projectName: string;
+  dueDate: string;
+  remaining: Money;
+}): RenderedMessage {
+  return {
+    type: 'installment.due_soon',
+    title: `Échéance dans ${String(DUE_SOON_DAYS)} jours`,
+    body: `Prochaine échéance le ${dayAndMonth(p.dueDate)} : ${formatMoney(p.remaining)} pour ${p.projectName}.`,
+    actionUrl: `/paiements/declarer?projet=${p.projectId}`,
+    data: { actionLabel: 'Déclarer un paiement', projectId: p.projectId },
   };
 }

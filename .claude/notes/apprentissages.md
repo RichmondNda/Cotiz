@@ -86,3 +86,8 @@ Format : **date** · contexte — apprentissage. *Source.*
   corrigé par `@nuxt/cli` 4.0.3 (PR #27). *Journal du job « Parcours » de la CI.*
 - **2026-11-03** · Docker — Le groupe `docker` n'est pas encore actif dans les shells de Claude Code : préfixer par
   `sg docker -c "…"` (ex. `sg docker -c "pnpm verify"`). *`groups`, `docker ps`.*
+- **2026-11-03** · outbox — `EventConsumer.ownTransactions: true` : le processeur appelle `handle(event)` hors transaction ;
+  le consommateur ouvre lui-même ses contextes (non imbriquables). Utilisé par les notifications : lecture en contexte
+  association, écriture en espace system. *`shared/outbox/events.processor.ts`, `test/integration/outbox.test.ts`.*
+- **2026-11-03** · Redis — `EXPIRE` porte sur la clé entière : un hash par personne avec un champ par espace voit son
+  expiration repoussée à chaque écriture. Une clé par espace + un ensemble pour l'invalidation. *Relecture isolation 2.5.3.*

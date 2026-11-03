@@ -22,6 +22,8 @@ export type { AllocationMoves } from './balances.js';
 export { enrollmentTotals } from './enrollment-totals.js';
 export type { EnrollmentTotals, TotalsInstallment } from './enrollment-totals.js';
 export {
+  DUE_SOON_DAYS,
+  dueSoonDate,
   hourIn,
   installmentStatus,
   lateSince,

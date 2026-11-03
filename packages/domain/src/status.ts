@@ -29,6 +29,15 @@ export function hourIn(timeZone: string, now: Date): number {
   return Number.parseInt(hour, 10);
 }
 
+/** Rappel « échéance dans 3 jours » (jobs.yaml, installments.due-soon ; architecture/07). */
+export const DUE_SOON_DAYS = 3;
+
+/** Date d'échéance visée par le rappel du jour `today` (jour de l'association) : `today` + 3 jours. */
+export function dueSoonDate(today: IsoDate): IsoDate {
+  parseIsoDate(today);
+  return addDays(today, DUE_SOON_DAYS);
+}
+
 /** Premier jour de retard : échéance + délai de grâce + 1 jour. */
 export function lateSince(installment: Pick<InstallmentState, 'dueDate'>, graceDays: number): IsoDate {
   assertGraceDays(graceDays);
