@@ -14,7 +14,7 @@ Statuts : `ouvert` (bloque le lot indiqué) · `proposé` (valable par défaut, 
 | 8 | Durées de conservation | Tableau de architecture/13-compliance.md | 7.1 | ouvert |
 | 9 | Contenu des plans et quotas | Structure figée (`plans` de `schema.sql`, quotas projets, souscripteurs et gestionnaires, `null` = illimité). Valeurs de départ, pour les données initiales et la démo : celles de `seed-reference.yaml` (Découverte 0 F, 1 / 20 / 1 ; Essentiel 10 000 F, 5 / 100 / 2 ; Pro 25 000 F, illimité / 500 / 5). Les valeurs commerciales définitives se règlent ensuite depuis l'écran super-admin (`pf.plan.write`), sans changement de code | 1.2 | adopté |
 | 10 | Second VPS d'observabilité | Recommandé ; sinon Loki + Uptime Kuma hors du VPS applicatif | 7.1 | ouvert |
-| 11 | Statut « due » (échue, dans le délai de grâce) | Affiché « À venir » (la spec UI n'a pas de badge dédié) | 2.4 | proposé |
+| 11 | Statut « due » (échue, dans le délai de grâce) | Affiché « À venir » (la spec UI n'a pas de badge dédié) | 2.4 | adopté |
 | 12 | Anti-robots sans service tiers | Champ piège + ALTCHA auto-hébergé + limitation de débit | 1.3 | adopté |
 | 13 | Chiffres de Moussa dans la spec UI | 2 échéances × 25 000 F = **50 000 F** en retard, comme les maquettes et la V0 ; `seed-reference.yaml` corrigé | 0.3 | adopté |
 | 14 | Organisation du dépôt | `frontend/` (Nuxt 4 existant) + `backend/` (NestJS) + `packages/*`, workspace pnpm à la racine ; pas de `apps/` | 0.1 | adopté |
