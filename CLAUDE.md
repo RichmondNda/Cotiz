@@ -92,6 +92,8 @@ node tools/check-docs.mjs         # cohérence de docs/specs et docs/lots
 - Ordre dans une étape : contrat → tests (les voir échouer) → code → `pnpm verify`.
 - Logique d'argent (lots 2.3, 2.4, 3.3, 4.6, 5.1, 6.3) : tests d'abord, toujours.
 - Avant de conclure une étape touchant la base ou l'argent : sous-agents `isolation-reviewer` et `money-reviewer` sur le diff.
+- **Revue humaine** (critère « revue humaine » d'une définition de fini) : acquise dès que l'utilisateur a approuvé ou fusionné la PR
+  qui porte le code concerné. Avant, le critère reste « à confirmer » ; ne jamais le cocher sans cette approbation.
 - Ne commence pas un lot dont une dépendance n'est pas `terminé` dans `docs/progress.md`, ni dont une décision listée est `ouvert`
   dans `docs/decisions.md` sans me demander.
 - Ne modifie `docs/` que pour mettre à jour `docs/progress.md`, sauf demande explicite. Si une spec doit changer, propose le changement.

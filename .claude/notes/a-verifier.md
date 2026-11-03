@@ -4,13 +4,13 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 
 ## Points ouverts
 
-- **2026-11-02** · lot 2.4, revue humaine ligne à ligne de la transaction de validation (`lg.pay.validate`,
-  `backend/src/modules/ledger/application/`) — à faire par un humain. Le lot est marqué `terminé` sous cette réserve.
-  · Confirmer la revue.
-
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
+
+- **2026-11-03** · revue humaine du lot 2.4 (transaction de validation) → validée par l'utilisateur ; `docs/progress.md` mis à jour.
+  Règle durable ajoutée dans `CLAUDE.md` (« Méthode de travail ») : la revue humaine est acquise quand l'utilisateur approuve
+  ou fusionne la PR qui porte le code.
 
 - **2026-11-03** · `git push` des branches `lot/*` et `chore/*` + PR vers `backend` → autorisé durablement (règle ajoutée
   dans « Mode autonome » de `CLAUDE.md`). Fusion d'une PR, `--force`, push vers `main`/`backend` : toujours sur demande.
