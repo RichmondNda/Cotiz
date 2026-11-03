@@ -11,8 +11,9 @@ import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
 import { currentTx, TenantDatabase } from '../../../shared/tenant-context/index.js';
-import { NotificationRouter } from '../application/notification-router.js';
+import { NotificationRouter, type RoutedDelivery } from '../application/notification-router.js';
 import type { Recipient, RenderedMessage } from '../domain/channel.js';
+import { UnreadCounter } from '../infra/unread-counter.js';
 import {
   associationRequestSubmittedMessage,
   memberEnrolledMessage,
@@ -75,6 +76,7 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly consumers: EventConsumers,
     private readonly db: TenantDatabase,
     private readonly router: NotificationRouter,
+    private readonly counter: UnreadCounter,
   ) {}
 
   onModuleInit(): void {
@@ -93,12 +95,21 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
   async handle(event: EventEnvelope): Promise<void> {
     const planned = await this.plan(event);
     if (planned.length === 0) return;
-    await this.db.withTenantContext({ space: 'system' }, async () => {
+    const deliveries = await this.db.withTenantContext({ space: 'system' }, async () => {
+      const all: RoutedDelivery[] = [];
       for (const p of planned) {
-        if (p.digest) await this.dispatchDeclared(p, p.digest, event);
-        else await this.router.dispatch(p.msg, p.recipients, { dedupeBase: p.dedupeBase });
+        all.push(
+          ...(p.digest
+            ? await this.dispatchDeclared(p, p.digest, event)
+            : await this.router.dispatch(p.msg, p.recipients, { dedupeBase: p.dedupeBase })),
+        );
       }
+      return all;
     });
+    // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche.
+    await this.counter.invalidate(
+      deliveries.filter((d) => d.channel === 'in_app' && d.status === 'created').map((d) => d.recipient.userId),
+    );
   }
 
   private inAssociation<T>(associationId: string, fn: () => Promise<T>): Promise<T> {
@@ -251,7 +262,7 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     p: Planned,
     digest: { associationId: string; pendingCount: number },
     event: EventEnvelope,
-  ): Promise<void> {
+  ): Promise<RoutedDelivery[]> {
     const occurredAt = new Date(event.occurredAt);
     const since = new Date(occurredAt.getTime() - DIGEST_WINDOW_MS);
     const individual: Recipient[] = [];
@@ -277,12 +288,18 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         );
       ((recent?.n ?? 0) >= DIGEST_THRESHOLD ? grouped : individual).push(r);
     }
-    if (individual.length > 0) await this.router.dispatch(p.msg, individual, { dedupeBase: p.dedupeBase });
+    const results: RoutedDelivery[] = [];
+    if (individual.length > 0) {
+      results.push(...(await this.router.dispatch(p.msg, individual, { dedupeBase: p.dedupeBase })));
+    }
     if (grouped.length > 0) {
       const hour = occurredAt.toISOString().slice(0, 13);
-      await this.router.dispatch(paymentsDigestMessage({ pendingCount: digest.pendingCount }), grouped, {
-        dedupeBase: `digest:${digest.associationId}:${hour}`,
-      });
+      results.push(
+        ...(await this.router.dispatch(paymentsDigestMessage({ pendingCount: digest.pendingCount }), grouped, {
+          dedupeBase: `digest:${digest.associationId}:${hour}`,
+        })),
+      );
     }
+    return results;
   }
 }

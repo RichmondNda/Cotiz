@@ -406,6 +406,30 @@ describe('consommateur notifications', () => {
     });
   });
 
+  describe('compteur de non-lus', () => {
+    it('une notification créée invalide le compteur en cache du destinataire, pas celui des autres', async () => {
+      // Une clé par espace, recensée dans l'ensemble de la personne (comme UnreadCounter.set).
+      const set = (userId: string) => `cotiz:notifications:unread:${userId}`;
+      const key = (userId: string) => `${set(userId)}:subscriber:x`;
+      for (const userId of [USERS.moussa, USERS.fatou]) {
+        await f.redis.exec(['redis-cli', 'SET', key(userId), '0']);
+        await f.redis.exec(['redis-cli', 'SADD', set(userId), key(userId)]);
+      }
+      const paymentId = await payment('validated');
+      await consumer.handle(
+        envelope('payment.validated', A.id, {
+          paymentId,
+          userId: USERS.moussa,
+          amountReceived: 25_000,
+          installmentIds: [],
+        }),
+      );
+      const exists = async (userId: string) => (await f.redis.exec(['redis-cli', 'EXISTS', key(userId)])).output.trim();
+      expect(await exists(USERS.moussa)).toBe('0');
+      expect(await exists(USERS.fatou)).toBe('1');
+    });
+  });
+
   describe('écriture de la cloche', () => {
     it('le canal in_app écrit en espace system ; le même appel en espace association est refusé par RLS', async () => {
       const router = worker.get(NotificationRouter);

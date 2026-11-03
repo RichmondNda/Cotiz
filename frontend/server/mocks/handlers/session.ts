@@ -1,10 +1,9 @@
-// Second facteur (auth.mfa), profil, préférences et notifications (me.profile, me.prefs, nt.*).
+// Second facteur (auth.mfa), profil et préférences (me.profile, me.prefs) ; notifications réelles depuis le lot 2.5.
 import { motDePasseAcceptable } from '../../../app/utils/mot-de-passe'
 import { db } from '../db'
 import type { MockContext, MockSession } from '../http'
 import { checkVersion, nowInstant, problem, requireSession } from '../http'
-import { notification, userRow } from '../views'
-import { page } from './list'
+import { userRow } from '../views'
 
 /** Mot de passe actuel des comptes simulés (changement de mot de passe du profil, me.profile). */
 export const PASSWORD = 'motdepasse'
@@ -78,45 +77,4 @@ export function prefsReplace(ctx: MockContext<'me.prefs', 'replace'>) {
     ...ctx.body.items.map(i => ({ userId, type: i.type, channel: i.channel, enabled: i.enabled })),
   ]
   return prefsGet(ctx as unknown as MockContext<'me.prefs', 'get'>)
-}
-
-// ---------------------------------------------------------------- Notifications
-
-function notificationsOf(ctx: { session: MockSession | null, scenario: string | undefined }) {
-  const session = requireSession(ctx)
-  if (ctx.scenario === 'vide') return []
-  // Gestionnaire : les notifications de son association courante seulement.
-  const rows = db.notifications
-    .filter(n => n.userId === session.userId)
-    .filter(n => session.space !== 'association' || n.associationId === session.associationId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  return ctx.scenario === 'tout-lu' ? rows.map(n => ({ ...n, readAt: n.readAt ?? n.createdAt })) : rows
-}
-
-export function notificationsList(ctx: MockContext<'nt.list', 'list'>) {
-  let rows = notificationsOf(ctx)
-  if (ctx.query.unread) rows = rows.filter(n => !n.readAt)
-  if (ctx.query.type) rows = rows.filter(n => n.type === ctx.query.type)
-  return page(rows.map(notification), ctx.query)
-}
-
-export function unreadCount(ctx: MockContext<'nt.list', 'unreadCount'>) {
-  return { count: notificationsOf(ctx).filter(n => !n.readAt).length }
-}
-
-export function notificationRead(ctx: MockContext<'nt.read', 'read'>) {
-  const userId = requireSession(ctx).userId
-  const n = db.notifications.find(x => x.id === ctx.params.id && x.userId === userId) ?? problem('not_found')
-  n.readAt ??= nowInstant()
-  return notification(n)
-}
-
-export function notificationsReadAll(ctx: MockContext<'nt.read', 'readAll'>) {
-  const rows = notificationsOf(ctx).filter(n => !n.readAt)
-  const now = nowInstant()
-  for (const r of rows) {
-    const n = db.notifications.find(x => x.id === r.id)
-    if (n) n.readAt = now
-  }
-  return { updated: rows.length }
 }

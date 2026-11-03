@@ -9,7 +9,7 @@ import { uid } from '../ids'
 import { SEED } from '../reference'
 import type {
   ActivationCodeRow, AllocationRow, AssociationRow, ContractRow, EnrollmentRow, EventRow, InstallmentRow, InvoiceRow,
-  MembershipRow, MockDb, NotificationRow, PaymentMethodRow, PaymentRow, PlanRow, PreferenceRow, ProjectRow,
+  MembershipRow, MockDb, PaymentMethodRow, PaymentRow, PlanRow, PreferenceRow, ProjectRow,
   ReminderRuleRow, ReminderRunRow, RequestRow, StaffRow, SubscriptionRow, UnlistedRow, UserRow,
 } from './types'
 
@@ -357,30 +357,6 @@ function contracts(projectRows: ProjectRow[]): ContractRow[] {
   ]
 }
 
-// ---------------------------------------------------------------- Notifications
-function notifications(): NotificationRow[] {
-  const N = (key: string, user: string, assoc: string | null, type: string, title: string, body: string, createdAt: string, read: boolean, actionUrl: string, actionLabel: string): NotificationRow => ({
-    id: uid('notification', key), userId: U(user), associationId: assoc ? A(assoc) : null, type, title, body, actionUrl, actionLabel,
-    readAt: read ? createdAt : null, createdAt,
-  })
-  const E = 'entraide-yopougon'
-  return [
-    N('nt-mb-1', 'moussa-diarra', E, 'contract.to_sign', 'Contrat à signer', 'Entraide Yopougon vous invite à signer le contrat du projet Voyage solidaire.', '2026-09-25T09:12:00Z', false, `/projets/${uid('project', 'voyage-solidaire')}/contrat`, 'Signer le contrat'),
-    N('nt-mb-2', 'moussa-diarra', E, 'installment.late', 'Échéances en retard', 'Centre communautaire : 50 000 F en retard (août et septembre).', '2026-09-25T08:00:00Z', false, `/paiements/declarer?projet=${uid('project', 'centre-communautaire')}`, 'Régulariser'),
-    N('nt-mb-3', 'moussa-diarra', E, 'installment.due_soon', 'Rappel d’échéance', 'Prochaine échéance le 5 octobre : 25 000 F pour Centre communautaire.', '2026-09-21T09:00:00Z', true, `/projets/${uid('project', 'centre-communautaire')}`, 'Voir le projet'),
-    N('nt-mb-4', 'moussa-diarra', 'ressortissants-man', 'payment.validated', 'Paiement validé', 'Vos 10 000 F pour Mutuelle santé ont été validés.', '2026-09-06T09:00:00Z', true, '/historique', 'Voir l’historique'),
-    N('nt-mb-5', 'moussa-diarra', 'ressortissants-man', 'payment.validated', 'Paiement validé', 'Vos 10 000 F pour Mutuelle santé ont été validés.', '2026-08-06T09:00:00Z', true, '/historique', 'Voir l’historique'),
-    N('nt-mb-6', 'moussa-diarra', E, 'payment.validated', 'Paiement validé', 'Vos 25 000 F pour Centre communautaire ont été validés.', '2026-07-07T09:00:00Z', true, '/historique', 'Voir l’historique'),
-    N('nt-mg-1', 'awa-kone', E, 'payment.declared', 'Nouvelle déclaration de paiement', 'Moussa Diarra a déclaré 75 000 F pour Centre communautaire (août, septembre, octobre).', '2026-09-25T10:41:00Z', false, '/asso/paiements', 'Vérifier et valider'),
-    N('nt-mg-2', 'awa-kone', E, 'payment.declared', '6 paiements à valider', 'Dont 4 sur Centre communautaire.', '2026-09-25T08:00:00Z', false, '/asso/paiements', 'Ouvrir la file de validation'),
-    N('nt-mg-3', 'awa-kone', E, 'reminder.sent', 'Relance automatique envoyée', 'Règle « 15 jours de retard » : 14 souscripteurs relancés sur Centre communautaire.', '2026-09-25T07:30:00Z', false, '/asso/relances', 'Voir les retardataires'),
-    N('nt-mg-4', 'awa-kone', E, 'contract.signed', 'Contrat signé', '[Souscripteur] a signé le contrat Voyage solidaire.', '2026-09-22T09:00:00Z', true, '/asso/contrats', 'Voir les contrats'),
-    N('nt-mg-5', 'awa-kone', E, 'contract.to_sign', 'Contrat non signé', 'Fatou Traoré n’a pas encore signé le contrat Centre communautaire.', '2026-09-21T09:00:00Z', true, `/asso/souscripteurs/${U('fatou-traore')}`, 'Voir le souscripteur'),
-    N('nt-mg-6', 'awa-kone', E, 'billing.invoice', 'Facture d’abonnement disponible', 'Facture [N° FACTURE] · formule Essentiel.', '2026-09-01T09:00:00Z', true, '/asso/abonnement', 'Voir l’abonnement'),
-    N('nt-mg-7', 'awa-kone', E, 'payment.validated', 'Paiement validé par Serge Gnagne', 'Jean Kouassi · 12 500 F · Centre communautaire.', '2026-09-01T08:00:00Z', true, '/asso/paiements', 'Voir le paiement'),
-  ]
-}
-
 // ---------------------------------------------------------------- Demandes de création
 function requests(): RequestRow[] {
   const R = (key: string, name: string, type: string, contact: [string, string, string], city: string, estimated: RequestRow['needs']['estimatedSubscribers'], plan: string, received: string, status: RequestRow['status'], o: Partial<RequestRow> = {}): RequestRow => ({
@@ -514,7 +490,6 @@ export function buildDb(): MockDb {
     payments: paymentRows,
     allocations,
     contracts: contracts(projectRows),
-    notifications: notifications(),
     requests: requests(),
     reminderRules: reminderRules(),
     reminderRuns: reminderRuns(),

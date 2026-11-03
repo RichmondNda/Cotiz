@@ -7,6 +7,9 @@ const TYPES: Record<string, TypeNotification> = {
   'contract.to_sign': 'contrat_a_signer', 'contract.signed': 'contrat_signe', 'installment.late': 'echeance_en_retard',
   'installment.due_soon': 'echeance_proche', 'payment.declared': 'paiement_declare', 'payment.validated': 'paiement_valide',
   'payment.rejected': 'paiement_rejete', 'reminder.sent': 'relance', 'billing.invoice': 'abonnement', 'enrollment.created': 'inscriptions',
+  // Lot 2.5 : validation annulée (de nouveau en attente), inscription, activation, réinitialisation, demande de création.
+  'payment.reverted': 'paiement_declare', 'member.enrolled': 'inscriptions', 'user.activated': 'inscriptions',
+  'password_reset.requested': 'relance', 'association.request_submitted': 'inscriptions',
 }
 
 export const useNotifications = () =>

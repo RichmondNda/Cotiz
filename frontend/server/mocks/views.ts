@@ -2,11 +2,11 @@
 // Aucune règle métier ici : les chiffres viennent de ledger.ts (donc de @cotiz/domain).
 import type { z } from 'zod'
 import type {
-  Association, Enrollment, Installment, Notification, PaymentMethod, PaymentSummary, PersonContact,
+  Association, Enrollment, Installment, PaymentMethod, PaymentSummary, PersonContact,
   PersonRef, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
 } from '@cotiz/contracts'
 import { db } from './db'
-import type { AssociationRow, EnrollmentRow, NotificationRow, PaymentRow, PlanRow, ProjectRow, UserRow } from './db'
+import type { AssociationRow, EnrollmentRow, PaymentRow, PlanRow, ProjectRow, UserRow } from './db'
 import { enrollmentFigures, projectFigures, projectById, today } from './ledger'
 import type { InstallmentView } from './ledger'
 import { problem } from './http'
@@ -178,12 +178,5 @@ export function enrollmentsOfUser(userId: string): EnrollmentRow[] {
 }
 
 // ---------------------------------------------------------------- Notifications
-
-export function notification(n: NotificationRow): In<typeof Notification> {
-  return {
-    id: n.id, type: n.type, title: n.title, body: n.body, actionUrl: n.actionUrl,
-    data: n.actionLabel ? { actionLabel: n.actionLabel } : {}, associationId: n.associationId, readAt: n.readAt, createdAt: n.createdAt,
-  }
-}
 
 export { today }

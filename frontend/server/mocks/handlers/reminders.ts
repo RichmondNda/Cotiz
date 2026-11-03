@@ -90,14 +90,6 @@ export function send(ctx: MockContext<'rm.send', 'send'>) {
     projectId: e.project.id, installmentId: e.installmentId, channels: ['in_app'], message: b.message ?? e.message, triggeredBy: by, ruleId: null,
   }))
   db.reminderRuns.push(...runs)
-  // Rappel dans l'espace du souscripteur (in_app) ; le message prêt reste à transmettre depuis « À relancer ».
-  for (const e of targets) {
-    db.notifications.push({
-      id: uid('notification', `${e.id}-${now}`), userId: e.member.id, associationId: aid, type: 'reminder.sent', title: 'Rappel de votre association',
-      body: `${e.project.name} : ${F(e.amountDue.amount)} en retard.`, actionUrl: `/paiements/declarer?projet=${e.project.id}`, actionLabel: 'Régulariser',
-      readAt: null, createdAt: now,
-    })
-  }
   return { queued: targets.map(e => ({ ...e, kind: 'manual' as const, message: b.message ?? e.message })) }
 }
 
