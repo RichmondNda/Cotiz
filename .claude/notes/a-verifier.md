@@ -4,6 +4,10 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 
 ## Points ouverts
 
+- **2026-11-03** · `architecture/07-notifications.md` renvoie à une section `notification-matrix` de `specs/events.yaml` qui
+  n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
+  matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché

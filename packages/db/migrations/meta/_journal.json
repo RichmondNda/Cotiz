@@ -99,6 +99,13 @@
       "when": 1793353177408,
       "tag": "0013_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793732043828,
+      "tag": "0014_notifications",
+      "breakpoints": true
     }
   ]
 }
