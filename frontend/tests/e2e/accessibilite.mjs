@@ -46,9 +46,7 @@ async function naviguer(page, route, vue) {
   }
 }
 
-async function auditer({ role, route, vue, width, height }) {
-  const ctx = await browser.newContext({ viewport: { width, height }, isMobile: vue === 'mobile', hasTouch: vue === 'mobile' })
-  await ouvrirSession(ctx, role, BASE)
+async function auditer(ctx, { route, vue }) {
   const page = await ctx.newPage()
   const reponse = await naviguer(page, route, vue)
   await page.waitForTimeout(700)
@@ -69,12 +67,25 @@ async function auditer({ role, route, vue, width, height }) {
     for (const n of v.nodes.filter(n => !n.target.join(' ').includes('nuxt-devtools'))) e.occurrences.add(`${route} (${vue}) : ${n.target.join(' ')}${v.id === 'color-contrast' ? ' — ' + (n.any[0]?.message.match(/contrast of ([\d.]+)/)?.[1] ?? '?') + ':1' : ''}`)
     if (e.occurrences.size) violations.set(v.id, e)
   }
-  await ctx.close()
+  await page.close()
 }
 
+/**
+ * Une session par rôle et par vue, réutilisée pour toutes ses routes, rendues l'une après l'autre (jamais deux
+ * renouvellements simultanés du même cookie) : une connexion par rendu dépassait la limite de débit d'auth.login
+ * (20 par minute) dès que les pages s'affichaient vite.
+ */
+const groupes = [...Map.groupBy(rendus, r => `${r.role}:${r.vue}`).values()]
 let suivant = 0
 await Promise.all(Array.from({ length: PARALLELE }, async () => {
-  while (suivant < rendus.length) await auditer(rendus[suivant++])
+  while (suivant < groupes.length) {
+    const groupe = groupes[suivant++]
+    const { role, vue, width, height } = groupe[0]
+    const ctx = await browser.newContext({ viewport: { width, height }, isMobile: vue === 'mobile', hasTouch: vue === 'mobile' })
+    await ouvrirSession(ctx, role, BASE)
+    for (const rendu of groupe) await auditer(ctx, rendu)
+    await ctx.close()
+  }
 }))
 await browser.close()
 
