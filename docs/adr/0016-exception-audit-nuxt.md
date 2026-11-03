@@ -1,6 +1,6 @@
 # ADR 0016 · Exception temporaire à l'audit des dépendances de production (outils de dev/build de Nuxt)
 
-**Statut :** adopté · 2026-10-09 · révisé le 2026-10-22 (2 GHSA restantes), le 2026-10-29 (+ deepmerge) et le 2026-11-02 (− node-forge, + glob et minimatch de Sentry), voir « Révision » · **réexamen au plus tard le 2026-11-09**
+**Statut :** adopté · 2026-10-09 · révisé le 2026-10-22 (2 GHSA restantes), le 2026-10-29 (+ deepmerge) le 2026-11-02 (− node-forge, + glob et minimatch de Sentry) et le 2026-11-02 (réexamen, nuxt 4.6.4), voir « Révision » · **réexamen au plus tard le 2026-12-07**
 
 ## Contexte
 
@@ -25,7 +25,7 @@ Ces six GHSA sont ignorées par `pnpm.auditConfig.ignoreGhsas` dans le `package.
 
 L'exception est temporaire :
 - on retire une GHSA dès qu'un correctif compatible avec Nuxt est publié (montée de `nuxt`, `@nuxt/cli`, `nitropack` ou `@nuxt/devtools` 4 stable) ;
-- au plus tard le 2026-11-09, on réexamine la liste. Une GHSA maintenue reçoit une nouvelle date, consignée ici.
+- au plus tard à la date de réexamen indiquée en tête, on réexamine la liste. Une GHSA maintenue reçoit une nouvelle date, consignée ici.
 
 ## Révision du 2026-10-22
 
@@ -61,6 +61,25 @@ back n'importe que l'entrée principale de `@sentry/node`. Le code n'appelle jam
 venant d'une requête. Les deux GHSA sont ajoutées à `ignoreGhsas`, avec la même date de réexamen (2026-11-09) ; on les
 retire dès qu'une version de `@sentry/node` passe à `glob` ≥ 14.0.2. Alternative écartée : forcer `glob` 14 et
 `minimatch` 11 par un override, version majeure imposée à un plugin de Sentry que rien ne teste ici.
+
+## Réexamen du 2026-11-02 (échéance du 2026-11-09)
+
+Montée de `nuxt` en 4.6.4 (`@nuxt/nitro-server` 4.6.4, `nitropack` 2.13.6). Le chemin de build
+`nitropack > archiver 7 > archiver-utils`/`readdir-glob > glob`/`minimatch` disparaît : `nitropack` 2.13.6 utilise
+`archiver` 8. `archiver` 7 ne reste que sous `testcontainers` (dépendance de dev du back et de `@cotiz/db`, hors de
+`pnpm audit --prod`).
+
+Aucune GHSA n'est retirée. Pour chacune, il n'existe toujours pas de version corrigée compatible (`pnpm audit --prod`, `pnpm why --prod`) :
+- GHSA-vfj7-8cjw-p6xm (`braces` 3.0.3) : `nuxt > @nuxt/nitro-server > nitropack > globby > micromatch` ;
+- GHSA-gcqx-w48m-w2h4 (`deepmerge` 4.3.1) : `nuxt > @nuxt/nitro-server > nitropack > @rollup/plugin-node-resolve` ;
+- GHSA-3g3m-2fjr-6pw4 et GHSA-g3hv-75wg-m249 (`glob` 13.0.6, `minimatch` 10.2.6) : toujours
+  `backend > @sentry/node > @sentry/bundler-plugins > glob`, et aussi, côté front,
+  `nuxt > @nuxt/nitro-server > nitropack > @vercel/nft > glob` (traçage des fichiers au build, non signalé jusqu'ici).
+
+Vérification refaite sur un build (`pnpm --filter "frontend..." run build`) : ni `braces`, `micromatch`, `deepmerge`,
+`glob`, `minimatch`, `@vercel/nft`, `archiver`, `readdir-glob`, `listhen` ni `node-forge` ne figurent dans
+`frontend/.output`. Ils n'y sont ni comme dossier ni comme référence, et `nitropack` n'apparaît que dans une source map de son runtime intégré.
+Nouvelle date de réexamen : **2026-12-07**.
 
 ## Conséquences
 
