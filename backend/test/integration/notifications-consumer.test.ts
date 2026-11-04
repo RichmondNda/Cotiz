@@ -204,6 +204,22 @@ describe('consommateur notifications', () => {
       expect(await usersOf()).toEqual([USERS.koffi]);
     });
 
+    it('compte désactivé, encore membre actif : plus notifié ; réactivé : de nouveau notifié', async () => {
+      const before =
+        (
+          (await f.h.superuser(`SELECT status FROM users WHERE id = $1`, [USERS.aminata])).rows as { status: string }[]
+        ).at(0)?.status ?? 'active';
+      try {
+        await f.h.superuser(`UPDATE users SET status = 'disabled' WHERE id = $1`, [USERS.aminata]);
+        await consumer.handle(declared(await payment('pending')));
+        expect(await usersOf()).toEqual([USERS.awa]);
+      } finally {
+        await f.h.superuser(`UPDATE users SET status = $2 WHERE id = $1`, [USERS.aminata, before]);
+      }
+      await consumer.handle(declared(await payment('pending')));
+      expect(await usersOf()).toEqual([USERS.awa, USERS.awa, USERS.aminata].sort());
+    });
+
     it('plus de 5 déclarations en 1 h : les suivantes deviennent un seul récapitulatif par gestionnaire', async () => {
       const ids: string[] = [];
       for (let i = 0; i < 8; i++) ids.push(await payment('pending'));
