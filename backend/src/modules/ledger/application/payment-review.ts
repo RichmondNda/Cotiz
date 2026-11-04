@@ -191,8 +191,11 @@ export async function checkDeferred(): Promise<void> {
   }
 }
 
-/** Échéance vue par le domaine : montants en entiers de la devise du paiement. */
-function toLedger(i: InstallmentRecord, currency: Currency): LedgerInstallment {
+/** Statuts persistés sans reste dû ni rappel : soldée, dispensée, annulée. */
+export const FINAL_INSTALLMENT_STATUSES = ['paid', 'waived', 'canceled'] as const;
+
+/** Échéance vue par le domaine : montants en entiers de la devise du paiement (ou du projet). */
+export function toLedger(i: InstallmentRecord, currency: Currency): LedgerInstallment {
   return {
     id: i.id,
     enrollmentId: i.enrollmentId,

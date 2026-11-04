@@ -173,6 +173,7 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
       expect(byId).toEqual([
         { id: 'codes.expire', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'housekeeping', pattern: '0 3 * * *', tz: 'Africa/Abidjan' },
+        { id: 'installments.due-soon', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'installments.refresh-statuses', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'projects.activate', pattern: '30 0 * * *', tz: 'Africa/Abidjan' },
         { id: 'schedule.extend-rolling', pattern: '0 1 1 * *', tz: 'Africa/Abidjan' },

@@ -77,3 +77,17 @@ Format : **date** · contexte — apprentissage. *Source.*
 - **2026-11-02** · Tests d'intégration du back : `pnpm verify` dure environ 15 min (121 fichiers, un conteneur par suite). Une suite peut tomber
   au démarrage sur `Lock is not acquired/owned by you` (`proper-lockfile` dans `testcontainers/build/reaper`) : course au verrou
   du reaper, pas un échec du test. Relancer le fichier seul (`pnpm exec vitest run <fichier>` dans `backend/`). Source : verify du 2026-11-02.
+- **2026-11-03** · poste local — Le port 3000 est pris par un service Docker du poste : `pnpm --filter frontend dev` passe sur
+  3001. `timeout N pnpm dev` laisse un `node …/nuxt.mjs dev` orphelin (ppid 1) : l'arrêter par son PID. *`ss -ltnp`, `ps`.*
+- **2026-11-03** · poste local — Machine chargée en permanence (ClickHouse/SigNoz, Plane, Dokploy ; charge ~5,5 sur 8 cœurs) :
+  `test/perf/enrollment-bulk-200.test.ts` (< 10 s) y prend 17 à 25 s, avec ou sans changement ; il passe en CI. Un échec de
+  ce seul test en local n'est pas bloquant, la CI fait foi. *`pnpm test:perf` sur `origin/backend`, CI de la PR #27.*
+- **2026-11-03** · nuxt 4.6.4 — `@nuxt/cli` 4.0.1 fait planter `nuxt dev` (`options.hostname.toLowerCase is not a function`) ;
+  corrigé par `@nuxt/cli` 4.0.3 (PR #27). *Journal du job « Parcours » de la CI.*
+- **2026-11-03** · Docker — Le groupe `docker` n'est pas encore actif dans les shells de Claude Code : préfixer par
+  `sg docker -c "…"` (ex. `sg docker -c "pnpm verify"`). *`groups`, `docker ps`.*
+- **2026-11-03** · outbox — `EventConsumer.ownTransactions: true` : le processeur appelle `handle(event)` hors transaction ;
+  le consommateur ouvre lui-même ses contextes (non imbriquables). Utilisé par les notifications : lecture en contexte
+  association, écriture en espace system. *`shared/outbox/events.processor.ts`, `test/integration/outbox.test.ts`.*
+- **2026-11-03** · Redis — `EXPIRE` porte sur la clé entière : un hash par personne avec un champ par espace voit son
+  expiration repoussée à chaque écriture. Une clé par espace + un ensemble pour l'invalidation. *Relecture isolation 2.5.3.*

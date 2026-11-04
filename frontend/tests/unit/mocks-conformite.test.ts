@@ -84,7 +84,7 @@ const moussaCentreLate = () => [
 
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
-  'me.profile get': {}, 'me.prefs get': {}, 'nt.list list': {}, 'nt.list unreadCount': {},
+  'me.profile get': {}, 'me.prefs get': {},
   'pf.invoices list': {}, 'pf.staff list': {},
   'as.dashboard get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
@@ -101,8 +101,6 @@ const WRITES: Record<string, () => Call> = {
   'me.profile patch': () => ({ body: { email: 'moussa@exemple.ci' }, ifMatch: 1 }),
   'me.profile changePassword': () => ({ body: { currentPassword: 'motdepasse', newPassword: 'Cotiz2026!' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
-  'nt.read read': () => ({ params: { id: uid('notification', 'nt-mb-1') } }),
-  'nt.read readAll': () => ({}),
   'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
   'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
   'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),

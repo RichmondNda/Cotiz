@@ -226,6 +226,16 @@ describe('codes à remettre (mb.codes, mb.resend)', () => {
       expect(await codeOf(res)).toBe('not_found');
     });
 
+    it('user.activated porte les associations où le compte est souscripteur actif (gestionnaires notifiés)', async () => {
+      const { userId, handoff } = await enrollNew(NEW.kofi);
+      expect((await activate(NEW.kofi, handoff?.code ?? '')).status).toBe(200);
+      const { rows } = await f.h.superuser(
+        `SELECT payload FROM outbox_events WHERE event_type = 'user.activated' AND payload->>'userId' = $1`,
+        [userId],
+      );
+      expect(rows).toEqual([{ payload: { userId, associationIds: [A.id] } }]);
+    });
+
     it('régénérer pour un compte activé : 409 already_activated, aucun code émis', async () => {
       const { userId, handoff } = await enrollNew(NEW.kofi);
       expect((await activate(NEW.kofi, handoff?.code ?? '')).status).toBe(200);

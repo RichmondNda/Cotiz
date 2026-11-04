@@ -1,6 +1,6 @@
 import type { PersonContact, PersonRef } from '@cotiz/contracts';
-import { users } from '@cotiz/db';
-import { inArray } from 'drizzle-orm';
+import { memberships, users } from '@cotiz/db';
+import { and, eq, inArray } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 /**
@@ -35,4 +35,23 @@ export async function platformPersonContactsOf(ids: readonly string[]): Promise<
     .from(users)
     .where(inArray(users.id, unique));
   return new Map(rows.map((r) => [r.id, r]));
+}
+
+/**
+ * Prénom et nom d'une personne liée à l'association du contexte (appartenance de tout rôle et tout statut, lue sous
+ * RLS), pour le texte d'une notification lue par ses gestionnaires (lot 2.5) ; `null` pour une personne étrangère à
+ * l'association : jamais le nom d'une autre association.
+ */
+export async function associationPersonNameOf(associationId: string, userId: string): Promise<string | null> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('associationPersonNameOf : contexte de cette association seulement');
+  }
+  const [row] = await currentTx()
+    .select({ firstName: users.firstName, lastName: users.lastName })
+    .from(users)
+    .innerJoin(memberships, eq(memberships.userId, users.id))
+    .where(and(eq(users.id, userId), eq(memberships.associationId, associationId)))
+    .limit(1);
+  return row ? `${row.firstName} ${row.lastName}`.trim() : null;
 }

@@ -221,19 +221,6 @@ export interface ContractRow {
   version: number
 }
 
-export interface NotificationRow {
-  id: string
-  userId: string
-  associationId: string | null
-  type: string
-  title: string
-  body: string
-  actionUrl: string | null
-  actionLabel: string | null
-  readAt: string | null
-  createdAt: string
-}
-
 export interface RequestRow {
   id: string
   key: string
@@ -349,7 +336,6 @@ export interface MockDb {
   payments: PaymentRow[]
   allocations: AllocationRow[]
   contracts: ContractRow[]
-  notifications: NotificationRow[]
   requests: RequestRow[]
   reminderRules: ReminderRuleRow[]
   reminderRuns: ReminderRunRow[]

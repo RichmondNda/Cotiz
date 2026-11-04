@@ -2,7 +2,7 @@
 export { authenticatedSession, JwtGuard } from './http/jwt.guard.js';
 export { type AccessClaims, AccessTokenSigner } from './infra/access-token-signer.js';
 export { RevokedSessions } from './infra/revoked-sessions.js';
-export { platformPersonContactsOf, platformPersonRefsOf } from './application/person-refs.js';
+export { associationPersonNameOf, platformPersonContactsOf, platformPersonRefsOf } from './application/person-refs.js';
 export { platformManagerActivityOf } from './application/session-activity.js';
 export { IdentityModule } from './identity.module.js';
 export { IdentityCliModule } from './identity-cli.module.js';

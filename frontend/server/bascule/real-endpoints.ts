@@ -91,4 +91,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['lg.pay.validate', 'all'],
   ['lg.pay.reject', 'all'],
   ['lg.pay.revert', 'all'],
+  // Lot 2.5 : notifications dans l'application (cloche, compteur, pages de notifications des trois espaces).
+  ['nt.list', 'all'],
+  ['nt.read', 'all'],
 ])

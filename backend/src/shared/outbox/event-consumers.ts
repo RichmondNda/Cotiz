@@ -10,6 +10,11 @@ export interface EventConsumer {
   /** Stable : il entre dans la clé de déduplication. */
   name: string;
   types: readonly EventType[];
+  /**
+   * `true` : `handle` est appelé hors transaction et ouvre lui-même les siennes (`withTenantContext`), par exemple lire
+   * dans le contexte de l'association puis écrire dans l'espace system (notifications). Il reste idempotent.
+   */
+  ownTransactions?: boolean;
   handle(event: EventEnvelope): Promise<void>;
 }
 

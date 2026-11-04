@@ -4,6 +4,7 @@ import { credentials, users } from '@cotiz/db';
 import { isStrongPassword } from '@cotiz/domain';
 import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
+import { activeMembershipsOf } from '../../access/access.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
@@ -109,13 +110,16 @@ export class ActivateAccountUseCase {
       .update(users)
       .set({ status: 'active', mustChangePassword: false, lastLoginAt: now })
       .where(eq(users.id, userId));
-    // Appartenances (gestionnaires des associations à notifier) : lot 1.2.
+    // Associations où la personne est souscriptrice active : leurs gestionnaires sont notifiés (lot 2.5).
+    const associationIds = (await activeMembershipsOf(userId))
+      .filter((m) => m.role === 'subscriber')
+      .map((m) => m.association.id);
     await this.outbox.publish(tx, {
       type: 'user.activated',
       associationId: null,
       actorUserId: userId,
       aggregate: { type: 'user', id: userId },
-      payload: { userId, associationIds: [] },
+      payload: { userId, associationIds },
     });
     recordAudit({
       entityType: 'user',

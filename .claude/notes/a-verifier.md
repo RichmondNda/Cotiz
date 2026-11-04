@@ -4,6 +4,10 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 
 ## Points ouverts
 
+- **2026-11-03** · `architecture/07-notifications.md` renvoie à une section `notification-matrix` de `specs/events.yaml` qui
+  n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
+  matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
@@ -29,3 +33,8 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - **2026-11-02** · plan d'un `/lot` sans validation → oui (`CLAUDE.md`, `.claude/commands/lot.md`).
 - **2026-11-02** · installation des dépendances → oui, faite (pnpm via corepack, `pnpm install`).
 - **2026-11-02** · retard de `main` sur `backend` → normal, `backend` n'est fusionnée dans `main` que sur demande.
+- **2026-11-03** · lot 2.5 — un `git stash` du lot (conflit résolu sur `identity.public.ts`) reste dans `git stash list` :
+  sa suppression (`git stash drop`) attend ton accord.
+- **2026-11-03** · lot 2.5 — limites à confirmer : un gestionnaire de plusieurs associations ne voit que la cloche de la
+  première (comme `GET /me`, en attendant le choix d'association) ; les notifications d'une association suspendue restent
+  visibles ; aucune notification dans les seeds de démonstration (pages de notifications vides en local sans activité réelle).

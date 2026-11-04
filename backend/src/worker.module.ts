@@ -6,6 +6,7 @@ import { FilesWorkerModule } from './modules/files/files-worker.module.js';
 import { IdentityWorkerModule } from './modules/identity/identity-worker.module.js';
 import { LedgerWorkerModule } from './modules/ledger/ledger-worker.module.js';
 import { MembersWorkerModule } from './modules/members/members-worker.module.js';
+import { NotificationsWorkerModule } from './modules/notifications/notifications-worker.module.js';
 import { ProjectsWorkerModule } from './modules/projects/projects-worker.module.js';
 import { ReportingWorkerModule } from './modules/reporting/reporting-worker.module.js';
 import { createLogger, type Logger, LoggingModule } from './shared/logging/index.js';
@@ -41,6 +42,7 @@ export class WorkerModule {
         ProjectsWorkerModule,
         MembersWorkerModule,
         LedgerWorkerModule,
+        NotificationsWorkerModule,
         ReportingWorkerModule,
       ],
     };
