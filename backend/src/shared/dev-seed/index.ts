@@ -26,3 +26,4 @@ export function assertDevSeedAllowed(config: { NODE_ENV: string; COTIZ_DEV_SEED:
     throw new SeedRefusedError('données de développement : NODE_ENV development ou test et COTIZ_DEV_SEED=1 exigés');
   }
 }
+export { CROWD_REVIEWER, type CrowdMember, type CrowdPayment, REFERENCE_CROWD } from './reference-crowd.js';

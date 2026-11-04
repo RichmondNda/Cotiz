@@ -101,6 +101,15 @@ export async function lockAssociationProjects(associationId: string): Promise<Pr
     .for('share');
 }
 
+/** Tous les projets de l'association du contexte (RLS), du plus ancien au plus récent (tableau de bord). */
+export async function associationProjectsOf(associationId: string): Promise<ProjectRecord[]> {
+  return currentTx()
+    .select()
+    .from(projects)
+    .where(eq(projects.associationId, associationId))
+    .orderBy(asc(projects.createdAt), asc(projects.id));
+}
+
 /** Projets de l'association du contexte (RLS) parmi `projectIds`, par identifiant (listes de membres, frise). */
 export async function projectsOf(
   associationId: string,

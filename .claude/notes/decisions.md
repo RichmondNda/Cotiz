@@ -103,3 +103,20 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Rôle `cotiz_readonly` non utilisé (« possible ») : transaction RLS ordinaire de l'association, aucun nouveau rôle de connexion.
   - `stats` des projets du tableau de bord calculées par reporting ; `pr.list`/`pr.overview` restent à zéro (hors lot,
     signalé dans `a-verifier.md`).
+- **2026-11-04** · lot 2.6, étape 2 (tableau de bord `as.dashboard`) — choix pris :
+  - Souscripteurs = personnes ayant une inscription active ou terminée (ni retirée ni en attente de signature) ; en retard
+    = celles dont une telle inscription est `late` (situation de la grille) ; `activeCount` = souscripteurs. Argent :
+    toutes les inscriptions, retirées comprises (comme `rp.report`).
+  - Cache : une entrée Redis par association (`cotiz:cache:as.dashboard:<aid>`, 60 s) avec génération par association
+    (modèle `pub.plans`) ; invalidée par `member.*`, `payment.*`, `installment.late` (events.yaml « cache: KPI »,
+    architecture/09), plus `activation.code_issued|handed`, `user.activated` (`payload.associationIds`) et `project.*`
+    (codes à remettre et cartes projet du tableau). Consommateur `manager-dashboard-cache` (worker, ReportingWorkerModule).
+  - Reçu par mois : somme SQL des allocations confirmées par mois de validation (fuseau, `GROUP BY` par position : le
+    fuseau passé en paramètre ferait deux expressions), additionnée par `monthlyCollection()` (@cotiz/domain).
+  - `progress` d'un projet (`collectionProgress`, @cotiz/domain) : règle des mocks V0 — en inscription, souscripteurs /
+    requis ; sinon encaissé / (souscripteurs × engagement), plafonné à 1, `null` sans objectif.
+  - Contrats non signés > 7 jours : inscriptions `pending_signature` depuis plus de 7 jours (vide avant le lot 4.1).
+  - Seed (décision 21) : 47 souscripteurs de démonstration (`shared/dev-seed/reference-crowd.ts`, clés `demo-NN`, téléphones
+    `+22507990000NN`, comptes actifs au mot de passe de dev), insérés par les seeds identity/access/members/ledger et
+    comptés à part dans la sortie de `seed-dev`. Calibrés sur les nommés (mesurés) pour donner au 2026-09-25 :
+    1 240 000 / 1 300 000 F, 6 à valider, 14 retards sur 52, 82 % (`reporting-seed-reference.test.ts`).

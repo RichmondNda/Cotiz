@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { memberships } from '@cotiz/db';
 import { CONFIG, type Config } from '../../../config.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
-import { assertDevSeedAllowed, mockId } from '../../../shared/dev-seed/index.js';
+import { assertDevSeedAllowed, mockId, REFERENCE_CROWD } from '../../../shared/dev-seed/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import type { MembershipRole } from './memberships.js';
 
@@ -44,7 +44,16 @@ export class SeedDevMembershipsUseCase {
   @Audited('membership.seed_dev')
   async execute(): Promise<void> {
     assertDevSeedAllowed(this.config);
-    for (const m of REFERENCE_MEMBERSHIPS) {
+    // Souscripteurs de démonstration (shared/dev-seed/reference-crowd.ts) : appartenance active à leur association.
+    const crowd = REFERENCE_CROWD.map((p) => ({
+      association: p.association,
+      user: p.key,
+      role: 'subscriber' as const,
+      joinedAt: p.joined,
+      title: undefined,
+      removed: undefined,
+    }));
+    for (const m of [...REFERENCE_MEMBERSHIPS, ...crowd]) {
       const id = mockId('membership', `${m.association}:${m.user}:${m.role}`);
       const associationId = mockId('association', m.association);
       // Retrait sans date dans les données simulées : aucune n'est inventée.

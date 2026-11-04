@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   collectionBySequence,
   collectionFigures,
+  collectionProgress,
   DomainError,
   type CollectionInstallment,
   inCollectionPeriod,
+  monthlyCollection,
+  nextDueDate,
+  recentMonths,
   recoveryRateBySequence,
 } from './index.js';
 import type { InstallmentStatus } from './index.js';
@@ -177,5 +181,173 @@ describe('recoveryRateBySequence : taux cumulé après chaque échéance échue'
 
   it('aucune échéance échue : liste vide', () => {
     expect(recoveryRateBySequence([line(1, '2026-10-05', 25_000, 0, 'upcoming')], TODAY)).toEqual([]);
+  });
+});
+
+describe('recentMonths : premiers jours des derniers mois, le dernier est le mois du jour', () => {
+  it('6 mois jusqu’à septembre, à cheval sur une année', () => {
+    expect(recentMonths('2026-09-25', 6)).toEqual([
+      '2026-04-01',
+      '2026-05-01',
+      '2026-06-01',
+      '2026-07-01',
+      '2026-08-01',
+      '2026-09-01',
+    ]);
+    expect(recentMonths('2027-02-28', 3)).toEqual(['2026-12-01', '2027-01-01', '2027-02-01']);
+  });
+
+  it('refuse un nombre de mois non entier ou inférieur à 1', () => {
+    expect(() => recentMonths(TODAY, 0)).toThrow(DomainError);
+    expect(() => recentMonths(TODAY, 1.5)).toThrow(DomainError);
+  });
+});
+
+describe('monthlyCollection : attendu (échéances du mois) et reçu (validé dans le mois) par mois', () => {
+  const months = ['2026-08-01', '2026-09-01'];
+
+  it('attendu = dû des échéances datées du mois qui comptent ; reçu = Σ des montants reçus du mois', () => {
+    const result = monthlyCollection(
+      [
+        line(0, '2026-08-05', 50_000, 50_000, 'paid', 'entry_fee'),
+        line(1, '2026-08-05', 25_000, 25_000, 'paid'),
+        line(2, '2026-09-05', 25_000, 0, 'late'),
+        line(3, '2026-09-05', 25_000, 0, 'canceled'),
+        line(4, '2026-10-05', 25_000, 25_000, 'paid'),
+        line(5, '2026-07-05', 25_000, 0, 'waived'),
+      ],
+      [
+        { month: '2026-08-01', amount: 50_000 },
+        { month: '2026-08-01', amount: 25_000 },
+        { month: '2026-09-01', amount: 25_000 },
+        { month: '2026-07-01', amount: 99_000 },
+      ],
+      months,
+    );
+    expect(result).toEqual([
+      { month: '2026-08-01', expected: 75_000, received: 75_000 },
+      { month: '2026-09-01', expected: 25_000, received: 25_000 },
+    ]);
+  });
+
+  it('un mois sans rien : 0 et 0', () => {
+    expect(monthlyCollection([], [], months)).toEqual([
+      { month: '2026-08-01', expected: 0, received: 0 },
+      { month: '2026-09-01', expected: 0, received: 0 },
+    ]);
+  });
+
+  it('refuse un montant reçu négatif ou non entier, et un mois qui n’est pas un premier du mois', () => {
+    expect(() => monthlyCollection([], [{ month: '2026-08-01', amount: -1 }], months)).toThrow(DomainError);
+    expect(() => monthlyCollection([], [{ month: '2026-08-01', amount: 0.5 }], months)).toThrow(DomainError);
+    expect(() => monthlyCollection([], [], ['2026-08-05'])).toThrow(DomainError);
+  });
+
+  it('propriété : la somme des attendus mensuels = dû des échéances qui comptent dans ces mois', () => {
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            day: fc.integer({ min: 1, max: 28 }),
+            month: fc.constantFrom('08', '09'),
+            due: fc.integer({ min: 0, max: 1_000_000 }),
+            status: fc.constantFrom<InstallmentStatus>('upcoming', 'due', 'late', 'paid', 'canceled', 'waived'),
+          }),
+        ),
+        (rows) => {
+          const lines = rows.map((r, k) =>
+            line(k + 1, `2026-${r.month}-${String(r.day).padStart(2, '0')}`, r.due, 0, r.status),
+          );
+          const total = monthlyCollection(lines, [], months).reduce((s, m) => s + m.expected, 0);
+          const expected = lines
+            .filter((l) => l.status !== 'canceled' && l.status !== 'waived')
+            .reduce((s, l) => s + l.amountDue, 0);
+          expect(total).toBe(expected);
+        },
+      ),
+    );
+  });
+});
+
+describe('collectionProgress : avancement d’un projet', () => {
+  it('en inscription : souscripteurs / souscripteurs requis, plafonné à 1 ; sans objectif : null', () => {
+    const base = { received: 0, totalPerSubscriber: null };
+    expect(collectionProgress({ ...base, status: 'enrolling', subscribersCount: 12, requiredSubscribers: 30 })).toBe(
+      0.4,
+    );
+    expect(collectionProgress({ ...base, status: 'enrolling', subscribersCount: 40, requiredSubscribers: 30 })).toBe(1);
+    expect(
+      collectionProgress({ ...base, status: 'enrolling', subscribersCount: 3, requiredSubscribers: null }),
+    ).toBeNull();
+  });
+
+  it('sinon : encaissé / (souscripteurs × engagement par souscripteur), plafonné à 1 ; cycle roulant ou vide : null', () => {
+    const base = { status: 'active' as const, requiredSubscribers: null };
+    expect(collectionProgress({ ...base, subscribersCount: 2, received: 250_000, totalPerSubscriber: 500_000 })).toBe(
+      0.25,
+    );
+    expect(collectionProgress({ ...base, subscribersCount: 1, received: 600_000, totalPerSubscriber: 500_000 })).toBe(
+      1,
+    );
+    expect(collectionProgress({ ...base, subscribersCount: 0, received: 0, totalPerSubscriber: 500_000 })).toBeNull();
+    expect(collectionProgress({ ...base, subscribersCount: 4, received: 10_000, totalPerSubscriber: null })).toBeNull();
+  });
+
+  it('refuse un encaissé ou un nombre de souscripteurs invalides', () => {
+    const base = { status: 'active' as const, requiredSubscribers: null, totalPerSubscriber: 500_000 };
+    expect(() => collectionProgress({ ...base, subscribersCount: 1, received: -1 })).toThrow(DomainError);
+    expect(() => collectionProgress({ ...base, subscribersCount: 1.5, received: 0 })).toThrow(DomainError);
+  });
+});
+
+describe('nextDueDate : prochaine date d’échéance après le jour donné', () => {
+  it('la plus proche des échéances futures qui comptent ; aucune : null', () => {
+    expect(
+      nextDueDate(
+        [
+          line(1, '2026-09-05', 25_000, 0, 'late'),
+          line(2, '2026-10-05', 25_000, 0, 'canceled'),
+          line(3, '2026-11-05', 25_000, 0, 'upcoming'),
+          line(4, '2026-12-05', 25_000, 0, 'upcoming'),
+        ],
+        TODAY,
+      ),
+    ).toBe('2026-11-05');
+    expect(
+      nextDueDate([line(1, '2026-09-25', 25_000, 0, 'due'), line(2, '2026-10-05', 0, 0, 'waived')], TODAY),
+    ).toBeNull();
+  });
+});
+
+describe('collectionProgress : entrées invalides', () => {
+  it('refuse un nombre requis ou un engagement non entier, nul ou négatif', () => {
+    const base = { subscribersCount: 1, received: 0 };
+    expect(() =>
+      collectionProgress({ ...base, status: 'enrolling', requiredSubscribers: -3, totalPerSubscriber: null }),
+    ).toThrow(DomainError);
+    expect(() =>
+      collectionProgress({ ...base, status: 'active', requiredSubscribers: null, totalPerSubscriber: 0.5 }),
+    ).toThrow(DomainError);
+  });
+});
+
+describe('monthlyCollection : propriété du reçu', () => {
+  it('Σ des reçus mensuels = Σ des montants reçus des mois couverts', () => {
+    const months = ['2026-08-01', '2026-09-01'];
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            month: fc.constantFrom('2026-07-01', '2026-08-01', '2026-09-01'),
+            amount: fc.integer({ min: 0, max: 1_000_000 }),
+          }),
+        ),
+        (receipts) => {
+          const total = monthlyCollection([], receipts, months).reduce((s, m) => s + m.received, 0);
+          const expected = receipts.filter((r) => months.includes(r.month)).reduce((s, r) => s + r.amount, 0);
+          expect(total).toBe(expected);
+        },
+      ),
+    );
   });
 });

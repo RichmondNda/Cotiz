@@ -14,6 +14,19 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   et la synthèse d'un projet afficheront donc d'autres chiffres. · Proposition : brancher les mêmes calculs sur `pr.list`,
   `pr.get` et `pr.overview` dans une PR `chore/` après le lot (ou dans le lot si tu préfères).
 
+- **2026-11-04** · lot 2.6, étape 2 — `mg-dashboard` est réel : en local (jour réel, pas le 25 septembre), ses chiffres
+  diffèrent de la maquette (retards d'octobre et novembre en plus, collecte du mois en cours). Aucun écart n'est inscrit
+  pour cet écran dans `docs/specs/ui-deviations.md` (comme pour les écrans des lots 2.3 et 2.4). · Proposition : ajouter
+  une ligne « Tableau de bord gestionnaire (`mg-dashboard`, lot 2.6) : chiffres du jeu de référence au jour réel ; au
+  2026-09-25, ceux de la maquette (vérifié par test) ». À ton accord (changement de `docs/specs/`).
+- **2026-11-04** · lot 2.6, étape 2 — décision 21 (`proposé`) appliquée : 47 souscripteurs de démonstration réels dans
+  `seed-dev` (Entraide Yopougon). · À confirmer pour passer la décision à `adopté`.
+
+- **2026-11-04** · `pnpm verify` local : `test/perf/enrollment-bulk-200.test.ts` (en.bulk, lot 2.3) échoue sur ce serveur
+  (17,2 s puis 18,7 s pour 10 s attendues, relancé seul : 18,7 s ; charge ~3,5 sur 8 cœurs, Dokploy et autres services
+  sur la même machine). Déjà en échec à la vérification de l'étape 2.6.1 (journal relu), code non touché par le lot 2.6.
+  Tout le reste est vert (131 fichiers back, 2 autres tests de perf). · La CI fait foi : à confirmer sur la PR.
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché

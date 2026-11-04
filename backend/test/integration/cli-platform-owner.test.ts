@@ -11,7 +11,7 @@ import { type Config, loadConfig } from '../../src/config.js';
 import { SeedDevProjectsUseCase } from '../../src/modules/projects/application/seed-dev-projects.use-case.js';
 import { seedDevProof } from '../../src/modules/files/application/seed-dev-proof.js';
 import { SeedDevPaymentsUseCase } from '../../src/modules/ledger/application/seed-dev-payments.use-case.js';
-import { mockId } from '../../src/shared/dev-seed/index.js';
+import { mockId, REFERENCE_CROWD } from '../../src/shared/dev-seed/index.js';
 import { StorageService } from '../../src/shared/storage/index.js';
 import {
   DEV_PASSWORD,
@@ -642,7 +642,9 @@ describe('CLI : create-platform-owner', () => {
       );
       const id = (key: string) => mockId('enrollment', key);
       const byId = new Map(rows.map((r) => [(r as { id: string }).id, r]));
-      expect(rows).toHaveLength(7);
+      // 7 inscriptions nommées et les souscripteurs de démonstration (shared/dev-seed/reference-crowd.ts).
+      expect(rows).toHaveLength(7 + REFERENCE_CROWD.length);
+      expect(first.out).toContain(`Souscripteurs de démonstration : ${String(REFERENCE_CROWD.length)} inscriptions`);
       // Fonds d'entrée + 18 échéances de mars 2026 à août 2027 ; versé : paiements de référence (lot 2.4).
       const paid = { 'moussa-diarra': 175000, 'jean-kouassi': 212500, 'awa-kone': 200000 };
       for (const key of ['moussa-diarra', 'jean-kouassi', 'awa-kone'] as const) {
@@ -692,7 +694,15 @@ describe('CLI : create-platform-owner', () => {
       const { rows: counts } = await h.superuser(
         `SELECT (SELECT count(*) FROM payments)::int AS payments, (SELECT count(*) FROM allocations)::int AS allocations`,
       );
-      expect(counts[0]).toEqual({ payments: 23, allocations: 30 });
+      const crowd = REFERENCE_CROWD.flatMap((person) => person.payments);
+      expect(counts[0]).toEqual({
+        payments: 23 + crowd.length,
+        allocations: 30 + crowd.reduce((n, p) => n + p.covers.length, 0),
+      });
+      expect(first.out).toContain(
+        `paiements ${String(crowd.filter((p) => !p.reviewedAt).length)} en attente, ` +
+          `${String(crowd.filter((p) => p.reviewedAt).length)} validés`,
+      );
 
       // Paiements des données simulées (uid('payment', clé)) pour les inscrits réels, plus l'historique de Jean et
       // d'Awa (fonds d'entrée à juillet), découpé comme celui de Moussa.

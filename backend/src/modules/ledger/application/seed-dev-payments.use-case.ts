@@ -15,7 +15,7 @@ import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { CONFIG, type Config } from '../../../config.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
-import { assertDevSeedAllowed, mockId } from '../../../shared/dev-seed/index.js';
+import { assertDevSeedAllowed, CROWD_REVIEWER, mockId, REFERENCE_CROWD } from '../../../shared/dev-seed/index.js';
 import { StorageService } from '../../../shared/storage/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 
@@ -180,6 +180,22 @@ const REFERENCE_PAYMENTS: Readonly<Record<string, readonly ReferencePayment[]>> 
   ],
 };
 
+/** Paiements des souscripteurs de démonstration (shared/dev-seed/reference-crowd.ts), relus par la trésorière. */
+function crowdPayments(slug: string): ReferencePayment[] {
+  return REFERENCE_CROWD.filter((person) => person.association === slug).flatMap((person) =>
+    person.payments.map((p) => ({
+      key: p.key,
+      project: person.project,
+      user: person.key,
+      amount: p.amount,
+      declared: p.declared,
+      method: 'mobile_money' as const,
+      covers: p.covers,
+      ...(p.reviewedAt ? { reviewed: { at: p.reviewedAt, by: CROWD_REVIEWER } } : {}),
+    })),
+  );
+}
+
 const at = (time: string) => new Date(`${time}:00Z`);
 
 /**
@@ -197,7 +213,9 @@ export class SeedDevPaymentsUseCase {
   ) {}
 
   @Audited('payment.seed_dev')
-  async execute(slug: string): Promise<{ pending: number; validated: number }> {
+  async execute(
+    slug: string,
+  ): Promise<{ pending: number; validated: number; crowd: { pending: number; validated: number } }> {
     assertDevSeedAllowed(this.config);
     const associationId = mockId('association', slug);
     const association = await ownAssociationOf(associationId);
@@ -205,7 +223,9 @@ export class SeedDevPaymentsUseCase {
     const today = todayIn(association.timezone);
     const tx = currentTx();
     const seeded = { pending: 0, validated: 0 };
-    for (const p of REFERENCE_PAYMENTS[slug] ?? []) {
+    const crowd = { pending: 0, validated: 0 };
+    const crowdKeys = new Set(crowdPayments(slug).map((p) => p.key));
+    for (const p of [...(REFERENCE_PAYMENTS[slug] ?? []), ...crowdPayments(slug)]) {
       const id = mockId('payment', p.key);
       const enrollmentId = mockId('enrollment', `${p.project}:${p.user}`);
       const userId = mockId('user', p.user);
@@ -217,7 +237,7 @@ export class SeedDevPaymentsUseCase {
       if (!enrollment || !project) continue;
       const [existing] = await tx.select({ id: payments.id }).from(payments).where(eq(payments.id, id));
       if (!existing) await this.insert(p, { id, associationId, enrollmentId, userId, project, today });
-      seeded[p.reviewed ? 'validated' : 'pending'] += 1;
+      (crowdKeys.has(p.key) ? crowd : seeded)[p.reviewed ? 'validated' : 'pending'] += 1;
       recordAudit({
         entityType: 'payment',
         entityId: id,
@@ -226,10 +246,10 @@ export class SeedDevPaymentsUseCase {
       });
     }
     // Aucune inscription de référence présente : l'exécution est tout de même tracée.
-    if (seeded.pending + seeded.validated === 0) {
+    if (seeded.pending + seeded.validated + crowd.pending + crowd.validated === 0) {
       recordAudit({ entityType: 'association', entityId: associationId, associationId, after: { seed: 'dev' } });
     }
-    return seeded;
+    return { ...seeded, crowd };
   }
 
   private async insert(

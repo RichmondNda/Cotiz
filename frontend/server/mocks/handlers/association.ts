@@ -1,13 +1,13 @@
-// Espace association : tableau de bord, factures, équipe, contrats (profil, moyens, onboarding et abonnement : NestJS, lot 2.1).
+// Espace association : factures, équipe, contrats (profil, moyens, onboarding et abonnement : NestJS, lot 2.1).
 import { createHash } from 'node:crypto'
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext, MockSession } from '../http'
 import { checkVersion, nowInstant, problem, requireSession } from '../http'
 import { uid } from '../ids'
-import { associationFigures, daysSince, enrollmentsOfProject, monthOf, projectFigures, today } from '../ledger'
+import { daysSince, enrollmentsOfProject, monthOf, today } from '../ledger'
 import {
-  associationRow, money, paymentSummary, personRef, projectRef, projectRow, projectSummary, planRow, userRow,
+  associationRow, money, personRef, projectRef, projectRow, planRow, userRow,
 } from '../views'
 import { handoff } from './handoff'
 import { page } from './list'
@@ -17,52 +17,8 @@ export function sessionAssociation(ctx: { session: MockSession | null }): Associ
   return associationRow(requireSession(ctx).associationId ?? problem('forbidden'))
 }
 
-// ---------------------------------------------------------------- Tableau de bord
-
-/** Collecte reçue d'avril à août : barres de la maquette MgDashboard (septembre est calculé). */
-const RECEIVED_BEFORE = [1_200_000, 1_250_000, 1_080_000, 1_000_000, 1_150_000]
-/** Attendu mensuel de la maquette (52 souscripteurs × 25 000 F). */
-const EXPECTED_MONTHLY = 1_300_000
 /** Un contrat est « en souffrance » au-delà de 7 jours sans signature. */
 const UNSIGNED_DAYS = 7
-
-export function dashboard(ctx: MockContext<'as.dashboard', 'get'>) {
-  const a = associationRow(ctx.params.aid)
-  const f = associationFigures(a.id)
-  const projects = db.projects.filter(p => p.associationId === a.id)
-  const projectIds = new Set(projects.map(p => p.id))
-  const month = monthOf(today())
-  const months = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 6 + i, 1))
-    return d.toISOString().slice(0, 10)
-  })
-  const unsigned = db.enrollments
-    .filter(e => projectIds.has(e.projectId) && e.status === 'pending_signature' && daysSince(e.joinedAt) > UNSIGNED_DAYS)
-    .map(e => ({ enrollmentId: e.id, member: personRef(userRow(e.userId)), project: projectRef(projectRow(e.projectId)), since: e.joinedAt }))
-  const latest = db.payments
-    .filter(p => p.associationId === a.id)
-    .sort((x, y) => y.declaredAt.localeCompare(x.declaredAt))
-    .slice(0, 5)
-  return {
-    collectedThisMonth: money(f.collectedThisMonth),
-    expectedThisMonth: money(f.expectedThisMonth),
-    paymentsToReview: { count: f.pendingPaymentsCount, oldestDeclaredAt: f.oldestPendingAt },
-    lateSubscribers: { count: f.lateMembersCount, activeCount: f.membersCount },
-    recoveryRate: f.recoveryRate,
-    subscribersCount: f.membersCount,
-    projectsCount: projects.length,
-    activationCodesToHand: db.activationCodes.filter(c => c.associationId === a.id && !c.handedAt).length,
-    unsignedContracts: unsigned,
-    monthlyCollection: months.map((m, i) => i === months.length - 1
-      ? { month: m, expected: money(f.expectedThisMonth), received: money(f.collectedThisMonth) }
-      : { month: m, expected: money(EXPECTED_MONTHLY), received: money(RECEIVED_BEFORE[i] ?? 0) }),
-    projects: projects
-      .map(p => ({ p, late: projectFigures(p).lateSubscribersCount }))
-      .sort((x, y) => y.late - x.late)
-      .map(({ p }) => projectSummary(p)),
-    latestPayments: latest.map(paymentSummary),
-  }
-}
 
 // ---------------------------------------------------------------- Abonnement et factures
 

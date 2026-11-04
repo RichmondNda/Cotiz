@@ -19,8 +19,17 @@ export { canRevert, REVERT_WINDOW_MS, revertDeadline } from './payment-review.js
 export type { ReviewedPayment } from './payment-review.js';
 export { moveAllocations } from './balances.js';
 export type { AllocationMoves } from './balances.js';
-export { collectionBySequence, collectionFigures, inCollectionPeriod, recoveryRateBySequence } from './collection.js';
-export type { CollectionFigures, CollectionInstallment, CollectionPeriod } from './collection.js';
+export {
+  collectionBySequence,
+  collectionFigures,
+  collectionProgress,
+  inCollectionPeriod,
+  monthlyCollection,
+  nextDueDate,
+  recentMonths,
+  recoveryRateBySequence,
+} from './collection.js';
+export type { CollectionFigures, CollectionInstallment, CollectionPeriod, MonthlyReceipt } from './collection.js';
 export { enrollmentTotals } from './enrollment-totals.js';
 export type { EnrollmentTotals, TotalsInstallment } from './enrollment-totals.js';
 export {

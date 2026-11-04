@@ -28,8 +28,10 @@ const ATTENDUS = [
   // Registre sur le vrai back (lot 2.4 : lg.grid, lg.pay.get) : paiements et soldes de seed-dev.
   ['gestionnaire', '/asso/projets/centre-communautaire/paiements', ['Moussa Diarra', F(325000), 'Awa Koné', F(300000)]],
   ['gestionnaire', '/asso/paiements/pm-awa-kone', ['Awa Koné', F(75000), `Reste à payer : ${F(300000)}`]],
-  // Tableau de bord : cartes projets réelles (pr.list, statistiques nulles), indicateurs encore simulés (as.dashboard).
-  ['gestionnaire', '/asso', ['Centre communautaire', '82 %', '14', F(75000)]],
+  // Tableau de bord sur le vrai back (lot 2.6 : as.dashboard) : seed-dev au jour réel, dont les 47 souscripteurs de
+  // démonstration ; les chiffres du 25 septembre (82 %, 14 retards, 1 240 000 F) sont vérifiés côté back
+  // (reporting-seed-reference.test.ts). Ici, ce qui ne dépend pas du jour : 52 souscripteurs.
+  ['gestionnaire', '/asso', ['Centre communautaire', 'sur 52 actifs']],
   ['gestionnaire', '/asso/projets', ['Centre communautaire', 'Tontine solidaire 2027', 'Voyage solidaire']],
   // Espace plateforme sur le vrai back (lot 1.4 : pf.dashboard, pf.asso.list, pf.asso.get) : ses chiffres viennent de
   // seed-dev, plus du store des mocks gestionnaire ; les comparer reprendra quand l'espace association sera réel. Les

@@ -67,6 +67,23 @@ export class SubscriberActivationCodes {
     };
   }
 
+  /**
+   * Nombre de codes de la liste (tableau de bord, « comptes non activés ») ; `handed` : marqués « remis » ou non.
+   * Compte seulement : aucun code n'est déchiffré (as.dashboard est ouvert aux rôles sans `members.manage`).
+   */
+  async count(query: { handed?: boolean | undefined } = {}): Promise<number> {
+    const { latest, filter } = pendingCodes();
+    const handed =
+      query.handed === undefined ? undefined : query.handed ? isNotNull(latest.handedAt) : isNull(latest.handedAt);
+    const [totals] = await currentTx()
+      .with(latest)
+      .select({ n: count() })
+      .from(latest)
+      .innerJoin(users, eq(users.id, latest.userId))
+      .where(and(filter, handed));
+    return totals?.n ?? 0;
+  }
+
   /** Codes d'activation émis par l'association pour cette personne (frise), consommés et remplacés compris. */
   async codeIdsOf(userId: string): Promise<string[]> {
     assertAssociation('SubscriberActivationCodes.codeIdsOf');

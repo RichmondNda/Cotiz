@@ -8,3 +8,4 @@ export { type PaymentNotice, paymentNoticeOf, pendingPaymentsCountOf } from './a
 export { type DueSoonNotice, dueSoonNoticeOf } from './application/due-soon-notice.js';
 // Rapports (lot 2.6).
 export { lastValidatedPaymentDates } from './application/payment-dates.js';
+export { latestPaymentsOf, monthlyReceiptsOf, pendingPaymentsOverviewOf } from './application/dashboard-figures.js';

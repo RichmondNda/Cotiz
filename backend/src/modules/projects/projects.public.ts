@@ -4,6 +4,7 @@ export { platformProjectCountsOf, type ProjectCounts } from './application/platf
 export { paymentMethodsInUse } from './application/payment-methods-in-use.js';
 export { REFERENCE_PROJECT_ASSOCIATIONS, SeedDevProjectsUseCase } from './application/seed-dev-projects.use-case.js';
 export {
+  associationProjectsOf,
   enrollmentScheduleOf,
   lockAssociationProjects,
   lockFinancialTerms,
@@ -12,5 +13,6 @@ export {
   projectsOf,
   type ProjectRecord,
   rollingExtensionOf,
+  toSummaries,
   unlockFinancialTerms,
 } from './application/project-records.js';
