@@ -131,3 +131,15 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     `JOB_NOTIFICATIONS` à côté de la matrice ; clé de déduplication `digest.daily:<aid>:<jour>:<personne>`. `data` reste
     dans la liste blanche (`actionLabel`, `digest`), les chiffres sont dans le texte. Front : icône `paiement_declare`.
   - Préférences de notification non appliquées (aucune table de préférences avant le lot qui les porte).
+- **2026-11-04** · lot 2.6, étape 4 (performance) — choix de l'utilisateur : « Alléger le code » (sans changer la spec) :
+  - Jeu de charge dans `backend/test/perf/reporting-50k.test.ts` (2 000 × 25 = 50 000 échéances, ≈ 27 000 paiements
+    validés, insérés en SQL). EXPLAIN (ANALYZE, BUFFERS) : échéances 95 ms (index `installments_enrollment_id_kind_sequence_key`),
+    reçus du mois 40 ms (hash join, volumes faibles) : aucun index manquant, `schema.sql` inchangé.
+  - Gains (serveur de dev, hors cache) : 1,9 s → ≈ 1,1 s. (1) `parseIsoDate` / `addDays` mémorisés (@cotiz/domain,
+    fonctions pures, mémoire bornée à 4 096 entrées, copie rendue) ; (2) statuts calculés une seule fois par l'annuaire
+    (`EnrollmentEntry.states`, `computedStates`), réutilisés par `collectionLines` ; (3) échéances lues sans
+    `association_id` ni `created_at` (`VIEW_COLUMNS`).
+  - Seuils du test : tableau de bord en cache < 300 ms (objectif architecture/09) ; calcul complet < 3 s (garde-fou de
+    régression). Reste ≈ 0,25 s de décodage pilote par appel : seule une agrégation en base le réduirait (écartée).
+  - `pnpm db:seed:load` (cité par le lot et architecture/09) n'existe pas : le jeu de charge vit dans le test de perf ;
+    une commande CLI pour la base de dev reste à faire si on la veut (signalé).

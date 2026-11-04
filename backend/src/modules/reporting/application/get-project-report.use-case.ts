@@ -15,31 +15,34 @@ import {
   associationToday,
   contextAssociationId,
   type EnrollmentEntry,
-  installmentView,
   MemberDirectory,
   standingFacets,
 } from '../../members/members.public.js';
 import { projectOf } from '../../projects/projects.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 
-/** Échéances d'une inscription vues par la collecte : statut calculé au jour de l'association (installmentView). */
-export function collectionLines(entry: EnrollmentEntry, today: string): CollectionInstallment[] {
-  return entry.lines.map((line) => {
-    const cell = installmentView(line, entry.project, today);
+/**
+ * Échéances d'une inscription vues par la collecte : statuts et montants déjà calculés par l'annuaire au jour de
+ * l'association (`entry.states`, mêmes valeurs que la grille), sans les recalculer.
+ */
+export function collectionLines(entry: EnrollmentEntry): CollectionInstallment[] {
+  return entry.lines.map((line, index) => {
+    const state = entry.states[index];
+    if (!state) throw new Error('collectionLines : échéance sans état calculé');
     return {
-      kind: cell.kind,
-      sequence: cell.sequence,
-      dueDate: cell.dueDate,
-      amountDue: cell.amountDue.amount,
-      amountPaid: cell.amountPaid.amount,
-      status: cell.status,
+      kind: line.kind,
+      sequence: line.sequence,
+      dueDate: line.dueDate,
+      amountDue: state.amountDue,
+      amountPaid: state.amountPaid,
+      status: state.status,
     };
   });
 }
 
 /**
  * rp.report : rapport d'un projet de l'association (mg-projet-rapports). Toutes les inscriptions du projet, retirées
- * comprises (la grille ne montre que les autres), statuts de la grille (installmentView au jour de l'association) ;
+ * comprises (la grille ne montre que les autres), statuts de la grille (calculés par l’annuaire au jour de l'association) ;
  * chiffres par collectionFigures() de @cotiz/domain : attendu = dû des échéances échues, encaissé = tout le versé
  * (Σ des allocations confirmées), reste et taux sur l'attendu. Période (inCollectionPeriod) : seules les échéances dont
  * la date tombe dans [from, to] comptent ; les situations (`standingCounts`) restent celles de toute l'inscription.
@@ -61,7 +64,7 @@ export class GetProjectReportUseCase {
     const lastPayments = await lastValidatedPaymentDates(associationId, pid);
     const byEntry = entries.map((entry) => ({
       entry,
-      lines: collectionLines(entry, today).filter((l) => inCollectionPeriod(l.dueDate, query)),
+      lines: collectionLines(entry).filter((l) => inCollectionPeriod(l.dueDate, query)),
     }));
     const all = byEntry.flatMap((e) => e.lines);
     const totals = collectionFigures(all, today);

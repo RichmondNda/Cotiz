@@ -9,7 +9,13 @@ import { DomainProblem } from '../../../shared/http/index.js';
 import { type Cursor, decodeCursor } from '../../../shared/pagination/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import type { EnrollmentRecord } from './enrollment-records.js';
-import { enrollmentView, type InstallmentRecord, installmentsByEnrollment } from './enrollment-views.js';
+import {
+  computedStates,
+  enrollmentView,
+  type InstallmentComputed,
+  type InstallmentRecord,
+  installmentsByEnrollment,
+} from './enrollment-views.js';
 
 /** Une inscription chargée, avec de quoi la présenter : projet, compte, échéances, vue calculée par le domaine. */
 export interface EnrollmentEntry {
@@ -19,6 +25,8 @@ export interface EnrollmentEntry {
   project: ProjectRecord;
   member: SubscriberContact;
   lines: InstallmentRecord[];
+  /** Montants et statut calculés de chaque échéance de `lines` (même ordre), au jour donné à `entries()`. */
+  states: InstallmentComputed[];
   view: Enrollment;
 }
 
@@ -63,13 +71,15 @@ export class MemberDirectory {
       const member = members.get(row.userId);
       if (!project || !member) throw new Error('MemberDirectory : projet ou compte d’une inscription introuvable');
       const installments = lines.get(row.id) ?? [];
+      const states = computedStates(installments, project, today);
       return {
         row,
         at,
         project,
         member,
         lines: installments,
-        view: enrollmentView(row, project, member, today, installments),
+        states,
+        view: enrollmentView(row, project, member, today, installments, states),
       };
     });
   }

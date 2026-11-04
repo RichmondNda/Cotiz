@@ -66,3 +66,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   `chore/notifications-suivi` : (a) multi-associations renvoyé à la décision 26 (lot 4.5), mention à ajouter dans
   `docs/decisions.md` ; (b) pas de rappel J-3 pour une association suspendue ; (c) comptes désactivés exclus des
   destinataires ; (d) rattrapage des rappels J-3 manqués dans la journée (dedupe_key existante).
+- **2026-11-04** · lot 2.6, étape 4 (performance) — décision prise (« Alléger le code ») : 1,9 s → ≈ 1,1 s hors cache, < 300 ms en cache ; **écart restant** sur le calcul complet, à reprendre si besoin (agrégation en base / vues matérialisées). Constat initial :
+  jeu de charge 2 000 souscripteurs × 25 échéances = 50 000 échéances, ≈ 27 000 paiements validés
+  (`backend/test/perf/reporting-50k.test.ts`, non commité). Mesuré sur ce serveur : `rp.report` ≈ 1,9 s, `as.dashboard`
+  sans cache ≈ 1,9 s ; avec cache < 300 ms. Objectif (architecture/09) : 95 % des lectures < 300 ms.
+  Cause mesurée : PostgreSQL exécute en ≈ 95 ms (index utilisés, aucun index manquant) ; le temps est dans Node —
+  rapatrier les 50 000 lignes complètes ≈ 810 ms, calcul des situations ≈ 320 ms, chiffres ≈ 490 ms.
+  Pistes : alléger en code (colonnes utiles seulement, calculs) sans changer la spec, ou vues matérialisées
+  (architecture/09 « rapports lourds », changement de schema.sql → accord requis).

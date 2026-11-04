@@ -89,7 +89,7 @@ export class GetManagerDashboardUseCase {
     const latestPayments = await latestPaymentsOf(associationId, this.accounts, LATEST_PAYMENTS);
     const activationCodesToHand = await this.codes.count({ handed: false });
 
-    const lines = entries.map((entry) => ({ entry, lines: collectionLines(entry, today) }));
+    const lines = entries.map((entry) => ({ entry, lines: collectionLines(entry) }));
     const all = lines.flatMap((l) => l.lines);
     const totals = collectionFigures(all, today);
     const monthly = monthlyCollection(all, receipts, months);
