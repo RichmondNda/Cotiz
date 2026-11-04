@@ -106,6 +106,8 @@ describe('installments.due-soon', () => {
     await f.h.superuser('DELETE FROM notifications');
     await f.resetLedger();
     await f.h.superuser(`DELETE FROM outbox_events WHERE event_type = 'installment.due_soon'`);
+    // Marques « journée faite » de la tâche (Redis).
+    await f.redis.exec(['redis-cli', 'FLUSHDB']);
     await f.h.superuser(`UPDATE associations SET timezone = 'Africa/Abidjan' WHERE id = ANY($1::uuid[])`, [
       [A.id, B.id],
     ]);
@@ -147,13 +149,58 @@ describe('installments.due-soon', () => {
     ]);
   });
 
-  it('relancée le même jour : republiée, mais une seule cloche', async () => {
+  it('relancée le même jour : rien de republié ; marque perdue (Redis vidé) : republiée, mais une seule cloche', async () => {
     await moussa();
     await run('2026-03-02T08:00:00Z');
+    await run('2026-03-02T08:00:00Z');
+    await run('2026-03-02T09:00:00Z');
+    expect(await events()).toHaveLength(1);
+
+    await f.redis.exec(['redis-cli', 'FLUSHDB']);
     await run('2026-03-02T08:00:00Z');
     expect(await events()).toHaveLength(2);
     await deliver(await events());
     expect(await bells()).toHaveLength(1);
+  });
+
+  it('worker arrêté à 08:00 : rattrapé au passage suivant du même jour, une seule fois', async () => {
+    await moussa();
+    await run('2026-03-02T11:00:00Z');
+    expect(await events()).toHaveLength(1);
+    await run('2026-03-02T12:00:00Z');
+    await run('2026-03-02T23:00:00Z');
+    expect(await events()).toHaveLength(1);
+    // Le lendemain avant 08:00 : pas encore l'heure.
+    await run('2026-03-03T07:00:00Z');
+    expect(await events()).toHaveLength(1);
+  });
+
+  it('association suspendue ou fermée : aucun rappel, l’autre association reçoit le sien ; de nouveau active : rappel', async () => {
+    await moussa();
+    await f.enrollByApi(
+      { userId: USERS.fatou, startsFrom: '2026-03-01' },
+      { aid: B.id, pid: PROJECTS.b, token: f.tokens.koffi },
+    );
+    const before =
+      ((await f.h.superuser(`SELECT status FROM associations WHERE id = $1`, [A.id])).rows as { status: string }[]).at(
+        0,
+      )?.status ?? 'active';
+    const ofA = async () => (await events()).filter((e) => e.association_id === A.id);
+    try {
+      for (const status of ['suspended', 'closed']) {
+        await f.h.superuser(`UPDATE associations SET status = $2 WHERE id = $1`, [A.id, status]);
+        await run('2026-03-02T08:00:00Z');
+        expect(await ofA()).toEqual([]);
+      }
+      // Ni le filtre de statut ni la marque de la journée ne débordent sur B : un seul rappel, pour Fatou.
+      expect((await events()).map((e) => [e.association_id, e.payload.userId])).toEqual([[B.id, USERS.fatou]]);
+      await f.h.superuser(`UPDATE associations SET status = 'active' WHERE id = $1`, [A.id]);
+      await run('2026-03-02T09:00:00Z');
+      expect(await ofA()).toHaveLength(1);
+      expect(await events()).toHaveLength(2);
+    } finally {
+      await f.h.superuser(`UPDATE associations SET status = $2 WHERE id = $1`, [A.id, before]);
+    }
   });
 
   it('échéance déjà déclarée (en attente) ou soldée : aucun rappel', async () => {
@@ -209,8 +256,8 @@ describe('installments.due-soon', () => {
   it('fuseau de chaque association : 08:00 locale, pas 08:00 UTC', async () => {
     await moussa();
     await f.h.superuser(`UPDATE associations SET timezone = 'Europe/Paris' WHERE id = $1`, [A.id]);
-    // 2 mars 08:00Z = 09:00 à Paris : rien ; 07:00Z = 08:00 à Paris : le rappel.
-    await run('2026-03-02T08:00:00Z');
+    // 2 mars 06:00Z = 07:00 à Paris : rien ; 07:00Z = 08:00 à Paris : le rappel.
+    await run('2026-03-02T06:00:00Z');
     expect(await events()).toEqual([]);
     await run('2026-03-02T07:00:00Z');
     expect(await events()).toHaveLength(1);
@@ -287,6 +334,8 @@ describe('installments.due-soon', () => {
     await f.h.superuser(`UPDATE enrollments SET status = 'withdrawn', withdrawn_at = now() WHERE id = $1`, [m.id]);
     await deliver(pending);
     expect(await bells()).toEqual([]);
+    // Marque de la journée retirée : la relance relit bien les inscriptions, elle ne s'arrête pas à la marque.
+    await f.redis.exec(['redis-cli', 'FLUSHDB']);
     await run('2026-04-02T08:00:00Z');
     expect(await events()).toHaveLength(1);
   });
