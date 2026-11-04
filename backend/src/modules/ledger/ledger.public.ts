@@ -9,3 +9,4 @@ export { type DueSoonNotice, dueSoonNoticeOf } from './application/due-soon-noti
 // Rapports (lot 2.6).
 export { lastValidatedPaymentDates } from './application/payment-dates.js';
 export { latestPaymentsOf, monthlyReceiptsOf, pendingPaymentsOverviewOf } from './application/dashboard-figures.js';
+export { newLateSubscribersOf } from './application/new-late-subscribers.js';

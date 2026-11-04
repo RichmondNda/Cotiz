@@ -52,6 +52,19 @@ export async function remindableAssociationTimezonesOf(ids: readonly string[]): 
   return new Map(rows.map((r) => [r.id, r.timezone]));
 }
 
+/**
+ * Toutes les associations qui reçoivent encore les notifications récurrentes (récapitulatif gestionnaire, lot 2.6) : ni
+ * suspendues ni fermées, avec leur fuseau. Espace system seulement.
+ */
+export async function activeAssociationTimezones(): Promise<{ id: string; timezone: string }[]> {
+  if (currentContext()?.space !== 'system') throw new Error('activeAssociationTimezones : espace system seulement');
+  return currentTx()
+    .select({ id: associations.id, timezone: associations.timezone })
+    .from(associations)
+    .where(notInArray(associations.status, [...SILENT_ASSOCIATION_STATUSES]))
+    .orderBy(associations.id);
+}
+
 export type AssociationOverview = Pick<
   AssociationRecord,
   'id' | 'name' | 'status' | 'createdAt' | 'onboardingCompletedAt'

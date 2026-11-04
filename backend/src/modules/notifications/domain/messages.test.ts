@@ -2,6 +2,7 @@ import { Money } from '@cotiz/domain';
 import { describe, expect, it } from 'vitest';
 import {
   installmentDueSoonMessage,
+  managersDigestMessage,
   associationRequestSubmittedMessage,
   memberEnrolledMessage,
   passwordResetRequestedMessage,
@@ -103,6 +104,23 @@ describe('textes des notifications', () => {
     ).toBe(`Prochaine échéance le 1er janvier : 500${NBSP}FG pour X.`);
   });
 
+  it('récapitulatif du jour : rubriques non nulles seulement, accords, lien du tableau de bord ; rien → aucun', () => {
+    expect(managersDigestMessage({ pendingPayments: 6, newLateSubscribers: 2, codesToHand: 1 })).toEqual({
+      type: 'digest.daily',
+      title: 'Récapitulatif du jour',
+      body: '6 paiements à valider · 2 souscripteurs passés en retard · 1 code d’activation à remettre.',
+      actionUrl: '/asso',
+      data: { actionLabel: 'Ouvrir le tableau de bord', digest: true },
+    });
+    expect(managersDigestMessage({ pendingPayments: 1, newLateSubscribers: 0, codesToHand: 3 })?.body).toBe(
+      '1 paiement à valider · 3 codes d’activation à remettre.',
+    );
+    expect(managersDigestMessage({ pendingPayments: 0, newLateSubscribers: 1, codesToHand: 0 })?.body).toBe(
+      '1 souscripteur passé en retard.',
+    );
+    expect(managersDigestMessage({ pendingPayments: 0, newLateSubscribers: 0, codesToHand: 0 })).toBeNull();
+  });
+
   it('aucun mot interdit à l’écran (payer, approuver, encaisser, facture, adhérent, mensualité)', () => {
     const all = [
       paymentValidatedMessage(facts),
@@ -121,7 +139,9 @@ describe('textes des notifications', () => {
         dueDate: '2026-10-05',
         remaining: Money.of(1, 'XOF'),
       }),
-    ];
+      managersDigestMessage({ pendingPayments: 6, newLateSubscribers: 2, codesToHand: 1 }),
+    ].filter((m) => m !== null);
+    expect(all).toHaveLength(12);
     for (const m of all) {
       // Liste blanche de `data` : jamais de code, de téléphone, de preuve ni de commentaire.
       for (const key of Object.keys(m.data ?? {})) {

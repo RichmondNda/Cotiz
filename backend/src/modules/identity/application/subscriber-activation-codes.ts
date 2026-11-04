@@ -71,17 +71,8 @@ export class SubscriberActivationCodes {
    * Nombre de codes de la liste (tableau de bord, « comptes non activés ») ; `handed` : marqués « remis » ou non.
    * Compte seulement : aucun code n'est déchiffré (as.dashboard est ouvert aux rôles sans `members.manage`).
    */
-  async count(query: { handed?: boolean | undefined } = {}): Promise<number> {
-    const { latest, filter } = pendingCodes();
-    const handed =
-      query.handed === undefined ? undefined : query.handed ? isNotNull(latest.handedAt) : isNull(latest.handedAt);
-    const [totals] = await currentTx()
-      .with(latest)
-      .select({ n: count() })
-      .from(latest)
-      .innerJoin(users, eq(users.id, latest.userId))
-      .where(and(filter, handed));
-    return totals?.n ?? 0;
+  count(query: { handed?: boolean | undefined } = {}): Promise<number> {
+    return activationCodesCountOf(query);
   }
 
   /** Codes d'activation émis par l'association pour cette personne (frise), consommés et remplacés compris. */
@@ -191,4 +182,21 @@ function pendingCodes() {
     isSubscriberOf(associationId, latest.userId),
   );
   return { latest, filter };
+}
+
+/**
+ * Nombre de codes de « Codes à remettre » de l'association du contexte (tableau de bord, récapitulatif gestionnaire) ;
+ * `handed` : marqués « remis » ou non. Compte seulement : aucun code n'est déchiffré.
+ */
+export async function activationCodesCountOf(query: { handed?: boolean | undefined } = {}): Promise<number> {
+  const { latest, filter } = pendingCodes();
+  const handed =
+    query.handed === undefined ? undefined : query.handed ? isNotNull(latest.handedAt) : isNull(latest.handedAt);
+  const [totals] = await currentTx()
+    .with(latest)
+    .select({ n: count() })
+    .from(latest)
+    .innerJoin(users, eq(users.id, latest.userId))
+    .where(and(filter, handed));
+  return totals?.n ?? 0;
 }

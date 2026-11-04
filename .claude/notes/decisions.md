@@ -120,3 +120,14 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     `+22507990000NN`, comptes actifs au mot de passe de dev), insérés par les seeds identity/access/members/ledger et
     comptés à part dans la sortie de `seed-dev`. Calibrés sur les nommés (mesurés) pour donner au 2026-09-25 :
     1 240 000 / 1 300 000 F, 6 à valider, 14 retards sur 52, 82 % (`reporting-seed-reference.test.ts`).
+- **2026-11-04** · lot 2.6, étape 3 (tâche `managers.digest`) — choix pris :
+  - Planification : toutes les heures à la demie (`30 * * * *`), comme `installments.due-soon` ; chaque passage traite
+    les associations actives où il est 07:30 ou plus tard (`isManagersDigestTime`, @cotiz/domain), une fois par jour
+    local (marque Redis `jobs:managers.digest:<aid>:<jour>`, 48 h, posée après le COMMIT) : rattrapage dans la journée.
+  - Contenu : paiements en attente, souscripteurs passés en retard **ce jour** (échéance dont le délai de grâce finit la
+    veille : `dueDateTurningLateOn`, `newLateSubscribersOf`), codes d'activation non remis. Tout à zéro → aucune
+    notification. Destinataires : owner/manager actifs (`notifiedManagersOf`), comptes notifiables.
+  - Type `digest.daily` (nom de la préférence côté front) : absent d'events.yaml (ce n'est pas un événement), donc dans
+    `JOB_NOTIFICATIONS` à côté de la matrice ; clé de déduplication `digest.daily:<aid>:<jour>:<personne>`. `data` reste
+    dans la liste blanche (`actionLabel`, `digest`), les chiffres sont dans le texte. Front : icône `paiement_declare`.
+  - Préférences de notification non appliquées (aucune table de préférences avant le lot qui les porte).

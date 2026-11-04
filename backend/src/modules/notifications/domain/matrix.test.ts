@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { NOTIFICATION_MATRIX } from './matrix.js';
+import { JOB_NOTIFICATIONS, matrixEntryOf, NOTIFICATION_MATRIX } from './matrix.js';
 
 /** Événements d'events.yaml : type, lot et consommateurs (lecture ligne à ligne du format généré). */
 function catalogue(): { type: string; lot: string; consumers: string[] }[] {
@@ -60,5 +60,14 @@ describe('matrice des notifications', () => {
   it('aucun canal externe en V1 : seulement in_app et push (ignoré jusqu’au lot 4.2)', () => {
     const channels = new Set(Object.values(NOTIFICATION_MATRIX).flatMap((e) => [...e.channels]));
     expect([...channels].sort()).toEqual(['in_app', 'push']);
+  });
+
+  it('notifications de tâches (sans événement) : récapitulatif gestionnaire en in-app, hors du catalogue', () => {
+    const known = new Set(events.map((e) => e.type));
+    expect(Object.keys(JOB_NOTIFICATIONS)).toEqual(['digest.daily']);
+    for (const type of Object.keys(JOB_NOTIFICATIONS)) expect(known.has(type)).toBe(false);
+    expect(matrixEntryOf('digest.daily')).toEqual({ audience: 'manager', channels: ['in_app'] });
+    expect(matrixEntryOf('payment.validated')).toBe(NOTIFICATION_MATRIX['payment.validated']);
+    expect(matrixEntryOf('constructor')).toBeUndefined();
   });
 });
