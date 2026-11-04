@@ -90,10 +90,16 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   4. **Performance** — `pnpm db:seed:load` (CLI `seed-load`, 50 000 échéances), `EXPLAIN (ANALYZE, BUFFERS)` des requêtes
      du rapport et du tableau de bord, test de perf < 300 ms ; un index absent de `schema.sql` = changement de spec → demander.
   Choix techniques (option conventionnelle prise) :
-  - Définitions des chiffres = celles des mocks V0 (référence des maquettes) : attendu = Σ dû des échéances qui comptent
-    échues au jour de l'association ; encaissé = Σ versé ; taux = min(1, encaissé / attendu), `null` sans attendu ;
-    collecté du mois = Σ allocations confirmées des paiements validés dans le mois (fuseau de l'association) ; attendu du
-    mois = Σ dû des échéances du mois. Calculs dans `@cotiz/domain` (règle 2).
+  - Définitions des chiffres (`@cotiz/domain`, `collection.ts`, règle 2) : attendu = Σ dû des échéances qui comptent
+    (ni annulées ni dispensées) échues au jour de l'association ; recouvré = Σ versé sur ces échéances ; encaissé = Σ de
+    tout le versé (anticipé et échéances annulées compris, = Σ allocations confirmées) ; reste = attendu − recouvré ;
+    taux = recouvré / attendu, `null` sans attendu (≠ mocks V0 : encaissé / attendu plafonné, gonflé par l'anticipé ;
+    relecture argent 2.6.1). Période du rapport = échéances dont la date tombe dans [from, to] (`inCollectionPeriod`).
+    Collecté du mois = Σ allocations confirmées des paiements validés dans le mois (fuseau de l'association) ; attendu du
+    mois = Σ dû des échéances du mois.
+  - Rapport : inscriptions retirées comprises (totaux, collecte, situations `withdrawn`, lignes) — un retrait n'annule
+    que les échéances futures sans versé, l'argent reçu et le dû échu restent ; la grille ne les montre pas (cohérence
+    vérifiée sur les inscriptions non retirées). Relecture argent 2.6.1, bloquant 1.
   - Rôle `cotiz_readonly` non utilisé (« possible ») : transaction RLS ordinaire de l'association, aucun nouveau rôle de connexion.
   - `stats` des projets du tableau de bord calculées par reporting ; `pr.list`/`pr.overview` restent à zéro (hors lot,
     signalé dans `a-verifier.md`).

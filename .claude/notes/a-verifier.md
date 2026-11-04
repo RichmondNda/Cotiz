@@ -8,6 +8,12 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
   matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
 
+- **2026-11-04** · lot 2.6 — `pr.list` (`stats`) et `pr.overview` renvoient encore des zéros (« Les lots 2.3 et 2.4 y
+  lisent les échéances et les paiements », jamais fait : `projects/application/get-project-overview.use-case.ts`,
+  `project-records.ts` `statsOf`). Le tableau de bord 2.6 calcule les `stats` de ses cartes projet ; la liste des projets
+  et la synthèse d'un projet afficheront donc d'autres chiffres. · Proposition : brancher les mêmes calculs sur `pr.list`,
+  `pr.get` et `pr.overview` dans une PR `chore/` après le lot (ou dans le lot si tu préfères).
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché

@@ -6,3 +6,5 @@ export { LedgerModule } from './ledger.module.js';
 // Notifications (lot 2.5) : ce qu'une notification dit d'un paiement.
 export { type PaymentNotice, paymentNoticeOf, pendingPaymentsCountOf } from './application/payment-notice.js';
 export { type DueSoonNotice, dueSoonNoticeOf } from './application/due-soon-notice.js';
+// Rapports (lot 2.6).
+export { lastValidatedPaymentDates } from './application/payment-dates.js';
