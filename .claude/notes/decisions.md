@@ -69,3 +69,31 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Rappel J-3 : tâche `installments.due-soon` dans le module ledger (lancée toutes les heures, traite les associations où il
     est 08:00), un événement par souscripteur et par projet ; cloche dédupliquée par `due_soon:{projet}:{date}:{personne}`.
     `dueSoonDate` / `DUE_SOON_DAYS` dans `@cotiz/domain`.
+- **2026-11-04** · plan du lot 2.6 (branche `lot/2.6-rapports-dashboard` depuis `origin/backend` c63562b, une seule PR vers
+  `backend`, un commit par étape, comme 2.4 et 2.5). Lu : `docs/lots/2.6`, `architecture/09`, `seed-reference.yaml`,
+  `endpoints.yaml` (`as.dashboard`, `rp.report`), contrats `association.ts` (`ManagerDashboard`) et `reports.ts`
+  (`ProjectReport`), mocks `frontend/server/mocks/{ledger,handlers/association,handlers/projects}.ts`, `jobs.yaml`
+  (`managers.digest` 07:30 locale), `events.yaml`, `permissions.yaml` (`reports.read` : owner, manager, viewer).
+  1. **Rapport** — `@cotiz/domain` : `collection.ts` (attendu à date, encaissé, reste, taux plafonné à 1, collecte et taux
+     cumulé par échéance) + tests ; module reporting : `get-project-report.use-case.ts`, contrôleur `rp.report`
+     (`@Can('reports.read')`), inscriptions et échéances par `MemberDirectory` (members.public), dernier paiement validé par
+     ledger.public. Tests : intégration (encaissé = Σ allocations confirmées en SQL, mêmes totaux que `lg.grid`, période,
+     404 hors association), isolation, bascule `rp.report`.
+  2. **Tableau de bord** — `get-manager-dashboard.use-case.ts` (KPI, 6 mois, projets triés par retards avec `stats` réelles,
+     5 derniers paiements), cache Redis 60 s par association à génération (modèle `pub.plans`), consommateur worker
+     `payment.*`, `member.enrolled|withdrawn`, `activation_code.handed`, `installment.late`. Seed : complément de
+     souscripteurs réels (décision 21, `proposé` : « le seed de démonstration génère de vraies inscriptions ») pour atteindre
+     les chiffres de `seed-reference.yaml` au 2026-09-25. Test à horloge simulée : 1 240 000 / 1 300 000, 6, 14, 82 %.
+     Bascule `as.dashboard`.
+  3. **Récapitulatif** — tâche `managers.digest` (toutes les heures, traite les associations où il est 07:30… lancée à :30),
+     notification in-app aux owner/manager actifs : paiements à valider, nouveaux retards, codes non remis ; dédupliquée par jour.
+  4. **Performance** — `pnpm db:seed:load` (CLI `seed-load`, 50 000 échéances), `EXPLAIN (ANALYZE, BUFFERS)` des requêtes
+     du rapport et du tableau de bord, test de perf < 300 ms ; un index absent de `schema.sql` = changement de spec → demander.
+  Choix techniques (option conventionnelle prise) :
+  - Définitions des chiffres = celles des mocks V0 (référence des maquettes) : attendu = Σ dû des échéances qui comptent
+    échues au jour de l'association ; encaissé = Σ versé ; taux = min(1, encaissé / attendu), `null` sans attendu ;
+    collecté du mois = Σ allocations confirmées des paiements validés dans le mois (fuseau de l'association) ; attendu du
+    mois = Σ dû des échéances du mois. Calculs dans `@cotiz/domain` (règle 2).
+  - Rôle `cotiz_readonly` non utilisé (« possible ») : transaction RLS ordinaire de l'association, aucun nouveau rôle de connexion.
+  - `stats` des projets du tableau de bord calculées par reporting ; `pr.list`/`pr.overview` restent à zéro (hors lot,
+    signalé dans `a-verifier.md`).
