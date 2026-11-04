@@ -7,6 +7,7 @@ export {
   ownAssociationOf,
   platformAssociationOf,
   platformAssociationsOverview,
+  remindableAssociationTimezonesOf,
 } from './application/association-records.js';
 export { platformAssociationDetail } from './application/association-views.js';
 export { createAssociation, type NewAssociation } from './application/create-association.js';

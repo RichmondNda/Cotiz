@@ -38,3 +38,12 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - **2026-11-03** · lot 2.5 — limites à confirmer : un gestionnaire de plusieurs associations ne voit que la cloche de la
   première (comme `GET /me`, en attendant le choix d'association) ; les notifications d'une association suspendue restent
   visibles ; aucune notification dans les seeds de démonstration (pages de notifications vides en local sans activité réelle).
+- **2026-11-04** · stash du lot 2.5 → suppression accordée. Vérifié : 12 fichiers sur 18 identiques à HEAD, les 6 autres
+  sont une version antérieure remplacée. Supprimé par l'utilisateur le 2026-11-04 (SHA `60b07e8`, restaurable par
+  `git stash store` tant qu'il n'est pas élagué).
+- **2026-11-04** · CI de la PR #28 sur `15672fb` (commit docs seul) → délai de 30 s dépassé dans `coherence.mjs` sur
+  `/plateforme/associations/<id>` (networkidle) ; `38b88a5` était vert. Job relancé (run 41726714892).
+- **2026-11-04** · limites du lot 2.5 → accord sur les recommandations, à faire après la fusion de la #28 sur
+  `chore/notifications-suivi` : (a) multi-associations renvoyé à la décision 26 (lot 4.5), mention à ajouter dans
+  `docs/decisions.md` ; (b) pas de rappel J-3 pour une association suspendue ; (c) comptes désactivés exclus des
+  destinataires ; (d) rattrapage des rappels J-3 manqués dans la journée (dedupe_key existante).

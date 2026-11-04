@@ -5,7 +5,7 @@ import { Money } from '@cotiz/domain';
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { isActiveSubscriberIn, notifiedManagersOf, notifiedPlatformStaff } from '../../access/access.public.js';
-import { associationPersonNameOf } from '../../identity/identity.public.js';
+import { associationPersonNameOf, notifiableUsersOf } from '../../identity/identity.public.js';
 import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
 import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
@@ -99,8 +99,12 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     const planned = await this.plan(event);
     if (planned.length === 0) return;
     const deliveries = await this.db.withTenantContext({ space: 'system' }, async () => {
+      // Compte désactivé ou anonymisé : plus de notification, même s'il reste membre (lot 2.5, suivi).
+      const notifiable = await notifiableUsersOf(planned.flatMap((p) => p.recipients.map((r) => r.userId)));
       const all: RoutedDelivery[] = [];
-      for (const p of planned) {
+      for (const each of planned) {
+        const p = { ...each, recipients: each.recipients.filter((r) => notifiable.has(r.userId)) };
+        if (p.recipients.length === 0) continue;
         all.push(
           ...(p.digest
             ? await this.dispatchDeclared(p, p.digest, event)

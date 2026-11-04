@@ -1,5 +1,5 @@
 import { associations } from '@cotiz/db';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 export type AssociationRecord = typeof associations.$inferSelect;
@@ -25,6 +25,30 @@ export async function associationTimezonesOf(ids: readonly string[]): Promise<Ma
     .select({ id: associations.id, timezone: associations.timezone })
     .from(associations)
     .where(inArray(associations.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.timezone]));
+}
+
+/** Associations dont les souscripteurs ne reçoivent plus de rappel : activité arrêtée par la plateforme ou fermée. */
+const SILENT_ASSOCIATION_STATUSES = ['suspended', 'closed'] as const;
+
+/**
+ * Fuseau des associations demandées qui reçoivent encore les rappels d'échéance (tâche `installments.due-soon`, lot
+ * 2.5) : ni suspendues ni fermées. Espace system seulement ; les identifiants inconnus ou écartés sont absents.
+ */
+export async function remindableAssociationTimezonesOf(ids: readonly string[]): Promise<Map<string, string>> {
+  if (currentContext()?.space !== 'system') {
+    throw new Error('remindableAssociationTimezonesOf : espace system seulement');
+  }
+  if (ids.length === 0) return new Map();
+  const rows = await currentTx()
+    .select({ id: associations.id, timezone: associations.timezone })
+    .from(associations)
+    .where(
+      and(
+        inArray(associations.id, [...new Set(ids)]),
+        notInArray(associations.status, [...SILENT_ASSOCIATION_STATUSES]),
+      ),
+    );
   return new Map(rows.map((r) => [r.id, r.timezone]));
 }
 
