@@ -13,7 +13,7 @@
     "start:worker": "node --import ./dist/telemetry.js dist/worker.js",
     "lint": "eslint . && depcruise src --config .dependency-cruiser.cjs",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run && vitest run --config vitest.perf.config.ts",
+    "test": "vitest run",
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "test:isolation": "vitest run test/isolation",
     "test:clamav": "vitest run --config vitest.clamav.config.ts"
