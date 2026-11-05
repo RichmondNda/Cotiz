@@ -165,3 +165,13 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     `stats.progress` d'un projet en inscription avec nombre requis vaut 0 au lieu de `null` (règle du tableau de bord).
   - Reste à faire : `/verifier-ecran` sur `mg-projets`, `mg-projet-overview` et l'accueil gestionnaire (pas de navigateur
     sur le serveur) ; `pending_signature` compté dans l'argent mais pas dans les souscripteurs, à trancher au lot 4.1.
+
+- **2026-11-05** · `chore/compose-tout-docker` — Pile complète dans Docker pour les essais locaux (demande de l'utilisateur).
+  - `infra/compose/app.yml`, surcouche de `local.yml` (même projet `cotiz`, mêmes volumes que `pnpm dev`) : `migrate`
+    (tâche préalable, cotiz_migrator en direct), `api`, `worker`, `seed` (profil, `seed-dev`), `web` (mocks Nitro conservés
+    pour les endpoints pas encore réels, `NUXT_API_ORIGIN=http://api:4000`).
+  - `NODE_ENV=development` (clés JWT éphémères, clés de dev) : ce n'est pas le `production.yml` du lot 3.5, qui reste à faire.
+  - Front sur le port 3080 par défaut (`COTIZ_WEB_PORT`) : 3000 est pris sur le serveur (Dokploy) et par `pnpm dev`.
+  - Correctifs nécessaires à l'image api (jamais lancée jusqu'ici, seulement construite en CI) : `@cotiz/db` compilé
+    (`dist/`, mêmes conditions d'export que contracts et domain), garde « lancé directement » de `migrate.ts` en chemin réel,
+    `backend/content` copié dans l'image (report du lot 1.3 vers 7.1 traité ici).

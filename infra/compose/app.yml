@@ -1,0 +1,110 @@
+# Tout dans Docker : api, worker et front construits en images, par-dessus les services de local.yml.
+# Lancement depuis la racine du dépôt :
+#   docker compose -f infra/compose/local.yml -f infra/compose/app.yml up -d --build
+#   docker compose -f infra/compose/local.yml -f infra/compose/app.yml --profile seed run --rm seed   # comptes de démonstration
+# Front : http://localhost:3080 (COTIZ_WEB_PORT). Mêmes volumes que `pnpm dev` (projet `cotiz`) : mêmes données.
+#
+# Environnement de développement (NODE_ENV=development), pas la configuration de production du lot 3.5 :
+# - clés JWT éphémères (une reconstruction de l'api déconnecte tout le monde), clés de chiffrement de développement ;
+# - le front garde ses mocks Nitro pour les endpoints pas encore réels (registre server/bascule/real-endpoints.ts).
+# Identifiants de développement uniquement (ceux de local.yml et de postgres-init), jamais réutilisés ailleurs.
+
+x-backend-env: &backend-env
+  NODE_ENV: development
+  # pino-pretty est une dépendance de développement, absente de l'image : journaux JSON.
+  LOG_PRETTY: 'false'
+  DATABASE_URL: postgres://cotiz_app:cotiz-app-local@pgbouncer:5432/cotiz
+  # cotiz_platform (BYPASSRLS) en direct : PgBouncer ne connaît que cotiz_app.
+  PLATFORM_DATABASE_URL: postgres://cotiz_platform:cotiz-platform-local@postgres:5432/cotiz
+  REDIS_URL: redis://redis:6379
+  S3_ENDPOINT: http://minio:9000
+  # URL signées pour le navigateur : l'hôte signé doit être celui qu'il appelle.
+  S3_PUBLIC_ENDPOINT: http://localhost:${COTIZ_MINIO_PORT:-9000}
+  S3_ACCESS_KEY_ID: cotiz
+  S3_SECRET_ACCESS_KEY: cotiz-local-minio
+  APP_PUBLIC_URL: http://localhost:${COTIZ_WEB_PORT:-3080}
+  # Le front (Nitro) est le seul proxy devant l'api.
+  TRUST_PROXY_HOPS: '1'
+
+x-api-build: &api-build
+  context: ../..
+  dockerfile: infra/docker/api.Dockerfile
+
+# Même image pour migrate, api, worker et seed (une seule construction, le cache sert les autres).
+x-backend: &backend
+  image: cotiz-api:local
+  build: *api-build
+  environment: *backend-env
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    pgbouncer:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio-init:
+      condition: service_completed_successfully
+  restart: unless-stopped
+  mem_limit: 384m
+
+services:
+  # Migrations en tâche préalable (connexion directe, cotiz_migrator), puis arrêt.
+  migrate:
+    image: cotiz-api:local
+    build: *api-build
+    command: ['node', 'node_modules/@cotiz/db/dist/migrate.js']
+    environment:
+      MIGRATION_DATABASE_URL: postgres://cotiz_migrator:cotiz-migrator-local@postgres:5432/cotiz
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+    mem_limit: 256m
+
+  api:
+    <<: *backend
+    # Port publié pour les essais directs (curl) ; le navigateur passe par le front.
+    ports:
+      - '127.0.0.1:${COTIZ_API_PORT:-4000}:4000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+      start_interval: 1s
+
+  worker:
+    <<: *backend
+    command: ['node', '--import', './dist/telemetry.js', 'dist/worker.js']
+
+  # Comptes, associations, projets et paiements de référence (frontend/server/mocks/IDENTIFIANTS.md). Idempotent.
+  seed:
+    <<: *backend
+    profiles: [seed]
+    environment:
+      <<: *backend-env
+      COTIZ_DEV_SEED: 'true'
+    command: ['node', 'dist/cli.js', 'seed-dev']
+    restart: 'no'
+
+  web:
+    image: cotiz-web:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      NUXT_API_ORIGIN: http://api:4000
+    ports:
+      - '127.0.0.1:${COTIZ_WEB_PORT:-3080}:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 384m
