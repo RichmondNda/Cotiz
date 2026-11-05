@@ -24,6 +24,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # Inclut les tests d'intégration du back (Testcontainers : Docker est disponible sur le runner).
       - run: pnpm verify
+      # Mesures de durée (test/perf) : hors de pnpm verify, trop sensibles à la charge d'une machine partagée.
+      - run: pnpm test:perf
       # Exceptions temporaires (pnpm.auditConfig.ignoreGhsas de package.json) : ADR 0016,
       # outils de dev/build de Nuxt absents de .output. Réexamen au plus tard le 2026-12-07.
       - name: Audit des dépendances de production

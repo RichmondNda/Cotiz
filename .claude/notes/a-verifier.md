@@ -8,29 +8,21 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
   matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
 
-- **2026-11-04** · lot 2.6, étape 2 — `mg-dashboard` est réel : en local (jour réel, pas le 25 septembre), ses chiffres
-  diffèrent de la maquette (retards d'octobre et novembre en plus, collecte du mois en cours). Aucun écart n'est inscrit
-  pour cet écran dans `docs/specs/ui-deviations.md` (comme pour les écrans des lots 2.3 et 2.4). · Proposition : ajouter
-  une ligne « Tableau de bord gestionnaire (`mg-dashboard`, lot 2.6) : chiffres du jeu de référence au jour réel ; au
-  2026-09-25, ceux de la maquette (vérifié par test) ». À ton accord (changement de `docs/specs/`).
-- **2026-11-04** · lot 2.6, étape 2 — décision 21 (`proposé`) appliquée : 47 souscripteurs de démonstration réels dans
-  `seed-dev` (Entraide Yopougon). · À confirmer pour passer la décision à `adopté`.
-
-- **2026-11-04** · `pnpm verify` local : `test/perf/enrollment-bulk-200.test.ts` (en.bulk, lot 2.3) échoue sur ce serveur
-  (17,2 s puis 18,7 s pour 10 s attendues, relancé seul : 18,7 s ; charge ~3,5 sur 8 cœurs, Dokploy et autres services
-  sur la même machine). Déjà en échec à la vérification de l'étape 2.6.1 (journal relu), code non touché par le lot 2.6.
-  Tout le reste est vert (131 fichiers back, 2 autres tests de perf). · La CI fait foi : à confirmer sur la PR.
-
 - **2026-11-05** · CI GitHub Actions plus exécutée (plus de minutes, dit l'utilisateur : « on va aller à l'aveugle
-  coté CI ») : PR #31 et #32 sans vérification (`gh pr checks` : « no checks reported »). Seule porte : `pnpm verify`
-  local. Non couverts en local : parcours Playwright et accessibilité, antivirus clamd réel, images (Trivy), oasdiff.
-  Conséquence : `test/perf/enrollment-bulk-200.test.ts` (en.bulk, lot 2.3) échoue à chaque `pnpm verify` local
-  (17–21 s pour 10 s, serveur partagé) et n'est plus contredit par la CI. · Proposition : le sortir de `pnpm test`
-  vers une commande de perf à part, ou relever son seuil pour ce serveur — à ton accord.
+  coté CI ») : PR #31 et suivantes sans vérification (`gh pr checks` : « no checks reported »). Seule porte :
+  `pnpm verify` local (mesures de durée à part : `pnpm test:perf`, voir Tranché). Non couverts en local : parcours
+  Playwright et accessibilité, antivirus clamd réel (`pnpm --filter backend test:clamav` possible), images (Trivy),
+  oasdiff. · À reprendre si la CI revient.
 
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
+- **2026-11-05** · accord de l'utilisateur (« d'accord, fais 1, 2 et 3 »), branche `chore/perf-ui-decision21` :
+  (1) `test/perf` hors de `pnpm verify` (`backend` `test` = `vitest run`), lancé par `pnpm test:perf` (racine) quand on
+  touche en.bulk, rapports ou tableau de bord — `enrollment-bulk-200` (17–21 s pour 10 s sur ce serveur partagé) n'y
+  bloque plus ; (2) `ui-deviations.md` : ligne `mg-dashboard` (lot 2.6, chiffres au jour réel, ceux de la maquette au
+  2026-09-25) et ligne `mg-projets`/`mg-projet-overview` mise à jour (chiffres réels depuis #32) ; (3) décision 21
+  `adopté`.
 - **2026-11-05** · `pr.list`/`pr.get`/`pr.overview` à zéro — accord de l'utilisateur (« oui, fais la PR chore pour
   pr.list et pr.overview ») : branche `chore/projets-indicateurs`, chiffres par `ProjectFigures` (reporting).
 
