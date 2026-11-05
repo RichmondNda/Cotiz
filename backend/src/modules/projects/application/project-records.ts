@@ -178,8 +178,9 @@ export function enrollmentScheduleOf(row: ProjectRecord, enrolledFrom: string): 
 }
 
 /**
- * Indicateurs d'un projet. Avant les inscriptions (lot 2.3) et les paiements (lot 2.4) : aucun souscripteur, rien
- * d'attendu ni d'encaissé ; dates fixes : nombre d'échéances et engagement par souscripteur, par generateSchedule().
+ * Indicateurs propres au projet : dates fixes, nombre d'échéances et engagement par souscripteur, par
+ * generateSchedule() ; le reste à zéro, calculé sur les inscriptions par ProjectFigures (reporting) pour pr.list,
+ * pr.get, pr.patch et pr.lifecycle (l'audit et les comparaisons de pr.patch n'en dépendent pas).
  */
 function statsOf(row: ProjectRecord): z.infer<typeof Project>['stats'] {
   const currency = row.currency as Currency;

@@ -74,7 +74,13 @@ describe('cycle de vie d’un projet (pr.lifecycle, pr.delete)', () => {
       const res = await action(project.id, 'publish');
       expect(res.status).toBe(200);
       const published = Project.parse(await res.json());
-      expect(published).toEqual({ ...project, status: 'enrolling', version: 2 });
+      // Indicateurs calculés comme pr.get (ProjectFigures) : inscriptions ouvertes, 0 souscripteur sur 60 requis.
+      expect(published).toEqual({
+        ...project,
+        status: 'enrolling',
+        version: 2,
+        stats: { ...project.stats, progress: 0 },
+      });
       expect(await row(project.id)).toMatchObject({ status: 'enrolling', version: 2 });
       expect(await events('project.published')).toEqual([
         {

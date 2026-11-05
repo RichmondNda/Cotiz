@@ -10,6 +10,7 @@ export {
   lockFinancialTerms,
   platformProjectsOf,
   projectOf,
+  projectScheduleLines,
   projectsOf,
   type ProjectRecord,
   rollingExtensionOf,

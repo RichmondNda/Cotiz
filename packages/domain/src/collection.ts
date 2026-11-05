@@ -96,12 +96,18 @@ export function collectionFigures(installments: readonly CollectionInstallment[]
 
 /**
  * Attendu et versé par rang d'échéance périodique (fonds d'entrée et échéances annulées ou dispensées exclus), dans
- * l'ordre des rangs. Cycle roulant : rang commun, date la plus ancienne du rang.
+ * l'ordre des rangs. Cycle roulant : rang commun, date la plus ancienne du rang. `calendar` (dates fixes, synthèse d'un
+ * projet) : une entrée par rang du calendrier, à zéro sans échéance ; un rang d'échéance absent du calendrier (dates du
+ * projet modifiées après des inscriptions) est conservé, pour que les totaux restent ceux des échéances.
  */
 export function collectionBySequence(
   installments: readonly CollectionInstallment[],
+  calendar: readonly { sequence: number; dueDate: IsoDate }[] = [],
 ): { sequence: number; dueDate: IsoDate; expected: number; received: number }[] {
   const bySequence = new Map<number, { sequence: number; dueDate: IsoDate; expected: number; received: number }>();
+  for (const c of calendar) {
+    if (!bySequence.has(c.sequence)) bySequence.set(c.sequence, { ...c, expected: 0, received: 0 });
+  }
   for (const i of installments) {
     check(i);
     if (i.kind !== 'periodic' || !counts(i)) continue;
@@ -229,4 +235,22 @@ export function nextDueDate(installments: readonly CollectionInstallment[], toda
     if (counts(i) && i.dueDate > today && (next === null || i.dueDate < next)) next = i.dueDate;
   }
   return next;
+}
+
+/**
+ * Prochaine échéance (synthèse d'un projet) : date de `nextDueDate` et total attendu ce jour-là, Σ du dû des échéances
+ * qui comptent à cette date (le versé anticipé n'est pas déduit) ; `null` s'il n'y en a plus.
+ */
+export function nextDue(
+  installments: readonly CollectionInstallment[],
+  today: IsoDate,
+): { dueDate: IsoDate; expectedTotal: number } | null {
+  installments.forEach(check);
+  const dueDate = nextDueDate(installments, today);
+  if (dueDate === null) return null;
+  let expectedTotal = 0;
+  for (const i of installments) {
+    if (counts(i) && i.dueDate === dueDate) expectedTotal = add(expectedTotal, i.amountDue);
+  }
+  return { dueDate, expectedTotal };
 }

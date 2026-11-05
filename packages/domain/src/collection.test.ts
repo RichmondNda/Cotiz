@@ -8,6 +8,7 @@ import {
   type CollectionInstallment,
   inCollectionPeriod,
   monthlyCollection,
+  nextDue,
   nextDueDate,
   recentMonths,
   recoveryRateBySequence,
@@ -316,6 +317,75 @@ describe('nextDueDate : prochaine date d’échéance après le jour donné', ()
     expect(
       nextDueDate([line(1, '2026-09-25', 25_000, 0, 'due'), line(2, '2026-10-05', 0, 0, 'waived')], TODAY),
     ).toBeNull();
+  });
+});
+
+describe('collectionBySequence avec calendrier : une entrée par rang du calendrier, aucun rang perdu', () => {
+  it('rangs du calendrier à zéro sans échéance ; rang hors calendrier conservé ; ordre des rangs', () => {
+    const calendar = [
+      { sequence: 1, dueDate: '2026-08-05' },
+      { sequence: 2, dueDate: '2026-09-05' },
+      { sequence: 3, dueDate: '2026-10-05' },
+    ];
+    expect(
+      collectionBySequence(
+        [
+          line(2, '2026-09-05', 25_000, 25_000, 'paid'),
+          line(2, '2026-09-05', 25_000, 0, 'late'),
+          // Date de fin raccourcie après l'inscription : le rang 4 n'est plus au calendrier, mais il compte.
+          line(4, '2026-11-05', 25_000, 5_000, 'partial'),
+        ],
+        calendar,
+      ),
+    ).toEqual([
+      { sequence: 1, dueDate: '2026-08-05', expected: 0, received: 0 },
+      { sequence: 2, dueDate: '2026-09-05', expected: 50_000, received: 25_000 },
+      { sequence: 3, dueDate: '2026-10-05', expected: 0, received: 0 },
+      { sequence: 4, dueDate: '2026-11-05', expected: 25_000, received: 5_000 },
+    ]);
+  });
+
+  it('propriété : Σ attendu et Σ reçu identiques avec ou sans calendrier', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.record({ sequence: fc.integer({ min: 1, max: 30 }), paid: fc.integer({ min: 0, max: 25_000 }) })),
+        fc.integer({ min: 0, max: 30 }),
+        (rows, length) => {
+          const lines = rows.map((r) => line(r.sequence, '2026-09-05', 25_000, r.paid, 'partial'));
+          const calendar = Array.from({ length }, (_, k) => ({ sequence: k + 1, dueDate: '2026-09-05' }));
+          const sum = (xs: { expected: number; received: number }[]) => ({
+            expected: xs.reduce((t, x) => t + x.expected, 0),
+            received: xs.reduce((t, x) => t + x.received, 0),
+          });
+          const withCalendar = collectionBySequence(lines, calendar);
+          expect(sum(withCalendar)).toEqual(sum(collectionBySequence(lines)));
+          expect(new Set(withCalendar.map((c) => c.sequence)).size).toBe(withCalendar.length);
+        },
+      ),
+    );
+  });
+});
+
+describe('nextDue : prochaine échéance et total attendu ce jour-là', () => {
+  it('somme du dû des échéances qui comptent à cette date (versé non déduit) ; aucune : null', () => {
+    expect(
+      nextDue(
+        [
+          line(1, '2026-09-05', 25_000, 0, 'late'),
+          line(2, '2026-11-05', 25_000, 10_000, 'partial'),
+          line(2, '2026-11-05', 25_000, 0, 'upcoming'),
+          line(2, '2026-11-05', 25_000, 0, 'canceled'),
+          line(3, '2026-12-05', 25_000, 0, 'upcoming'),
+        ],
+        TODAY,
+      ),
+    ).toEqual({ dueDate: '2026-11-05', expectedTotal: 50_000 });
+    expect(nextDue([line(1, '2026-09-25', 25_000, 0, 'due')], TODAY)).toBeNull();
+    expect(nextDue([], TODAY)).toBeNull();
+  });
+
+  it('refuse un montant invalide', () => {
+    expect(() => nextDue([line(1, '2026-12-05', -1, 0, 'upcoming')], TODAY)).toThrow(DomainError);
   });
 });
 

@@ -8,12 +8,6 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
   matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
 
-- **2026-11-04** · lot 2.6 — `pr.list` (`stats`) et `pr.overview` renvoient encore des zéros (« Les lots 2.3 et 2.4 y
-  lisent les échéances et les paiements », jamais fait : `projects/application/get-project-overview.use-case.ts`,
-  `project-records.ts` `statsOf`). Le tableau de bord 2.6 calcule les `stats` de ses cartes projet ; la liste des projets
-  et la synthèse d'un projet afficheront donc d'autres chiffres. · Proposition : brancher les mêmes calculs sur `pr.list`,
-  `pr.get` et `pr.overview` dans une PR `chore/` après le lot (ou dans le lot si tu préfères).
-
 - **2026-11-04** · lot 2.6, étape 2 — `mg-dashboard` est réel : en local (jour réel, pas le 25 septembre), ses chiffres
   diffèrent de la maquette (retards d'octobre et novembre en plus, collecte du mois en cours). Aucun écart n'est inscrit
   pour cet écran dans `docs/specs/ui-deviations.md` (comme pour les écrans des lots 2.3 et 2.4). · Proposition : ajouter
@@ -30,6 +24,8 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
+- **2026-11-05** · `pr.list`/`pr.get`/`pr.overview` à zéro — accord de l'utilisateur (« oui, fais la PR chore pour
+  pr.list et pr.overview ») : branche `chore/projets-indicateurs`, chiffres par `ProjectFigures` (reporting).
 
 - **2026-11-03** · revue humaine du lot 2.4 (transaction de validation) → validée par l'utilisateur ; `docs/progress.md` mis à jour.
   Règle durable ajoutée dans `CLAUDE.md` (« Méthode de travail ») : la revue humaine est acquise quand l'utilisateur approuve

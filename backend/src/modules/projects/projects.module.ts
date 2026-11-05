@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { QuotaService } from '../billing/billing.public.js';
+import { ProjectFiguresModule } from '../reporting/reporting.public.js';
 import { CloseProjectUseCase, PublishProjectUseCase } from './application/change-project-status.use-case.js';
 import { CreateProjectUseCase } from './application/create-project.use-case.js';
 import { DeleteProjectUseCase } from './application/delete-project.use-case.js';
@@ -17,6 +18,8 @@ import { ProjectsController } from './http/projects.controller.js';
  * lot 2.2). Tâche projects.activate : ProjectsWorkerModule.
  */
 @Module({
+  // Indicateurs des projets (pr.list, pr.get, pr.overview) : calculés par reporting, comme le tableau de bord.
+  imports: [ProjectFiguresModule],
   controllers: [ProjectsController],
   providers: [
     ListProjectsUseCase,

@@ -3,6 +3,7 @@ import type { Project } from '@cotiz/contracts';
 import { projects, updateWithVersion } from '@cotiz/db';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
+import { ProjectFigures } from '../../reporting/reporting.public.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { canTransition, TRANSITIONS } from '../domain/project-lifecycle.js';
@@ -15,6 +16,7 @@ import { contextAssociationId, projectOf, toProject } from './project-records.js
  */
 async function transition(
   outbox: OutboxService,
+  figures: ProjectFigures,
   aid: string,
   pid: string,
   name: 'publish' | 'close',
@@ -49,27 +51,36 @@ async function transition(
     before: { status: current.status, ...(closing ? { closedAt: null } : {}) },
     after: { status: after.status, ...(closing ? { closedAt: after.closedAt } : {}) },
   });
-  return after;
+  // Réponse : indicateurs calculés comme pr.get (l'audit n'en garde que le statut).
+  const [withStats] = await figures.withStats(associationId, [after]);
+  if (!withStats) throw new Error('pr.lifecycle : projet sans indicateurs');
+  return withStats;
 }
 
 /** pr.lifecycle › publish : brouillon → inscriptions ouvertes (project.published). Quota : compté dès le brouillon (Q6). */
 @Injectable()
 export class PublishProjectUseCase {
-  constructor(private readonly outbox: OutboxService) {}
+  constructor(
+    private readonly outbox: OutboxService,
+    private readonly figures: ProjectFigures,
+  ) {}
 
   @Audited('project.publish')
   execute(aid: string, pid: string): Promise<Project> {
-    return transition(this.outbox, aid, pid, 'publish');
+    return transition(this.outbox, this.figures, aid, pid, 'publish');
   }
 }
 
 /** pr.lifecycle › close : inscriptions ouvertes ou en cours → terminé, date de clôture (project.closed). */
 @Injectable()
 export class CloseProjectUseCase {
-  constructor(private readonly outbox: OutboxService) {}
+  constructor(
+    private readonly outbox: OutboxService,
+    private readonly figures: ProjectFigures,
+  ) {}
 
   @Audited('project.close')
   execute(aid: string, pid: string): Promise<Project> {
-    return transition(this.outbox, aid, pid, 'close');
+    return transition(this.outbox, this.figures, aid, pid, 'close');
   }
 }
