@@ -8,6 +8,12 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
   matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
 
+- **2026-11-05** · CI GitHub Actions plus exécutée (plus de minutes, dit l'utilisateur : « on va aller à l'aveugle
+  coté CI ») : PR #31 et suivantes sans vérification (`gh pr checks` : « no checks reported »). Seule porte :
+  `pnpm verify` local (mesures de durée à part : `pnpm test:perf`, voir Tranché). Non couverts en local : parcours
+  Playwright et accessibilité, antivirus clamd réel (`pnpm --filter backend test:clamav` possible), images (Trivy),
+  oasdiff. · À reprendre si la CI revient.
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
