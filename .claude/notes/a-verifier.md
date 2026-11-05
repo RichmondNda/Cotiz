@@ -21,6 +21,13 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   sur la même machine). Déjà en échec à la vérification de l'étape 2.6.1 (journal relu), code non touché par le lot 2.6.
   Tout le reste est vert (131 fichiers back, 2 autres tests de perf). · La CI fait foi : à confirmer sur la PR.
 
+- **2026-11-05** · CI GitHub Actions plus exécutée (plus de minutes, dit l'utilisateur : « on va aller à l'aveugle
+  coté CI ») : PR #31 et #32 sans vérification (`gh pr checks` : « no checks reported »). Seule porte : `pnpm verify`
+  local. Non couverts en local : parcours Playwright et accessibilité, antivirus clamd réel, images (Trivy), oasdiff.
+  Conséquence : `test/perf/enrollment-bulk-200.test.ts` (en.bulk, lot 2.3) échoue à chaque `pnpm verify` local
+  (17–21 s pour 10 s, serveur partagé) et n'est plus contredit par la CI. · Proposition : le sortir de `pnpm test`
+  vers une commande de perf à part, ou relever son seuil pour ce serveur — à ton accord.
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
