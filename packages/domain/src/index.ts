@@ -25,6 +25,7 @@ export {
   collectionProgress,
   inCollectionPeriod,
   monthlyCollection,
+  nextDue,
   nextDueDate,
   recentMonths,
   recoveryRateBySequence,

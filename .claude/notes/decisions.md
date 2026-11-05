@@ -143,3 +143,25 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     régression). Reste ≈ 0,25 s de décodage pilote par appel : seule une agrégation en base le réduirait (écartée).
   - `pnpm db:seed:load` (cité par le lot et architecture/09) n'existe pas : le jeu de charge vit dans le test de perf ;
     une commande CLI pour la base de dev reste à faire si on la veut (signalé).
+- **2026-11-05** · `chore/projets-indicateurs` (suivi du lot 2.6, accord de l'utilisateur) — choix pris :
+  - Calculs dans `reporting` (`application/project-figures.ts` : `summaryWithStats`, déplacé du tableau de bord, et
+    `ProjectFigures.withStats`/`overview`), fournis à `projects` par `ProjectFiguresModule` (importe `MembersModule`) via
+    `reporting.public.ts` : pas de cycle de modules Nest (members n'importe pas projects en Nest), pas de copie des calculs.
+  - Indicateurs calculés pour `pr.list` (projets de la page, `MemberDirectory.entries({ projectIds })`), `pr.get`, et les
+    réponses de `pr.patch` et `pr.lifecycle` (publish, close) ; `pr.create`/`pr.duplicate` : aucun souscripteur, zéros
+    exacts. L'audit et la comparaison des champs de `pr.patch` restent sur `toProject` (sans indicateurs) ; ETag = version.
+  - `pr.overview` : encaissé, attendu, taux comme `rp.report` ; retards, remplissage, prochaine échéance sur les inscriptions
+    qui engagent ; `late.count` = souscripteurs en retard (= `stats.lateSubscribersCount`), `late.amount` = Σ reste dû de
+    leurs échéances en retard ; `nextDue.expectedTotal` = Σ dû à la prochaine date (`nextDue`, @cotiz/domain, versé
+    anticipé non déduit) ; `lateMembers` triés par reste dû décroissant, `lateSince` = plus ancien retard daté comme la
+    grille (`installmentView`) ; contrats non signés = toutes les inscriptions `pending_signature` (pas de seuil de 7 jours,
+    absent du contrat `ProjectOverview`) ; collecte par échéance inchangée dans sa forme (projet en cours, dates fixes :
+    calendrier complet, rangs du projet conservés à l'inscription).
+  - Pas de cache : pr.list calcule sur les projets de la page seulement.
+  - Relectures argent et isolation, sans bloquant ; repris : `late.amount` = Σ des `lateMembers` (nombre et montant
+    d'accord), fusion calendrier × rangs dans `collectionBySequence(échéances, calendrier)` (@cotiz/domain : un rang
+    hors calendrier après une modification des dates est conservé), `ProjectFigures` vérifie le contexte de
+    l'association, test d'isolation direct (projet de B demandé dans le contexte de A → zéro ; B refusé). Effet visible :
+    `stats.progress` d'un projet en inscription avec nombre requis vaut 0 au lieu de `null` (règle du tableau de bord).
+  - Reste à faire : `/verifier-ecran` sur `mg-projets`, `mg-projet-overview` et l'accueil gestionnaire (pas de navigateur
+    sur le serveur) ; `pending_signature` compté dans l'argent mais pas dans les souscripteurs, à trancher au lot 4.1.

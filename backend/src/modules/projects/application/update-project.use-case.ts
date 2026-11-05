@@ -6,6 +6,7 @@ import type { z } from 'zod';
 import { isUsableAssociationFile } from '../../files/files.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, expectedVersion, requireActor } from '../../../shared/http/index.js';
+import { ProjectFigures } from '../../reporting/reporting.public.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { EDITABLE_STATUSES } from '../domain/project-lifecycle.js';
@@ -45,7 +46,10 @@ const FIELDS = [
  */
 @Injectable()
 export class UpdateProjectUseCase {
-  constructor(private readonly outbox: OutboxService) {}
+  constructor(
+    private readonly outbox: OutboxService,
+    private readonly figures: ProjectFigures,
+  ) {}
 
   @Audited('project.update')
   async execute(aid: string, pid: string, input: Input): Promise<Project> {
@@ -138,6 +142,9 @@ export class UpdateProjectUseCase {
       before: Object.fromEntries(changed.map((f) => [f, before[f]])),
       after: Object.fromEntries(changed.map((f) => [f, after[f]])),
     });
-    return after;
+    // Réponse : indicateurs calculés comme pr.get (ni comparés ni audités).
+    const [withStats] = await this.figures.withStats(associationId, [after]);
+    if (!withStats) throw new Error('pr.patch : projet sans indicateurs');
+    return withStats;
   }
 }

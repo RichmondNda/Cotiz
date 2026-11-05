@@ -1,32 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import type { ManagerDashboard, ProjectSummary } from '@cotiz/contracts';
-import {
-  collectionFigures,
-  collectionProgress,
-  type Currency,
-  Money,
-  monthlyCollection,
-  nextDueDate as nextDueOf,
-  recentMonths,
-} from '@cotiz/domain';
+import type { ManagerDashboard } from '@cotiz/contracts';
+import { collectionFigures, type Currency, Money, monthlyCollection, recentMonths } from '@cotiz/domain';
 import type { z } from 'zod';
 import { SubscriberAccounts, SubscriberActivationCodes } from '../../identity/identity.public.js';
 import { latestPaymentsOf, monthlyReceiptsOf, pendingPaymentsOverviewOf } from '../../ledger/ledger.public.js';
-import {
-  associationToday,
-  contextAssociationId,
-  type EnrollmentEntry,
-  MemberDirectory,
-} from '../../members/members.public.js';
+import { associationToday, contextAssociationId, MemberDirectory } from '../../members/members.public.js';
 import { associationProjectsOf, toSummaries } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { RedisClient } from '../../../shared/redis/redis.module.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { readManagerDashboard, writeManagerDashboard } from '../infra/manager-dashboard-cache.js';
 import { collectionLines } from './get-project-report.use-case.js';
+import { engaged, summaryWithStats } from './project-figures.js';
 
 type Dashboard = z.infer<typeof ManagerDashboard>;
-type Summary = z.infer<typeof ProjectSummary>;
 
 /** 6 derniers mois, le dernier est le mois en cours (contrat). */
 const MONTHS = 6;
@@ -34,9 +21,6 @@ const LATEST_PAYMENTS = 5;
 /** Un contrat est « en souffrance » au-delà de 7 jours sans signature (contrat ManagerDashboard). */
 const UNSIGNED_DAYS = 7;
 const DAY_MS = 86_400_000;
-
-/** Inscriptions qui engagent : ni retirées ni en attente de signature (mêmes souscripteurs que la grille). */
-const engaged = (e: EnrollmentEntry) => e.row.status === 'active' || e.row.status === 'completed';
 
 /**
  * as.dashboard : tableau de bord gestionnaire (mg-dashboard), en cache 60 s par association (architecture/09),
@@ -48,7 +32,7 @@ const engaged = (e: EnrollmentEntry) => e.row.status === 'active' || e.row.statu
  * - recouvrement = recouvré / attendu à date, toutes inscriptions (collectionFigures) ;
  * - souscripteurs = personnes ayant une inscription qui engage ; en retard = celles dont une telle inscription est en
  *   retard (situation de la grille) ;
- * - projets triés par nombre de souscripteurs en retard, avec leurs indicateurs calculés ici (pr.list les laisse à 0).
+ * - projets triés par nombre de souscripteurs en retard, avec leurs indicateurs (summaryWithStats, comme pr.list).
  */
 @Injectable()
 export class GetManagerDashboardUseCase {
@@ -99,7 +83,7 @@ export class GetManagerDashboardUseCase {
     const late = new Set(entries.filter((e) => engaged(e) && e.view.standing === 'late').map((e) => e.row.userId));
 
     const summaries = (await toSummaries(projects)).map((summary) =>
-      withStats(
+      summaryWithStats(
         summary,
         lines.filter((l) => l.entry.row.projectId === summary.id),
         pending.byProject.get(summary.id) ?? 0,
@@ -140,45 +124,4 @@ export class GetManagerDashboardUseCase {
       latestPayments,
     };
   }
-}
-
-/** Indicateurs d'un projet sur ses inscriptions (retirées comprises pour l'argent, comme rp.report). */
-function withStats(
-  summary: Summary,
-  ofProject: { entry: EnrollmentEntry; lines: ReturnType<typeof collectionLines> }[],
-  pendingPaymentsCount: number,
-  today: string,
-): Summary {
-  const currency = summary.installmentAmount.currency;
-  const figures = collectionFigures(
-    ofProject.flatMap((l) => l.lines),
-    today,
-  );
-  const committed = ofProject.filter((l) => engaged(l.entry));
-  const subscribersCount = committed.length;
-  const nextDueDate = nextDueOf(
-    committed.flatMap((l) => l.lines),
-    today,
-  );
-  return {
-    ...summary,
-    stats: {
-      ...summary.stats,
-      subscribersCount,
-      collected: Money.of(figures.received, currency),
-      expectedToDate: Money.of(figures.expectedToDate, currency),
-      recoveryRate: figures.recoveryRate,
-      progress: collectionProgress({
-        status: summary.status,
-        subscribersCount,
-        requiredSubscribers: summary.requiredSubscribers,
-        received: figures.received,
-        totalPerSubscriber: summary.stats.totalPerSubscriber?.amount ?? null,
-      }),
-      lateSubscribersCount: committed.filter((l) => l.entry.view.standing === 'late').length,
-      pendingPaymentsCount,
-      pendingSignaturesCount: ofProject.filter((l) => l.entry.row.status === 'pending_signature').length,
-      nextDueDate,
-    },
-  };
 }

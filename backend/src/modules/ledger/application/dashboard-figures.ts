@@ -17,9 +17,12 @@ function assertAssociation(what: string, associationId: string): void {
 }
 
 /** File de validation : nombre de paiements en attente, la plus ancienne déclaration, et le nombre par projet. */
-export async function pendingPaymentsOverviewOf(
-  associationId: string,
-): Promise<{ count: number; oldestDeclaredAt: string | null; byProject: Map<string, number> }> {
+export async function pendingPaymentsOverviewOf(associationId: string): Promise<{
+  count: number;
+  oldestDeclaredAt: string | null;
+  byProject: Map<string, number>;
+  oldestByProject: Map<string, string>;
+}> {
   assertAssociation('pendingPaymentsOverviewOf', associationId);
   const rows = await currentTx()
     .select({ projectId: payments.projectId, n: count(), oldest: min(payments.declaredAt) })
@@ -35,6 +38,7 @@ export async function pendingPaymentsOverviewOf(
     count: rows.reduce((total, r) => total + r.n, 0),
     oldestDeclaredAt: oldest?.toISOString() ?? null,
     byProject,
+    oldestByProject: new Map(rows.flatMap((r) => (r.oldest ? [[r.projectId, r.oldest.toISOString()] as const] : []))),
   };
 }
 

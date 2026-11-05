@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { type Enrollment, MemberStanding } from '@cotiz/contracts';
 import { enrollments } from '@cotiz/db';
 import type { IsoDate } from '@cotiz/domain';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { accountMatches, SubscriberAccounts, type SubscriberContact } from '../../identity/identity.public.js';
 import { type ProjectRecord, projectsOf } from '../../projects/projects.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
@@ -46,8 +46,15 @@ export class MemberDirectory {
   async entries(
     associationId: string,
     today: IsoDate,
-    filter: { projectId?: string | undefined; userId?: string | undefined; q?: string | undefined },
+    filter: {
+      projectId?: string | undefined;
+      /** Plusieurs projets (une page de pr.list) ; liste vide : aucune inscription. */
+      projectIds?: readonly string[] | undefined;
+      userId?: string | undefined;
+      q?: string | undefined;
+    },
   ): Promise<EnrollmentEntry[]> {
+    if (filter.projectIds?.length === 0) return [];
     const rows = await currentTx()
       .select({ row: enrollments, at: AT })
       .from(enrollments)
@@ -55,6 +62,7 @@ export class MemberDirectory {
         and(
           eq(enrollments.associationId, associationId),
           filter.projectId ? eq(enrollments.projectId, filter.projectId) : undefined,
+          filter.projectIds ? inArray(enrollments.projectId, [...filter.projectIds]) : undefined,
           filter.userId ? eq(enrollments.userId, filter.userId) : undefined,
           filter.q ? accountMatches(enrollments.userId, filter.q) : undefined,
         ),

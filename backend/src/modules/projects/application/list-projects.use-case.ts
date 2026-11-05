@@ -3,6 +3,7 @@ import { type Facets, type ProjectsQuery, ProjectStatus, type ProjectSummary } f
 import { projects as t } from '@cotiz/db';
 import { and, asc, count, desc, eq, ilike, sql, type SQL } from 'drizzle-orm';
 import type { z } from 'zod';
+import { ProjectFigures } from '../../reporting/reporting.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { containsPattern, decodeCursor, encodeCursor } from '../../../shared/pagination/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
@@ -19,10 +20,13 @@ export interface ProjectPage {
 
 /**
  * pr.list : projets de l'association (mg-projets), le plus récent d'abord par défaut. Filtres : statut, recherche par
- * nom. Compteurs par statut (avec les autres filtres). Pages par curseur (date de création, id).
+ * nom. Compteurs par statut (avec les autres filtres). Pages par curseur (date de création, id). Indicateurs de chaque
+ * projet par ProjectFigures (reporting), comme le tableau de bord.
  */
 @Injectable()
 export class ListProjectsUseCase {
+  constructor(private readonly figures: ProjectFigures) {}
+
   async execute(aid: string, query: z.infer<typeof ProjectsQuery>): Promise<ProjectPage> {
     const associationId = contextAssociationId(aid);
     const direction = query.sort === undefined ? 'desc' : SORTS[query.sort];
@@ -62,7 +66,7 @@ export class ListProjectsUseCase {
     const status = Object.fromEntries(ProjectStatus.options.map((s) => [s, 0]));
     for (const { status: s, n } of statusCounts) status[s] = n;
     return {
-      items: await toSummaries(page.map((r) => r.row)),
+      items: await this.figures.withStats(associationId, await toSummaries(page.map((r) => r.row))),
       nextCursor: rows.length > query.limit && last ? encodeCursor({ at: last.at, id: last.row.id }) : null,
       total: totals?.n ?? 0,
       facets: { status },
