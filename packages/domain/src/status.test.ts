@@ -1,13 +1,17 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
+  DomainError,
   DUE_SOON_DAYS,
+  dueDateTurningLateOn,
   dueSoonDate,
   hourIn,
   installmentStatus,
+  isManagersDigestTime,
   lateSince,
   lateSinceOf,
   memberStanding,
+  minutesIn,
   overallStanding,
   todayIn,
 } from './index.js';
@@ -193,3 +197,38 @@ describe('dueSoonDate (rappel J-3, jobs.yaml installments.due-soon)', () => {
     expect(() => dueSoonDate('2026-02-30')).toThrow();
   });
 });
+
+describe('récapitulatif gestionnaire (managers.digest, 07:30 locale)', () => {
+  it('minutesIn : minutes depuis minuit dans le fuseau', () => {
+    expect(minutesIn('Africa/Abidjan', new Date('2026-09-25T07:29:00Z'))).toBe(449);
+    expect(minutesIn('Africa/Lagos', new Date('2026-09-25T06:30:00Z'))).toBe(450);
+    expect(minutesIn('Africa/Abidjan', new Date('2026-09-25T00:00:00Z'))).toBe(0);
+  });
+
+  it('isManagersDigestTime : à partir de 07:30 locale, jusqu’à minuit', () => {
+    expect(isManagersDigestTime('Africa/Abidjan', new Date('2026-09-25T07:29:59Z'))).toBe(false);
+    expect(isManagersDigestTime('Africa/Abidjan', new Date('2026-09-25T07:30:00Z'))).toBe(true);
+    expect(isManagersDigestTime('Africa/Abidjan', new Date('2026-09-25T23:59:00Z'))).toBe(true);
+    // Lagos (UTC+1) : 06:30 UTC = 07:30 locale ; 23:30 UTC = 00:30 le lendemain.
+    expect(isManagersDigestTime('Africa/Lagos', new Date('2026-09-25T06:30:00Z'))).toBe(true);
+    expect(isManagersDigestTime('Africa/Lagos', new Date('2026-09-25T23:30:00Z'))).toBe(false);
+  });
+
+  it('dueDateTurningLateOn : l’échéance dont le premier jour de retard est ce jour (inverse de lateSince)', () => {
+    expect(dueDateTurningLateOn('2026-09-11', 5)).toBe('2026-09-05');
+    expect(dueDateTurningLateOn('2026-03-01', 0)).toBe('2026-02-28');
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 90 }), fc.integer({ min: 0, max: 3000 }), (grace, offset) => {
+        const due = addDaysForTest('2026-01-01', offset);
+        expect(dueDateTurningLateOn(lateSince({ dueDate: due }, grace), grace)).toBe(due);
+      }),
+    );
+    expect(() => dueDateTurningLateOn('2026-09-11', -1)).toThrow(DomainError);
+  });
+});
+
+function addDaysForTest(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}

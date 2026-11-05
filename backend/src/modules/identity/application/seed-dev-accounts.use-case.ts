@@ -4,7 +4,7 @@ import { eq, or } from 'drizzle-orm';
 import { CONFIG, type Config } from '../../../config.js';
 import { grantPlatformRole, platformRoleOf } from '../../access/access.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
-import { assertDevSeedAllowed, mockId, SeedRefusedError } from '../../../shared/dev-seed/index.js';
+import { assertDevSeedAllowed, mockId, REFERENCE_CROWD, SeedRefusedError } from '../../../shared/dev-seed/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { SecretHasher } from '../infra/secret-hasher.js';
 import { CodeService } from './code-service.js';
@@ -202,6 +202,45 @@ export class SeedDevAccountsUseCase {
         after: { key: account.key, status: account.status, seed: 'dev' },
       });
     }
+    await this.seedCrowd(passwordHash);
     return seeded;
+  }
+
+  /**
+   * Souscripteurs de démonstration (shared/dev-seed/reference-crowd.ts) : comptes actifs au mot de passe de
+   * développement, non listés dans la sortie de la commande. Même refus qu'un compte nommé pour un téléphone pris.
+   */
+  private async seedCrowd(passwordHash: string): Promise<void> {
+    const tx = currentTx();
+    for (const person of REFERENCE_CROWD) {
+      const id = mockId('user', person.key);
+      const existing = await tx.select({ id: users.id }).from(users).where(eq(users.phoneE164, person.phone));
+      if (existing.some((row) => row.id !== id)) {
+        throw new SeedRefusedError(`Compte ${person.key} : existe déjà, créé autrement que par seed-dev, non modifié`);
+      }
+      const identity = {
+        email: null,
+        phoneE164: person.phone,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        status: 'active' as const,
+        mustChangePassword: false,
+      };
+      await tx
+        .insert(users)
+        .values({ id, ...identity })
+        .onConflictDoUpdate({ target: users.id, set: identity });
+      const secret = { passwordHash, passwordChangedAt: new Date(), failedAttempts: 0, lockedUntil: null };
+      await tx
+        .insert(credentials)
+        .values({ userId: id, ...secret })
+        .onConflictDoUpdate({ target: credentials.userId, set: secret });
+      recordAudit({
+        entityType: 'user',
+        entityId: id,
+        associationId: null,
+        after: { key: person.key, status: 'active', seed: 'dev' },
+      });
+    }
   }
 }

@@ -32,6 +32,16 @@ export const NOTIFICATION_MATRIX = {
 
 export type NotifiedEventType = keyof typeof NOTIFICATION_MATRIX;
 
+/**
+ * Notifications produites par une tâche planifiée, sans événement (jobs.yaml) : récapitulatif quotidien des
+ * gestionnaires (`managers.digest`, lot 2.6), type `digest.daily` (préférence « Résumé quotidien » de MgProfil).
+ */
+export const JOB_NOTIFICATIONS = {
+  'digest.daily': { audience: 'manager', channels: ['in_app'] },
+} as const satisfies Record<string, MatrixEntry>;
+
 export function matrixEntryOf(type: string): MatrixEntry | undefined {
-  return Object.hasOwn(NOTIFICATION_MATRIX, type) ? NOTIFICATION_MATRIX[type as NotifiedEventType] : undefined;
+  if (Object.hasOwn(NOTIFICATION_MATRIX, type)) return NOTIFICATION_MATRIX[type as NotifiedEventType];
+  if (Object.hasOwn(JOB_NOTIFICATIONS, type)) return JOB_NOTIFICATIONS[type as keyof typeof JOB_NOTIFICATIONS];
+  return undefined;
 }

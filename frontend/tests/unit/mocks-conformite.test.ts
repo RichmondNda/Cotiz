@@ -86,9 +86,8 @@ const moussaCentreLate = () => [
 const READS: Record<string, Call> = {
   'me.profile get': {}, 'me.prefs get': {},
   'pf.invoices list': {}, 'pf.staff list': {},
-  'as.dashboard get': { params: { aid } }, 'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
+  'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
-  'rp.report get': { params: P },
   'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
   'me.dash get': {}, 'me.projects list': {}, 'me.project get': { params: { pid: ID.centre } },
   'me.payment get': { params: { id: uid('payment', 'pm-md-07-c') } }, 'me.history list': {}, 'me.history series': {},
@@ -198,12 +197,11 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
   }
 
   it('aucun-retard : plus aucun souscripteur en retard ni montant en retard', async () => {
-    type Rapport = { standingCounts: { late: number }, rows: { lateCount: number }[] }
-    // Contrôle : sans scénario, Centre communautaire a des retardataires.
-    expect((await call('rp.report', 'get', { params: P }) as Rapport).standingCounts.late).toBeGreaterThan(0)
-    const r = await call('rp.report', 'get', { params: P, scenario: 'aucun-retard' }) as Rapport
-    expect(r.standingCounts.late).toBe(0)
-    expect(r.rows.map(x => x.lateCount).filter(n => n > 0)).toEqual([])
+    // Rapport de projet servi par NestJS depuis le lot 2.6 : contrôle sur le tableau de bord de Moussa.
+    type Synthese = { late: unknown }
+    // Contrôle : sans scénario, Moussa a des échéances en retard.
+    expect((await call('me.dash', 'get') as Synthese).late).not.toBeNull()
+    expect((await call('me.dash', 'get', { scenario: 'aucun-retard' }) as Synthese).late).toBeNull()
   })
 
   it('un scénario ne modifie jamais le jeu', async () => {
@@ -224,7 +222,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
     expect(await problem('me.declare', 'declare', { ...WRITES['me.declare declare']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
     expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
     expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), scenario: 'version_conflict' })).toBe('version_conflict')
-    expect(await problem('as.dashboard', 'get', { ...READS['as.dashboard get'], scenario: 'association_suspended' })).toBe('association_suspended')
+    expect(await problem('tm.team', 'list', { ...READS['tm.team list'], scenario: 'association_suspended' })).toBe('association_suspended')
   })
 
   it('If-Match périmé → version_conflict', async () => {
@@ -243,8 +241,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   })
 
   it('ressource d’une autre association → 404', async () => {
-    expect(await problem('rp.report', 'get', { params: { aid, pid: ID.mutuelle } })).toBe('not_found')
-    expect(await problem('as.dashboard', 'get', { params: { aid: ID.man } })).toBe('not_found')
+    expect(await problem('tm.team', 'list', { params: { aid: ID.man } })).toBe('not_found')
   })
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {

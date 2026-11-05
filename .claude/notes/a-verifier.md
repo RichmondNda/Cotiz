@@ -8,6 +8,25 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
   matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
 
+- **2026-11-04** · lot 2.6 — `pr.list` (`stats`) et `pr.overview` renvoient encore des zéros (« Les lots 2.3 et 2.4 y
+  lisent les échéances et les paiements », jamais fait : `projects/application/get-project-overview.use-case.ts`,
+  `project-records.ts` `statsOf`). Le tableau de bord 2.6 calcule les `stats` de ses cartes projet ; la liste des projets
+  et la synthèse d'un projet afficheront donc d'autres chiffres. · Proposition : brancher les mêmes calculs sur `pr.list`,
+  `pr.get` et `pr.overview` dans une PR `chore/` après le lot (ou dans le lot si tu préfères).
+
+- **2026-11-04** · lot 2.6, étape 2 — `mg-dashboard` est réel : en local (jour réel, pas le 25 septembre), ses chiffres
+  diffèrent de la maquette (retards d'octobre et novembre en plus, collecte du mois en cours). Aucun écart n'est inscrit
+  pour cet écran dans `docs/specs/ui-deviations.md` (comme pour les écrans des lots 2.3 et 2.4). · Proposition : ajouter
+  une ligne « Tableau de bord gestionnaire (`mg-dashboard`, lot 2.6) : chiffres du jeu de référence au jour réel ; au
+  2026-09-25, ceux de la maquette (vérifié par test) ». À ton accord (changement de `docs/specs/`).
+- **2026-11-04** · lot 2.6, étape 2 — décision 21 (`proposé`) appliquée : 47 souscripteurs de démonstration réels dans
+  `seed-dev` (Entraide Yopougon). · À confirmer pour passer la décision à `adopté`.
+
+- **2026-11-04** · `pnpm verify` local : `test/perf/enrollment-bulk-200.test.ts` (en.bulk, lot 2.3) échoue sur ce serveur
+  (17,2 s puis 18,7 s pour 10 s attendues, relancé seul : 18,7 s ; charge ~3,5 sur 8 cœurs, Dokploy et autres services
+  sur la même machine). Déjà en échec à la vérification de l'étape 2.6.1 (journal relu), code non touché par le lot 2.6.
+  Tout le reste est vert (131 fichiers back, 2 autres tests de perf). · La CI fait foi : à confirmer sur la PR.
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
@@ -47,3 +66,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   `chore/notifications-suivi` : (a) multi-associations renvoyé à la décision 26 (lot 4.5), mention à ajouter dans
   `docs/decisions.md` ; (b) pas de rappel J-3 pour une association suspendue ; (c) comptes désactivés exclus des
   destinataires ; (d) rattrapage des rappels J-3 manqués dans la journée (dedupe_key existante).
+- **2026-11-04** · lot 2.6, étape 4 (performance) — décision prise (« Alléger le code ») : 1,9 s → ≈ 1,1 s hors cache, < 300 ms en cache ; **écart restant** sur le calcul complet, à reprendre si besoin (agrégation en base / vues matérialisées). Constat initial :
+  jeu de charge 2 000 souscripteurs × 25 échéances = 50 000 échéances, ≈ 27 000 paiements validés
+  (`backend/test/perf/reporting-50k.test.ts`, non commité). Mesuré sur ce serveur : `rp.report` ≈ 1,9 s, `as.dashboard`
+  sans cache ≈ 1,9 s ; avec cache < 300 ms. Objectif (architecture/09) : 95 % des lectures < 300 ms.
+  Cause mesurée : PostgreSQL exécute en ≈ 95 ms (index utilisés, aucun index manquant) ; le temps est dans Node —
+  rapatrier les 50 000 lignes complètes ≈ 810 ms, calcul des situations ≈ 320 ms, chiffres ≈ 490 ms.
+  Pistes : alléger en code (colonnes utiles seulement, calculs) sans changer la spec, ou vues matérialisées
+  (architecture/09 « rapports lourds », changement de schema.sql → accord requis).

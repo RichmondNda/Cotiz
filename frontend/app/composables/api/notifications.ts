@@ -10,6 +10,8 @@ const TYPES: Record<string, TypeNotification> = {
   // Lot 2.5 : validation annulée (de nouveau en attente), inscription, activation, réinitialisation, demande de création.
   'payment.reverted': 'paiement_declare', 'member.enrolled': 'inscriptions', 'user.activated': 'inscriptions',
   'password_reset.requested': 'relance', 'association.request_submitted': 'inscriptions',
+  // Lot 2.6 : récapitulatif du jour des gestionnaires (tâche managers.digest), d'abord des paiements à valider.
+  'digest.daily': 'paiement_declare',
 }
 
 export const useNotifications = () =>

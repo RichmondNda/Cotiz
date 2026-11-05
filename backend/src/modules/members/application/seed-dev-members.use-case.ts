@@ -9,7 +9,7 @@ import { enrollmentScheduleOf, projectOf } from '../../projects/projects.public.
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { CONFIG, type Config } from '../../../config.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
-import { assertDevSeedAllowed, mockId } from '../../../shared/dev-seed/index.js';
+import { assertDevSeedAllowed, mockId, REFERENCE_CROWD } from '../../../shared/dev-seed/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 
 interface ReferenceEnrollment {
@@ -57,7 +57,7 @@ export class SeedDevMembersUseCase {
   ) {}
 
   @Audited('enrollment.seed_dev')
-  async execute(slug: string): Promise<{ enrolled: string[]; codes: Handoff[] }> {
+  async execute(slug: string): Promise<{ enrolled: string[]; crowd: number; codes: Handoff[] }> {
     assertDevSeedAllowed(this.config);
     const associationId = mockId('association', slug);
     const association = await ownAssociationOf(associationId);
@@ -67,7 +67,19 @@ export class SeedDevMembersUseCase {
     const enrolled: string[] = [];
     const codes: Handoff[] = [];
     const creator = mockId('user', 'awa-kone');
-    for (const e of REFERENCE_ENROLLMENTS[slug] ?? []) {
+    let crowd = 0;
+    // Souscripteurs de démonstration (shared/dev-seed/reference-crowd.ts) après les inscriptions nommées : comptés
+    // à part, jamais listés.
+    const references: (ReferenceEnrollment & { crowd?: true })[] = [
+      ...(REFERENCE_ENROLLMENTS[slug] ?? []),
+      ...REFERENCE_CROWD.filter((p) => p.association === slug).map((p) => ({
+        project: p.project,
+        user: p.key,
+        joined: p.joined,
+        crowd: true as const,
+      })),
+    ];
+    for (const e of references) {
       const userId = mockId('user', e.user);
       const [account] = await tx.select({ status: users.status }).from(users).where(eq(users.id, userId));
       const project = await projectOf(associationId, mockId('project', e.project), { lock: 'share' });
@@ -124,7 +136,8 @@ export class SeedDevMembersUseCase {
       if (createdHere && account.status === 'pending_activation' && !codes.some((c) => c.recipient.id === userId)) {
         codes.push((await this.accounts.issueActivation(userId, associationId, creator)).handoff);
       }
-      enrolled.push(`${e.project}:${e.user}`);
+      if (e.crowd) crowd += 1;
+      else enrolled.push(`${e.project}:${e.user}`);
       recordAudit({
         entityType: 'enrollment',
         entityId: id,
@@ -132,7 +145,7 @@ export class SeedDevMembersUseCase {
         after: { seed: 'dev', created: created.length > 0 },
       });
     }
-    return { enrolled, codes };
+    return { enrolled, crowd, codes };
   }
 }
 

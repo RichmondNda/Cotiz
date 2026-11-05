@@ -192,6 +192,7 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
     // Inscriptions (lot 2.3), dans le contexte de chaque association ; un compte non activé créé par l'association
     // reçoit son code d'activation (« Codes à remettre »), qui remplace celui affiché plus haut.
     const enrolled: string[] = [];
+    let crowd = 0;
     const handoffs: string[] = [];
     for (const slug of REFERENCE_MEMBER_ASSOCIATIONS) {
       const seeded = await db.withTenantContext(
@@ -199,6 +200,7 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
         () => app.get(SeedDevMembersUseCase).execute(slug),
       );
       enrolled.push(...seeded.enrolled);
+      crowd += seeded.crowd;
       handoffs.push(
         ...seeded.codes.map(
           (h) =>
@@ -209,6 +211,7 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
     }
     // Paiements (lot 2.4), dans le contexte de chaque association, après les inscriptions qu'ils règlent.
     const paid = { pending: 0, validated: 0 };
+    const crowdPaid = { pending: 0, validated: 0 };
     for (const slug of REFERENCE_PAYMENT_ASSOCIATIONS) {
       const seeded = await db.withTenantContext(
         { space: 'association', associationId: mockId('association', slug) },
@@ -216,11 +219,15 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
       );
       paid.pending += seeded.pending;
       paid.validated += seeded.validated;
+      crowdPaid.pending += seeded.crowd.pending;
+      crowdPaid.validated += seeded.crowd.validated;
     }
     io.out.write(
       `Plans de référence : ${codes.join(', ')}\nAssociations de référence : ${slugs.join(', ')}\n` +
         `Projets de référence : ${projectKeys.join(', ')}\nInscriptions de référence : ${enrolled.join(', ')}\n` +
         `Paiements de référence : ${String(paid.pending)} en attente, ${String(paid.validated)} validés\n` +
+        `Souscripteurs de démonstration : ${String(crowd)} inscriptions, paiements ${String(crowdPaid.pending)} en ` +
+        `attente, ${String(crowdPaid.validated)} validés\n` +
         (handoffs.length > 0 ? `Codes à remettre :\n${handoffs.join('\n')}\n` : ''),
     );
     return 0;

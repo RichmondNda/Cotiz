@@ -29,6 +29,22 @@ export function hourIn(timeZone: string, now: Date): number {
   return Number.parseInt(hour, 10);
 }
 
+/** Minutes écoulées depuis minuit (0–1439) dans le fuseau de l'association à l'instant `now`. */
+export function minutesIn(timeZone: string, now: Date): number {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(now)
+    .reduce<Record<string, string>>((acc, p) => ({ ...acc, [p.type]: p.value }), {});
+  return Number.parseInt(parts.hour ?? '0', 10) * 60 + Number.parseInt(parts.minute ?? '0', 10);
+}
+
+/** Heure locale du récapitulatif gestionnaire (jobs.yaml, managers.digest : quotidienne 07:30 locale). */
+export const MANAGERS_DIGEST_MINUTES = 7 * 60 + 30;
+
+/** Est-il 07:30 ou plus tard (jusqu'à minuit) dans le fuseau de l'association ? Rattrapage dans la journée. */
+export function isManagersDigestTime(timeZone: string, now: Date): boolean {
+  return minutesIn(timeZone, now) >= MANAGERS_DIGEST_MINUTES;
+}
+
 /** Rappel « échéance dans 3 jours » (jobs.yaml, installments.due-soon ; architecture/07). */
 export const DUE_SOON_DAYS = 3;
 
@@ -42,6 +58,12 @@ export function dueSoonDate(today: IsoDate): IsoDate {
 export function lateSince(installment: Pick<InstallmentState, 'dueDate'>, graceDays: number): IsoDate {
   assertGraceDays(graceDays);
   return addDays(installment.dueDate, graceDays + 1);
+}
+
+/** Échéance dont le premier jour de retard est `today` (inverse de lateSince) : `today` − (délai de grâce + 1). */
+export function dueDateTurningLateOn(today: IsoDate, graceDays: number): IsoDate {
+  assertGraceDays(graceDays);
+  return addDays(today, -(graceDays + 1));
 }
 
 /**

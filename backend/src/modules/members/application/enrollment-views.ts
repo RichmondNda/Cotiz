@@ -16,7 +16,27 @@ import type { ProjectRecord } from '../../projects/projects.public.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import type { EnrollmentRecord } from './enrollment-records.js';
 
-export type InstallmentRecord = typeof installments.$inferSelect;
+/**
+ * Colonnes d'une échéance lues pour les vues (grille, annuaire, fiche, rapports) : seulement celles qu'elles utilisent
+ * (lot 2.6, performance : 50 000 échéances décodées par le pilote).
+ */
+const VIEW_COLUMNS = {
+  id: installments.id,
+  enrollmentId: installments.enrollmentId,
+  projectId: installments.projectId,
+  userId: installments.userId,
+  kind: installments.kind,
+  sequence: installments.sequence,
+  dueDate: installments.dueDate,
+  amountDue: installments.amountDue,
+  amountPaid: installments.amountPaid,
+  amountPending: installments.amountPending,
+  status: installments.status,
+  lateSince: installments.lateSince,
+  paidAt: installments.paidAt,
+};
+
+export type InstallmentRecord = Pick<typeof installments.$inferSelect, keyof typeof VIEW_COLUMNS>;
 
 /** Échéances de ces inscriptions (RLS du contexte), par inscription, dans l'ordre de la grille. */
 export async function installmentsByEnrollment(
@@ -25,7 +45,7 @@ export async function installmentsByEnrollment(
   const byEnrollment = new Map<string, InstallmentRecord[]>(enrollmentIds.map((id) => [id, []]));
   if (enrollmentIds.length === 0) return byEnrollment;
   const rows = await currentTx()
-    .select()
+    .select(VIEW_COLUMNS)
     .from(installments)
     .where(inArray(installments.enrollmentId, [...enrollmentIds]))
     .orderBy(asc(installments.enrollmentId), asc(installments.kind), asc(installments.sequence));
@@ -34,6 +54,17 @@ export async function installmentsByEnrollment(
 }
 
 /** Montants (entiers de la devise du projet) et statut calculé au jour de l'association (domain-rules § 6). */
+export type InstallmentComputed = ReturnType<typeof computed>;
+
+/** États calculés des échéances d'une inscription, dans le même ordre (calculés une fois, réutilisés par les vues). */
+export function computedStates(
+  lines: readonly InstallmentRecord[],
+  project: ProjectRecord,
+  today: IsoDate,
+): InstallmentComputed[] {
+  return lines.map((i) => computed(i, project, today));
+}
+
 function computed(i: InstallmentRecord, project: ProjectRecord, today: IsoDate) {
   const currency = project.currency as Currency;
   const amountDue = Money.fromDb(i.amountDue, currency).amount;
@@ -58,9 +89,9 @@ export function enrollmentView(
   member: SubscriberContact,
   today: IsoDate,
   lines: readonly InstallmentRecord[],
+  states: readonly InstallmentComputed[] = computedStates(lines, project, today),
 ): Enrollment {
   const currency = project.currency as Currency;
-  const states = lines.map((i) => computed(i, project, today));
   const totals = enrollmentTotals(states, project.scheduleType);
   const standing = memberStanding(
     row.status,

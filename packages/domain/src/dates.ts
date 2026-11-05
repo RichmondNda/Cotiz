@@ -26,9 +26,25 @@ export function isIsoDate(value: unknown): value is IsoDate {
   return month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(year, month);
 }
 
+// Mémoire des dates déjà lues (fonctions pures) : un rapport relit des dizaines de milliers de fois les mêmes
+// quelques dates (lot 2.6, performance). Bornée : vidée au-delà de CACHE_MAX entrées.
+const CACHE_MAX = 4096;
+const parsed = new Map<string, CivilDate>();
+const shifted = new Map<string, IsoDate>();
+
+function remember<V>(cache: Map<string, V>, key: string, value: V): V {
+  if (cache.size >= CACHE_MAX) cache.clear();
+  cache.set(key, value);
+  return value;
+}
+
 export function parseIsoDate(value: unknown): CivilDate {
+  const known = typeof value === 'string' ? parsed.get(value) : undefined;
+  // Copie : l'appelant peut modifier l'objet rendu sans toucher à la mémoire.
+  if (known) return { ...known };
   if (!isIsoDate(value)) throw new DomainError('invalid_date', { value });
   const [year, month, day] = value.split('-').map(Number) as [number, number, number];
+  remember(parsed, value, { year, month, day });
   return { year, month, day };
 }
 
@@ -61,7 +77,11 @@ function fromDayNumber(n: number): CivilDate {
 }
 
 export function addDays(date: IsoDate, days: number): IsoDate {
-  return formatIsoDate(fromDayNumber(toDayNumber(parseIsoDate(date)) + days));
+  const key = `${date}|${String(days)}`;
+  const known = typeof date === 'string' && Number.isInteger(days) ? shifted.get(key) : undefined;
+  if (known !== undefined) return known;
+  const result = formatIsoDate(fromDayNumber(toDayNumber(parseIsoDate(date)) + days));
+  return Number.isInteger(days) ? remember(shifted, key, result) : result;
 }
 
 /** Jour ISO : 1 = lundi … 7 = dimanche. */

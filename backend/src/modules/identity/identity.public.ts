@@ -18,6 +18,7 @@ export {
   type SubscriberContact,
 } from './application/subscriber-accounts.js';
 export {
+  activationCodesCountOf,
   type CodePosition,
   type CodesPage,
   SubscriberActivationCodes,

@@ -166,3 +166,31 @@ export function installmentDueSoonMessage(p: {
     data: { actionLabel: 'Déclarer un paiement', projectId: p.projectId },
   };
 }
+
+/**
+ * Récapitulatif quotidien des gestionnaires (jobs.yaml, managers.digest, 07:30 locale) : seules les rubriques non
+ * nulles sont citées ; `null` si rien n'attend (aucune notification ce jour-là). Lien : tableau de bord.
+ */
+export function managersDigestMessage(p: {
+  pendingPayments: number;
+  newLateSubscribers: number;
+  codesToHand: number;
+}): RenderedMessage | null {
+  const plural = (n: number, one: string, many: string) => `${String(n)} ${n > 1 ? many : one}`;
+  const parts = [
+    p.pendingPayments > 0 ? plural(p.pendingPayments, 'paiement à valider', 'paiements à valider') : null,
+    p.newLateSubscribers > 0
+      ? plural(p.newLateSubscribers, 'souscripteur passé en retard', 'souscripteurs passés en retard')
+      : null,
+    p.codesToHand > 0 ? plural(p.codesToHand, 'code d’activation à remettre', 'codes d’activation à remettre') : null,
+  ].filter((part): part is string => part !== null);
+  if (parts.length === 0) return null;
+  return {
+    type: 'digest.daily',
+    title: 'Récapitulatif du jour',
+    body: `${parts.join(' · ')}.`,
+    actionUrl: '/asso',
+    // Les chiffres sont dans le texte : `data` reste dans la liste blanche (aucune donnée en plus).
+    data: { actionLabel: 'Ouvrir le tableau de bord', digest: true },
+  };
+}

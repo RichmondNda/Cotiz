@@ -87,4 +87,18 @@ describe('dates YYYY-MM-DD', () => {
       }),
     );
   });
+
+  it('mémoire des dates lues : mêmes résultats, objet rendu modifiable sans effet, erreurs inchangées', () => {
+    const first = parseIsoDate('2026-03-05');
+    first.day = 31;
+    expect(parseIsoDate('2026-03-05')).toEqual({ year: 2026, month: 3, day: 5 });
+    expect(addDays('2026-03-05', 6)).toBe('2026-03-11');
+    expect(addDays('2026-03-05', 6)).toBe('2026-03-11');
+    expect(addDays('2026-03-05', -6)).toBe('2026-02-27');
+    for (let i = 0; i < 5000; i += 1) addDays('2026-01-01', i); // au-delà de la borne : la mémoire est vidée
+    expect(addDays('2026-03-05', 6)).toBe('2026-03-11');
+    expect(() => parseIsoDate('2026-02-30')).toThrow();
+    expect(() => addDays('2026-02-30', 1)).toThrow();
+    expect(() => addDays('2026-02-30', 1)).toThrow();
+  });
 });
