@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:perf": "pnpm --filter backend test:perf",
     "check:docs": "node tools/check-docs.mjs",
     "db:migrate": "pnpm --filter @cotiz/db migrate",
     "db:seed:demo": "COTIZ_DEV_SEED=1 pnpm --filter backend cli seed-dev",
