@@ -22,10 +22,19 @@ import { PlatformAssociationMembersUseCase } from './application/platform-associ
 import { PlatformAssociationProjectsUseCase } from './application/platform-association-projects.use-case.js';
 
 /** Module members (endpoints.yaml : mb.*, en.* ; lot 2.3) : souscripteurs, inscriptions, codes à remettre. */
+import { MyProfile } from './application/my-profile.js';
+import { MeProfileController } from './http/me-profile.controller.js';
 @Module({
   imports: [IdentityModule],
-  controllers: [MembersController, EnrollmentsController, ActivationCodesController, PlatformAssociationSubController],
+  controllers: [
+    MeProfileController,
+    MembersController,
+    EnrollmentsController,
+    ActivationCodesController,
+    PlatformAssociationSubController,
+  ],
   providers: [
+    MyProfile,
     LookupMemberUseCase,
     CreateEnrollmentUseCase,
     BulkEnrollUseCase,

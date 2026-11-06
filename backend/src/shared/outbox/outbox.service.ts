@@ -32,7 +32,8 @@ export class OutboxService {
     // La base accepte toute association (politique append) : le consommateur s'exécutera dans le contexte de
     // l'association de l'événement, elle ne peut donc venir que du contexte en espace association.
     const context = currentContext();
-    if (context?.space === 'association' && event.associationId !== context.associationId) {
+    // Route de l'espace association sans {aid} (`/me/…`) : aucune association dans le contexte, l'événement n'en porte pas.
+    if (context?.space === 'association' && event.associationId !== (context.associationId ?? null)) {
       throw new Error(`outbox : ${event.type} doit porter l'association du contexte`);
     }
     if ('associationId' in payload && payload.associationId !== event.associationId) {

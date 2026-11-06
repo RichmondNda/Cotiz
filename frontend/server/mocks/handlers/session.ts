@@ -1,12 +1,9 @@
-// Second facteur (auth.mfa), profil et préférences (me.profile, me.prefs) ; notifications réelles depuis le lot 2.5.
-import { motDePasseAcceptable } from '../../../app/utils/mot-de-passe'
+// Second facteur (auth.mfa) et préférences (me.prefs) ; notifications réelles depuis le lot 2.5, profil (me.profile)
+// réel depuis le lot 3.1.
 import { db } from '../db'
 import type { MockContext, MockSession } from '../http'
-import { checkVersion, nowInstant, problem, requireSession } from '../http'
-import { userRow } from '../views'
+import { problem, requireSession } from '../http'
 
-/** Mot de passe actuel des comptes simulés (changement de mot de passe du profil, me.profile). */
-export const PASSWORD = 'motdepasse'
 export const MFA_CODE = '481902'
 
 const token = (space: MockSession['space']) => ({
@@ -25,40 +22,6 @@ export function mfaVerify(ctx: MockContext<'auth.mfa', 'verify'>) {
 }
 
 // ---------------------------------------------------------------- Identité et profil
-
-function profileView(userId: string) {
-  const u = userRow(userId)
-  return {
-    id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, phone: u.phone, address: u.address, city: u.city,
-    locale: u.locale, passwordChangedAt: u.passwordChangedAt, mfaEnabled: db.staff.some(s => s.userId === u.id), version: u.version,
-  }
-}
-
-export function profileGet(ctx: MockContext<'me.profile', 'get'>) {
-  return profileView(requireSession(ctx).userId)
-}
-
-export function profilePatch(ctx: MockContext<'me.profile', 'patch'>) {
-  const u = userRow(requireSession(ctx).userId)
-  checkVersion(ctx, u.version)
-  const b = ctx.body
-  const email = b.email === undefined ? u.email : b.email
-  if (email && db.users.some(x => x.id !== u.id && x.email?.toLowerCase() === email.toLowerCase())) problem('validation_failed', { fields: { email: 'taken' } })
-  Object.assign(u, {
-    firstName: b.firstName ?? u.firstName, lastName: b.lastName ?? u.lastName, email,
-    address: b.address === undefined ? u.address : b.address, city: b.city === undefined ? u.city : b.city,
-    locale: b.locale ?? u.locale, version: u.version + 1,
-  })
-  return profileView(u.id)
-}
-
-export function changePassword(ctx: MockContext<'me.profile', 'changePassword'>) {
-  const u = userRow(requireSession(ctx).userId)
-  if (ctx.body.currentPassword !== PASSWORD) problem('invalid_credentials')
-  if (!motDePasseAcceptable(ctx.body.newPassword)) problem('weak_password')
-  u.passwordChangedAt = nowInstant()
-  return null
-}
 
 const AVAILABLE_CHANNELS = ['in_app', 'push'] as const
 

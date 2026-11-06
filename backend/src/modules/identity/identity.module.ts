@@ -11,6 +11,8 @@ import { SubscriberActivationCodes } from './application/subscriber-activation-c
 import { SubscriberAccounts } from './application/subscriber-accounts.js';
 import { RefreshSessionUseCase } from './application/refresh-session.use-case.js';
 import { RequestPasswordResetUseCase } from './application/request-password-reset.use-case.js';
+import { ChangePasswordUseCase } from './application/change-password.use-case.js';
+import { UserProfiles } from './application/user-profiles.js';
 import { ResetPasswordUseCase } from './application/reset-password.use-case.js';
 import { SessionFamilies } from './application/session-families.js';
 import { VerifyResetCodeUseCase } from './application/verify-reset-code.use-case.js';
@@ -52,12 +54,14 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     RequestPasswordResetUseCase,
     VerifyResetCodeUseCase,
     ResetPasswordUseCase,
+    ChangePasswordUseCase,
+    UserProfiles,
     ManagerAccounts,
     SubscriberAccounts,
     ListPlatformResetRequestsUseCase,
     IssuePlatformResetCodeUseCase,
   ],
   // Garde d'authentification, enregistrée globalement par AppModule ; comptes des gestionnaires (onboarding).
-  exports: [JwtGuard, ManagerAccounts, SubscriberAccounts, SubscriberActivationCodes],
+  exports: [JwtGuard, ManagerAccounts, SubscriberAccounts, SubscriberActivationCodes, UserProfiles],
 })
 export class IdentityModule {}

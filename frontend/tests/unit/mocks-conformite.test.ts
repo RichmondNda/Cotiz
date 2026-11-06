@@ -84,7 +84,7 @@ const moussaCentreLate = () => [
 
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
-  'me.profile get': {}, 'me.prefs get': {},
+  'me.prefs get': {},
   'pf.invoices list': {}, 'pf.staff list': {},
   'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
@@ -97,8 +97,6 @@ const READS: Record<string, Call> = {
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
 const WRITES: Record<string, () => Call> = {
   'auth.mfa verify': () => ({ body: { mfaToken: 'mfa.x', code: '481902' } }),
-  'me.profile patch': () => ({ body: { email: 'moussa@exemple.ci' }, ifMatch: 1 }),
-  'me.profile changePassword': () => ({ body: { currentPassword: 'motdepasse', newPassword: 'Cotiz2026!' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
   'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
   'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),

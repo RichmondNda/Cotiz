@@ -24,3 +24,4 @@ export {
   SubscriberActivationCodes,
 } from './application/subscriber-activation-codes.js';
 export type { PreparedCode } from './application/code-service.js';
+export { type UserProfile, type UserProfileChanges, UserProfiles } from './application/user-profiles.js';
