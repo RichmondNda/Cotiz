@@ -4,7 +4,7 @@
 // Captures de chaque étape : .verif/e2e/<parcours>/. Code de sortie 1 si une étape échoue.
 import { ID, uid } from '../../server/mocks/ids.ts'
 import { COMPTES } from '../../scripts/session-test.mjs'
-import { assert, contient, parcours, texte } from './outils.mjs'
+import { assert, contient, EchecEtape, parcours, texte } from './outils.mjs'
 
 // Les routes portent les UUID déterministes du jeu simulé (server/mocks/ids.ts), plus des slugs.
 const PAIEMENT_AWA = uid('payment', 'pm-awa-kone')
@@ -209,6 +209,76 @@ const PARCOURS = {
       await contient(page, nom, `La nouvelle association « ${nom} » doit figurer dans la liste`)
     }],
   ]),
+
+  // Lot 3.1, étape 1 : un code réel (lot 2.3) remis par le gestionnaire active le compte du souscripteur. Numéro tiré au
+  // hasard à chaque passage (rejouable sans réinitialiser la base) ; code saisi en minuscules avec une espace, comme
+  // recopié d'un message WhatsApp ; le compte quitte « Codes à remettre » et le gestionnaire est notifié.
+  activation: () => {
+    const tel = `07${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`
+    const prenom = 'Aya'
+    const nom = `Essai${tel.slice(-4)}`
+    let code = ''
+    const connexionGestionnaire = async (page) => {
+      await page.goto('/connexion/association', { waitUntil: 'networkidle' })
+      await page.getByLabel('Email').fill(COMPTES.gestionnaire.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.gestionnaire.password)
+      await page.getByRole('button', { name: 'Se connecter' }).click()
+      await page.waitForURL(u => new URL(u).pathname.startsWith('/asso'))
+    }
+    return parcours('activation', {}, [
+      ['connexion-gestionnaire', connexionGestionnaire],
+      ['inscription-nouveau-compte', async (page) => {
+        await page.goto(`/asso/projets/${ID.centre}/souscripteurs`, { waitUntil: 'networkidle' })
+        await page.getByRole('button', { name: 'Ajouter un souscripteur', exact: true }).first().click()
+        await page.getByRole('textbox', { name: 'Téléphone' }).fill(tel)
+        await page.getByRole('button', { name: 'Continuer', exact: true }).click()
+        await page.getByRole('textbox', { name: 'Prénom' }).fill(prenom)
+        await page.getByRole('textbox', { name: 'Nom', exact: true }).fill(nom)
+        await page.getByRole('button', { name: 'Créer et inscrire', exact: true }).click()
+        const valeur = page.locator('.handoff__valeur').first()
+        await valeur.waitFor({ timeout: 10_000 })
+        code = (await texte(valeur)).trim()
+        await assert(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/.test(code), `Code d’activation affiché : « ${code} »`)
+      }],
+      ['codes-a-remettre', async (page) => {
+        await page.goto('/asso/souscripteurs/codes', { waitUntil: 'networkidle' })
+        await contient(page, `${prenom} ${nom}`, 'Le nouveau compte doit figurer dans « Codes à remettre »')
+      }],
+      ['activation', async (page) => {
+        await page.context().clearCookies()
+        await page.goto(`/activer?t=${encodeURIComponent(`+225${tel}`)}`, { waitUntil: 'networkidle' })
+        const champ = await page.getByLabel('Téléphone').inputValue()
+        await assert(champ.replace(/\D/g, '') === tel, `Téléphone pré-rempli depuis le lien : « ${champ} »`)
+        await page.getByLabel('Code d’activation').fill(code.toLowerCase().replace('-', ' '))
+        await page.getByLabel('Nouveau mot de passe', { exact: true }).fill('Plateau-Essai-2026')
+        await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill('Plateau-Essai-2026')
+        await page.getByRole('button', { name: 'Activer mon compte' }).click()
+        await page.waitForURL('**/bienvenue', { timeout: 15_000 })
+      }],
+      ['bienvenue', async (page) => {
+        await contient(page, `Bienvenue ${prenom} !`, 'Première diapositive : prénom de la personne activée')
+        await contient(page, 'Entraide Yopougon vous a inscrit', 'Première diapositive : association qui a inscrit la personne')
+      }],
+      ['code-consomme', async (page) => {
+        await page.context().clearCookies()
+        await connexionGestionnaire(page)
+        await page.goto('/asso/souscripteurs/codes', { waitUntil: 'networkidle' })
+        await contient(page, 'Codes à remettre', 'Écran « Codes à remettre »')
+        await page.waitForTimeout(1000)
+        await assert(!(await texte(page.locator('main'))).includes(`${prenom} ${nom}`),
+          'Le compte activé ne doit plus figurer dans « Codes à remettre »')
+      }],
+      ['notification-gestionnaire', async (page) => {
+        // Consommateur de user.activated (lot 2.5) : quelques secondes après l'activation, par l'outbox et le worker.
+        for (let i = 0; i < 4; i++) {
+          await page.waitForTimeout(2000)
+          await page.goto('/asso/notifications', { waitUntil: 'networkidle' })
+          if ((await texte(page.locator('main'))).includes(`${prenom} ${nom} a activé son compte`)) return
+        }
+        throw new EchecEtape(`Notification « ${prenom} ${nom} a activé son compte » absente`)
+      }],
+    ])
+  },
 }
 
 const choix = process.argv.slice(2)

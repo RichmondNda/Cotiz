@@ -175,3 +175,19 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Correctifs nécessaires à l'image api (jamais lancée jusqu'ici, seulement construite en CI) : `@cotiz/db` compilé
     (`dist/`, mêmes conditions d'export que contracts et domain), garde « lancé directement » de `migrate.ts` en chemin réel,
     `backend/content` copié dans l'image (report du lot 1.3 vers 7.1 traité ici).
+
+- **2026-11-06** · Lot 3.1 (activation, profil, réinitialisations) — plan, une seule PR vers `backend` (comme les lots précédents).
+  Dépendance 2.5 `terminé`, décision 2 `adopté`. Aucune migration : `password_reset_requests` a déjà `tenant_manage`
+  (lecture et écriture en contexte association) ; notifications « demande de réinitialisation » et « compte activé »
+  déjà livrées au lot 2.5 (`notifications/domain/matrix.ts`).
+  - Étape 1 · activation : `normaliserCodeActivation` (casse, espaces, tirets → `XXXX-XXXX`) + tests ; souscripteur
+    activé → `/bienvenue` ; nom de l'association de `/bienvenue` lu dans `GET /me` (réel) au lieu de `me.assos` (lot 3.2,
+    simulé) ; parcours e2e sur le vrai back (code régénéré par Awa → activation → bienvenue → absent des codes à remettre).
+  - Étape 2 · `me.profile` : get/patch/password (autres sessions révoquées, session courante gardée, `user.password_changed`,
+    audit) ; tests d'intégration et d'isolation ; bascule, handlers simulés supprimés, trois profils revérifiés.
+  - Étape 3 · `as.resets` : list/issueCode en contexte association (modèle `pf.resets`), isolation (demande d'une autre
+    association → 404) ; page `/asso/souscripteurs/reinitialisations` (modèle `sa-resets`, `HandoffCard`) ; parcours
+    oubli → code d'Awa → nouveau mot de passe.
+  - Choix sans changer la spec : email pris → `validation_failed` (`fields.email = 'taken'`, `errors.yaml` n'a pas de
+    code dédié) ; email non vidable pour un gestionnaire ou le personnel plateforme (identifiant de connexion) ; changement
+    de mot de passe : mauvais mot de passe actuel → `invalid_credentials`, mêmes règles `isStrongPassword` que auth.reset.

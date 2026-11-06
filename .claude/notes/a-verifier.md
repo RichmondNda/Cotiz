@@ -14,6 +14,10 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   Playwright et accessibilité, antivirus clamd réel (`pnpm --filter backend test:clamav` possible), images (Trivy),
   oasdiff. · À reprendre si la CI revient.
 
+- **2026-11-06** · `me.profile` liste `version_conflict` dans ses erreurs (`endpoints.yaml`, contrat) mais `ifMatch: false`
+  et le corps du PATCH ne porte pas de version : l'erreur ne peut pas arriver (lot 3.1 : jamais levée). · Retirer
+  `version_conflict` de `me.profile`, ou passer le PATCH en `If-Match` (au choix).
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
