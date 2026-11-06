@@ -4,12 +4,29 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./migrate": "./src/migrate.ts",
-    "./rls": "./src/rls.ts",
-    "./testing": "./src/testing/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./migrate": {
+      "types": "./src/migrate.ts",
+      "development": "./src/migrate.ts",
+      "default": "./dist/migrate.js"
+    },
+    "./rls": {
+      "types": "./src/rls.ts",
+      "development": "./src/rls.ts",
+      "default": "./dist/rls.js"
+    },
+    "./testing": {
+      "types": "./src/testing/index.ts",
+      "development": "./src/testing/index.ts",
+      "default": "./dist/testing/index.js"
+    }
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -30,5 +47,10 @@
     "@cotiz/domain": "workspace:*",
     "drizzle-orm": "^0.45.4",
     "pg": "^8.23.1"
-  }
+  },
+  "files": [
+    "dist",
+    "src",
+    "migrations"
+  ]
 }

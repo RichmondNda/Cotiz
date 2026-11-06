@@ -1,5 +1,6 @@
 # Environnement local : services dont dépendent l'api et le worker.
 # Lancement : docker compose -f infra/compose/local.yml up -d   (puis `pnpm dev` à la racine)
+# Tout dans Docker (api, worker, front en images) : ajouter `-f infra/compose/app.yml` (voir ce fichier).
 # Identifiants de développement uniquement, jamais réutilisés ailleurs. Ports liés à 127.0.0.1.
 #
 # Sobriété (poste WSL de 4 Go) : mémoire plafonnée par service, réglages PostgreSQL et Redis réduits.

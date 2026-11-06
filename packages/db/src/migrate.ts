@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -17,7 +18,8 @@ export async function runMigrations(connectionString: string): Promise<void> {
 }
 
 // `pnpm db:migrate` : MIGRATION_DATABASE_URL vient de backend/.env.example, surchargé par backend/.env.
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Chemin réel des deux côtés : dans l'image, le paquet est atteint par un lien de node_modules (tâche `migrate`).
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const url = process.env.MIGRATION_DATABASE_URL;
   if (!url) {
     console.error('MIGRATION_DATABASE_URL : manquante');

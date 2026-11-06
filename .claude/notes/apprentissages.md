@@ -91,3 +91,7 @@ Format : **date** · contexte — apprentissage. *Source.*
   association, écriture en espace system. *`shared/outbox/events.processor.ts`, `test/integration/outbox.test.ts`.*
 - **2026-11-03** · Redis — `EXPIRE` porte sur la clé entière : un hash par personne avec un champ par espace voit son
   expiration repoussée à chaque écriture. Une clé par espace + un ensemble pour l'invalidation. *Relecture isolation 2.5.3.*
+- **2026-11-05** · Image api — Node 22 refuse de retirer les types d'un `.ts` sous `node_modules`
+  (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`) : tout paquet du workspace importé à l'exécution doit exposer `dist/`
+  en condition `default` (`development` → `src/`). Pile Docker : `docker compose -f infra/compose/local.yml -f
+  infra/compose/app.yml up -d --build`, puis `--profile seed run --rm seed`. *`docker run cotiz-api:local`, essai du 2026-11-05.*

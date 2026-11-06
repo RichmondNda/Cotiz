@@ -84,6 +84,7 @@ pnpm --filter <paquet> test       # tests d'un paquet (frontend, backend, @cotiz
 pnpm test:perf                    # mesures de durée (backend/test/perf), hors de pnpm verify : à lancer quand on touche en.bulk, rapports, tableau de bord
 pnpm db:migrate | db:seed:demo
 docker compose -f infra/compose/local.yml up -d
+docker compose -f infra/compose/local.yml -f infra/compose/app.yml up -d --build   # tout en Docker, front sur :3080
 node tools/check-docs.mjs         # cohérence de docs/specs et docs/lots
 ```
 

@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # Image de l'api et du worker (même image) — construite depuis la racine du dépôt :
 #   docker build -f infra/docker/api.Dockerfile -t cotiz-api .
-# api : commande par défaut ; worker : `node --import ./dist/telemetry.js dist/worker.js` (traçage préchargé).
+# api : commande par défaut ; worker : `node --import ./dist/telemetry.js dist/worker.js` (traçage préchargé) ;
+# migrations : `node node_modules/@cotiz/db/dist/migrate.js` (MIGRATION_DATABASE_URL, cotiz_migrator).
 
 FROM node:22-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
@@ -29,6 +30,8 @@ WORKDIR /app
 COPY --from=build --chown=node:node /out/package.json ./
 COPY --from=build --chown=node:node /out/node_modules ./node_modules
 COPY --from=build --chown=node:node /out/dist ./dist
+# Pages légales en Markdown versionné, lues au démarrage (dist/../content).
+COPY --from=build --chown=node:node /repo/backend/content ./content
 USER node
 EXPOSE 4000
 CMD ["node", "--import", "./dist/telemetry.js", "dist/main.js"]
