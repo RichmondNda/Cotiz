@@ -18,6 +18,16 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   et le corps du PATCH ne porte pas de version : l'erreur ne peut pas arriver (lot 3.1 : jamais levée). · Retirer
   `version_conflict` de `me.profile`, ou passer le PATCH en `If-Match` (au choix).
 
+- **2026-11-06** · Lot 3.1, étape 3 — **proposition de spec (non appliquée)** : `docs/architecture/03-auth.md`
+  § Mot de passe oublié, 2 dit « notification aux gestionnaires de ses associations (souscripteur) ». Depuis la décision
+  « rôle le plus élevé » (decisions.md, 2026-11-06), une souscriptrice qui gère une association ou fait partie du
+  personnel est traitée par la plateforme (ou le script). · Ajouter cette phrase à architecture/03 (accord requis).
+  Cas limite relevé par `isolation-reviewer` : une souscriptrice seulement **invitée** comme gestionnaire voit sa demande
+  envoyée à la plateforme, où pf.resets l'ignore (404 : `spaceAccess` exige une appartenance active) ; sa voie de
+  récupération reste l'invitation (activation). À assumer ou à exclure de `platformHandled` (au choix).
+  Fenêtre d'escalade fermée : `auth.reset` refuse (`reset_token_invalid`) un code émis par une association si la personne
+  gère une association ou fait partie du personnel au moment de la réinitialisation (test dans association-resets).
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché

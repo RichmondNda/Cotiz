@@ -194,3 +194,16 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     (« Contactez… »), ligne dans `docs/specs/ui-deviations.md` ; outbox : en espace association sans {aid}, seul un
     événement sans association est accepté (`user.password_changed`) ; changement
     de mot de passe : mauvais mot de passe actuel → `invalid_credentials`, mêmes règles `isStrongPassword` que auth.reset.
+- **2026-11-06** · Lot 3.1, étape 3 — **rôle le plus élevé** (choix de l'utilisateur, faille d'escalade relevée en
+  préparant as.resets : le mot de passe vaut pour tous les espaces, une gestionnaire de A pouvait demander puis émettre
+  elle-même le code d'une souscriptrice qui gère B ou fait partie du personnel plateforme).
+  - `auth.forgot` (espace souscripteur) : personne qui gère une association (appartenance owner/manager/viewer active ou
+    invitée) ou fait partie du personnel → une demande de la plateforme (`space = 'association'`, sans association),
+    aucune demande d'association (`request-password-reset.use-case.ts`).
+  - `as.resets` issueCode revérifie au moment du code : compte inactif, souscripteur retiré, gestionnaire ailleurs ou
+    personnel → demandes de l'association « ignorées », aucun code, 404 (`issue-association-reset-code.use-case.ts`).
+  - Code émis par l'association : `one_time_codes.association_id` = l'association (RLS) ; un seul code vaut, le dernier
+    émis (CodeService.verify ne lit que lui), même si la RLS empêche d'expirer celui d'une autre association.
+  - Écran : tableau et modale de SaReinitialisations extraits dans `components/metier/DemandesReinitialisation.vue`,
+    partagés par `/plateforme/reinitialisations` (rendu inchangé) et `/asso/souscripteurs/reinitialisations` ; entrée
+    « Réinitialisations » dans l'annuaire (members.manage), à côté de « Codes à remettre ».

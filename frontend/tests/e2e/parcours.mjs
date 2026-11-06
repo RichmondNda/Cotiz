@@ -30,6 +30,48 @@ async function attendreCompteur(page, entree, condition) {
   return n
 }
 
+/**
+ * Nouveau souscripteur réel (lots 2.3 et 3.1) : numéro tiré au hasard à chaque passage (rejouable sans réinitialiser la
+ * base), inscrit par la gestionnaire d'Entraide Yopougon, puis activé avec le code remis (saisi en minuscules avec une
+ * espace, comme recopié d'un message WhatsApp).
+ */
+function nouveauCompte() {
+  const tel = `07${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`
+  const c = { tel, prenom: 'Aya', nom: `Essai${tel.slice(-4)}`, code: '', motDePasse: 'Plateau-Essai-2026' }
+  c.connexionGestionnaire = async (page) => {
+    await page.goto('/connexion/association', { waitUntil: 'networkidle' })
+    await page.getByLabel('Email').fill(COMPTES.gestionnaire.identifiant)
+    await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.gestionnaire.password)
+    await page.getByRole('button', { name: 'Se connecter' }).click()
+    await page.waitForURL(u => new URL(u).pathname.startsWith('/asso'))
+  }
+  c.inscrire = async (page) => {
+    await page.goto(`/asso/projets/${ID.centre}/souscripteurs`, { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Ajouter un souscripteur', exact: true }).first().click()
+    await page.getByRole('textbox', { name: 'Téléphone' }).fill(tel)
+    await page.getByRole('button', { name: 'Continuer', exact: true }).click()
+    await page.getByRole('textbox', { name: 'Prénom' }).fill(c.prenom)
+    await page.getByRole('textbox', { name: 'Nom', exact: true }).fill(c.nom)
+    await page.getByRole('button', { name: 'Créer et inscrire', exact: true }).click()
+    const valeur = page.locator('.handoff__valeur').first()
+    await valeur.waitFor({ timeout: 10_000 })
+    c.code = (await texte(valeur)).trim()
+    await assert(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/.test(c.code), `Code d’activation affiché : « ${c.code} »`)
+  }
+  c.activer = async (page) => {
+    await page.context().clearCookies()
+    await page.goto(`/activer?t=${encodeURIComponent(`+225${tel}`)}`, { waitUntil: 'networkidle' })
+    const champ = await page.getByLabel('Téléphone').inputValue()
+    await assert(champ.replace(/\D/g, '') === tel, `Téléphone pré-rempli depuis le lien : « ${champ} »`)
+    await page.getByLabel('Code d’activation').fill(c.code.toLowerCase().replace('-', ' '))
+    await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(c.motDePasse)
+    await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(c.motDePasse)
+    await page.getByRole('button', { name: 'Activer mon compte' }).click()
+    await page.waitForURL('**/bienvenue', { timeout: 15_000 })
+  }
+  return c
+}
+
 const PARCOURS = {
   // Public → demande de création → confirmation.
   public: () => parcours('public', {}, [
@@ -214,47 +256,16 @@ const PARCOURS = {
   // hasard à chaque passage (rejouable sans réinitialiser la base) ; code saisi en minuscules avec une espace, comme
   // recopié d'un message WhatsApp ; le compte quitte « Codes à remettre » et le gestionnaire est notifié.
   activation: () => {
-    const tel = `07${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`
-    const prenom = 'Aya'
-    const nom = `Essai${tel.slice(-4)}`
-    let code = ''
-    const connexionGestionnaire = async (page) => {
-      await page.goto('/connexion/association', { waitUntil: 'networkidle' })
-      await page.getByLabel('Email').fill(COMPTES.gestionnaire.identifiant)
-      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.gestionnaire.password)
-      await page.getByRole('button', { name: 'Se connecter' }).click()
-      await page.waitForURL(u => new URL(u).pathname.startsWith('/asso'))
-    }
+    const c = nouveauCompte()
+    const { prenom, nom, connexionGestionnaire } = c
     return parcours('activation', {}, [
       ['connexion-gestionnaire', connexionGestionnaire],
-      ['inscription-nouveau-compte', async (page) => {
-        await page.goto(`/asso/projets/${ID.centre}/souscripteurs`, { waitUntil: 'networkidle' })
-        await page.getByRole('button', { name: 'Ajouter un souscripteur', exact: true }).first().click()
-        await page.getByRole('textbox', { name: 'Téléphone' }).fill(tel)
-        await page.getByRole('button', { name: 'Continuer', exact: true }).click()
-        await page.getByRole('textbox', { name: 'Prénom' }).fill(prenom)
-        await page.getByRole('textbox', { name: 'Nom', exact: true }).fill(nom)
-        await page.getByRole('button', { name: 'Créer et inscrire', exact: true }).click()
-        const valeur = page.locator('.handoff__valeur').first()
-        await valeur.waitFor({ timeout: 10_000 })
-        code = (await texte(valeur)).trim()
-        await assert(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/.test(code), `Code d’activation affiché : « ${code} »`)
-      }],
+      ['inscription-nouveau-compte', c.inscrire],
       ['codes-a-remettre', async (page) => {
         await page.goto('/asso/souscripteurs/codes', { waitUntil: 'networkidle' })
         await contient(page, `${prenom} ${nom}`, 'Le nouveau compte doit figurer dans « Codes à remettre »')
       }],
-      ['activation', async (page) => {
-        await page.context().clearCookies()
-        await page.goto(`/activer?t=${encodeURIComponent(`+225${tel}`)}`, { waitUntil: 'networkidle' })
-        const champ = await page.getByLabel('Téléphone').inputValue()
-        await assert(champ.replace(/\D/g, '') === tel, `Téléphone pré-rempli depuis le lien : « ${champ} »`)
-        await page.getByLabel('Code d’activation').fill(code.toLowerCase().replace('-', ' '))
-        await page.getByLabel('Nouveau mot de passe', { exact: true }).fill('Plateau-Essai-2026')
-        await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill('Plateau-Essai-2026')
-        await page.getByRole('button', { name: 'Activer mon compte' }).click()
-        await page.waitForURL('**/bienvenue', { timeout: 15_000 })
-      }],
+      ['activation', c.activer],
       ['bienvenue', async (page) => {
         await contient(page, `Bienvenue ${prenom} !`, 'Première diapositive : prénom de la personne activée')
         await contient(page, 'Entraide Yopougon vous a inscrit', 'Première diapositive : association qui a inscrit la personne')
@@ -276,6 +287,67 @@ const PARCOURS = {
           if ((await texte(page.locator('main'))).includes(`${prenom} ${nom} a activé son compte`)) return
         }
         throw new EchecEtape(`Notification « ${prenom} ${nom} a activé son compte » absente`)
+      }],
+    ])
+  },
+  // Lot 3.1, étape 3 : un souscripteur qui a oublié son mot de passe le récupère sans fournisseur. Demande depuis
+  // « Mot de passe oublié », code à 6 chiffres généré par Awa (Réinitialisations, identité vérifiée hors ligne), saisi par
+  // le souscripteur, nouveau mot de passe, connexion.
+  reinitialisation: () => {
+    const c = nouveauCompte()
+    const nouveau = 'Lagune-Oubli-2027'
+    let code = ''
+    return parcours('reinitialisation', {}, [
+      ['connexion-gestionnaire', c.connexionGestionnaire],
+      ['inscription-nouveau-compte', c.inscrire],
+      ['activation', c.activer],
+      ['mot-de-passe-oublie', async (page) => {
+        await page.context().clearCookies()
+        await page.goto('/mot-de-passe', { waitUntil: 'networkidle' })
+        await page.getByLabel('Téléphone').fill(c.tel)
+        const reponse = page.waitForResponse('**/api/v1/auth/password/forgot')
+        await page.getByRole('button', { name: 'Recevoir un code' }).click()
+        await assert((await reponse).status() === 202, 'Demande transmise (202)')
+        await page.getByRole('heading', { name: 'Saisissez le code' }).waitFor()
+      }],
+      ['code-genere-par-awa', async (page) => {
+        const souscripteur = await page.context().browser().newContext({ baseURL: new URL(page.url()).origin })
+        try {
+          const gestion = await souscripteur.newPage()
+          await c.connexionGestionnaire(gestion)
+          await gestion.goto('/asso/souscripteurs', { waitUntil: 'networkidle' })
+          await gestion.getByRole('link', { name: 'Réinitialisations' }).first().click()
+          await gestion.waitForURL('**/asso/souscripteurs/reinitialisations')
+          const ligne = gestion.getByRole('row').filter({ hasText: `${c.prenom} ${c.nom}` })
+          await ligne.getByRole('button', { name: 'Générer un code' }).click()
+          await gestion.getByRole('button', { name: 'J’ai vérifié, générer le code' }).click()
+          const valeur = gestion.locator('.handoff__valeur').first()
+          await valeur.waitFor({ timeout: 10_000 })
+          code = (await texte(valeur)).replace(/\D/g, '')
+          await assert(/^\d{6}$/.test(code), 'Code de réinitialisation à 6 chiffres affiché')
+          await gestion.getByRole('dialog').getByRole('button', { name: 'Fermer', exact: true }).last().click()
+          await gestion.getByRole('button', { name: 'Codes remis', exact: true }).click()
+          await contient(gestion, `${c.prenom} ${c.nom}`, 'La demande passe dans « Codes remis »')
+        }
+        finally {
+          await souscripteur.close()
+        }
+      }],
+      ['nouveau-mot-de-passe', async (page) => {
+        await page.getByLabel('Chiffre 1').fill(code)
+        await page.getByRole('button', { name: 'Vérifier le code' }).click()
+        await page.getByRole('heading', { name: 'Nouveau mot de passe' }).waitFor()
+        await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(nouveau)
+        await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(nouveau)
+        await page.getByRole('button', { name: 'Enregistrer' }).click()
+        await page.getByRole('heading', { name: 'Mot de passe modifié' }).waitFor()
+      }],
+      ['connexion-nouveau-mot-de-passe', async (page) => {
+        await page.goto('/connexion', { waitUntil: 'networkidle' })
+        await page.getByLabel('Téléphone').fill(c.tel)
+        await page.getByLabel('Mot de passe', { exact: true }).fill(nouveau)
+        await page.getByRole('button', { name: 'Me connecter' }).click()
+        await page.waitForURL(u => !new URL(u).pathname.startsWith('/connexion'), { timeout: 15_000 })
       }],
     ])
   },

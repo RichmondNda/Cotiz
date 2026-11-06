@@ -142,6 +142,14 @@ function exporter() {
           Codes à remettre
         </CzButton>
         <CzButton
+          v-if="peut('members.manage')"
+          variante="secondaire"
+          icone="cadenas"
+          to="/asso/souscripteurs/reinitialisations"
+        >
+          Réinitialisations
+        </CzButton>
+        <CzButton
           variante="secondaire"
           icone="telecharger"
           :disabled="!lignes.length"
