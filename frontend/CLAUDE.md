@@ -142,4 +142,4 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
 - [ ] Uniquement des tokens et des classes du DS ; aucune couleur inventée.
 - [ ] Montants via `formatFCFA`, vocabulaire respecté, cibles tactiles ≥ 44 px.
 - [ ] Données issues de `composables/api`, identiques aux données de référence.
-
+- Page statique sous un segment dynamique (`/asso/souscripteurs/reinitialisations`) : l'ajouter à `SOUS_PAGES` de `scripts/route-mock.mjs`, sinon la capture la remplace par un UUID.
