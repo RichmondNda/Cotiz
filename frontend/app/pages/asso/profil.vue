@@ -1,6 +1,6 @@
 <!--
   MgProfil — gérer son compte personnel de gestionnaire.
-  Informations (prénom, nom, email de connexion, téléphone) ; mot de passe (fermé → formulaire → confirmation) ;
+  Informations (prénom, nom, téléphone ; email de connexion en lecture seule, figé en V1 : ui-deviations) ; mot de passe (fermé → formulaire → confirmation) ;
   « M'avertir quand… » (interrupteurs enregistrés immédiatement ; résumé quotidien par email en V2) ;
   raccourcis Paramètres / Équipe (desktop, le menu Plus les porte en mobile) ; déconnexion.
   Mot de passe actuel des mocks : `motdepasse`. Scénarios : `chargement`, `erreur`.
@@ -29,35 +29,29 @@ watch(profil, (p) => {
   Object.assign(infos, { prenom: p.prenom, nom: p.nom, email: p.email, telephone: p.telephone ?? '' })
 }, { immediate: true })
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const tenteeInfos = ref(false)
-const erreurEmailApi = ref<string>()
 const erreursInfos = computed(() => ({
   prenom: tenteeInfos.value && !infos.prenom.trim() ? 'Indiquez votre prénom' : undefined,
   nom: tenteeInfos.value && !infos.nom.trim() ? 'Indiquez votre nom' : undefined,
-  email: tenteeInfos.value && !EMAIL.test(infos.email.trim()) ? 'Indiquez un email valide, par exemple nom@exemple.com' : erreurEmailApi.value,
 }))
-watch(() => infos.email, () => (erreurEmailApi.value = undefined))
 
 const envoiInfos = ref(false)
 async function enregistrerInfos() {
   tenteeInfos.value = true
-  if (erreursInfos.value.prenom || erreursInfos.value.nom || erreursInfos.value.email) return
+  if (erreursInfos.value.prenom || erreursInfos.value.nom) return
   envoiInfos.value = true
   try {
     profil.value = await actions.modifier({
       prenom: infos.prenom.trim(),
       nom: infos.nom.trim(),
-      email: infos.email.trim(),
       telephone: infos.telephone.trim(),
     })
     tenteeInfos.value = false
     toast.succes('Profil enregistré')
     await rafraichirSession()
   }
-  catch (e) {
-    if (codeErreur(e) === 'email-existant') erreurEmailApi.value = 'Cet email est déjà utilisé par un autre compte'
-    else toast.erreur('Le profil n’a pas pu être enregistré', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch {
+    toast.erreur('Le profil n’a pas pu être enregistré', { message: 'Vérifiez votre connexion, puis réessayez.' })
   }
   finally {
     envoiInfos.value = false
@@ -250,12 +244,12 @@ const chargement = computed(() => pending.value && !profil.value)
           </div>
           <CzField
             label="Email de connexion"
-            :erreur="erreursInfos.email"
+            aide="Email non modifiable ici. Contactez l’équipe Cotiz pour le changer."
           >
             <CzInput
-              v-model="infos.email"
+              :model-value="infos.email"
               type="email"
-              autocomplete="email"
+              disabled
             />
           </CzField>
           <CzField label="Téléphone">

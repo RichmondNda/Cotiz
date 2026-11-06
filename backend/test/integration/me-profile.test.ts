@@ -18,6 +18,7 @@ const NEW_PASSWORD = 'Fromager-Plateau-2027';
 const STAFF = { id: '00000000-0000-7000-8000-0000000004a1', email: 'staff-profil@cotiz.test' };
 const MANAGER = { id: '00000000-0000-7000-8000-0000000004a2', email: 'gestion-profil@cotiz.test' };
 const SUB = { id: '00000000-0000-7000-8000-0000000004a3', phone: '+2250500000411' };
+const OTHER_SUB = { id: '00000000-0000-7000-8000-0000000004a4', phone: '+2250500000412' };
 
 type Space = 'platform' | 'association' | 'subscriber';
 
@@ -58,25 +59,28 @@ describe('me.profile', () => {
       `INSERT INTO users (id, email, phone_e164, first_name, last_name, status, locale) VALUES
          ($1, $2, NULL, 'Richy', 'Nda', 'active', 'fr-CI'),
          ($3, $4, NULL, 'Awa', 'Koné', 'active', 'fr-CI'),
-         ($5, NULL, $6, 'Moussa', 'Diarra', 'active', 'fr-CI')`,
-      [STAFF.id, STAFF.email, MANAGER.id, MANAGER.email, SUB.id, SUB.phone],
+         ($5, NULL, $6, 'Moussa', 'Diarra', 'active', 'fr-CI'),
+         ($7, NULL, $8, 'Fanta', 'Traoré', 'active', 'fr-CI')`,
+      [STAFF.id, STAFF.email, MANAGER.id, MANAGER.email, SUB.id, SUB.phone, OTHER_SUB.id, OTHER_SUB.phone],
     );
     const hash = await new SecretHasher().hash(PASSWORD);
     await h.superuser(
       `INSERT INTO credentials (user_id, password_hash, password_changed_at)
-       VALUES ($1, $4, '2026-10-01T08:00:00Z'), ($2, $4, NULL), ($3, $4, NULL)`,
-      [STAFF.id, MANAGER.id, SUB.id, hash],
+       VALUES ($1, $4, '2026-10-01T08:00:00Z'), ($2, $4, NULL), ($3, $4, NULL), ($5, $4, NULL)`,
+      [STAFF.id, MANAGER.id, SUB.id, hash, OTHER_SUB.id],
     );
     await h.superuser(`INSERT INTO platform_staff (user_id, role) VALUES ($1, 'owner')`, [STAFF.id]);
     await h.superuser(
       `INSERT INTO memberships (id, association_id, user_id, role, status, joined_at) VALUES
          (gen_random_uuid(), $1, $2, 'owner', 'active', now()),
-         (gen_random_uuid(), $1, $3, 'subscriber', 'active', now())`,
-      [A.id, MANAGER.id, SUB.id],
+         (gen_random_uuid(), $1, $3, 'subscriber', 'active', now()),
+         (gen_random_uuid(), $1, $4, 'subscriber', 'active', now())`,
+      [A.id, MANAGER.id, SUB.id, OTHER_SUB.id],
     );
-    await h.superuser(`INSERT INTO subscriber_profiles (user_id, address, city) VALUES ($1, 'Rue 12', 'Yopougon')`, [
-      SUB.id,
-    ]);
+    await h.superuser(
+      `INSERT INTO subscriber_profiles (user_id, address, city) VALUES ($1, 'Rue 12', 'Yopougon'), ($2, 'Rue 3', 'Cocody')`,
+      [SUB.id, OTHER_SUB.id],
+    );
     app = await createApp(
       loadConfig({
         NODE_ENV: 'test',
@@ -161,41 +165,48 @@ describe('me.profile', () => {
       expect(audit.rows).toEqual([{ actor_user_id: MANAGER.id, entity_id: MANAGER.id, association_id: null }]);
     });
 
-    it('souscripteur : email ajouté, adresse et ville de son profil de souscripteur', async () => {
+    it('souscripteur : adresse et ville de son seul profil de souscripteur', async () => {
       const token = await tokenOf('subscriber', SUB.phone);
-      const res = await call('PATCH', '/me/profile', token, {
-        email: 'moussa@exemple.ci',
-        address: 'Rue 14',
-        city: null,
-      });
+      const res = await call('PATCH', '/me/profile', token, { address: 'Rue 14', city: null });
       expect(res.status).toBe(200);
-      expect(Profile.parse(await res.json())).toMatchObject({
-        email: 'moussa@exemple.ci',
-        address: 'Rue 14',
-        city: null,
-      });
-      const { rows } = await h.superuser(`SELECT address, city FROM subscriber_profiles WHERE user_id = $1`, [SUB.id]);
-      expect(rows).toEqual([{ address: 'Rue 14', city: null }]);
+      expect(Profile.parse(await res.json())).toMatchObject({ email: null, address: 'Rue 14', city: null });
+      const { rows } = await h.superuser(
+        `SELECT user_id, address, city FROM subscriber_profiles WHERE user_id IN ($1, $2) ORDER BY user_id`,
+        [SUB.id, OTHER_SUB.id],
+      );
+      expect(rows).toEqual([
+        { user_id: SUB.id, address: 'Rue 14', city: null },
+        { user_id: OTHER_SUB.id, address: 'Rue 3', city: 'Cocody' },
+      ]);
     });
 
-    it('email d’un autre compte : 422 validation_failed (email pris), rien n’est écrit', async () => {
-      const token = await tokenOf('platform', STAFF.email);
-      const res = await call('PATCH', '/me/profile', token, { email: MANAGER.email.toUpperCase(), lastName: 'X' });
-      expect(res.status).toBe(422);
-      expect(await problemOf(res)).toMatchObject({ code: 'validation_failed', fields: { email: 'taken' } });
-      const { rows } = await h.superuser(`SELECT last_name FROM users WHERE id = $1`, [STAFF.id]);
-      expect(rows).toEqual([{ last_name: 'Nda' }]);
-    });
-
-    it('gestionnaire ou personnel plateforme : l’email (identifiant de connexion) ne peut pas être retiré', async () => {
-      for (const [space, email] of [
-        ['platform', STAFF.email],
-        ['association', MANAGER.email],
+    it('email figé en V1 : un autre email, ou aucun, est refusé (422 not_editable) et rien n’est écrit', async () => {
+      for (const [space, identifier, email] of [
+        ['platform', STAFF.email, MANAGER.email.toUpperCase()],
+        ['platform', STAFF.email, 'nouveau@cotiz.test'],
+        ['association', MANAGER.email, null],
+        ['subscriber', SUB.phone, 'moussa@exemple.ci'],
       ] as const) {
-        const res = await call('PATCH', '/me/profile', await tokenOf(space, email), { email: null });
+        const res = await call('PATCH', '/me/profile', await tokenOf(space, identifier), { email, lastName: 'X' });
         expect(res.status).toBe(422);
-        expect(await problemOf(res)).toMatchObject({ code: 'validation_failed', fields: { email: 'required' } });
+        expect(await problemOf(res)).toMatchObject({ code: 'validation_failed', fields: { email: 'not_editable' } });
       }
+      const { rows } = await h.superuser(
+        `SELECT id, email, last_name FROM users WHERE id IN ($1, $2, $3) ORDER BY id`,
+        [STAFF.id, MANAGER.id, SUB.id],
+      );
+      expect(rows).toEqual([
+        { id: STAFF.id, email: STAFF.email, last_name: 'Nda' },
+        { id: MANAGER.id, email: MANAGER.email, last_name: 'Koné' },
+        { id: SUB.id, email: null, last_name: 'Diarra' },
+      ]);
+    });
+
+    it('le même email (casse comprise) : accepté, sans effet sur l’email', async () => {
+      const token = await tokenOf('platform', STAFF.email);
+      const res = await call('PATCH', '/me/profile', token, { email: STAFF.email.toUpperCase() });
+      expect(res.status).toBe(200);
+      expect(Profile.parse(await res.json()).email).toBe(STAFF.email);
     });
 
     it('sans profil de souscripteur : adresse et ville refusées (422)', async () => {
@@ -239,6 +250,7 @@ describe('me.profile', () => {
     it('change le mot de passe, garde la session en cours et révoque les autres', async () => {
       const current = await tokenOf('subscriber', SUB.phone);
       const other = await tokenOf('subscriber', SUB.phone);
+      const someoneElse = await tokenOf('subscriber', OTHER_SUB.phone);
       const res = await call('PUT', '/me/password', current, { currentPassword: PASSWORD, newPassword: NEW_PASSWORD });
       expect(res.status).toBe(204);
 
@@ -246,6 +258,9 @@ describe('me.profile', () => {
       const revoked = await call('GET', '/me/profile', other);
       expect(revoked.status).toBe(401);
       expect((await problemOf(revoked)).code).toBe('session_revoked');
+      // La session d'une autre personne n'est jamais touchée.
+      expect((await call('GET', '/me/profile', someoneElse)).status).toBe(200);
+      expect((await login('subscriber', OTHER_SUB.phone)).status).toBe(200);
 
       expect((await login('subscriber', SUB.phone)).status).toBe(401);
       expect((await login('subscriber', SUB.phone, NEW_PASSWORD)).status).toBe(200);

@@ -18,7 +18,7 @@ export interface MyProfileChanges extends UserProfileChanges {
  * (subscriber_profiles, module members, global : la même pour toutes les associations de la personne). Toujours la
  * personne du jeton.
  * - Adresse et ville : seulement avec un profil de souscripteur ; sinon 422 `validation_failed` (`not_applicable`).
- * - Une seule transaction : un refus (email pris, email requis) n'écrit rien.
+ * - Une seule transaction : un refus (email non modifiable, adresse sans profil) n'écrit rien.
  * - Modification auditée : noms des champs changés, jamais leurs valeurs (email, adresse : données personnelles).
  */
 @Injectable()

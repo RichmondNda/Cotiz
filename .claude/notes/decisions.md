@@ -188,6 +188,9 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Étape 3 · `as.resets` : list/issueCode en contexte association (modèle `pf.resets`), isolation (demande d'une autre
     association → 404) ; page `/asso/souscripteurs/reinitialisations` (modèle `sa-resets`, `HandoffCard`) ; parcours
     oubli → code d'Awa → nouveau mot de passe.
-  - Choix sans changer la spec : email pris → `validation_failed` (`fields.email = 'taken'`, `errors.yaml` n'a pas de
-    code dédié) ; email non vidable pour un gestionnaire ou le personnel plateforme (identifiant de connexion) ; changement
+  - Choix sans changer la spec : ~~email pris → `taken`, email non vidable → `required`~~ remplacé (2026-11-06, choix de
+    l'utilisateur, faille relevée par `isolation-reviewer`) par **email figé en V1** : un autre email (ou aucun) →
+    `validation_failed` (`fields.email = 'not_editable'`), le même → sans effet ; profils mb/mg/sa en lecture seule
+    (« Contactez… »), ligne dans `docs/specs/ui-deviations.md` ; outbox : en espace association sans {aid}, seul un
+    événement sans association est accepté (`user.password_changed`) ; changement
     de mot de passe : mauvais mot de passe actuel → `invalid_credentials`, mêmes règles `isStrongPassword` que auth.reset.

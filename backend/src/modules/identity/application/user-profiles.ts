@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { credentials, updateWithVersion, users } from '@cotiz/db';
-import { and, eq, ne, sql } from 'drizzle-orm';
-import { activeMembershipsOf, MANAGEMENT_ROLES, platformRoleOf } from '../../access/access.public.js';
+import { eq } from 'drizzle-orm';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 
@@ -30,10 +29,7 @@ export interface UserProfileChanges {
  * Identité de la personne du jeton (users, credentials), pour me.profile : lue et modifiée dans la transaction de
  * l'appelant (espace me), jamais celle d'une autre personne (l'identifiant vient du contexte posé par les gardes).
  * Le module members y ajoute l'adresse du profil de souscripteur, qu'il possède.
- * - Email déjà porté par un autre compte : 422 `validation_failed` (`email: 'taken'`), sous verrou de l'adresse (deux
- *   personnes ne prennent pas la même en même temps), comme `SubscriberAccounts.updateIdentity`.
- * - Email retiré par un gestionnaire ou un membre du personnel plateforme : c'est leur identifiant de connexion,
- *   422 `validation_failed` (`email: 'required'`).
+ * - Email et téléphone (identifiants de connexion) : non modifiables ici en V1 (voir `update`).
  * - Le téléphone (identifiant du souscripteur) ne se modifie pas ici : « Contactez votre association ».
  */
 @Injectable()
@@ -57,41 +53,35 @@ export class UserProfiles {
     return row ? { ...row, passwordChangedAt: row.passwordChangedAt ?? null, mfaEnabled: false } : null;
   }
 
-  /** Renvoie la nouvelle version (inchangée si rien n'est modifié). */
+  /**
+   * Renvoie la nouvelle version (inchangée si rien n'est modifié). L'email n'est pas modifiable en libre-service en V1
+   * (décision du 2026-11-06, lot 3.1) : sans fournisseur, rien ne prouve que la personne détient l'adresse, et un compte
+   * actif qui porte l'email d'un demandeur se voit rattacher l'association à l'approbation (onboarding, lot 1.3). Un
+   * email différent de l'actuel : 422 `validation_failed` (`email: 'not_editable'`) ; le même : sans effet. Il est
+   * changé par le rôle supérieur (gestionnaire pour un souscripteur : mb.patch).
+   */
   async update(userId: string, changes: UserProfileChanges): Promise<number> {
     const tx = currentTx();
-    const [current] = await tx.select({ version: users.version }).from(users).where(eq(users.id, userId)).for('update');
+    const [current] = await tx
+      .select({ version: users.version, email: users.email })
+      .from(users)
+      .where(eq(users.id, userId))
+      .for('update');
     if (!current) throw new DomainProblem('session_expired');
-    if (changes.email === null && (await this.signsInByEmail(userId))) {
-      throw new DomainProblem('validation_failed', { fields: { email: 'required' } });
-    }
-    if (changes.email) {
-      await tx.execute(
-        sql`SELECT pg_advisory_xact_lock(hashtextextended(${`users:email:${changes.email.toLowerCase()}`}, 0))`,
-      );
-      const [taken] = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(and(eq(users.email, changes.email), ne(users.id, userId)))
-        .limit(1);
-      if (taken) throw new DomainProblem('validation_failed', { fields: { email: 'taken' } });
+    if (
+      changes.email !== undefined &&
+      (changes.email?.toLowerCase() ?? null) !== (current.email?.toLowerCase() ?? null)
+    ) {
+      throw new DomainProblem('validation_failed', { fields: { email: 'not_editable' } });
     }
     const set = {
       ...(changes.firstName === undefined ? {} : { firstName: changes.firstName }),
       ...(changes.lastName === undefined ? {} : { lastName: changes.lastName }),
-      ...(changes.email === undefined ? {} : { email: changes.email }),
       ...(changes.locale === undefined ? {} : { locale: changes.locale }),
     };
     if (Object.keys(set).length === 0) return current.version;
     const updated = await updateWithVersion(tx, users, { id: userId, version: current.version }, set);
     if (!updated) throw new DomainProblem('session_expired');
     return updated.version;
-  }
-
-  /** Gestionnaire (owner, manager, viewer) ou personnel plateforme : l'email est son identifiant de connexion. */
-  private async signsInByEmail(userId: string): Promise<boolean> {
-    if ((await platformRoleOf(userId)) !== null) return true;
-    const roles: readonly string[] = MANAGEMENT_ROLES;
-    return (await activeMembershipsOf(userId)).some((m) => roles.includes(m.role));
   }
 }

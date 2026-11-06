@@ -1,13 +1,12 @@
 <!--
   SaProfil — gérer son compte d'administration.
-  Informations personnelles (photo, prénom, nom, email, rôle en lecture seule) ; mot de passe (actuel, nouveau,
+  Informations personnelles (photo, prénom, nom ; email et rôle en lecture seule, email figé en V1 : ui-deviations) ; mot de passe (actuel, nouveau,
   confirmation) ; double authentification (V2) ; préférences de notification (interrupteurs enregistrés immédiatement).
   Mot de passe actuel des mocks : `motdepasse`. Scénarios : `chargement`, `erreur`.
 -->
 <script setup lang="ts">
 import type { ProfilPlateforme } from '~~/types'
 import { codeErreur } from '~/composables/api/client'
-import { emailValide } from '~/utils/validation'
 import { ROLES_PLATEFORME } from '~/utils/statuts'
 
 definePageMeta({ middleware: 'espace-plateforme', layout: 'backoffice', espace: 'superadmin', titre: 'Mon profil' })
@@ -29,16 +28,14 @@ watch(profil, (p) => {
 const tenteeInfos = ref(false)
 const erreursInfos = computed(() => ({
   prenom: tenteeInfos.value && !infos.prenom.trim() ? 'Indiquez votre prénom' : undefined,
-  // Les placeholders de la maquette (`[email]`) restent acceptés tant que la vraie adresse n'est pas fournie.
-  email: tenteeInfos.value && !emailValide(infos.email) && infos.email.trim() !== '[email]' ? 'Indiquez un email valide, par exemple nom@exemple.com' : undefined,
 }))
 const envoiInfos = ref(false)
 async function enregistrerInfos() {
   tenteeInfos.value = true
-  if (erreursInfos.value.prenom || erreursInfos.value.email) return
+  if (erreursInfos.value.prenom) return
   envoiInfos.value = true
   try {
-    profil.value = await actions.modifier({ prenom: infos.prenom.trim(), nom: infos.nom.trim(), email: infos.email.trim() })
+    profil.value = await actions.modifier({ prenom: infos.prenom.trim(), nom: infos.nom.trim() })
     tenteeInfos.value = false
     toast.succes('Profil enregistré')
     await rafraichirSession()
@@ -162,12 +159,12 @@ const chargement = computed(() => pending.value && !profil.value)
           </CzField>
           <CzField
             label="Email"
-            :erreur="erreursInfos.email"
+            aide="Email non modifiable ici. Contactez un propriétaire de la plateforme pour le changer."
           >
             <CzInput
-              v-model="infos.email"
+              :model-value="infos.email"
               type="email"
-              autocomplete="email"
+              disabled
             />
           </CzField>
           <CzField label="Rôle">

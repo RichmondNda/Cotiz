@@ -73,3 +73,12 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   rapatrier les 50 000 lignes complètes ≈ 810 ms, calcul des situations ≈ 320 ms, chiffres ≈ 490 ms.
   Pistes : alléger en code (colonnes utiles seulement, calculs) sans changer la spec, ou vues matérialisées
   (architecture/09 « rapports lourds », changement de schema.sql → accord requis).
+
+- **2026-11-06** · Lot 3.1, étape 2 — **sécurité** : `PATCH /me/profile` laisse tout compte connecté poser un email
+  libre (non vérifié, aucun fournisseur) ; or `onboarding/application/provision-association.ts` (lot 1.3) rattache une
+  nouvelle association au compte **actif** qui porte l'email du responsable, sans code (`handoff: null`). Un souscripteur
+  qui connaît l'email d'un demandeur peut s'en emparer et devenir owner à l'approbation. Relevé par `isolation-reviewer`,
+  vérifié dans le code. · Décision demandée à l'utilisateur (email non modifiable en libre-service en V1, ou rattachement
+  automatique supprimé, ou email « vérifié » au schéma).
+  → **Tranché le 2026-11-06** par l'utilisateur : email figé en V1 (non modifiable en libre-service, 422
+  `not_editable`) ; profils en lecture seule ; ligne ajoutée à `docs/specs/ui-deviations.md`. Voir decisions.md.

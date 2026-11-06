@@ -77,7 +77,8 @@ export function useActionsProfilPlateforme() {
   return {
     modifier: async (mod: ModificationProfilPlateforme) => {
       try {
-        const champs = Object.fromEntries(Object.entries({ firstName: mod.prenom, lastName: mod.nom, email: mod.email }).filter(([, v]) => v !== undefined))
+        const champs = Object.fromEntries(Object.entries({ firstName: mod.prenom, lastName: mod.nom }).filter(([, v]) => v !== undefined))
+        // L'email ne se modifie pas par me.profile (figé en V1, ui-deviations).
         if (Object.keys(champs).length) await client.call('me.profile', 'patch', { body: champs })
         if (mod.preferences) {
           const prefs = await client.call('me.prefs', 'get')
@@ -87,7 +88,7 @@ export function useActionsProfilPlateforme() {
         return profil(client)
       }
       catch (e) {
-        traduireErreur(e, { 'champ:email': 'email-existant', 'champ:firstName': 'prenom-requis' })
+        traduireErreur(e, { 'champ:firstName': 'prenom-requis' })
       }
     },
     changerMotDePasse: async (actuel: string, nouveau: string) => {

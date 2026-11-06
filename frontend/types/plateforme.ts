@@ -217,7 +217,7 @@ export interface ProfilPlateforme {
   preferences: { nouvelleDemande: boolean, abonnementImpaye: boolean, nouvelleAssociation: boolean, resumeHebdomadaire: boolean }
 }
 
-export type ModificationProfilPlateforme = Partial<Pick<ProfilPlateforme, 'prenom' | 'nom' | 'email' | 'preferences'>>
+export type ModificationProfilPlateforme = Partial<Pick<ProfilPlateforme, 'prenom' | 'nom' | 'preferences'>>
 
 /** Demande « mot de passe oublié » d'un gestionnaire, traitée par le super-admin (`pf.resets`, SaReinitialisations). */
 export type StatutReinitialisation = 'a_traiter' | 'code_remis' | 'terminee' | 'expiree' | 'ignoree'

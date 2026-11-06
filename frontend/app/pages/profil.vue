@@ -1,6 +1,6 @@
 <!--
   MbProfil — gérer ses informations et ses préférences.
-  Identité ; téléphone non modifiable (« Contactez votre association ») ; email facultatif, enregistré à la sortie du champ ;
+  Identité ; téléphone et email non modifiables (« Contactez votre association », email figé en V1 : ui-deviations) ;
   menu (Mes contrats avec le nombre à signer, Mes associations, Notifications avec les non lues) ;
   rappels d'échéance SMS / email (V2) ; mot de passe, aide (revoir la présentation), déconnexion.
 -->
@@ -14,31 +14,10 @@ const { data: profil, pending, error, refresh } = useMonProfil()
 const { data: contrats } = useContrats({ statut: 'a_signer' })
 const { data: compteurs } = useCompteursNavigation()
 const { deconnecter } = useSession()
-const modifierProfil = useModificationMonProfil()
 
 const nom = computed(() => (profil.value ? `${profil.value.prenom} ${profil.value.nom}` : ''))
 const aSigner = computed(() => contrats.value?.length ?? 0)
 const nonLues = computed(() => compteurs.value?.notificationsNonLues ?? 0)
-
-// ---------------------------------------------------------------- Email (enregistré à la sortie du champ)
-const email = ref('')
-watch(profil, p => (email.value = p?.email ?? ''), { immediate: true })
-const erreurEmail = ref<string>()
-async function enregistrerEmail() {
-  const valeur = email.value.trim()
-  if (valeur === (profil.value?.email ?? '')) return
-  if (valeur && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valeur)) {
-    erreurEmail.value = 'Adresse email invalide. Exemple : vous@exemple.com'
-    return
-  }
-  erreurEmail.value = undefined
-  try {
-    profil.value = await modifierProfil({ email: valeur })
-  }
-  catch {
-    erreurEmail.value = 'L’adresse n’a pas pu être enregistrée. Réessayez.'
-  }
-}
 
 // ---------------------------------------------------------------- Rappels (V2 : réglages locaux en attendant l'API)
 const rappelSms = ref(true)
@@ -124,15 +103,22 @@ const rappelEmail = ref(false)
           </CzField>
           <CzField
             label="Email (facultatif)"
-            :erreur="erreurEmail"
+            aide="Email non modifiable ici. Contactez votre association pour l’ajouter ou le changer."
           >
-            <CzInput
-              v-model="email"
-              type="email"
-              placeholder="vous@exemple.com"
-              autocomplete="email"
-              @blur="enregistrerEmail"
-            />
+            <div class="profil__telephone">
+              <CzInput
+                :model-value="profil.email ?? ''"
+                type="email"
+                placeholder="Aucun email"
+                readonly
+                class="profil__verrouille"
+              />
+              <CzIcon
+                nom="cadenas"
+                :taille="16"
+                class="profil__cadenas"
+              />
+            </div>
           </CzField>
         </CzCard>
 
