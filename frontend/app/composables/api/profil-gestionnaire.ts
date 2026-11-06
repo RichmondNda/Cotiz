@@ -28,8 +28,8 @@ export function useActionsProfilGestionnaire() {
   return {
     modifier: async (m: ModificationProfilGestionnaire) => {
       try {
-        const champs = Object.fromEntries(Object.entries({ firstName: m.prenom, lastName: m.nom, email: m.email }).filter(([, v]) => v !== undefined))
-        // Le téléphone du gestionnaire n'est pas modifiable par me.profile (écart R4).
+        const champs = Object.fromEntries(Object.entries({ firstName: m.prenom, lastName: m.nom }).filter(([, v]) => v !== undefined))
+        // Ni le téléphone (écart R4) ni l'email (figé en V1, ui-deviations) ne se modifient par me.profile.
         if (Object.keys(champs).length) await client.call('me.profile', 'patch', { body: champs })
         if (m.preferences) {
           const prefs = await client.call('me.prefs', 'get')
@@ -39,7 +39,7 @@ export function useActionsProfilGestionnaire() {
         return profil(client)
       }
       catch (e) {
-        traduireErreur(e, { 'champ:email': 'email-existant', 'champ:firstName': 'prenom-requis', 'champ:lastName': 'nom-requis' })
+        traduireErreur(e, { 'champ:firstName': 'prenom-requis', 'champ:lastName': 'nom-requis' })
       }
     },
     changerMotDePasse: async (actuel: string, nouveau: string) => {

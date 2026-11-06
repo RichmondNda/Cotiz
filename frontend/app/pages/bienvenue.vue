@@ -10,10 +10,9 @@ definePageMeta({ middleware: 'espace-souscripteur', layout: false })
 useHead({ title: 'Bienvenue · Cotiz', bodyAttrs: { 'data-theme': 'member' } })
 
 const { data: moi } = useMoi()
-const { data: souscriptions } = useMesSouscriptions()
 
-const association = computed(() => [...(souscriptions.value ?? [])]
-  .sort((a, b) => a.inscritLe.localeCompare(b.inscritLe))[0]?.association.nom ?? 'Votre association')
+// Association qui a inscrit la personne : la plus ancienne inscription (`GET /me`, réel ; me.assos reste simulé au lot 3.2).
+const association = computed(() => moi.value?.associationsSouscrites[0]?.nom ?? 'Votre association')
 
 const diapositives = computed<{ icone: NomIcone, titre: string, texte: string }[]>(() => [
   {

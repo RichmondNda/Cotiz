@@ -6,8 +6,9 @@
 -->
 <script setup lang="ts">
 import type { CodeErreurAuth, Role } from '~~/types'
+import { codeActivationValide, formaterCodeActivation } from '~/utils/code-activation'
 import { nouveauMotDePasseValide } from '~/utils/mot-de-passe'
-import { emailValide, telephoneValide } from '~/utils/validation'
+import { chiffresTelephone, emailValide, formatSaisieTelephone, telephoneValide } from '~/utils/validation'
 
 definePageMeta({ layout: false })
 useHead({ title: 'Activer mon compte — Cotiz', meta: [{ name: 'robots', content: 'noindex, nofollow' }] })
@@ -24,7 +25,10 @@ const CONNEXION = { souscripteur: '/connexion', gestionnaire: '/connexion/associ
 const parTelephone = role === 'souscripteur'
 const remetteur = role === 'souscripteur' ? 'votre association' : role === 'gestionnaire' ? 'l’équipe Cotiz' : 'l’exploitant Cotiz'
 
-const identifiant = ref(typeof route.query.t === 'string' ? route.query.t : '')
+// Lien du message prêt ou du QR : `?t=+2250122334455` (E.164). Le champ téléphone affiche déjà l'indicatif « +225 » :
+// pré-rempli en national groupé (`01 22 33 44 55`), y compris quand un « + » non encodé est lu comme une espace.
+const lien = typeof route.query.t === 'string' ? route.query.t : ''
+const identifiant = ref(parTelephone && lien ? formatSaisieTelephone(chiffresTelephone(lien)) : lien)
 const code = ref('')
 const nouveau = ref('')
 const confirmation = ref('')
@@ -42,7 +46,8 @@ const erreurIdentifiant = computed(() => {
 })
 const erreurCode = computed(() => {
   if (!tentee.value) return undefined
-  return /^[2-9A-HJKMNP-Z]{4}-?[2-9A-HJKMNP-Z]{4}$/i.test(code.value.trim()) ? undefined : 'Code à 8 caractères attendu (ex. K7M4-P9QX)'
+  // Saisie tolérante (casse, tiret, espaces) : un code recopié depuis WhatsApp, un SMS ou la fiche imprimée.
+  return codeActivationValide(code.value) ? undefined : 'Code à 8 caractères attendu (ex. K7M4-P9QX)'
 })
 
 async function soumettre() {
@@ -51,10 +56,12 @@ async function soumettre() {
   envoi.value = true
   erreurApi.value = null
   try {
+    code.value = formaterCodeActivation(code.value)
     await activer({ espace: role, identifiant: identifiant.value, code: code.value, motDePasse: nouveau.value })
     // Gestionnaire dont l'association n'est pas encore configurée : assistant de démarrage (mg-onboarding).
+    // Souscripteur : présentation de Cotiz en 3 écrans (mb-onboarding), puis ses projets.
     const onboarding = role === 'gestionnaire' && await onboardingAFaire(client).catch(() => false)
-    await connecter(role, onboarding ? '/asso/bienvenue' : undefined)
+    await connecter(role, onboarding ? '/asso/bienvenue' : role === 'souscripteur' ? '/bienvenue' : undefined)
   }
   catch (e) {
     erreurApi.value = codeErreur<CodeErreurAuth>(e) ?? 'reseau'
@@ -142,6 +149,7 @@ async function soumettre() {
             v-model="code"
             autocomplete="one-time-code"
             placeholder="K7M4-P9QX"
+            @blur="code = formaterCodeActivation(code)"
           />
         </CzField>
         <NouveauMotDePasse

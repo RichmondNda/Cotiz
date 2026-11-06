@@ -35,6 +35,9 @@ export const useMoi = () => {
       association: courante && sub
         ? { id: courante.association.id, nom: courante.association.name, sigle: initiales(courante.association.name), plan: sub.plan.name }
         : undefined,
+      associationsSouscrites: me.memberships
+        .filter(x => x.role === 'subscriber')
+        .map(x => ({ id: x.association.id, nom: x.association.name })),
       permissions: me.permissions,
       // Espace basculé : les écrans encore simulés gardent leurs fonctionnalités (transition, lot 1.1).
       features: espaceBascule(me.space)

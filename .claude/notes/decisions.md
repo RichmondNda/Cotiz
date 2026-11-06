@@ -175,3 +175,35 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Correctifs nécessaires à l'image api (jamais lancée jusqu'ici, seulement construite en CI) : `@cotiz/db` compilé
     (`dist/`, mêmes conditions d'export que contracts et domain), garde « lancé directement » de `migrate.ts` en chemin réel,
     `backend/content` copié dans l'image (report du lot 1.3 vers 7.1 traité ici).
+
+- **2026-11-06** · Lot 3.1 (activation, profil, réinitialisations) — plan, une seule PR vers `backend` (comme les lots précédents).
+  Dépendance 2.5 `terminé`, décision 2 `adopté`. Aucune migration : `password_reset_requests` a déjà `tenant_manage`
+  (lecture et écriture en contexte association) ; notifications « demande de réinitialisation » et « compte activé »
+  déjà livrées au lot 2.5 (`notifications/domain/matrix.ts`).
+  - Étape 1 · activation : `normaliserCodeActivation` (casse, espaces, tirets → `XXXX-XXXX`) + tests ; souscripteur
+    activé → `/bienvenue` ; nom de l'association de `/bienvenue` lu dans `GET /me` (réel) au lieu de `me.assos` (lot 3.2,
+    simulé) ; parcours e2e sur le vrai back (code régénéré par Awa → activation → bienvenue → absent des codes à remettre).
+  - Étape 2 · `me.profile` : get/patch/password (autres sessions révoquées, session courante gardée, `user.password_changed`,
+    audit) ; tests d'intégration et d'isolation ; bascule, handlers simulés supprimés, trois profils revérifiés.
+  - Étape 3 · `as.resets` : list/issueCode en contexte association (modèle `pf.resets`), isolation (demande d'une autre
+    association → 404) ; page `/asso/souscripteurs/reinitialisations` (modèle `sa-resets`, `HandoffCard`) ; parcours
+    oubli → code d'Awa → nouveau mot de passe.
+  - Choix sans changer la spec : ~~email pris → `taken`, email non vidable → `required`~~ remplacé (2026-11-06, choix de
+    l'utilisateur, faille relevée par `isolation-reviewer`) par **email figé en V1** : un autre email (ou aucun) →
+    `validation_failed` (`fields.email = 'not_editable'`), le même → sans effet ; profils mb/mg/sa en lecture seule
+    (« Contactez… »), ligne dans `docs/specs/ui-deviations.md` ; outbox : en espace association sans {aid}, seul un
+    événement sans association est accepté (`user.password_changed`) ; changement
+    de mot de passe : mauvais mot de passe actuel → `invalid_credentials`, mêmes règles `isStrongPassword` que auth.reset.
+- **2026-11-06** · Lot 3.1, étape 3 — **rôle le plus élevé** (choix de l'utilisateur, faille d'escalade relevée en
+  préparant as.resets : le mot de passe vaut pour tous les espaces, une gestionnaire de A pouvait demander puis émettre
+  elle-même le code d'une souscriptrice qui gère B ou fait partie du personnel plateforme).
+  - `auth.forgot` (espace souscripteur) : personne qui gère une association (appartenance owner/manager/viewer active ou
+    invitée) ou fait partie du personnel → une demande de la plateforme (`space = 'association'`, sans association),
+    aucune demande d'association (`request-password-reset.use-case.ts`).
+  - `as.resets` issueCode revérifie au moment du code : compte inactif, souscripteur retiré, gestionnaire ailleurs ou
+    personnel → demandes de l'association « ignorées », aucun code, 404 (`issue-association-reset-code.use-case.ts`).
+  - Code émis par l'association : `one_time_codes.association_id` = l'association (RLS) ; un seul code vaut, le dernier
+    émis (CodeService.verify ne lit que lui), même si la RLS empêche d'expirer celui d'une autre association.
+  - Écran : tableau et modale de SaReinitialisations extraits dans `components/metier/DemandesReinitialisation.vue`,
+    partagés par `/plateforme/reinitialisations` (rendu inchangé) et `/asso/souscripteurs/reinitialisations` ; entrée
+    « Réinitialisations » dans l'annuaire (members.manage), à côté de « Codes à remettre ».

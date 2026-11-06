@@ -14,6 +14,20 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   Playwright et accessibilité, antivirus clamd réel (`pnpm --filter backend test:clamav` possible), images (Trivy),
   oasdiff. · À reprendre si la CI revient.
 
+- **2026-11-06** · `me.profile` liste `version_conflict` dans ses erreurs (`endpoints.yaml`, contrat) mais `ifMatch: false`
+  et le corps du PATCH ne porte pas de version : l'erreur ne peut pas arriver (lot 3.1 : jamais levée). · Retirer
+  `version_conflict` de `me.profile`, ou passer le PATCH en `If-Match` (au choix).
+
+- **2026-11-06** · Lot 3.1, étape 3 — **proposition de spec (non appliquée)** : `docs/architecture/03-auth.md`
+  § Mot de passe oublié, 2 dit « notification aux gestionnaires de ses associations (souscripteur) ». Depuis la décision
+  « rôle le plus élevé » (decisions.md, 2026-11-06), une souscriptrice qui gère une association ou fait partie du
+  personnel est traitée par la plateforme (ou le script). · Ajouter cette phrase à architecture/03 (accord requis).
+  Cas limite relevé par `isolation-reviewer` : une souscriptrice seulement **invitée** comme gestionnaire voit sa demande
+  envoyée à la plateforme, où pf.resets l'ignore (404 : `spaceAccess` exige une appartenance active) ; sa voie de
+  récupération reste l'invitation (activation). À assumer ou à exclure de `platformHandled` (au choix).
+  Fenêtre d'escalade fermée : `auth.reset` refuse (`reset_token_invalid`) un code émis par une association si la personne
+  gère une association ou fait partie du personnel au moment de la réinitialisation (test dans association-resets).
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
@@ -69,3 +83,12 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   rapatrier les 50 000 lignes complètes ≈ 810 ms, calcul des situations ≈ 320 ms, chiffres ≈ 490 ms.
   Pistes : alléger en code (colonnes utiles seulement, calculs) sans changer la spec, ou vues matérialisées
   (architecture/09 « rapports lourds », changement de schema.sql → accord requis).
+
+- **2026-11-06** · Lot 3.1, étape 2 — **sécurité** : `PATCH /me/profile` laisse tout compte connecté poser un email
+  libre (non vérifié, aucun fournisseur) ; or `onboarding/application/provision-association.ts` (lot 1.3) rattache une
+  nouvelle association au compte **actif** qui porte l'email du responsable, sans code (`handoff: null`). Un souscripteur
+  qui connaît l'email d'un demandeur peut s'en emparer et devenir owner à l'approbation. Relevé par `isolation-reviewer`,
+  vérifié dans le code. · Décision demandée à l'utilisateur (email non modifiable en libre-service en V1, ou rattachement
+  automatique supprimé, ou email « vérifié » au schéma).
+  → **Tranché le 2026-11-06** par l'utilisateur : email figé en V1 (non modifiable en libre-service, 422
+  `not_editable`) ; profils en lecture seule ; ligne ajoutée à `docs/specs/ui-deviations.md`. Voir decisions.md.

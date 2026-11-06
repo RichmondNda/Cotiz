@@ -4,7 +4,7 @@ import { uid } from '../server/mocks/ids.ts'
 
 // Segment qui suit `projets/`, `souscripteurs/`… → UUID du type correspondant (sauf s'il en est déjà un, ou une sous-page).
 const TYPES = { projets: 'project', souscripteurs: 'user', associations: 'association', paiements: 'payment', demandes: 'request', plans: 'plan' }
-const SOUS_PAGES = new Set(['nouveau', 'nouvelle', 'declarer', 'import', 'codes'])
+const SOUS_PAGES = new Set(['nouveau', 'nouvelle', 'declarer', 'import', 'codes', 'reinitialisations'])
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/
 
 export function routeMock(route) {

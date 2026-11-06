@@ -28,7 +28,9 @@ export interface ActiveMembership {
 
 /**
  * La personne a-t-elle, dans cet espace, une appartenance d'un de ces statuts ? Connexion : `active` ; activation du
- * compte : `active` ou `invited`. Une appartenance retirée n'ouvre jamais rien.
+ * compte : `active` ou `invited`. Une appartenance retirée n'ouvre jamais rien. Appelée aussi pour un tiers (rôle le
+ * plus élevé, lot 3.1 : as.resets et auth.reset) : `userId` vient toujours d'une ligne lue par le serveur (demande sous
+ * RLS, code du jeton signé), jamais du client ; seul un booléen sort de l'espace auth.
  */
 export function holdsMembership(
   userId: string,
@@ -108,8 +110,9 @@ export function activeMembershipsOf(userId: string): Promise<ActiveMembership[]>
 /**
  * Nombre d'associations où la personne a une appartenance non retirée, quel que soit le rôle (mb.lookup : « compte
  * existant », sans détail, choix Q10 du lot 2.3). Lu « de soi » : un contexte d'association ne voit pas les
- * appartenances d'une personne ailleurs (self_read). Seul cas d'asSelf pour un tiers : `userId` est un compte retrouvé
- * par le serveur (accountByPhone), jamais une valeur du client, et seul un compte sort de l'espace auth. Contexte d'une
+ * appartenances d'une personne ailleurs (self_read). asSelf pour un tiers : `userId` est un compte retrouvé par le
+ * serveur (accountByPhone), jamais une valeur du client, et seul un compte sort de l'espace auth (autre cas :
+ * `holdsMembership` depuis as.resets, sur la personne d'une demande lue sous RLS, un booléen). Contexte d'une
  * association seulement. Rétablissement du contexte : tenant-context.test.ts (asSelf).
  */
 export function associationsCountOf(userId: string): Promise<number> {

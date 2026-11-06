@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { credentials, oneTimeCodes, passwordResetRequests, sessions, users } from '@cotiz/db';
 import { isStrongPassword } from '@cotiz/domain';
 import { and, desc, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { holdsMembership, platformRoleOf } from '../../access/access.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
@@ -41,7 +42,13 @@ export class ResetPasswordUseCase {
     }
     const tx = currentTx();
     const [target] = await tx
-      .select({ status: users.status, email: users.email, phone: users.phoneE164, consumedAt: oneTimeCodes.consumedAt })
+      .select({
+        status: users.status,
+        email: users.email,
+        phone: users.phoneE164,
+        consumedAt: oneTimeCodes.consumedAt,
+        issuedByAssociation: oneTimeCodes.associationId,
+      })
       .from(oneTimeCodes)
       .innerJoin(users, eq(users.id, oneTimeCodes.userId))
       .where(
@@ -61,6 +68,15 @@ export class ResetPasswordUseCase {
       .orderBy(desc(oneTimeCodes.createdAt), desc(oneTimeCodes.id))
       .limit(1);
     if (latest?.id !== claims.cid) throw new DomainProblem('reset_token_invalid');
+    // Rôle le plus élevé (lot 3.1) : un code remis par une association ne vaut que pour un simple souscripteur. Devenu
+    // gestionnaire (même invité) ou personnel depuis l'émission : le code ne sert plus (sa gestionnaire l'a vu).
+    if (
+      target.issuedByAssociation !== null &&
+      ((await holdsMembership(claims.sub, 'association', ['active', 'invited'])) ||
+        (await platformRoleOf(claims.sub)) !== null)
+    ) {
+      throw new DomainProblem('reset_token_invalid');
+    }
 
     const identifiers = [target.email, target.phone].filter((value): value is string => value !== null);
     if (

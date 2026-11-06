@@ -403,16 +403,24 @@ describe('appartenances et connexion (association, souscripteur, plateforme)', (
         )
       ).rows as { association_id: string | null; space: string }[];
 
-    it('souscriptrice de B : une demande traitée par B (association_id), un événement par association', async () => {
+    it('simple souscripteur de A : une demande traitée par A (association_id), un événement par association', async () => {
       await h.superuser('DELETE FROM password_reset_requests');
-      expect((await post('/auth/password/forgot', { space: 'subscriber', identifier: email('awa') })).status).toBe(202);
-      expect(await requests(USERS.awa)).toEqual([{ association_id: B.id, space: 'subscriber' }]);
+      expect((await post('/auth/password/forgot', { space: 'subscriber', identifier: email('moussa') })).status).toBe(
+        202,
+      );
+      expect(await requests(USERS.moussa)).toEqual([{ association_id: A.id, space: 'subscriber' }]);
       const { rows } = await h.superuser(
         `SELECT association_id, payload->'associationIds' AS ids FROM outbox_events
           WHERE event_type = 'password_reset.requested' AND payload->>'userId' = $1`,
-        [USERS.awa],
+        [USERS.moussa],
       );
-      expect(rows).toEqual([{ association_id: B.id, ids: [B.id] }]);
+      expect(rows).toEqual([{ association_id: A.id, ids: [A.id] }]);
+    });
+
+    it('souscriptrice de B qui gère A : rôle le plus élevé, demande traitée par la plateforme (lot 3.1)', async () => {
+      await h.superuser('DELETE FROM password_reset_requests');
+      expect((await post('/auth/password/forgot', { space: 'subscriber', identifier: email('awa') })).status).toBe(202);
+      expect(await requests(USERS.awa)).toEqual([{ association_id: null, space: 'association' }]);
     });
 
     it('gestionnaire : demande traitée par la plateforme (association_id NULL)', async () => {

@@ -5,7 +5,7 @@ import { passwordResetRequests, users } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
 import { and, countDistinct, eq, gt, sql } from 'drizzle-orm';
 import type { z } from 'zod';
-import { activeMembershipsOf } from '../../access/access.public.js';
+import { activeMembershipsOf, holdsMembership, platformRoleOf } from '../../access/access.public.js';
 import { canonicalIp } from '../../../shared/net/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentRequestInfo } from '../../../shared/request-info/index.js';
@@ -28,7 +28,8 @@ const RESPONSE_FLOOR_MS = 250;
  * Une demande n'est créée que pour un compte actif qui a un rôle dans l'espace, 3 fois par 24 h au plus ; le rôle
  * supérieur la traite hors ligne (écrans aux lots 1.4 et 3.1). Gestionnaires et personnel plateforme : demande
  * traitée par la plateforme (`association_id` NULL) ; souscripteurs : une demande (et un événement) par association
- * où la personne est souscriptrice active, traitée par cette association (lot 1.2).
+ * où la personne est souscriptrice active, traitée par cette association (lot 1.2), sauf si elle gère une association
+ * ou fait partie du personnel : traitée alors par la plateforme (rôle le plus élevé, lot 3.1).
  */
 @Injectable()
 export class RequestPasswordResetUseCase {
@@ -77,17 +78,24 @@ export class RequestPasswordResetUseCase {
     if ((recent?.n ?? 0) >= MAX_REQUESTS_PER_DAY) return;
 
     const request = currentRequestInfo();
-    const handlers: (string | null)[] =
-      input.space === 'subscriber'
-        ? (await activeMembershipsOf(user.id)).filter((m) => m.role === 'subscriber').map((m) => m.association.id)
-        : [null];
+    // Rôle le plus élevé (décision du 2026-11-06, lot 3.1) : le mot de passe vaut pour tous les espaces, une association
+    // ne le réinitialise que pour un simple souscripteur. Gestionnaire (invité compris) ou personnel de la plateforme :
+    // demande de la plateforme (espace association, sans association), comme depuis l'espace association.
+    const managedByPlatform =
+      input.space !== 'subscriber' ||
+      (await holdsMembership(user.id, 'association', ['active', 'invited'])) ||
+      (await platformRoleOf(user.id)) !== null;
+    const space = input.space !== 'subscriber' ? input.space : managedByPlatform ? 'association' : 'subscriber';
+    const handlers: (string | null)[] = managedByPlatform
+      ? [null]
+      : (await activeMembershipsOf(user.id)).filter((m) => m.role === 'subscriber').map((m) => m.association.id);
     for (const associationId of handlers) {
       const requestId = newId();
       await tx.insert(passwordResetRequests).values({
         id: requestId,
         userId: user.id,
         associationId,
-        space: input.space,
+        space,
         ip: request?.ip ? canonicalIp(request.ip) : null,
         userAgent: request?.userAgent?.slice(0, USER_AGENT_MAX) ?? null,
       });
@@ -100,7 +108,7 @@ export class RequestPasswordResetUseCase {
           requestId,
           userId: user.id,
           associationIds: associationId ? [associationId] : [],
-          space: input.space,
+          space,
         },
       });
     }

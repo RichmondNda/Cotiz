@@ -97,4 +97,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   // Lot 2.6 : rapport de projet (onglet Rapports), tableau de bord gestionnaire.
   ['rp.report', 'all'],
   ['as.dashboard', 'all'],
+  // Lot 3.1 : profil de la personne connectée, réinitialisations des souscripteurs (mg-resets).
+  ['me.profile', 'all'],
+  ['as.resets', 'all'],
 ])

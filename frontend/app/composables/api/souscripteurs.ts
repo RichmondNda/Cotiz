@@ -180,17 +180,3 @@ export const useMonAssociation = (id: MaybeRefOrGetter<string>) =>
     if (!a) throw createError({ statusCode: 404, statusMessage: 'Association introuvable' })
     return a
   })
-
-/** Modification de son email par le souscripteur (le téléphone n'est modifiable que par l'association). */
-export function useModificationMonProfil() {
-  const client = useClient()
-  return async (mod: { email?: string }) => {
-    try {
-      await client.call('me.profile', 'patch', { body: { email: mod.email || null } })
-      return (await contexteSouscripteur(client)).moi
-    }
-    catch (e) {
-      traduireErreur(e, { 'champ:email': 'email-invalide', 'validation_failed': 'email-invalide' })
-    }
-  }
-}

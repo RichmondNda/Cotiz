@@ -465,4 +465,4 @@ export interface ProfilGestionnaire {
   preferences: PreferencesGestionnaire
 }
 
-export type ModificationProfilGestionnaire = Partial<Pick<ProfilGestionnaire, 'prenom' | 'nom' | 'email' | 'telephone' | 'preferences'>>
+export type ModificationProfilGestionnaire = Partial<Pick<ProfilGestionnaire, 'prenom' | 'nom' | 'telephone' | 'preferences'>>

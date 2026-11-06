@@ -166,6 +166,22 @@ describe('shared/outbox : publication, relais et consommation', () => {
       expect(await outboxRows()).toEqual([]);
     });
 
+    it('en espace association sans {aid} (routes /me) : seulement un événement sans association', async () => {
+      const passwordChanged = {
+        type: 'user.password_changed',
+        associationId: null,
+        actorUserId: AWA,
+        aggregate: { type: 'user', id: AWA },
+        payload: { userId: AWA },
+      } as const;
+      const publishWithoutAid = (event: Parameters<OutboxService['publish']>[1]) =>
+        tenantDb.withTenantContext({ space: 'association', userId: AWA }, () => outbox.publish(currentTx(), event));
+      await expect(publishWithoutAid(fileUploaded())).rejects.toThrow(/association du contexte/);
+      expect(await outboxRows()).toEqual([]);
+      await publishWithoutAid(passwordChanged);
+      expect((await outboxRows()).map((row) => row.event_type)).toEqual(['user.password_changed']);
+    });
+
     it('refuse un payload dont associationId diffère de l’enveloppe', async () => {
       const B = '00000000-0000-7000-8000-00000000a002';
       const event = {
