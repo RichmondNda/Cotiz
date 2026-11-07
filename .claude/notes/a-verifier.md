@@ -101,3 +101,14 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   automatique supprimé, ou email « vérifié » au schéma).
   → **Tranché le 2026-11-06** par l'utilisateur : email figé en V1 (non modifiable en libre-service, 422
   `not_editable`) ; profils en lecture seule ; ligne ajoutée à `docs/specs/ui-deviations.md`. Voir decisions.md.
+
+- **2026-11-07** · Lot 3.2, démonstration sur la pile Docker — **date du jour du front figée** : `frontend/app/utils/date-reference.ts`
+  (`maintenant()` = 2026-09-25, « au branchement de l'API NestJS, remplacer par `new Date()` ») alors que le back calcule
+  au jour réel. Constaté sur `/accueil` le 2026-11-07 : prochaine échéance du 5 novembre affichée « dans 41 jours », et
+  « Septembre 2026 · ce mois-ci » dans l'échéancier de `/projets/{id}` (chiffres du back justes, libellés relatifs faux).
+  Hors périmètre du lot (touche aussi gestionnaire et plateforme, et les captures de référence dépendent de cette date).
+  · À décider : quand passer `maintenant()` à l'heure réelle (ou à une date servie par le back) sans casser captures et mocks.
+- **2026-11-07** · Lot 3.2 — base de dev de la pile Docker semée avant le lot : Moussa y reste inscrit **actif** à Voyage
+  solidaire (525 000 F restants au lieu de 395 000 F) ; `seed-dev` ne modifie pas l'existant. Les chiffres de référence sont
+  prouvés par `backend/test/integration/me-dashboard.test.ts` sur une base neuve. · Réinitialiser la base de dev
+  (suppression de données) seulement sur accord.
