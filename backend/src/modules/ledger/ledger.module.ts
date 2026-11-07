@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.public.js';
 import { MembersModule } from '../members/members.public.js';
+import { DeclarePaymentUseCase } from './application/declare-payment.use-case.js';
+import { GetSubscriberPaymentUseCase } from './application/get-subscriber-payment.use-case.js';
 import { GetInstallmentUseCase } from './application/get-installment.use-case.js';
 import { GetPaymentUseCase } from './application/get-payment.use-case.js';
 import { ListPaymentsUseCase } from './application/list-payments.use-case.js';
@@ -13,7 +15,7 @@ import { LedgerController } from './http/ledger.controller.js';
 import { SubscriberPaymentsController } from './http/subscriber-payments.controller.js';
 
 /** Module ledger (endpoints.yaml : lg.* ; lot 2.4) : grille, échéances, paiements, validation, rejet, annulation ;
- * espace souscripteur (me.alloc, lot 3.3). */
+ * espace souscripteur (me.alloc, me.declare, me.payment ; lot 3.3). */
 @Module({
   imports: [IdentityModule, MembersModule],
   controllers: [LedgerController, SubscriberPaymentsController],
@@ -26,6 +28,8 @@ import { SubscriberPaymentsController } from './http/subscriber-payments.control
     RejectPaymentUseCase,
     RevertPaymentUseCase,
     PreviewAllocationUseCase,
+    DeclarePaymentUseCase,
+    GetSubscriberPaymentUseCase,
   ],
 })
 export class LedgerModule {}

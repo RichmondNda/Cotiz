@@ -277,3 +277,30 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     `erreur-montant` vérifié en `invalid_amount` dans le domaine seulement). Aperçu servi aussi sur une inscription
     en attente de signature ou terminée (comme me.project) : me.declare refusera (relevé par `money-reviewer`).
     Plus d'une inscription renvoyée pour un projet → erreur interne (garde-fou, `isolation-reviewer`).
+  - Étape 2 faite (me.declare), choix :
+    - Écriture des échéances par `writePending` (payment-review) : seuls `amount_pending` et `status`, filtre
+      association + `user_id` ; `writeBalances` échouait (500) sur une échéance `late` sans `late_since` (trigger
+      `guard_installment_update`, espace subscriber). Test de non-régression.
+    - Date du versement après le jour de l'association → `fields.paidOn = 'in_future'` ; moyen inactif, d'une autre
+      association ou non retenu par le projet (s'il en retient) → `fields.paymentMethodId = 'not_found'`.
+    - Preuve déjà citée par un paiement de la personne dans une autre association (pas encore rattachée) → `not_found`
+      (sinon rattachée à la première traitée, illisible pour l'autre).
+    - Rejeu par la contrainte (après 24 h) : même projet, montant, date, moyen, référence, preuve et répartition
+      déclarée (ordre et casse indifférents), sinon `idempotency_key_reused` (relevé par `money-reviewer`).
+    - Ordre des verrous : paiement inséré (FK → KEY SHARE sur l'inscription) puis échéances par id ; pas de verrou sur
+      le projet (interdit au souscripteur) ; testé en concurrence avec lg.pay.validate et en.withdraw.
+  - Étape 3 faite (me.payment) : lecture filtrée par `user_id` du jeton puis inscription présentée
+    (`subscriberEnrollmentsOf`, même association) ; inconnu, d'autrui ou hors limites → même 404. Moyen absent
+    (désactivé depuis, ou d'une autre association) → `paymentMethod: null`.
+    **Bascule de me.declare et me.payment reportée à l'étape 4**, avec fl.upload/fl.get : basculer me.payment seul
+    rendrait 404 sur les paiements déclarés par le mock, et me.declare réel exige une preuve réellement déposée.
+  - Relecture `isolation-reviewer` (étapes 2-3), suites données :
+    - Même preuve citée **en même temps** dans deux associations : les deux déclarations passaient (course, prouvée
+      par un test qui échouait). `subscriberProofOf` verrouille la ligne du fichier (`FOR UPDATE`, permis par
+      `owner_access`) : la seconde voit le paiement de la première → 422. Test de concurrence dans `me-declare.test.ts`.
+    - 404 de me.declare comparés au corps du projet inconnu ; `payments.subscriber_self_read` élargie dans le test
+      d'isolation de me.declare, avec un paiement de Fatou portant la clé envoyée par Moussa (échoue sans le filtre
+      `user_id` du rejeu, vérifié par mutation).
+    - Écarté : « rejeu sur une ancienne inscription du même projet → 500 » impossible, `UNIQUE (project_id, user_id)`
+      sur enrollments (schema.sql) ; verrou `lockInstallments` sans filtre `user_id` (partagé avec lg.pay.*, aucune
+      écriture possible sur l'échéance d'autrui : `writePending` filtre `user_id`) laissé tel quel.

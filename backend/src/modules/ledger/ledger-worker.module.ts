@@ -2,14 +2,15 @@ import { Module, type OnModuleInit } from '@nestjs/common';
 import { ScheduledTasks } from '../../shared/scheduler/index.js';
 import { RefreshInstallmentStatusesUseCase } from './application/refresh-installment-statuses.use-case.js';
 import { SendDueSoonRemindersUseCase } from './application/send-due-soon-reminders.use-case.js';
+import { PaymentProofConsumer } from './events/payment-proof.consumer.js';
 
 /**
  * Partie worker du module ledger : tâche `installments.refresh-statuses` (jobs.yaml : quotidienne 01:00 dans le fuseau
  * de chaque association) et `installments.due-soon` (08:00 locale, lot 2.5), lancées toutes les heures ; chaque passage
- * traite les associations où il est l'heure de la tâche.
+ * traite les associations où il est l'heure de la tâche. Rattachement de la preuve déclarée (payment.declared, lot 3.3).
  */
 @Module({
-  providers: [RefreshInstallmentStatusesUseCase, SendDueSoonRemindersUseCase],
+  providers: [RefreshInstallmentStatusesUseCase, SendDueSoonRemindersUseCase, PaymentProofConsumer],
   exports: [RefreshInstallmentStatusesUseCase, SendDueSoonRemindersUseCase],
 })
 export class LedgerWorkerModule implements OnModuleInit {
