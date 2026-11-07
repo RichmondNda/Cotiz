@@ -102,4 +102,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['as.resets', 'all'],
   // Lot 3.2 : tableau de bord et projets du souscripteur.
   ['me.dash', 'all'],
+  ['me.projects', 'all'],
+  ['me.project', 'all'],
 ])

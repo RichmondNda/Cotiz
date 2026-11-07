@@ -5,6 +5,8 @@ import { GetManagerDashboardUseCase } from './application/get-manager-dashboard.
 import { GetPlatformDashboardUseCase } from './application/get-platform-dashboard.use-case.js';
 import { GetProjectReportUseCase } from './application/get-project-report.use-case.js';
 import { GetSubscriberDashboardUseCase } from './application/get-subscriber-dashboard.use-case.js';
+import { GetSubscriberProjectUseCase } from './application/get-subscriber-project.use-case.js';
+import { ListSubscriberProjectsUseCase } from './application/list-subscriber-projects.use-case.js';
 import { ManagerDashboardController } from './http/manager-dashboard.controller.js';
 import { PlatformDashboardController } from './http/platform-dashboard.controller.js';
 import { ProjectReportController } from './http/project-report.controller.js';
@@ -28,6 +30,8 @@ import { SubscriberSpaceController } from './http/subscriber-space.controller.js
     GetProjectReportUseCase,
     GetManagerDashboardUseCase,
     GetSubscriberDashboardUseCase,
+    ListSubscriberProjectsUseCase,
+    GetSubscriberProjectUseCase,
   ],
 })
 export class ReportingModule {}
