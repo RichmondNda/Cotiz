@@ -56,3 +56,12 @@ export type {
   LedgerInstallment,
   MemberStanding,
 } from './ledger-types.js';
+export {
+  bySubscriberCardOrder,
+  enrollmentLate,
+  enrollmentNextDue,
+  enrollmentProgress,
+  subscriberSummary,
+  unsignedEnrollmentInstallments,
+} from './subscriber-figures.js';
+export type { SubscriberEnrollmentFigures, SubscriberInstallment } from './subscriber-figures.js';

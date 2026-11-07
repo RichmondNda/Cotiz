@@ -9,10 +9,11 @@ import {
   memberStanding,
   Money,
   remainingOf,
+  unsignedEnrollmentInstallments,
 } from '@cotiz/domain';
 import { asc, inArray } from 'drizzle-orm';
 import type { SubscriberContact } from '../../identity/identity.public.js';
-import type { ProjectRecord } from '../../projects/projects.public.js';
+import { enrollmentScheduleOf, type ProjectRecord } from '../../projects/projects.public.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import type { EnrollmentRecord } from './enrollment-records.js';
 
@@ -79,6 +80,21 @@ function computed(i: InstallmentRecord, project: ProjectRecord, today: IsoDate) 
 }
 
 /**
+ * Inscription en attente de signature sans échéancier (décision 20 : généré à la signature) : à dates fixes,
+ * l'échéancier qui sera généré depuis la date d'entrée (`startsFrom`), rien de versé, pour l'engagement et le reste
+ * (comme les mocks) ; cycle roulant : aucun terme, rien. `null` : inscription engagée ou échéancier déjà généré.
+ */
+export function pendingSignatureStates(
+  row: Pick<EnrollmentRecord, 'status' | 'startsFrom'>,
+  project: ProjectRecord,
+  lines: readonly InstallmentRecord[],
+): InstallmentComputed[] | null {
+  if (row.status !== 'pending_signature' || lines.length > 0) return null;
+  const schedule = project.scheduleType === 'fixed' ? enrollmentScheduleOf(project, row.startsFrom) : [];
+  return unsignedEnrollmentInstallments(Array.isArray(schedule) ? schedule : [], project.scheduleType);
+}
+
+/**
  * Inscription du contrat (onglet Souscripteurs, annuaire, fiche, réponse de en.create) à partir de ses échéances déjà
  * chargées : statuts par installmentStatus() au jour de l'association, totaux par enrollmentTotals(), situation par
  * memberStanding() ; un compte non activé et à jour est « activation en attente » (domain-rules § 7).
@@ -92,7 +108,7 @@ export function enrollmentView(
   states: readonly InstallmentComputed[] = computedStates(lines, project, today),
 ): Enrollment {
   const currency = project.currency as Currency;
-  const totals = enrollmentTotals(states, project.scheduleType);
+  const totals = enrollmentTotals(pendingSignatureStates(row, project, lines) ?? states, project.scheduleType);
   const standing = memberStanding(
     row.status,
     states.map((l) => l.status),

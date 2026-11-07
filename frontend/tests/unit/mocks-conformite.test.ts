@@ -52,6 +52,12 @@ async function call(id: string, op: string, c: Call = {}) {
   return runImplementation(id as never, op, ctx)
 }
 
+/** Moussa a-t-il une association en retard (me.assos, simulé) ? Sonde des scénarios et de la déclaration. */
+async function moussaLate(c: Call = {}) {
+  const { items } = await call('me.assos', 'list', c) as { items: { standing: string }[] }
+  return items.some(i => i.standing === 'late')
+}
+
 function defaultSpace(id: string): keyof typeof ROLE | null {
   const d = def(id)
   if (d.permission === 'public') return null
@@ -89,7 +95,6 @@ const READS: Record<string, Call> = {
   'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
   'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
-  'me.dash get': {}, 'me.projects list': {}, 'me.project get': { params: { pid: ID.centre } },
   'me.payment get': { params: { id: uid('payment', 'pm-md-07-c') } }, 'me.history list': {}, 'me.history series': {},
   'me.contract get': { params: { pid: ID.voyage } }, 'me.contracts list': {}, 'me.assos list': {}, 'me.assos get': { params: { aid } },
 }
@@ -195,16 +200,16 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
   }
 
   it('aucun-retard : plus aucun souscripteur en retard ni montant en retard', async () => {
-    // Rapport de projet servi par NestJS depuis le lot 2.6 : contrôle sur le tableau de bord de Moussa.
-    type Synthese = { late: unknown }
+    // Rapport de projet (lot 2.6) et tableau de bord souscripteur (lot 3.2) servis par NestJS : contrôle sur les
+    // associations de Moussa (me.assos, encore simulé).
     // Contrôle : sans scénario, Moussa a des échéances en retard.
-    expect((await call('me.dash', 'get') as Synthese).late).not.toBeNull()
-    expect((await call('me.dash', 'get', { scenario: 'aucun-retard' }) as Synthese).late).toBeNull()
+    expect(await moussaLate()).toBe(true)
+    expect(await moussaLate({ scenario: 'aucun-retard' })).toBe(false)
   })
 
   it('un scénario ne modifie jamais le jeu', async () => {
     const avant = JSON.stringify(db)
-    await call('me.dash', 'get', { scenario: 'tout-est-paye' })
+    await call('me.assos', 'list', { scenario: 'tout-est-paye' })
     expect(JSON.stringify(db)).toBe(avant)
   })
 })
@@ -244,16 +249,16 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
     expect(await problem('pf.staff', 'list', { as: 'association' })).toBe('forbidden')
-    expect(await problem('me.dash', 'get', { as: null })).toBe('session_expired')
+    expect(await problem('me.assos', 'list', { as: null })).toBe('session_expired')
   })
 })
 
 describe('mutations : état en mémoire', () => {
   it('déclarer : paiement en attente, plus de retard affiché (la validation est servie par NestJS depuis le lot 2.4)', async () => {
+    expect(await moussaLate()).toBe(true)
     const declared = await call('me.declare', 'declare', WRITES['me.declare declare']!()) as { id: string, status: string }
     expect(declared.status).toBe('pending')
-    const dash = await call('me.dash', 'get') as { late: unknown }
-    expect(dash.late).toBeNull()
+    expect(await moussaLate()).toBe(false)
     expect(firstPending()).toBeDefined()
   })
 

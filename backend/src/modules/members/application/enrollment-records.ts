@@ -1,6 +1,6 @@
 import { enrollments, subscriberProfiles } from '@cotiz/db';
 import { and, eq } from 'drizzle-orm';
-import { currentTx } from '../../../shared/tenant-context/index.js';
+import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 export type EnrollmentRecord = typeof enrollments.$inferSelect;
 
@@ -25,4 +25,21 @@ export async function profileCreatorOf(userId: string): Promise<string | null> {
     .where(eq(subscriberProfiles.userId, userId))
     .limit(1);
   return row?.associationId ?? null;
+}
+
+/**
+ * Personne d'une inscription de cette association, lue dans son contexte (RLS et filtre) ; `null` si elle n'existe
+ * pas (ou plus). Contexte de cette association seulement (consommateur du cache souscripteur).
+ */
+export async function enrollmentOwnerOf(associationId: string, enrollmentId: string): Promise<string | null> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('enrollmentOwnerOf : contexte de cette association seulement');
+  }
+  const [row] = await currentTx()
+    .select({ userId: enrollments.userId })
+    .from(enrollments)
+    .where(and(eq(enrollments.associationId, associationId), eq(enrollments.id, enrollmentId)))
+    .limit(1);
+  return row?.userId ?? null;
 }

@@ -105,3 +105,33 @@ export async function ownAssociationOf(aid: string): Promise<AssociationRecord |
   const [row] = await currentTx().select().from(associations).where(eq(associations.id, id));
   return row ?? null;
 }
+
+/** Ce que l'espace souscripteur présente d'une association : référence et fuseau (jour civil des échéances). */
+export interface SubscriberAssociation {
+  id: string;
+  name: string;
+  logoFileId: string | null;
+  timezone: string;
+}
+
+/**
+ * Associations demandées, lues par la personne connectée en espace subscriber (RLS `member_read` : celles où elle a
+ * une appartenance active, **quel que soit le rôle**) ; les autres sont absentes. Le rôle souscripteur se filtre chez
+ * l'appelant (`subscriberEnrollmentsOf`).
+ */
+export async function subscriberAssociationsOf(ids: readonly string[]): Promise<Map<string, SubscriberAssociation>> {
+  if (currentContext()?.space !== 'subscriber') {
+    throw new Error('subscriberAssociationsOf : espace souscripteur seulement');
+  }
+  if (ids.length === 0) return new Map();
+  const rows = await currentTx()
+    .select({
+      id: associations.id,
+      name: associations.name,
+      logoFileId: associations.logoFileId,
+      timezone: associations.timezone,
+    })
+    .from(associations)
+    .where(inArray(associations.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r]));
+}

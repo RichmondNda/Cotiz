@@ -1,17 +1,17 @@
-// Espace souscripteur : tableau de bord, projets, aperçu et déclaration d'un paiement, historique, contrats, associations.
+// Espace souscripteur (tableau de bord et projets : NestJS depuis le lot 3.2) : aperçu et déclaration d'un paiement, historique, contrats, associations.
 import { createHash } from 'node:crypto'
 import { DomainError, formatMoney, proposeAllocation, validateAllocation } from '@cotiz/domain'
 import type { AllocationIssue } from '@cotiz/domain'
 import { formatTelephone } from '../../../app/utils/format'
 import { db } from '../db'
-import type { EnrollmentRow, PaymentRow, ProjectRow } from '../db'
+import type { EnrollmentRow, PaymentRow } from '../db'
 import type { MockContext } from '../http'
 import { nowInstant, problem, requireSession } from '../http'
 import { uid } from '../ids'
 import { enrollmentFigures, ledgerInstallments, monthOf, openTotal, scheduleFrom, subscriberTotals, sum } from '../ledger'
 import { signEnrollment } from '../scenarios'
 import {
-  associationRef, associationRow, enrollmentsOfUser, installment, money, moneyOrNull, paymentMethodsOf, projectRef, projectRow,
+  associationRef, associationRow, enrollmentsOfUser, money, moneyOrNull, paymentMethodsOf, projectRef, projectRow,
   subscriberPayment, subscriberProjectCard, userRow,
 } from '../views'
 import { uploads } from './imports'
@@ -23,67 +23,6 @@ function myEnrollment(userId: string, projectId: string): EnrollmentRow {
 
 function myPayments(userId: string) {
   return db.payments.filter(p => p.userId === userId).sort((a, b) => b.declaredAt.localeCompare(a.declaredAt))
-}
-
-// ---------------------------------------------------------------- Tableau de bord et projets
-
-export function dashboard(ctx: MockContext<'me.dash', 'get'>) {
-  const userId = requireSession(ctx).userId
-  const t = subscriberTotals(userId)
-  const enrollments = enrollmentsOfUser(userId)
-  const next = t.nextDue
-  return {
-    remainingTotal: money(t.remainingTotal),
-    projectsCount: t.projectsCount,
-    associationsCount: t.associationsCount,
-    late: t.late ? { count: t.late.count, amount: money(t.late.amount) } : null,
-    nextDue: next
-      ? (() => {
-          const p = projectRow(next.enrollment.projectId)
-          return { project: projectRef(p), association: associationRef(associationRow(p.associationId)), dueDate: next.dueDate, amount: money(next.amount) }
-        })()
-      : null,
-    contractsToSign: enrollments.filter(e => e.status === 'pending_signature').map((e) => {
-      const p = projectRow(e.projectId)
-      return { project: projectRef(p), association: associationRef(associationRow(p.associationId)) }
-    }),
-    projects: enrollments.map(subscriberProjectCard),
-    recentPayments: myPayments(userId).slice(0, 3).map(subscriberPayment),
-  }
-}
-
-export function projectsList(ctx: MockContext<'me.projects', 'list'>) {
-  const userId = requireSession(ctx).userId
-  return {
-    items: enrollmentsOfUser(userId).map(e => ({
-      ...subscriberProjectCard(e),
-      openInstallments: enrollmentFigures(e).installments.filter(i => i.remaining > 0 && i.persistedStatus === 'open').map(installment),
-    })),
-  }
-}
-
-function projectMethods(p: ProjectRow) {
-  const all = paymentMethodsOf(p.associationId)
-  return p.paymentMethods
-    .map(m => all.find(x => x.id === m.paymentMethodId) && { ...all.find(x => x.id === m.paymentMethodId)!, instructions: m.instructionsOverride ?? all.find(x => x.id === m.paymentMethodId)!.instructions })
-    .filter(m => m !== undefined)
-}
-
-export function projectGet(ctx: MockContext<'me.project', 'get'>) {
-  const userId = requireSession(ctx).userId
-  const e = myEnrollment(userId, ctx.params.pid)
-  const p = projectRow(e.projectId)
-  return {
-    ...subscriberProjectCard(e),
-    terms: {
-      entryFee: moneyOrNull(p.entryFee), installmentAmount: money(p.installmentAmount), frequency: p.frequency, dueDay: p.dueDay,
-      scheduleType: p.scheduleType, startDate: p.startDate, endDate: p.endDate,
-    },
-    installments: enrollmentFigures(e).installments.map(installment),
-    payments: myPayments(userId).filter(x => x.enrollmentId === e.id).map(subscriberPayment),
-    paymentMethods: projectMethods(p),
-    contract: { required: p.contractRequired, signedAt: e.contractSignedAt },
-  }
 }
 
 // ---------------------------------------------------------------- Déclaration

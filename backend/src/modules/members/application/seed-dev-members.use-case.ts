@@ -18,13 +18,16 @@ interface ReferenceEnrollment {
   joined: string;
   /** Date d'entrée, si elle n'est pas le début du projet. */
   startsFrom?: string;
+  /** Contrat à signer : en attente de signature, sans échéancier (décision 20 : généré à la signature). */
+  pendingSignature?: true;
 }
 
 /**
  * Inscriptions de docs/specs/seed-reference.yaml, comme les données simulées du front (frontend/server/mocks/db/seed.ts,
  * `ENROLLMENTS`), pour les comptes réels de seed-dev seulement : même identifiant (`uid('enrollment', 'projet:personne')`,
- * échéances `uid('installment', 'projet:personne:rang')`), échéancier par generateSchedule(). Sans paiement (lot 2.4) ni
- * signature (lot 4.1) : toutes en cours.
+ * échéances `uid('installment', 'projet:personne:rang')`), échéancier par generateSchedule(). Sans paiement (lot 2.4) ;
+ * en cours, sauf Moussa sur Voyage solidaire (« Contrat Voyage solidaire à signer », seed-reference.yaml) : en attente
+ * de signature, sans échéancier (lot 3.2, comme les mocks).
  */
 const REFERENCE_ENROLLMENTS: Readonly<Record<string, readonly ReferenceEnrollment[]>> = {
   'entraide-yopougon': [
@@ -32,7 +35,13 @@ const REFERENCE_ENROLLMENTS: Readonly<Record<string, readonly ReferenceEnrollmen
     { project: 'centre-communautaire', user: 'jean-kouassi', joined: '2026-03-12' },
     { project: 'centre-communautaire', user: 'fatou-traore', joined: '2026-09-02', startsFrom: '2026-09-02' },
     { project: 'centre-communautaire', user: 'awa-kone', joined: '2026-03-12' },
-    { project: 'voyage-solidaire', user: 'moussa-diarra', joined: '2026-09-18', startsFrom: '2026-09-18' },
+    {
+      project: 'voyage-solidaire',
+      user: 'moussa-diarra',
+      joined: '2026-09-18',
+      startsFrom: '2026-09-18',
+      pendingSignature: true,
+    },
     { project: 'voyage-solidaire', user: 'ibrahim-toure', joined: '2026-09-15', startsFrom: '2026-09-15' },
   ],
   'ressortissants-man': [{ project: 'mutuelle-sante', user: 'moussa-diarra', joined: '2026-07-01' }],
@@ -100,14 +109,14 @@ export class SeedDevMembersUseCase {
           associationId,
           projectId: project.id,
           userId,
-          status: 'active',
+          status: e.pendingSignature ? 'pending_signature' : 'active',
           startsFrom,
           joinedAt: at(e.joined),
-          activatedAt: at(e.joined),
+          activatedAt: e.pendingSignature ? null : at(e.joined),
         })
         .onConflictDoNothing()
         .returning({ id: enrollments.id });
-      if (created.length > 0) {
+      if (created.length > 0 && !e.pendingSignature) {
         const lines = enrollmentScheduleOf(project, startsFrom);
         if (!Array.isArray(lines)) throw new Error(`seed-dev : échéancier refusé pour ${e.project}:${e.user}`);
         await tx.insert(installments).values(

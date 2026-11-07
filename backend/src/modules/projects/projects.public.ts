@@ -14,6 +14,8 @@ export {
   projectsOf,
   type ProjectRecord,
   rollingExtensionOf,
+  subscriberProjectLinksOf,
+  termsOf,
   toSummaries,
   unlockFinancialTerms,
 } from './application/project-records.js';

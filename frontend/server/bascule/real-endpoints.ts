@@ -100,4 +100,8 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   // Lot 3.1 : profil de la personne connectée, réinitialisations des souscripteurs (mg-resets).
   ['me.profile', 'all'],
   ['as.resets', 'all'],
+  // Lot 3.2 : tableau de bord et projets du souscripteur.
+  ['me.dash', 'all'],
+  ['me.projects', 'all'],
+  ['me.project', 'all'],
 ])

@@ -1,6 +1,6 @@
 import type { PaymentMethod } from '@cotiz/contracts';
 import { associationPaymentMethods } from '@cotiz/db';
-import { and, asc, count, eq, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 export type PaymentMethodRecord = typeof associationPaymentMethods.$inferSelect;
@@ -72,4 +72,20 @@ function assertOwnAssociation(associationId: string, name: string): void {
   if (context?.space !== 'association' || context.associationId !== associationId) {
     throw new Error(`${name} : contexte de l’association attendu`);
   }
+}
+
+/**
+ * Moyens de paiement de ces associations, lus en espace subscriber (RLS `member_read` : associations où la personne a
+ * une appartenance active, quel que soit le rôle ; le rôle se filtre chez l'appelant), dans l'ordre d'affichage.
+ */
+export async function subscriberPaymentMethodsOf(associationIds: readonly string[]): Promise<PaymentMethodRecord[]> {
+  if (currentContext()?.space !== 'subscriber') {
+    throw new Error('subscriberPaymentMethodsOf : espace souscripteur seulement');
+  }
+  if (associationIds.length === 0) return [];
+  return currentTx()
+    .select()
+    .from(associationPaymentMethods)
+    .where(inArray(associationPaymentMethods.associationId, [...new Set(associationIds)]))
+    .orderBy(asc(associationPaymentMethods.position), asc(associationPaymentMethods.id));
 }

@@ -207,3 +207,33 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Écran : tableau et modale de SaReinitialisations extraits dans `components/metier/DemandesReinitialisation.vue`,
     partagés par `/plateforme/reinitialisations` (rendu inchangé) et `/asso/souscripteurs/reinitialisations` ; entrée
     « Réinitialisations » dans l'annuaire (members.manage), à côté de « Codes à remettre ».
+
+- **2026-11-07** · Lot 3.2 (tableau de bord et projets du souscripteur) — plan, une seule PR vers `backend` (comme 3.1).
+  Dépendance 3.1 `terminé` (PR #36 fusionnée), aucune décision listée. Aucune migration : politiques `subscriber_*`
+  déjà en place (enrollments, installments, payments, allocations, projects, project_payment_methods ; associations
+  et moyens de paiement via appartenance active).
+  - Module : **reporting** sert `/me/dashboard`, `/me/projects`, `/me/projects/{pid}` en espace subscriber (au départ
+    members, abandonné : members → ledger ferait un cycle, ledger important déjà members) ; lectures fournies par
+    members (inscriptions et statuts), tenancy (associations, moyens), ledger (paiements vus par le souscripteur),
+    projects (projets, moyens retenus) via leurs `*.public.ts`.
+  - Étape 1 · `me.dash` : règles dans `@cotiz/domain` (`subscriber-figures.ts` : prochaine échéance d'une inscription,
+    synthèse toutes associations, ordre des cartes) + tests ; cas d'usage et contrôleur ; cache Redis 30 s par personne
+    (génération, modèle as.dashboard), invalidé par un consommateur du worker sur les événements qui la concernent ;
+    test d'intégration au 2026-09-25 sur `seed-dev` : chiffres de `expected.subscriberDashboard_moussa` et cartes
+    identiques à `en.list` côté gestionnaire ; bascule `me.dash`.
+  - Étape 2 · `me.projects`, `me.project` : échéances ouvertes, échéancier (`installmentView`), paiements liés,
+    moyens retenus (consignes du projet), contrat ; tests d'intégration ; bascule, handlers simulés supprimés.
+  - Étape 3 · isolation : souscripteur A face aux projets de B (même association, autre association, retiré,
+    inconnu) → 404 ; tableau de bord et liste sans ligne de B ; politique affaiblie → le test échoue.
+  Choix (option conventionnelle prise) :
+  - Seed : Moussa est inscrit à Voyage solidaire **en attente de signature, sans échéance** (seed-reference : « Contrat
+    Voyage solidaire à signer » ; décision 20 ; comme les mocks). Avant : inscription active avec échéancier, qui
+    donnait 525 000 F restants au lieu de 395 000 F. Aucun chiffre gestionnaire de septembre ne bouge (premières
+    échéances de Moussa sur Voyage au 2026-10-05). Une base de dev déjà semée garde l'ancienne inscription.
+  - Inscription en attente de signature : engagement calculé par generateSchedule() depuis `startsFrom` (comme les
+    mocks), appliqué aussi à la vue gestionnaire (`enrollmentView`) pour garder les mêmes chiffres des deux côtés ;
+    exclue du reste total et des retards du tableau de bord (règle des mocks).
+  - Inscriptions présentées : non retirées, dans les associations où la personne est souscriptrice active (comme la
+    cloche, nt.list).
+  - `late.since` d'une carte = date d'échéance du plus ancien retard (« depuis le 5 août », règle des mocks).
+  - `contract.required` = inscription en attente de signature (aucune colonne de contrat avant le lot 4.1).

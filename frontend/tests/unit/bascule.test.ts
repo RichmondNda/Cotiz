@@ -35,8 +35,8 @@ describe('decide', () => {
   const base = { mocks: true, apiOrigin: 'http://api' }
 
   it('mock par défaut, NestJS pour un id du registre', () => {
-    expect(decide('GET', '/api/v1/me/dashboard', base)).toBe('mock')
-    expect(decide('GET', '/api/v1/me/dashboard', { ...base, real: new Set(['me.dash']) })).toBe('proxy')
+    expect(decide('GET', '/api/v1/me/history', base)).toBe('mock')
+    expect(decide('GET', '/api/v1/me/history', { ...base, real: new Set(['me.history']) })).toBe('proxy')
     expect(decide('GET', '/api/v1/health/live', base)).toBe('proxy')
   })
 

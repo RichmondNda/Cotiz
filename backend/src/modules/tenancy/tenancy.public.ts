@@ -9,6 +9,8 @@ export {
   platformAssociationOf,
   platformAssociationsOverview,
   remindableAssociationTimezonesOf,
+  type SubscriberAssociation,
+  subscriberAssociationsOf,
 } from './application/association-records.js';
 export { platformAssociationDetail } from './application/association-views.js';
 export { createAssociation, type NewAssociation } from './application/create-association.js';
@@ -17,5 +19,6 @@ export {
   lockPaymentMethods,
   type PaymentMethodRecord,
   paymentMethodsOf,
+  subscriberPaymentMethodsOf,
   toPaymentMethod,
 } from './application/payment-method-records.js';
