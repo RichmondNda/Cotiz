@@ -82,7 +82,6 @@ async function problemOf(p: Promise<unknown>) {
 const aid = ID.entraide
 const P = { aid, pid: ID.centre }
 const money = (amount: number) => ({ amount, currency: 'XOF' })
-const firstPending = () => db.payments.find(p => p.status === 'pending' && p.id === uid('payment', 'pm-awa-kone'))!
 const moussaCentreLate = () => [
   { installmentId: uid('installment', 'centre-communautaire:moussa-diarra:6'), amount: money(25000) },
   { installmentId: uid('installment', 'centre-communautaire:moussa-diarra:7'), amount: money(25000) },
@@ -95,7 +94,7 @@ const READS: Record<string, Call> = {
   'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
   'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
-  'me.payment get': { params: { id: uid('payment', 'pm-md-07-c') } }, 'me.history list': {}, 'me.history series': {},
+  'me.history list': {}, 'me.history series': {},
   'me.contract get': { params: { pid: ID.voyage } }, 'me.contracts list': {}, 'me.assos list': {}, 'me.assos get': { params: { aid } },
 }
 
@@ -120,8 +119,6 @@ const WRITES: Record<string, () => Call> = {
   'im.steps mapping': () => ({ params: { aid, id: 'X' }, body: { mapping: { Mail: null } }, setup: importJob } as Call),
   'im.steps row': () => ({ params: { aid, id: 'X', rowId: 'X' }, body: { ignore: true }, setup: importJob } as Call),
   'im.commit commit': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-  'me.alloc preview': () => ({ body: { projectId: ID.centre, amount: money(75000) } }),
-  'me.declare declare': () => ({ body: { projectId: ID.centre, amount: money(50000), paidOn: '2026-09-25', paymentMethodId: null, transactionReference: 'OM-1', allocations: moussaCentreLate() } }),
   'me.sign sign': () => ({ params: { pid: ID.voyage }, setup: async (c: Call) => { c.body = { renderedSha256: ((await call('me.contract', 'get', { params: { pid: ID.voyage } })) as { renderedSha256: string }).renderedSha256, accepted: true } } } as Call),
 }
 
@@ -221,8 +218,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
     return e.code
   }
 
-  it('scénarios : allocation_mismatch, quota_exceeded, version_conflict, association_suspended', async () => {
-    expect(await problem('me.declare', 'declare', { ...WRITES['me.declare declare']!(), scenario: 'allocation_mismatch' })).toBe('allocation_mismatch')
+  it('scénarios : quota_exceeded, version_conflict, association_suspended', async () => {
     expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
     expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), scenario: 'version_conflict' })).toBe('version_conflict')
     expect(await problem('tm.team', 'list', { ...READS['tm.team list'], scenario: 'association_suspended' })).toBe('association_suspended')
@@ -230,17 +226,6 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 
   it('If-Match périmé → version_conflict', async () => {
     expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), ifMatch: 7 })).toBe('version_conflict')
-  })
-
-  it('répartition qui ne fait pas le montant → allocation_mismatch ; au-delà du reste → amount_exceeds_remaining', async () => {
-    const base = WRITES['me.declare declare']!()
-    expect(await problem('me.declare', 'declare', { ...base, body: { ...(base.body as object), amount: money(40000) } })).toBe('allocation_mismatch')
-    expect(await problem('me.declare', 'declare', { ...base, body: { ...(base.body as object), amount: money(10_000_000) } })).toBe('amount_exceeds_remaining')
-  })
-
-  it('déclarer sur un projet dont le contrat n’est pas signé → signature_required', async () => {
-    const e = await problem('me.declare', 'declare', { body: { projectId: ID.voyage, amount: money(10000), paidOn: '2026-09-25', paymentMethodId: null, transactionReference: 'x', allocations: [{ installmentId: ID.voyage, amount: money(10000) }] } })
-    expect(e).toBe('signature_required')
   })
 
   it('ressource d’une autre association → 404', async () => {
@@ -254,31 +239,21 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 })
 
 describe('mutations : état en mémoire', () => {
-  it('déclarer : paiement en attente, plus de retard affiché (la validation est servie par NestJS depuis le lot 2.4)', async () => {
-    expect(await moussaLate()).toBe(true)
-    const declared = await call('me.declare', 'declare', WRITES['me.declare declare']!()) as { id: string, status: string }
-    expect(declared.status).toBe('pending')
-    expect(await moussaLate()).toBe(false)
-    expect(firstPending()).toBeDefined()
-  })
-
   it('Idempotency-Key : même clé et même corps → même réponse ; corps différent → idempotency_key_reused', async () => {
-    const run = (body: unknown) => runImplementation('me.declare' as never, 'declare', {
-      params: undefined, query: undefined, body, session: sessionFromRole('souscripteur'), scenario: undefined, ifMatch: null, idempotencyKey: 'cle-1',
+    // Mécanisme commun des mocks (server/mocks/http.ts), essayé sur une écriture encore simulée.
+    const run = (body: unknown) => runImplementation('rm.send' as never, 'send', {
+      params: { aid }, query: undefined, body, session: sessionFromRole('gestionnaire'), scenario: undefined, ifMatch: null, idempotencyKey: 'cle-1',
     } as MockContext<never, never>)
-    const body = WRITES['me.declare declare']!().body
-    const parsed = ENDPOINTS['me.declare'].operations.declare.request.body.parse(body)
-    const first = await run(parsed) as { id: string }
-    expect((await run(parsed) as { id: string }).id).toBe(first.id)
-    expect(db.payments.filter(p => p.userId === ID.moussa && p.status === 'pending')).toHaveLength(1)
-    const other = ENDPOINTS['me.declare'].operations.declare.request.body.parse({ ...(body as object), amount: money(25000), allocations: moussaCentreLate().slice(0, 1) })
+    const send = ENDPOINTS['rm.send'].operations.send.request.body
+    const body = send.parse(WRITES['rm.send send']!().body)
+    expect(await run(body)).toEqual(await run(body))
+    const other = send.parse({ ...(body as object), message: 'Autre message' })
     await expect(run(other)).rejects.toMatchObject({ code: 'idempotency_key_reused' })
   })
 
   it('déclaration sans preuve ni référence → proof_required (règle du schéma)', async () => {
-    const { transactionReference: _ref, ...sansPreuve } = WRITES['me.declare declare']!().body as Record<string, unknown>
-    const ctx = { body: sansPreuve, session: sessionFromRole('souscripteur') }
-    const result = ENDPOINTS['me.declare'].operations.declare.request.body.safeParse(ctx.body)
+    const sansPreuve = { projectId: ID.centre, amount: money(50000), paidOn: '2026-09-25', paymentMethodId: null, allocations: moussaCentreLate() }
+    const result = ENDPOINTS['me.declare'].operations.declare.request.body.safeParse(sansPreuve)
     expect(result.success).toBe(false)
     expect(result.error?.issues[0]?.message).toBe('proof_required')
   })

@@ -304,3 +304,18 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     - Écarté : « rejeu sur une ancienne inscription du même projet → 500 » impossible, `UNIQUE (project_id, user_id)`
       sur enrollments (schema.sql) ; verrou `lockInstallments` sans filtre `user_id` (partagé avec lg.pay.*, aucune
       écriture possible sur l'échéance d'autrui : `writePending` filtre `user_id`) laissé tel quel.
+  - Étape 4 (front + bout en bout), choix :
+    - Contenu de la preuve gardé hors de `useState` (variable du module `useDeclaration`, navigateur seulement) ;
+      page rechargée → preuve à rechoisir. Fichier déposé mémorisé par `File` (WeakMap) : un nouvel essai de la même
+      déclaration renvoie le même `proofFileId` avec la même clé (sinon `idempotency_key_reused`).
+    - Analyse : `complete` attend jusqu'à FILE_SCAN_WAIT_MS ; encore `pending` → nouvelle confirmation (sans effet),
+      au plus 3 fois, puis message « encore en cours de vérification ». Erreur d'envoi : titre du Problem (`messageRefus`).
+    - Bascule : `me.declare`, `me.payment` (`all`), `fl.upload` pour `subscriber` en plus de `platform` ; `fl.get`
+      inchangé (l'espace souscripteur ne lit aucun fichier). Handlers simulés me.alloc/me.declare/me.payment retirés ;
+      test d'idempotence générique des mocks déplacé sur `rm.send`.
+    - Parcours `souscripteur` (mocks + back réel) : s'arrête au récapitulatif (l'envoi réel changerait les échéances de
+      Moussa d'un passage à l'autre). Parcours `declaration` : compte neuf (rejouable) ; son fonds d'entrée (50 000 F,
+      plus ancienne échéance) est d'abord déclaré par référence et validé, pour que les 75 000 F couvrent 3 mois comme
+      pour Moussa (critère du lot).
+    - Pile Docker : `CLAMAV_URL: tcp://clamav:3310` dans `infra/compose/app.yml` (service `clamav`, profil
+      `antivirus`) : sans antivirus, un dépôt reste en analyse et la déclaration avec photo est refusée.

@@ -153,23 +153,53 @@ export function useTraitementPaiement() {
 
 const MIME_PREUVE = (nom: string) => (nom.toLowerCase().endsWith('.pdf') ? 'application/pdf' : nom.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg')
 
+/** Erreur locale présentée comme un refus du back (`messageRefus` lit le titre). */
+const refusLocal = (code: string, title: string) => Object.assign(new Error(code), { data: { code }, statusCode: 409, problem: { title } })
+
+/**
+ * Preuves déjà déposées, par fichier choisi : un nouvel essai de la même déclaration (réponse perdue) renvoie le même
+ * `proofFileId` avec la même clé d'idempotence, sinon le back y verrait une autre déclaration.
+ */
+const preuvesDeposees = new WeakMap<File, string>()
+
+/**
+ * Dépôt de la preuve (fl.upload, espace souscripteur) : ticket, envoi direct au stockage, confirmation. La confirmation
+ * attend l'analyse quelques secondes ; encore en cours → nouvelle confirmation (sans effet sur le fichier), au plus 3 fois.
+ */
+async function deposerPreuve(client: ApiClient, fichier: File): Promise<string> {
+  let id = preuvesDeposees.get(fichier)
+  if (!id) {
+    const mimeType = fichier.type || MIME_PREUVE(fichier.name)
+    const ticket = await client.call('fl.upload', 'create', { body: { purpose: 'payment_proof', fileName: fichier.name, mimeType, sizeBytes: fichier.size } })
+    await $fetch(ticket.uploadUrl, { method: ticket.method, headers: ticket.headers, body: fichier })
+    id = ticket.fileId
+    preuvesDeposees.set(fichier, id)
+  }
+  for (let essai = 0; essai < 3; essai++) {
+    const f = await client.call('fl.upload', 'complete', { params: { id } })
+    if (f.scanStatus === 'clean') return f.id
+  }
+  throw refusLocal('preuve_en_analyse', 'Votre preuve est encore en cours de vérification. Réessayez dans un instant.')
+}
+
 /**
  * Déclaration d'un paiement par le souscripteur (MbDeclarer) : dépôt de la preuve (fl.upload), puis me.declare avec la
  * répartition choisie et le moyen de paiement de l'association du même type.
  */
 export function useDeclarationPaiement() {
   const client = useClient()
-  /** `cle` : clé d'idempotence, identique pour chaque nouvel essai du même contenu (useDeclaration › cleEnvoi). */
-  return async (d: NouvelleDeclaration, cle: string): Promise<{ id: string }> => {
+  /**
+   * `cle` : clé d'idempotence, identique pour chaque nouvel essai du même contenu (useDeclaration › cleEnvoi) ;
+   * `fichier` : contenu de la preuve choisie (useDeclaration › contenuPreuve), déposé à chaque essai.
+   */
+  return async (d: NouvelleDeclaration, cle: string, fichier: File | null = null): Promise<{ id: string }> => {
     const projet = await client.call('me.project', 'get', { params: { pid: d.projetId } })
     const devise = projet.remaining.currency
     const moyen = projet.paymentMethods.find(pm => pm.kind === MOYEN_INVERSE[d.moyen]) ?? null
     let proofFileId: string | undefined
     if (d.preuve.type !== 'reference') {
-      const ticket = await client.call('fl.upload', 'create', { body: { purpose: 'payment_proof', fileName: d.preuve.nomFichier, mimeType: MIME_PREUVE(d.preuve.nomFichier), sizeBytes: 1 } })
-      await $fetch(ticket.uploadUrl, { method: 'PUT', headers: ticket.headers, body: '' })
-      await client.call('fl.upload', 'complete', { params: { id: ticket.fileId } })
-      proofFileId = ticket.fileId
+      if (!fichier) throw refusLocal('preuve_perdue', 'Ajoutez à nouveau la capture du reçu.')
+      proofFileId = await deposerPreuve(client, fichier)
     }
     const reference = d.preuve.reference?.trim()
     try {

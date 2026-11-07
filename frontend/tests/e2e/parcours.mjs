@@ -12,6 +12,12 @@ const DEMANDE_TONTINE = uid('request', 'tontine-commercantes-adjame')
 
 let compteurAvant = 0
 
+/** Montant tel que `texte()` le lit (espaces normalisées) : `75 000 F`. */
+const formatFCFA = n => `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} F`
+
+/** Photo de reçu minimale (PNG 1 × 1 valide : le worker vérifie le type réel du contenu). */
+const PNG_RECU = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
 /** Compteur (badge) d'une entrée de la navigation latérale ; 0 s'il n'y en a pas. */
 async function compteurMenu(page, entree) {
   const lien = page.getByRole('navigation').getByRole('link', { name: new RegExp(`^${entree}`) }).first()
@@ -112,7 +118,7 @@ const PARCOURS = {
     }],
   ]),
 
-  // Connexion souscripteur → accueil → projet en retard → déclarer un paiement → confirmation → historique.
+  // Connexion souscripteur → accueil → projet en retard → déclarer un paiement (jusqu'au récapitulatif, sans envoi).
   souscripteur: () => parcours('souscripteur', {}, [
     ['connexion', async (page) => {
       await page.goto('/connexion', { waitUntil: 'networkidle' })
@@ -151,16 +157,11 @@ const PARCOURS = {
       await page.locator('input[type="file"]:not([capture])').setInputFiles({ name: 'preuve.jpg', mimeType: 'image/jpeg', buffer: Buffer.alloc(200 * 1024) })
       await page.getByRole('button', { name: 'Continuer' }).click()
     }],
-    ['confirmation', async (page) => {
+    ['recapitulatif', async (page) => {
+      // Envoi réel depuis le lot 3.3 (me.declare) : il changerait les échéances de Moussa d'un passage à l'autre. Le
+      // parcours `declaration` envoie, valide et vérifie, sur un compte neuf.
       await contient(page, '75 000 F', 'Récapitulatif : montant déclaré')
-      await page.getByRole('button', { name: 'Envoyer ma déclaration' }).click()
-      await page.getByRole('heading', { name: 'Déclaration envoyée !' }).waitFor()
-    }],
-    ['historique', async (page) => {
-      await page.getByRole('link', { name: /historique/i }).first().click()
-      await page.waitForURL('**/historique')
-      await contient(page, 'Centre communautaire 25/09/2026 · août, sept., oct. 75 000 F En attente', 'La déclaration envoyée apparaît dans l’historique, en attente')
-      await contient(page, 'Total versé 225 000 F', 'Total versé inchangé tant que la déclaration n’est pas validée')
+      await page.getByRole('button', { name: 'Envoyer ma déclaration' }).waitFor()
     }],
   ]),
 
@@ -348,6 +349,98 @@ const PARCOURS = {
         await page.getByLabel('Mot de passe', { exact: true }).fill(nouveau)
         await page.getByRole('button', { name: 'Me connecter' }).click()
         await page.waitForURL(u => !new URL(u).pathname.startsWith('/connexion'), { timeout: 15_000 })
+      }],
+    ])
+  },
+  // Lot 3.3, étape 4 : un compte neuf (rejouable sans réinitialiser la base) déclare 75 000 F couvrant 3 échéances avec
+  // la photo du reçu (dépôt réel, analyse, rattachement) ; Awa valide ; les 3 cases passent à « Payée » ; le souscripteur
+  // est notifié. Compte neuf = fonds d'entrée (50 000 F) en tête : d'abord déclaré par référence et validé, pour que les
+  // 75 000 F couvrent trois mois, comme pour Moussa.
+  declaration: () => {
+    const c = nouveauCompte()
+    const nom = `${c.prenom} ${c.nom}`
+    let mois = []
+    /** Assistant de bout en bout ; renvoie l'id du paiement déclaré (page de confirmation, lue par me.payment). */
+    const declarer = async (page, { montant, raccourci, reference, preuve }) => {
+      await page.goto(`/paiements/declarer?projet=${ID.centre}`, { waitUntil: 'networkidle' })
+      if (raccourci) await page.getByRole('button', { name: raccourci }).click()
+      else await page.getByLabel('Montant versé').fill(String(montant))
+      await contient(page, `Total affecté ${formatFCFA(montant)}`, 'Répartition proposée : total affecté')
+      const cochees = await page.getByRole('checkbox', { checked: true }).evaluateAll(els => els.map(e => e.closest('label, li, div')?.innerText.split('\n')[0].trim() ?? ''))
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      if (reference) await page.getByLabel('Référence de la transaction').fill(reference)
+      if (preuve) {
+        await page.locator('input[type="file"]:not([capture])').setInputFiles(preuve)
+        await contient(page, preuve.name, 'Preuve choisie affichée')
+      }
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      await contient(page, formatFCFA(montant), 'Récapitulatif : montant déclaré')
+      await page.getByRole('button', { name: 'Envoyer ma déclaration' }).click()
+      await page.waitForURL('**/paiements/declarer/ok**', { timeout: 30_000 })
+      await page.getByRole('heading', { name: 'Déclaration envoyée !' }).waitFor()
+      await contient(page, formatFCFA(montant), 'Confirmation : montant déclaré (me.payment)')
+      const id = new URL(page.url()).searchParams.get('paiement') ?? ''
+      await assert(/^[0-9a-f-]{36}$/.test(id), `Identifiant du paiement déclaré : « ${id} »`)
+      return { id, cochees }
+    }
+    /** Awa (autre navigateur) valide le paiement `id` ; `verifier(g)` : contrôles sur sa session avant fermeture. */
+    const valider = async (page, id, verifier = async () => {}) => {
+      const gestion = await page.context().browser().newContext({ baseURL: new URL(page.url()).origin, viewport: { width: 1440, height: 900 } })
+      try {
+        const g = await gestion.newPage()
+        await c.connexionGestionnaire(g)
+        await g.goto(`/asso/paiements/${id}`, { waitUntil: 'networkidle' })
+        await contient(g, nom, 'Détail du paiement : nom du souscripteur')
+        await verifier(g, 'avant')
+        await g.getByRole('button', { name: 'Valider le paiement' }).click()
+        await g.getByRole('button', { name: 'Oui, valider' }).click()
+        await contient(g, 'Paiement validé', 'Message de confirmation de la validation')
+        await verifier(g, 'apres')
+      }
+      finally {
+        await gestion.close()
+      }
+    }
+    let paiementId = ''
+    return parcours('declaration', {}, [
+      ['connexion-gestionnaire', c.connexionGestionnaire],
+      ['inscription-nouveau-compte', c.inscrire],
+      ['activation', c.activer],
+      ['fonds-d-entree', async (page) => {
+        const { id, cochees } = await declarer(page, { montant: 50000, reference: 'OM-E2E-ENTREE' })
+        await assert(cochees.length === 1 && cochees[0].startsWith('Fonds d’entrée'), `Fonds d’entrée seul couvert : ${JSON.stringify(cochees)}`)
+        await valider(page, id)
+      }],
+      ['declaration-75000', async (page) => {
+        const preuve = { name: 'recu-orange.png', mimeType: 'image/png', buffer: Buffer.from(PNG_RECU, 'base64') }
+        const { id, cochees } = await declarer(page, { montant: 75000, raccourci: /3 mois/, preuve })
+        mois = cochees.map(t => /^\p{L}+ \d{4}/u.exec(t)?.[0]).filter(Boolean)
+        await assert(mois.length === 3, `Trois échéances mensuelles couvertes : ${JSON.stringify(cochees)}`)
+        paiementId = id
+      }],
+      ['validation-et-grille', async (page) => {
+        await valider(page, paiementId, async (g, moment) => {
+          if (moment === 'avant') {
+            await contient(g, 'recu-orange.png', 'Détail du paiement : preuve rattachée à l’association')
+            return
+          }
+          await g.goto(`/asso/projets/${ID.centre}/paiements`, { waitUntil: 'networkidle' })
+          for (const m of mois) {
+            const cellule = g.locator(`[aria-label^="${nom} — ${m}"]`).first()
+            await cellule.waitFor()
+            const etiquette = await cellule.getAttribute('aria-label')
+            await assert(etiquette.includes('Payée'), `Grille : « ${etiquette} » (attendu : Payée)`)
+          }
+        })
+      }],
+      ['notification-souscripteur', async (page) => {
+        // Consommateur de payment.validated (lot 2.5), par l'outbox et le worker : quelques secondes.
+        for (let i = 0; i < 5; i++) {
+          await page.goto('/notifications', { waitUntil: 'networkidle' })
+          if ((await texte(page.locator('main'))).includes(`Vos ${formatFCFA(75000)} pour Centre communautaire`)) return
+          await page.waitForTimeout(2000)
+        }
+        throw new EchecEtape('Notification « Paiement validé » (75 000 F, Centre communautaire) absente')
       }],
     ])
   },
