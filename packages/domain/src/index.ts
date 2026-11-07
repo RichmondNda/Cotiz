@@ -73,3 +73,6 @@ export {
   unsignedEnrollmentInstallments,
 } from './subscriber-figures.js';
 export type { SubscriberEnrollmentFigures, SubscriberInstallment } from './subscriber-figures.js';
+// Historique du souscripteur (lot 3.4).
+export { subscriberHistoryFigures } from './subscriber-history.js';
+export type { HistoryCommitment, HistoryFigures, HistoryPayment } from './subscriber-history.js';

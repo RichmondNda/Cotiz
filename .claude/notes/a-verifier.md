@@ -4,6 +4,17 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 
 ## Points ouverts
 
+- **2026-11-07** · Lot 3.4 (`me.history`) — **paiements d'un projet quitté** : l'historique reprend les inscriptions de
+  me.dash/me.payment (non retirées, appartenance souscripteur active), donc les paiements d'une inscription retirée ou
+  d'une association quittée n'y figurent plus, alors que l'écran promet de « retrouver n'importe quel paiement ».
+  Choix pris : cohérence avec me.payment (404 sur ces paiements, lot 3.3). Source : `get-subscriber-history.use-case.ts`,
+  test d'isolation `me-history.test.ts` (inscription retirée). · Confirmer, ou décider de garder les paiements
+  des inscriptions retirées (me.payment devrait alors suivre).
+- **2026-11-07** · Lot 3.4 — **série filtrée par période** : `cumulative` repart de 0 au début de la période, `target`
+  reste l'engagement total (contrat « versé cumulé par mois », fiche « courbe cumulative avec objectif » : non tranché).
+  Sans effet aujourd'hui : la page calcule son graphique depuis la liste. · Choisir : cumul depuis le début (versé avant
+  la période compris) ou depuis la période (actuel).
+
 - **2026-11-03** · `architecture/07-notifications.md` renvoie à une section `notification-matrix` de `specs/events.yaml` qui
   n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
   matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).

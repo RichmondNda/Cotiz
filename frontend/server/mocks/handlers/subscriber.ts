@@ -1,4 +1,4 @@
-// Espace souscripteur (tableau de bord et projets : NestJS depuis le lot 3.2 ; déclaration et suivi d'un paiement : lot 3.3) : historique, contrats, associations.
+// Espace souscripteur (tableau de bord et projets : NestJS depuis le lot 3.2 ; déclaration et suivi d'un paiement : lot 3.3 ; historique : lot 3.4) : contrats, associations.
 import { createHash } from 'node:crypto'
 import { formatMoney } from '@cotiz/domain'
 import { formatTelephone } from '../../../app/utils/format'
@@ -6,59 +6,15 @@ import { db } from '../db'
 import type { EnrollmentRow } from '../db'
 import type { MockContext } from '../http'
 import { nowInstant, problem, requireSession } from '../http'
-import { enrollmentFigures, monthOf, scheduleFrom, subscriberTotals, sum } from '../ledger'
+import { enrollmentFigures, scheduleFrom, sum } from '../ledger'
 import { signEnrollment } from '../scenarios'
 import {
   associationRef, associationRow, enrollmentsOfUser, money, moneyOrNull, paymentMethodsOf, projectRef, projectRow,
-  subscriberPayment, subscriberProjectCard, userRow,
+  subscriberProjectCard, userRow,
 } from '../views'
-import { page } from './list'
 
 function myEnrollment(userId: string, projectId: string): EnrollmentRow {
   return db.enrollments.find(e => e.userId === userId && e.projectId === projectId && e.status !== 'withdrawn') ?? problem('not_found')
-}
-
-function myPayments(userId: string) {
-  return db.payments.filter(p => p.userId === userId).sort((a, b) => b.declaredAt.localeCompare(a.declaredAt))
-}
-
-// ---------------------------------------------------------------- Historique
-
-function historyRows(ctx: { session: Parameters<typeof requireSession>[0]['session'] }, q: { associationId?: string, projectId?: string, from?: string, to?: string }) {
-  return myPayments(requireSession(ctx).userId)
-    .filter(p => (!q.associationId || p.associationId === q.associationId) && (!q.projectId || p.projectId === q.projectId))
-    .filter(p => (!q.from || p.paidOn >= q.from) && (!q.to || p.paidOn <= q.to))
-}
-
-export function history(ctx: MockContext<'me.history', 'list'>) {
-  const rows = historyRows(ctx, ctx.query)
-  const validated = rows.filter(p => p.status === 'validated')
-  const t = subscriberTotals(requireSession(ctx).userId)
-  return {
-    ...page(rows.map(subscriberPayment), ctx.query),
-    summary: { totalPaid: money(sum(validated.map(p => p.amountReceived ?? p.amountDeclared))), paymentsCount: validated.length, remaining: money(t.remainingTotal) },
-  }
-}
-
-export function historySeries(ctx: MockContext<'me.history', 'series'>) {
-  const userId = requireSession(ctx).userId
-  const rows = historyRows(ctx, ctx.query).filter(p => p.status === 'validated')
-  const months = [...new Set(rows.map(p => `${monthOf(p.paidOn)}-01`))].sort()
-  let running = 0
-  const engaged = db.enrollments.filter(e => e.userId === userId && e.status === 'active')
-  return {
-    cumulative: months.map((m) => {
-      running += sum(rows.filter(p => monthOf(p.paidOn) === m.slice(0, 7)).map(p => p.amountReceived ?? p.amountDeclared))
-      return { month: m, paid: money(running) }
-    }),
-    target: money(sum(engaged.map(e => enrollmentFigures(e).commitment ?? 0))),
-    byMonth: months.map(m => ({
-      month: m,
-      projects: [...new Set(rows.map(p => p.projectId))].map(projectId => ({
-        projectId, paid: money(sum(rows.filter(p => p.projectId === projectId && monthOf(p.paidOn) === m.slice(0, 7)).map(p => p.amountReceived ?? p.amountDeclared))),
-      })),
-    })),
-  }
 }
 
 // ---------------------------------------------------------------- Contrats

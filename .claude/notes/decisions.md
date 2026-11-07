@@ -319,3 +319,39 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
       pour Moussa (critère du lot).
     - Pile Docker : `CLAMAV_URL: tcp://clamav:3310` dans `infra/compose/app.yml` (service `clamav`, profil
       `antivirus`) : sans antivirus, un dépôt reste en analyse et la déclaration avec photo est refusée.
+
+- **2026-11-07** · `/lot 3.4` (historique du souscripteur), branche `lot/3.4-historique` — plan exécuté sans validation :
+  - Contradiction mineure, tranchée par la hiérarchie : le lot cite « filtres projet, période, statut » ; le contrat
+    (`HistoryFilters` : association, projet, période) et la fiche `mb-historique` n'ont pas de filtre de statut → contrat
+    suivi, aucun filtre de statut côté API (le front filtre déjà lui-même par statut).
+  - **Étape 1 · Historique** (`me.history` list + series) dans `reporting` (comme me.dash) :
+    `application/get-subscriber-history.use-case.ts`, `subscriber-space.controller.ts` ; `ledger/subscriber-payments.ts`
+    gagne les options période (`paidOn` entre `from` et `to`) et page (curseur `(declared_at, id)` décroissant).
+    Sémantique (celle du mock, conforme au contrat) :
+    - liste : tous statuts, paiements des inscriptions présentées (mêmes limites que me.payment : non retirée,
+      appartenance active), filtrés association / projet / `paidOn` ;
+    - `summary.totalPaid` = Σ `amountReceived` des validés de la sélection (= encaissé du gestionnaire pour cette personne :
+      Σ allocations = montant reçu à la validation) ; `paymentsCount` = nombre de validés ; `remaining` = reste des
+      inscriptions qui engagent, filtré par association / projet (pas par période : la page filtre le reste par projet) ;
+    - `series` : validés seulement, mois de `paidOn` ; `cumulative` sur les mois ayant un versement ; `byMonth` par projet ;
+      `target` = Σ engagements des inscriptions qui engagent de la sélection, `null` si l'un est ouvert ou sans inscription.
+    Tests : intégration `me-history.test.ts` (filtres, page, totaux = `pr.overview`/`rp.report` du gestionnaire pour la
+    personne, série), isolation `test/isolation/me-history.test.ts` (politiques élargies). Front : `/bascule me.history`,
+    handlers simulés retirés, rendu inchangé (la page calcule déjà synthèse et graphique depuis la liste).
+  - **Étape 2 · Justificatifs** : `fl.get` sur le back existe (302, URL de 5 min, audit). Test d'intégration : le
+    souscripteur lit sa preuve rattachée à l'association, le gestionnaire de cette association aussi, un autre non.
+    Front : `fl.get` basculé pour `subscriber` et `association` (lg.pay.get est réel : le mock ne connaît pas ces
+    fichiers), la preuve n'est plus `[URL]` : lecture par le client (Bearer) → objet `blob:` affiché par VisionneusePreuve.
+  - Vérification : `pnpm verify` (sous `sg docker`) à chaque étape ; relectures isolation + test-skeptic.
+  - Étape 1 faite. Relectures : isolation et argent sans bloquant ; test-skeptic : 6 trous comblés (période sur
+    `paid_on` ≠ `declared_at`, validés seuls, reçu ≠ déclaré puis annulation comparés à en.list, série filtrée par
+    période et projet, valeurs en dur de la série du jeu de référence, tri des projets d'un mois, reste et objectif
+    d'autrui non nuls en isolation, inscription retirée, page 2 sous politiques élargies) ; 5 mutations vérifiées
+    détectées (paid_on → declared_at, filtre validated, reçu → déclaré, tri, user_id de subscriberEnrollmentsOf).
+    `me-history-ledger.test.ts` à l'heure réelle (fenêtre d'annulation de 10 min sur `now()` de la base) ; `paid_on`
+    ≠ jour de déclaration posé déclencheurs suspendus (`guard_payment_update` l'interdit).
+  - Ajouts : contrôle « paiement dans la devise du projet » (500 comme me.dash pour plusieurs devises) ; note dans
+    `subscriberHistoryFigures` sur l'écart futur avec `enrollmentTotals` (versé d'une échéance dispensée, lot 4.3).
+  - Recette `/historique` (pile Docker, vrai back) : rendu conforme ; écarts = base de dev (Voyage actif, 525 000 F,
+    a-verifier du 2026-11-07), ordre de juillet identique aux mocks, artefacts de capture des éléments fixes.
+
