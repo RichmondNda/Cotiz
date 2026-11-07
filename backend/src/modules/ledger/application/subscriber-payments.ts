@@ -35,6 +35,7 @@ export async function subscriberPaymentsOf(
     .from(payments)
     .where(
       and(
+        // Redondant avec les inscriptions (FK composite payments → enrollments, même user_id) : défense en profondeur.
         eq(payments.userId, context.userId),
         inArray(payments.enrollmentId, [...new Set(enrollmentIds)]),
         inArray(payments.projectId, [...refs.projects.keys()]),

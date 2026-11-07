@@ -208,6 +208,13 @@ describe('me.dash : tableau de bord souscripteur au 2026-09-25 (jeu de référen
     expect((await dashboardOf(token)).projectsCount).toBe(99);
     await invalidateSubscriberDashboard(redis, MOUSSA);
     expect(await dashboardOf(token)).toEqual(first);
+    // Calcul d'une génération passée, écrit après l'invalidation (course) : présent, mais jamais servi.
+    const stale = JSON.parse((await redis.get(key)) ?? '{}') as { dashboard: typeof first; generation: string };
+    stale.dashboard.projectsCount = 99;
+    await redis.set(key, JSON.stringify(stale), 'EX', 30);
+    await redis.incr(`${key}:generation`);
+    expect(await redis.exists(key)).toBe(1);
+    expect(await dashboardOf(token)).toEqual(first);
   });
 
   it('jeton gestionnaire refusé (espace souscripteur seulement)', async () => {

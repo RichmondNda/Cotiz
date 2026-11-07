@@ -255,6 +255,7 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 
 describe('mutations : état en mémoire', () => {
   it('déclarer : paiement en attente, plus de retard affiché (la validation est servie par NestJS depuis le lot 2.4)', async () => {
+    expect(await moussaLate()).toBe(true)
     const declared = await call('me.declare', 'declare', WRITES['me.declare declare']!()) as { id: string, status: string }
     expect(declared.status).toBe('pending')
     expect(await moussaLate()).toBe(false)

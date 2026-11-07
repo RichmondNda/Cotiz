@@ -36,10 +36,18 @@ describe('enrollmentNextDue : prochaine échéance d’une inscription', () => {
 
   it('ordre de l’échéancier : date, fonds d’entrée avant mensualité, rang', () => {
     const next = enrollmentNextDue([
-      line('2026-10-05', 10_000, 'upcoming', 0, 0, 'periodic', 5),
-      line('2026-10-05', 50_000, 'upcoming', 0, 0, 'entry_fee', 0),
+      line('2026-10-05', 10_000, 'upcoming', 0, 0, 'periodic', 0),
+      line('2026-10-05', 50_000, 'upcoming', 0, 0, 'entry_fee', 1),
     ]);
+    // Rang plus grand pour le fonds d'entrée : seule la nature le fait passer devant.
     expect(next).toEqual({ dueDate: '2026-10-05', amount: 50_000 });
+    // À nature égale, le rang départage.
+    expect(
+      enrollmentNextDue([
+        line('2026-10-05', 10_000, 'upcoming', 0, 0, 'periodic', 2),
+        line('2026-10-05', 20_000, 'upcoming', 0, 0, 'periodic', 1),
+      ]),
+    ).toEqual({ dueDate: '2026-10-05', amount: 20_000 });
   });
 
   it('échéance du jour (`due`) comprise ; payée, dispensée ou annulée exclues ; plus rien → null', () => {

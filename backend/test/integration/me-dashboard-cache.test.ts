@@ -117,10 +117,28 @@ describe('me.dash : invalidation du cache par événement', () => {
     expect((await dashboardOf()).projectsCount).toBe(0);
   });
 
-  it('événements écoutés : ceux qui changent les chiffres de la personne', () => {
-    for (const type of ['member.enrolled', 'payment.declared', 'payment.validated', 'installment.late'] as const) {
-      expect(SUBSCRIBER_DASHBOARD_EVENTS).toContain(type);
-      expect(consumers.for(type)).toHaveLength(1);
-    }
+  it('événements écoutés : exactement ceux qui changent les chiffres de la personne', () => {
+    expect([...SUBSCRIBER_DASHBOARD_EVENTS].sort()).toEqual(
+      [
+        'member.enrolled',
+        'member.withdrawn',
+        'payment.declared',
+        'payment.validated',
+        'payment.rejected',
+        'payment.reverted',
+        'installment.late',
+        'user.activated',
+        'team.changed',
+      ].sort(),
+    );
+    for (const type of SUBSCRIBER_DASHBOARD_EVENTS) expect(consumers.for(type)).toHaveLength(1);
+  });
+
+  it('payment.rejected : recalculé (le retard revient)', async () => {
+    const moussa = await moussaOnA();
+    const before = await dashboardOf();
+    await validatedDirectly(moussa.id);
+    await deliver('payment.rejected', { paymentId: crypto.randomUUID(), userId: USERS.moussa });
+    expect((await dashboardOf()).recentPayments).toHaveLength(before.recentPayments.length + 1);
   });
 });
