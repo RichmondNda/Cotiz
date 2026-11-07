@@ -22,7 +22,7 @@ export interface PaymentInput {
   enrollmentId: string;
   userId: string;
   amount: number;
-  status: 'pending' | 'validated' | 'rejected';
+  status: 'pending' | 'validated' | 'rejected' | 'canceled';
   declaredAt: string;
   lines: Line[];
   projectId?: string;

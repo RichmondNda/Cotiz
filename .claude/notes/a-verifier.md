@@ -37,9 +37,21 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   paiements) ; `subscriberEnrollmentsOf` l'affiche tant que l'appartenance est active. Le cache de 30 s n'est pas
   invalidé par `association.suspended` (pas de personne dans l'événement). Relevé par `isolation-reviewer`. · À trancher.
 
+- **2026-11-07** · Lot 3.3 (après `chore/preuve-regles`), relevé par `money-reviewer` — à décider :
+  (1) la règle « un reçu, un paiement » porte sur l'**identifiant** du fichier : redéposer la même photo donne un nouveau
+  fichier, accepté ; s'appuyer sur `files.sha256` (calculé par le worker) demanderait une décision et un changement de spec.
+  (2) l'unicité ne repose que sur le verrou applicatif (`subscriberProofOf` FOR UPDATE) : un index unique partiel
+  `payments (proof_file_id) WHERE status IN ('pending','validated')` la garantirait en base → `schema.sql` + nouvelle
+  migration, sur accord seulement.
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
+- **2026-11-07** · accord de l'utilisateur (« ok pour les trois »), branche `chore/preuve-regles` : (a) preuve déjà citée
+  par un paiement `pending`/`validated` de la personne dans l'association → 409 `proof_already_used`, réutilisable après
+  `rejected`/`canceled` (même `Idempotency-Key` exclue : rejouée) ; (b) preuve en analyse → 409 `file_scan_pending` ;
+  (c) `events.yaml` : consommateur « files : rattachement de la preuve » de `payment.declared`. Specs modifiées :
+  `errors.yaml`, `endpoints.yaml` (me.declare), `events.yaml`, plus `architecture/04-flows.md` §4.4 et le tableau du lot 3.3.
 - **2026-11-05** · accord de l'utilisateur (« d'accord, fais 1, 2 et 3 »), branche `chore/perf-ui-decision21` :
   (1) `test/perf` hors de `pnpm verify` (`backend` `test` = `vitest run`), lancé par `pnpm test:perf` (racine) quand on
   touche en.bulk, rapports ou tableau de bord — `enrollment-bulk-200` (17–21 s pour 10 s sur ce serveur partagé) n'y
@@ -112,11 +124,3 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   solidaire (525 000 F restants au lieu de 395 000 F) ; `seed-dev` ne modifie pas l'existant. Les chiffres de référence sont
   prouvés par `backend/test/integration/me-dashboard.test.ts` sur une base neuve. · Réinitialiser la base de dev
   (suppression de données) seulement sur accord.
-
-- **2026-11-07** · Lot 3.3, étape 2 (me.declare) — questions relevées par `money-reviewer`, non tranchées :
-  (a) **même preuve réutilisée** par deux paiements de la même association (deux déclarations, une photo) : acceptée
-  aujourd'hui (aucune règle dans domain-rules ni errors.yaml) ; refuser ? (b) preuve **encore en analyse** (`pending`) →
-  `file_not_clean`, dont le message parle d'un fichier non sain : un code « analyse en cours » serait plus juste
-  (changement d'errors.yaml → accord requis) ; le front attend `clean` avant d'envoyer (étape 4). (c) Proposition pour
-  `docs/specs/events.yaml` : ajouter « files : rattachement de la preuve » aux consommateurs de `payment.declared`
-  (consommateur `payment-proof` du worker, ledger).

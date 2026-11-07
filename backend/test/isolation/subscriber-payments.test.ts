@@ -142,14 +142,15 @@ describe('isolation : paiements du souscripteur (me.alloc, me.declare, me.paymen
         [USERS.moussa],
       )
     ).rows[0] as { payments: number; otherspending: number };
-  /** Preuve propre déposée par `owner` (sans association). */
-  const proofOf = async (owner: string) => {
+  /** Preuve déposée par `owner` (sans association), analysée saine sauf `scan` contraire. */
+  const proofOf = async (owner: string, scan: 'clean' | 'pending' = 'clean') => {
     const id = crypto.randomUUID();
     await f.h.superuser(
       `INSERT INTO files (id, owner_user_id, purpose, bucket, object_key, original_name, mime_type, size_bytes, sha256,
                           scan_status)
-       VALUES ($1, $2, 'payment_proof', 'cotiz-proofs', $3, 'recu.jpg', 'image/jpeg', 1024, 'abc', 'clean')`,
-      [id, owner, `unassigned/payment_proof/${id}.jpg`],
+       VALUES ($1, $2, 'payment_proof', 'cotiz-proofs', $3, 'recu.jpg', 'image/jpeg', 1024,
+               CASE WHEN $4 = 'clean' THEN 'abc' END, $4::files_scan_status)`,
+      [id, owner, `unassigned/payment_proof/${id}.jpg`, scan],
     );
     return id;
   };
@@ -179,6 +180,21 @@ describe('isolation : paiements du souscripteur (me.alloc, me.declare, me.paymen
   it('me.declare : échéance et preuve d’autrui refusées, même politiques élargies ; la sienne passe', async () => {
     const s = await scenario();
     const fatouProof = await proofOf(USERS.fatou);
+    const fatouScanning = await proofOf(USERS.fatou, 'pending');
+    const fatouCited = await proofOf(USERS.fatou);
+    /** Preuve de Fatou citée par Moussa : toujours 422 not_found, jamais un 409 qui dirait son état. */
+    const othersProofRefused = async (file: string) => {
+      const res = await declare(PROJECTS.a, f.tokens.moussa, {
+        transactionReference: undefined,
+        proofFileId: file,
+        allocations: [{ installmentId: s.moussaA, amount: XOF(25000) }],
+      });
+      expect(res.status).toBe(422);
+      expect(Problem.parse(await res.json())).toMatchObject({
+        code: 'validation_failed',
+        fields: { proofFileId: 'not_found' },
+      });
+    };
     const attempts = async (widened: boolean) => {
       // Échéance de Fatou sur le même projet, seule ou mêlée à celle de Moussa. Politiques élargies : visible, mais
       // refusée par validateAllocation (hors de l'inscription : mixed_enrollments) ; sinon inconnue.
@@ -202,17 +218,9 @@ describe('isolation : paiements du souscripteur (me.alloc, me.declare, me.paymen
       expect(mixed.status).toBe(422);
       // Reste dû de Moussa seul (25 000 F) : l'échéance de Fatou n'y entre pas.
       expect(Problem.parse(await mixed.json())).toMatchObject({ code: 'amount_exceeds_remaining', maxAmount: 25000 });
-      // Preuve déposée par Fatou.
-      const proof = await declare(PROJECTS.a, f.tokens.moussa, {
-        transactionReference: undefined,
-        proofFileId: fatouProof,
-        allocations: [{ installmentId: s.moussaA, amount: XOF(25000) }],
-      });
-      expect(proof.status).toBe(422);
-      expect(Problem.parse(await proof.json())).toMatchObject({
-        code: 'validation_failed',
-        fields: { proofFileId: 'not_found' },
-      });
+      // Preuve déposée par Fatou, analysée ou encore en analyse.
+      await othersProofRefused(fatouProof);
+      await othersProofRefused(fatouScanning);
       expect(await counts()).toEqual({ payments: 0, otherspending: 0 });
     };
     await attempts(false);
@@ -240,10 +248,13 @@ describe('isolation : paiements du souscripteur (me.alloc, me.declare, me.paymen
                 lines: [{ installmentId: s.fatouA, amount: 25000, state: 'proposed' }],
               });
               // Clé posée après coup (f.record en tire une au hasard) ; payments_guard l'interdit : déclencheurs coupés.
+              // Il cite aussi une preuve de Fatou : pour Moussa, toujours inconnue (pas proof_already_used).
               await f.h.superuser(
                 `SET session_replication_role = replica;
-                 UPDATE payments SET idempotency_key = '${key}' WHERE id = '${fatouPayment}'`,
+                 UPDATE payments SET idempotency_key = '${key}', proof_file_id = '${fatouCited}'
+                  WHERE id = '${fatouPayment}'`,
               );
+              await othersProofRefused(fatouCited);
               // La sienne, avec la clé de Fatou : acceptée, nouveau paiement.
               const ok = await declare(
                 PROJECTS.a,
@@ -257,6 +268,7 @@ describe('isolation : paiements du souscripteur (me.alloc, me.declare, me.paymen
         ),
       ),
     );
+    await othersProofRefused(fatouCited);
     expect(await counts()).toEqual({ payments: 2, otherspending: 25000 });
   });
 

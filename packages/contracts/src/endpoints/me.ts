@@ -319,6 +319,8 @@ export const meDeclare = defineEndpoint({
     'allocation_exceeds_remaining',
     'proof_required',
     'file_not_clean',
+    'file_scan_pending',
+    'proof_already_used',
     'signature_required',
     'invalid_state',
   ],

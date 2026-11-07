@@ -241,6 +241,7 @@ events:
   consumers:
   - 'notifications: gestionnaires (in-app, push, regroupement)'
   - 'cache: compteur à valider'
+  - 'files: rattachement de la preuve à l''association du paiement (payment-proof, idempotent)'
 - type: payment.validated
   emitter: ledger
   lot: '2.4'

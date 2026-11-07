@@ -10,7 +10,7 @@ import {
   proposeAllocation,
   validateAllocation,
 } from '@cotiz/domain';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import type { z } from 'zod';
 import { subscriberProofOf } from '../../files/files.public.js';
 import { type SubscriberEnrollment, subscriberEnrollmentsOf } from '../../members/members.public.js';
@@ -42,7 +42,8 @@ const CLOSED_PROJECTS = new Set(['completed', 'archived']);
  *    `idempotency_key_reused` ;
  * 2. contrôles : inscription non retirée de la personne au projet (sinon 404), signée (`signature_required`), active et
  *    projet ouvert (`invalid_state`), devise, date du versement pas dans le futur (jour de l'association), moyen
- *    retenu par le projet et actif, preuve `clean` de la personne ou référence (`proof_required`, `file_not_clean`) ;
+ *    retenu par le projet et actif, preuve `clean` de la personne et pas déjà citée, ou référence (`proof_required`,
+ *    `file_not_clean`, `file_scan_pending`, `proof_already_used`) ;
  * 3. paiement inséré **d'abord** : sa clé étrangère pose FOR KEY SHARE sur l'inscription (attend un en.withdraw en
  *    cours), puis échéances de l'inscription (et celles visées ailleurs) verrouillées par id et relues : même ordre
  *    inscription → échéances qu'en.withdraw, aucune attente sur le projet verrouillé par lg.pay.validate ; une
@@ -76,7 +77,9 @@ export class DeclarePaymentUseCase {
     this.checkState(entry);
     if (input.paidOn > entry.today) throw new DomainProblem('validation_failed', { fields: { paidOn: 'in_future' } });
     if (input.paymentMethodId !== null) await this.checkMethod(entry, input.paymentMethodId.toLowerCase());
-    if (input.proofFileId !== undefined) await this.checkProof(associationId, input.proofFileId.toLowerCase());
+    if (input.proofFileId !== undefined) {
+      await this.checkProof(associationId, input.proofFileId.toLowerCase(), idempotencyKey);
+    }
 
     const id = newId();
     const [row] = await currentTx()
@@ -186,9 +189,14 @@ export class DeclarePaymentUseCase {
   /**
    * Preuve de la personne, libre ou déjà rattachée à cette association, analysée saine. Déjà citée par un de ses
    * paiements dans une autre association (rattachement pas encore fait par le worker) : refusée aussi, sinon la
-   * preuve irait à l'association traitée la première et resterait illisible pour l'autre.
+   * preuve irait à l'association traitée la première et resterait illisible pour l'autre. Analyse pas finie :
+   * `file_scan_pending` ; infectée : `file_not_clean`. Déjà citée par un paiement en attente ou validé de cette
+   * association : `proof_already_used` (un reçu, un paiement) ; après un rejet ou une annulation, réutilisable. La
+   * preuve est verrouillée par `subscriberProofOf` : deux déclarations simultanées se suivent. Le paiement de la
+   * personne portant la même `Idempotency-Key` n'est pas compté : envoi simultané (verrou Redis perdu), il est rejoué
+   * par le conflit d'insertion, pas refusé.
    */
-  private async checkProof(associationId: string, fileId: string): Promise<void> {
+  private async checkProof(associationId: string, fileId: string, idempotencyKey: string): Promise<void> {
     const proof = await subscriberProofOf(fileId);
     if (!proof || (proof.associationId !== null && proof.associationId !== associationId)) {
       throw new DomainProblem('validation_failed', { fields: { proofFileId: 'not_found' } });
@@ -199,7 +207,22 @@ export class DeclarePaymentUseCase {
       .where(and(eq(t.userId, requireActor().userId), eq(t.proofFileId, fileId), ne(t.associationId, associationId)))
       .limit(1);
     if (elsewhere) throw new DomainProblem('validation_failed', { fields: { proofFileId: 'not_found' } });
+    if (proof.scanStatus === 'pending') throw new DomainProblem('file_scan_pending');
     if (proof.scanStatus !== 'clean') throw new DomainProblem('file_not_clean');
+    const [used] = await currentTx()
+      .select({ id: t.id })
+      .from(t)
+      .where(
+        and(
+          eq(t.userId, requireActor().userId),
+          eq(t.associationId, associationId),
+          eq(t.proofFileId, fileId),
+          inArray(t.status, ['pending', 'validated']),
+          ne(t.idempotencyKey, idempotencyKey),
+        ),
+      )
+      .limit(1);
+    if (used) throw new DomainProblem('proof_already_used');
   }
 
   /**
