@@ -161,6 +161,14 @@ errors:
   http: 422
   message: Ce fichier a été refusé par l'analyse de sécurité.
   where: Zone de dépôt
+- code: file_scan_pending
+  http: 409
+  message: Votre preuve est encore en cours d'analyse. Réessayez dans un instant.
+  where: Déclaration (preuve déposée, analyse pas encore terminée)
+- code: proof_already_used
+  http: 409
+  message: Cette preuve accompagne déjà un autre paiement.
+  where: Déclaration (preuve citée par un paiement en attente ou validé ; réutilisable après un rejet ou une annulation)
 - code: file_too_large
   http: 422
   message: Fichier trop lourd (5 Mo maximum).

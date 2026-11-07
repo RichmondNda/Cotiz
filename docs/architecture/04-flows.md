@@ -26,7 +26,7 @@ Chaque flux indique le lot où il est construit. Les règles de calcul et leurs 
 ## 4.4 Déclaration d'un paiement (lot 3.3)
 1. Le front appelle `proposeAllocation()` localement (ou `POST /me/payments/allocation-preview`) pour pré-cocher les échéances.
 2. Preuve : `POST /uploads` → dépôt direct MinIO → `POST /uploads/{id}/complete` → worker (type réel, ClamAV, EXIF, SHA-256) → `clean`.
-3. `POST /me/payments` avec `Idempotency-Key` (UUID généré par le front à l'ouverture de l'assistant). Contrôles : inscription active (sinon `signature_required` ou `invalid_state`), preuve `clean` **ou** référence de transaction, `validateAllocation()`.
+3. `POST /me/payments` avec `Idempotency-Key` (UUID généré par le front à l'ouverture de l'assistant). Contrôles : inscription active (sinon `signature_required` ou `invalid_state`), preuve `clean` (sinon `file_not_clean`, ou `file_scan_pending` si l'analyse n'est pas finie) et pas déjà citée par un paiement en attente ou validé (`proof_already_used`) **ou** référence de transaction, `validateAllocation()`.
 4. Transaction : `payments` (pending), `allocations` (proposed), `installments.amount_pending += …` et statut `declared` pour chaque échéance touchée, audit, événement `payment.declared`.
 
 Le contexte d'une déclaration est `space = subscriber` ; les politiques RLS autorisent l'insertion de ses propres paiements et la mise à jour de ses échéances.

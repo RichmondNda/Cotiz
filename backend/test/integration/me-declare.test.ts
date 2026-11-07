@@ -309,7 +309,7 @@ describe('me.declare', () => {
     expect((await installment(theirs)).pending).toBe(0);
   });
 
-  it('preuve : propre de la personne acceptée ; en analyse ou infectée → file_not_clean ; autre → 422', async () => {
+  it('preuve : propre de la personne acceptée ; en analyse → 409 file_scan_pending ; infectée → file_not_clean ; autre → 422', async () => {
     const mine = await proof(USERS.moussa);
     const ok = await declare(body({ transactionReference: undefined, proofFileId: mine }));
     expect(ok.status).toBe(201);
@@ -322,16 +322,93 @@ describe('me.declare', () => {
     await f.resetLedger();
     await enrollMoussa();
 
-    for (const scan of ['pending', 'infected'] as const) {
-      const file = await proof(USERS.moussa, scan);
-      expect((await problemOf(await declare(body({ proofFileId: file })), 422)).code).toBe('file_not_clean');
-    }
+    const scanning = await proof(USERS.moussa, 'pending');
+    expect((await problemOf(await declare(body({ proofFileId: scanning })), 409)).code).toBe('file_scan_pending');
+    const infected = await proof(USERS.moussa, 'infected');
+    expect((await problemOf(await declare(body({ proofFileId: infected })), 422)).code).toBe('file_not_clean');
     // D'autrui, inconnue, ou déjà rattachée à une autre association.
     for (const file of [await proof(USERS.fatou), crypto.randomUUID(), await proof(USERS.moussa, 'clean', B.id)]) {
       const refused = await problemOf(await declare(body({ proofFileId: file })), 422);
       expect(refused).toMatchObject({ code: 'validation_failed', fields: { proofFileId: 'not_found' } });
     }
     expect(await count('SELECT count(*)::int AS n FROM payments')).toBe(0);
+  });
+
+  it('preuve déjà citée par un paiement en attente ou validé de l’association → 409 proof_already_used ; après un rejet ou une annulation : acceptée', async () => {
+    const cases = [
+      { status: 'pending', state: 'proposed', refused: true },
+      { status: 'validated', state: 'confirmed', refused: true },
+      { status: 'rejected', state: 'voided', refused: false },
+      { status: 'canceled', state: 'voided', refused: false },
+    ] as const;
+    for (const c of cases) {
+      const mine = await proof(USERS.moussa, 'clean', A.id);
+      const earlier = await f.record({
+        enrollmentId,
+        userId: USERS.moussa,
+        amount: 25000,
+        status: c.status,
+        declaredAt: '2026-11-06T09:00:00Z',
+        proofFileId: mine,
+        lines: [{ installmentId: nth(3), amount: 25000, state: c.state }],
+        ...(c.status === 'validated'
+          ? { amountReceived: 25000, reviewedBy: USERS.awa, reviewedAt: '2026-11-06T10:00:00Z' }
+          : {}),
+        ...(c.status === 'rejected'
+          ? {
+              reviewedBy: USERS.awa,
+              reviewedAt: '2026-11-06T10:00:00Z',
+              rejection: { code: 'not_received', message: null },
+            }
+          : {}),
+      });
+      const res = await declare(body({ transactionReference: undefined, proofFileId: mine }));
+      if (c.refused) {
+        expect((await problemOf(res, 409)).code).toBe('proof_already_used');
+      } else {
+        expect(res.status).toBe(201);
+      }
+      const citing = await count('SELECT count(*)::int AS n FROM payments WHERE proof_file_id = $1 AND id <> $2', [
+        mine,
+        earlier,
+      ]);
+      expect(citing).toBe(c.refused ? 0 : 1);
+      await f.resetLedger();
+      await enrollMoussa();
+    }
+  });
+
+  it('même preuve citée en même temps deux fois dans la même association : une seule déclaration acceptée', async () => {
+    for (let round = 0; round < 5; round++) {
+      const mine = await proof(USERS.moussa);
+      const one = (i: number) =>
+        declare(
+          body({
+            transactionReference: undefined,
+            proofFileId: mine,
+            amount: XOF(25000),
+            allocations: [{ installmentId: nth(i), amount: XOF(25000) }],
+          }),
+        );
+      const responses = await Promise.all([one(0), one(1)]);
+      expect(responses.map((r) => r.status).sort()).toEqual([201, 409]);
+      const refused = responses.find((r) => r.status === 409);
+      expect(refused && (await problemOf(refused, 409)).code).toBe('proof_already_used');
+      expect(await count('SELECT count(*)::int AS n FROM payments WHERE proof_file_id = $1', [mine])).toBe(1);
+      await f.resetLedger();
+      await enrollMoussa();
+    }
+  });
+
+  it('double envoi avec preuve, réponse mémorisée perdue : rejoué, pas proof_already_used', async () => {
+    const key = crypto.randomUUID();
+    const proofed = body({ transactionReference: undefined, proofFileId: await proof(USERS.moussa) });
+    const first = Declared.parse(await (await declare(proofed, { key })).json());
+    await f.redis.exec(['redis-cli', 'FLUSHALL']);
+    const late = await declare(proofed, { key });
+    expect(late.status).toBe(201);
+    expect(Declared.parse(await late.json()).id).toBe(first.id);
+    expect(await count('SELECT count(*)::int AS n FROM payments')).toBe(1);
   });
 
   it('ni preuve ni référence → proof_required', async () => {
