@@ -637,7 +637,7 @@ describe('CLI : create-platform-owner', () => {
       const { rows } = await h.superuser(
         `SELECT e.id, e.status, e.starts_from::text AS starts, count(i.id)::int AS lines,
                 min(i.due_date)::text AS first, sum(i.amount_paid)::int AS paid
-           FROM enrollments e JOIN installments i ON i.enrollment_id = e.id
+           FROM enrollments e LEFT JOIN installments i ON i.enrollment_id = e.id
           GROUP BY e.id ORDER BY e.id`,
       );
       const id = (key: string) => mockId('enrollment', key);
@@ -659,7 +659,12 @@ describe('CLI : create-platform-owner', () => {
       }
       // Entrée le 2 septembre : fonds d'entrée + échéances de septembre 2026 à août 2027.
       expect(byId.get(id('centre-communautaire:fatou-traore'))).toMatchObject({ starts: '2026-09-02', lines: 13 });
-      expect(byId.get(id('voyage-solidaire:moussa-diarra'))).toMatchObject({ starts: '2026-09-18' });
+      // En attente de signature (seed-reference) : aucune échéance avant la signature.
+      expect(byId.get(id('voyage-solidaire:moussa-diarra'))).toMatchObject({
+        starts: '2026-09-18',
+        status: 'pending_signature',
+        lines: 0,
+      });
       expect(byId.get(id('voyage-solidaire:ibrahim-toure'))).toMatchObject({ starts: '2026-09-15', paid: 0 });
       expect(byId.get(id('mutuelle-sante:moussa-diarra'))).toMatchObject({ starts: '2026-07-01', status: 'active' });
       const { rows: codes } = await h.superuser(

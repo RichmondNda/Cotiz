@@ -50,26 +50,7 @@ export async function paymentRefsOf(
           .select({ id: files.id, name: files.originalName, mimeType: files.mimeType })
           .from(files)
           .where(and(eq(files.associationId, associationId), inArray(files.id, proofIds)));
-  const allocated =
-    ids.length === 0
-      ? []
-      : await tx
-          .select({
-            allocation: allocations,
-            kind: installments.kind,
-            sequence: installments.sequence,
-            dueDate: installments.dueDate,
-          })
-          .from(allocations)
-          .innerJoin(installments, eq(installments.id, allocations.installmentId))
-          .where(inArray(allocations.paymentId, ids))
-          .orderBy(asc(allocations.createdAt), asc(installments.kind), asc(installments.sequence));
-  const lines: PaymentRefs['lines'] = new Map(ids.map((id) => [id, []]));
-  for (const a of allocated) {
-    lines
-      .get(a.allocation.paymentId)
-      ?.push({ ...a.allocation, kind: a.kind, sequence: a.sequence, dueDate: a.dueDate });
-  }
+  const lines = await paymentLinesOf(ids);
   return {
     projects,
     people: new Map(
@@ -79,6 +60,29 @@ export async function paymentRefsOf(
     proofs: new Map(proofs.map((p) => [p.id, { name: p.name, mimeType: p.mimeType }])),
     lines,
   };
+}
+
+/** Répartitions de ces paiements (RLS du contexte), avec leur échéance, dans l'ordre de création (déclaration, puis relecture). */
+export async function paymentLinesOf(ids: readonly string[]): Promise<Map<string, PaymentLine[]>> {
+  const lines = new Map<string, PaymentLine[]>(ids.map((id) => [id, []]));
+  if (ids.length === 0) return lines;
+  const allocated = await currentTx()
+    .select({
+      allocation: allocations,
+      kind: installments.kind,
+      sequence: installments.sequence,
+      dueDate: installments.dueDate,
+    })
+    .from(allocations)
+    .innerJoin(installments, eq(installments.id, allocations.installmentId))
+    .where(inArray(allocations.paymentId, [...ids]))
+    .orderBy(asc(allocations.createdAt), asc(installments.kind), asc(installments.sequence));
+  for (const a of allocated) {
+    lines
+      .get(a.allocation.paymentId)
+      ?.push({ ...a.allocation, kind: a.kind, sequence: a.sequence, dueDate: a.dueDate });
+  }
+  return lines;
 }
 
 /**
@@ -94,8 +98,7 @@ export function declaredLines(lines: readonly PaymentLine[]): PaymentLine[] {
  * Échéances couvertes : en attente, la répartition proposée ; validé, la répartition confirmée ; rejeté ou annulé,
  * celle de la déclaration (toutes annulées). Dans l'ordre de l'échéancier.
  */
-function coveredOf(row: PaymentRecord, refs: PaymentRefs, currency: Currency): Covered[] {
-  const lines = refs.lines.get(row.id) ?? [];
+export function coveredOf(row: PaymentRecord, lines: readonly PaymentLine[], currency: Currency): Covered[] {
   const shown =
     row.status === 'pending'
       ? lines.filter((l) => l.state === 'proposed')
@@ -132,7 +135,7 @@ export function paymentSummary(row: PaymentRecord, refs: PaymentRefs): PaymentSu
     paymentMethodKind: (row.paymentMethodId ? refs.methods.get(row.paymentMethodId)?.kind : null) ?? null,
     member,
     project: { id: project.id, name: project.name },
-    covered: coveredOf(row, refs, currency),
+    covered: coveredOf(row, refs.lines.get(row.id) ?? [], currency),
     proof: {
       fileId: row.proofFileId,
       fileName: proof?.name ?? null,

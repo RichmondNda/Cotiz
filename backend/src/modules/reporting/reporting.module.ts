@@ -4,17 +4,30 @@ import { MembersModule } from '../members/members.public.js';
 import { GetManagerDashboardUseCase } from './application/get-manager-dashboard.use-case.js';
 import { GetPlatformDashboardUseCase } from './application/get-platform-dashboard.use-case.js';
 import { GetProjectReportUseCase } from './application/get-project-report.use-case.js';
+import { GetSubscriberDashboardUseCase } from './application/get-subscriber-dashboard.use-case.js';
 import { ManagerDashboardController } from './http/manager-dashboard.controller.js';
 import { PlatformDashboardController } from './http/platform-dashboard.controller.js';
 import { ProjectReportController } from './http/project-report.controller.js';
+import { SubscriberSpaceController } from './http/subscriber-space.controller.js';
 
 /**
  * Module reporting (lecture seule, architecture/01) : tableau de bord plateforme (pf.dashboard, lot 1.4), rapport de
- * projet (rp.report) et tableau de bord gestionnaire (as.dashboard, lot 2.6).
+ * projet (rp.report), tableau de bord gestionnaire (as.dashboard, lot 2.6) et espace souscripteur (me.dash,
+ * me.projects, me.project ; lot 3.2).
  */
 @Module({
   imports: [MembersModule, IdentityModule],
-  controllers: [PlatformDashboardController, ProjectReportController, ManagerDashboardController],
-  providers: [GetPlatformDashboardUseCase, GetProjectReportUseCase, GetManagerDashboardUseCase],
+  controllers: [
+    PlatformDashboardController,
+    ProjectReportController,
+    ManagerDashboardController,
+    SubscriberSpaceController,
+  ],
+  providers: [
+    GetPlatformDashboardUseCase,
+    GetProjectReportUseCase,
+    GetManagerDashboardUseCase,
+    GetSubscriberDashboardUseCase,
+  ],
 })
 export class ReportingModule {}

@@ -13,3 +13,6 @@ export {
 } from './application/member-directory.js';
 export { installmentsByEnrollment, installmentView } from './application/enrollment-views.js';
 export { associationToday, contextAssociationId } from './application/member-context.js';
+// Espace souscripteur (lot 3.2) : inscriptions de la personne connectée, calculées comme la vue gestionnaire.
+export { type SubscriberEnrollment, subscriberEnrollmentsOf } from './application/subscriber-enrollments.js';
+export { enrollmentOwnerOf } from './application/enrollment-records.js';

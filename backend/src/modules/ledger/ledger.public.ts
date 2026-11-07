@@ -10,3 +10,5 @@ export { type DueSoonNotice, dueSoonNoticeOf } from './application/due-soon-noti
 export { lastValidatedPaymentDates } from './application/payment-dates.js';
 export { latestPaymentsOf, monthlyReceiptsOf, pendingPaymentsOverviewOf } from './application/dashboard-figures.js';
 export { newLateSubscribersOf } from './application/new-late-subscribers.js';
+// Espace souscripteur (lot 3.2) : paiements déclarés par la personne connectée.
+export { type SubscriberPaymentRefs, subscriberPaymentsOf } from './application/subscriber-payments.js';

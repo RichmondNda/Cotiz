@@ -129,8 +129,8 @@ export async function platformProjectsOf(associationId: string): Promise<Project
   return currentTx().select().from(projects).where(eq(projects.associationId, associationId));
 }
 
-/** Fonds d'entrée et montant par échéance du projet, en `Money` de sa devise. */
-function termsOf(row: ProjectRecord) {
+/** Conditions financières du projet (FinancialTerms), montants en `Money` de sa devise. */
+export function termsOf(row: ProjectRecord) {
   const currency = row.currency as Currency;
   return {
     entryFee: row.entryFeeAmount === null ? null : Money.fromDb(row.entryFeeAmount, currency),
@@ -250,4 +250,21 @@ export async function toProject(row: ProjectRecord): Promise<z.infer<typeof Proj
     description: row.description,
     paymentMethods: await paymentMethodsOfProject(row.associationId, row.id),
   };
+}
+
+/**
+ * Moyens retenus pour un projet, lus en espace subscriber (RLS `subscriber_enrolled_read` : toute inscription de la
+ * personne, retirée comprise — aucune barrière propre ; l'appelant vérifie d'abord l'inscription non retirée, me.project)
+ * ; liste vide = les moyens actifs de l'association (choix Q7). Sans ordre propre.
+ */
+export async function subscriberProjectLinksOf(projectId: string): Promise<z.infer<typeof ProjectPaymentMethod>[]> {
+  if (currentContext()?.space !== 'subscriber')
+    throw new Error('subscriberProjectLinksOf : espace souscripteur seulement');
+  return currentTx()
+    .select({
+      paymentMethodId: projectPaymentMethods.paymentMethodId,
+      instructionsOverride: projectPaymentMethods.instructionsOverride,
+    })
+    .from(projectPaymentMethods)
+    .where(eq(projectPaymentMethods.projectId, projectId));
 }
