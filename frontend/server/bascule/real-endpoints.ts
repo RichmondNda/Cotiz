@@ -104,4 +104,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['me.dash', 'all'],
   ['me.projects', 'all'],
   ['me.project', 'all'],
+  // Lot 3.3 : déclaration de paiement (aperçu de répartition ; l'assistant garde aussi son calcul local).
+  ['me.alloc', 'all'],
 ])

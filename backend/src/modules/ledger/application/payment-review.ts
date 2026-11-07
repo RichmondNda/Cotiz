@@ -195,7 +195,13 @@ export async function checkDeferred(): Promise<void> {
 export const FINAL_INSTALLMENT_STATUSES = ['paid', 'waived', 'canceled'] as const;
 
 /** Échéance vue par le domaine : montants en entiers de la devise du paiement (ou du projet). */
-export function toLedger(i: InstallmentRecord, currency: Currency): LedgerInstallment {
+export function toLedger(
+  i: Pick<
+    InstallmentRecord,
+    'id' | 'enrollmentId' | 'kind' | 'sequence' | 'dueDate' | 'amountDue' | 'amountPaid' | 'amountPending' | 'status'
+  >,
+  currency: Currency,
+): LedgerInstallment {
   return {
     id: i.id,
     enrollmentId: i.enrollmentId,

@@ -1,6 +1,14 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { DomainError, excludingPayment, proposeAllocation, remainingOf, validateAllocation } from './index.js';
+import {
+  DomainError,
+  excludingPayment,
+  openRemainingOf,
+  previewAllocation,
+  proposeAllocation,
+  remainingOf,
+  validateAllocation,
+} from './index.js';
 import type { Allocation, LedgerInstallment, ValidationResult } from './index.js';
 import { loadVectors } from './test-vectors.js';
 
@@ -37,6 +45,46 @@ describe('proposeAllocation — vecteurs allocation.json', () => {
     // Les champs du vecteur (code, maxAmount) à l'identique ; d'autres détails peuvent s'y ajouter.
     if (c.error) expect(result.error).toMatchObject(c.error);
     else expect(result.error).toBeUndefined();
+  });
+});
+
+describe('openRemainingOf — reste dû ouvert (plafond de proposeAllocation, aperçu me.alloc)', () => {
+  it.each(proposals.cases.map((c) => [c.name, c] as const))('%s', (_name, c) => {
+    const total = openRemainingOf(c.input.installments);
+    if (c.error?.code === 'amount_exceeds_remaining') expect(total).toBe(c.error.maxAmount);
+    if (c.output) {
+      // Aucune échéance ouverte n'est laissée de côté tant qu'il reste à répartir : Σ proposé ≤ reste ouvert.
+      expect(c.output.reduce((s, a) => s + a.amount, 0)).toBeLessThanOrEqual(total);
+    }
+  });
+  it('payée, dispensée, annulée et montant en attente exclus', () => {
+    const base = { enrollmentId: 'e1', kind: 'periodic' as const, dueDate: '2026-08-05', amountDue: 25000 };
+    expect(
+      openRemainingOf([
+        { ...base, id: 'a', sequence: 1, amountPaid: 25000, amountPending: 0, status: 'paid' },
+        { ...base, id: 'b', sequence: 2, amountPaid: 0, amountPending: 0, status: 'waived' },
+        { ...base, id: 'c', sequence: 3, amountPaid: 0, amountPending: 0, status: 'canceled' },
+        { ...base, id: 'd', sequence: 4, amountPaid: 5000, amountPending: 10000, status: 'declared' },
+        { ...base, id: 'e', sequence: 5, amountPaid: 0, amountPending: 0, status: 'late' },
+      ]),
+    ).toBe(10000 + 25000);
+  });
+  it('montant invalide → invalid_amount', () => {
+    expect(() =>
+      openRemainingOf([
+        {
+          id: 'x',
+          enrollmentId: 'e1',
+          kind: 'periodic',
+          sequence: 1,
+          dueDate: '2026-08-05',
+          amountDue: 25000,
+          amountPaid: -1,
+          amountPending: 0,
+          status: 'late',
+        },
+      ]),
+    ).toThrow(DomainError);
   });
 });
 
@@ -288,6 +336,46 @@ describe('répartition — propriétés', () => {
     }
     return { allocations: out };
   };
+
+  it('openRemainingOf = plafond de proposeAllocation : le total passe en entier, un franc de plus est refusé', () => {
+    fc.assert(
+      fc.property(list, (items) => {
+        const total = openRemainingOf(items);
+        // Totaux représentables seulement (pr.create refuse un total non sûr : total_too_large, § 2.7).
+        fc.pre(Number.isSafeInteger(total + 1));
+        expect(total).toBe(
+          items.filter(oracleOpen).reduce((s, x) => s + (x.amountDue - x.amountPaid - x.amountPending), 0),
+        );
+        if (total > 0) {
+          const all = proposeAllocation(total, items);
+          expect(all.reduce((s, a) => s + a.amount, 0)).toBe(total);
+          expect(previewAllocation(total, items).remainingAfter).toBe(0);
+        }
+        expect(() => proposeAllocation(total + 1, items)).toThrow(
+          expect.objectContaining({ code: 'amount_exceeds_remaining', details: { maxAmount: total } }),
+        );
+      }),
+      { numRuns: 2000 },
+    );
+  });
+
+  it('previewAllocation : proposition identique à proposeAllocation, reste après = total ouvert − montant', () => {
+    const scenario = list.chain((items) => {
+      const total = openRemainingOf(items);
+      return fc.tuple(fc.constant(items), fc.integer({ min: 1, max: Math.max(1, total) }));
+    });
+    fc.assert(
+      fc.property(scenario, ([items, amount]) => {
+        const total = openRemainingOf(items);
+        fc.pre(total > 0 && Number.isSafeInteger(total));
+        const preview = previewAllocation(amount, items);
+        expect(preview.allocations).toEqual(proposeAllocation(amount, items));
+        expect(preview.remainingAfter).toBe(total - amount);
+        expect(preview.remainingAfter).toBeGreaterThanOrEqual(0);
+      }),
+      { numRuns: 2000 },
+    );
+  });
 
   it('proposeAllocation = remplissage glouton exact des échéances ouvertes triées (10 000 cas, trop-perçu compris)', () => {
     const scenario = list.chain((items) => {

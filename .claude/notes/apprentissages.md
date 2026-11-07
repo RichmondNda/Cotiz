@@ -77,6 +77,10 @@ Format : **date** · contexte — apprentissage. *Source.*
 - **2026-11-02** · Tests d'intégration du back : `pnpm verify` dure environ 15 min (121 fichiers, un conteneur par suite). Une suite peut tomber
   au démarrage sur `Lock is not acquired/owned by you` (`proper-lockfile` dans `testcontainers/build/reaper`) : course au verrou
   du reaper, pas un échec du test. Relancer le fichier seul (`pnpm exec vitest run <fichier>` dans `backend/`). Source : verify du 2026-11-02.
+- **2026-11-07** · `pnpm verify` (lot 3.3) — Autre faux échec possible : toutes les assertions vertes mais « 1 unhandled
+  error » `terminating connection due to administrator command` (57P01) attribuée à un fichier d'intégration (vu sur
+  `ledger-validate.test.ts`) : connexion du pool coupée à l'arrêt du conteneur. Relancé seul : vert, sans erreur.
+  *verify du 2026-11-07, relances.*
 - **2026-11-03** · poste local — Le port 3000 est pris par un service Docker du poste : `pnpm --filter frontend dev` passe sur
   3001. `timeout N pnpm dev` laisse un `node …/nuxt.mjs dev` orphelin (ppid 1) : l'arrêter par son PID. *`ss -ltnp`, `ps`.*
 - **2026-11-03** · poste local — Machine chargée en permanence (ClickHouse/SigNoz, Plane, Dokploy ; charge ~5,5 sur 8 cœurs) :

@@ -1,6 +1,6 @@
 // Espace souscripteur (tableau de bord et projets : NestJS depuis le lot 3.2) : aperçu et déclaration d'un paiement, historique, contrats, associations.
 import { createHash } from 'node:crypto'
-import { DomainError, formatMoney, proposeAllocation, validateAllocation } from '@cotiz/domain'
+import { DomainError, formatMoney, previewAllocation, validateAllocation } from '@cotiz/domain'
 import type { AllocationIssue } from '@cotiz/domain'
 import { formatTelephone } from '../../../app/utils/format'
 import { db } from '../db'
@@ -31,11 +31,10 @@ export function allocationPreview(ctx: MockContext<'me.alloc', 'preview'>) {
   const e = myEnrollment(requireSession(ctx).userId, ctx.body.projectId)
   const installments = ledgerInstallments(e.id)
   try {
-    const allocations = proposeAllocation(ctx.body.amount.amount, installments)
-    const open = openTotal(installments)
+    const { allocations, remainingAfter } = previewAllocation(ctx.body.amount.amount, installments)
     return {
       allocations: allocations.map(a => ({ installmentId: a.installmentId, amount: money(a.amount) })),
-      remainingAfter: money(open - ctx.body.amount.amount),
+      remainingAfter: money(remainingAfter),
     }
   }
   catch (err) {
