@@ -314,6 +314,20 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       expect((await post(`/uploads/${id}/complete`, fatou)).status).toBe(404);
     });
 
+    it('preuve rattachée à A (lot 3.4, justificatifs) : son déposant et les gestionnaires de A la lisent, ni autrui ni B', async () => {
+      const id = await uploadProof(moussa);
+      await markClean(id);
+      // Rattachement fait par le worker à la déclaration (attachProofToAssociation) : seule association_id change.
+      await h.superuser('UPDATE files SET association_id = $2 WHERE id = $1', [id, A.id]);
+      const res = await getFile(id, moussa);
+      expect(res.status).toBe(302);
+      expect(new URL(res.headers.get('location') ?? '').searchParams.get('X-Amz-Expires')).toBe('300');
+      expect((await fetch(res.headers.get('location') ?? '')).status).toBe(200);
+      expect((await getFile(id, awaManagerOfA)).status).toBe(302);
+      expect((await getFile(id, fatou)).status).toBe(404);
+      expect((await getFile(id, koffiManagerOfB)).status).toBe(404);
+    });
+
     it('le logo de A : lisible par A, introuvable pour B (404)', async () => {
       const ticket = await requestUpload(awaManagerOfA, {
         purpose: 'logo',

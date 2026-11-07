@@ -135,3 +135,10 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   solidaire (525 000 F restants au lieu de 395 000 F) ; `seed-dev` ne modifie pas l'existant. Les chiffres de référence sont
   prouvés par `backend/test/integration/me-dashboard.test.ts` sur une base neuve. · Réinitialiser la base de dev
   (suppression de données) seulement sur accord.
+- **2026-11-07** · Lot 3.4, étape 2 — preuve d'un paiement **côté gestionnaire** : `fl.get` n'est basculé que pour les
+  espaces plateforme et souscripteur ; la file de validation et le détail (`lg.pay.get`, réel) affichent encore une preuve
+  fichier sans contenu (`[URL]`). Le back l'autorise déjà (test `files.test.ts`, « preuve rattachée à A »). · À faire dans
+  un lot gestionnaire ou une `chore/` : brancher `useLectureFichier` dans VisionneusePreuve côté `/asso/paiements`.
+- **2026-11-07** · Lot 3.4, démonstration — un paiement de 25 000 F (Centre communautaire, preuve `recu.png`) a été déclaré
+  en attente pour Moussa dans la base de dev Docker afin de montrer la preuve. · Le laisser (données de dev) ou le rejeter
+  depuis `/asso/paiements` ; aucune suppression faite.

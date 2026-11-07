@@ -340,8 +340,13 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     handlers simulés retirés, rendu inchangé (la page calcule déjà synthèse et graphique depuis la liste).
   - **Étape 2 · Justificatifs** : `fl.get` sur le back existe (302, URL de 5 min, audit). Test d'intégration : le
     souscripteur lit sa preuve rattachée à l'association, le gestionnaire de cette association aussi, un autre non.
-    Front : `fl.get` basculé pour `subscriber` et `association` (lg.pay.get est réel : le mock ne connaît pas ces
-    fichiers), la preuve n'est plus `[URL]` : lecture par le client (Bearer) → objet `blob:` affiché par VisionneusePreuve.
+    Front : `fl.get` basculé pour `subscriber` ~~et `association`~~ (périmètre réduit en cours d'étape : l'affichage de
+    la preuve côté gestionnaire est noté dans a-verifier.md), la preuve n'est plus `[URL]` : lecture par le client
+    (Bearer) → objet `blob:` affiché par VisionneusePreuve. Écran : feuille « Détail du paiement » de MbHistorique
+    (maquette source, non faite en V0) → `DetailPaiementSouscripteur.vue`, lignes de `/historique` en boutons.
+    Correctif trouvé à la démonstration Docker : le proxy Nitro suivait la 302 côté serveur vers l'URL signée publique
+    (`localhost:9000`, injoignable du conteneur web) → 502 ; il la transmet désormais au navigateur
+    (`redirect: 'manual'`, test dans `tests/unit/bascule.test.ts`).
   - Vérification : `pnpm verify` (sous `sg docker`) à chaque étape ; relectures isolation + test-skeptic.
   - Étape 1 faite. Relectures : isolation et argent sans bloquant ; test-skeptic : 6 trous comblés (période sur
     `paid_on` ≠ `declared_at`, validés seuls, reçu ≠ déclaré puis annulation comparés à en.list, série filtrée par

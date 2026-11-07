@@ -9,10 +9,9 @@ export type BasculeRule = 'all' | readonly BasculeSpace[]
 
 /**
  * Dépôt et lecture de fichiers (fl.*) : espace plateforme. Le logo d'une association passe par as.upload et as.file
- * (décision 24, lot 2.1). La preuve d'un souscripteur se dépose par fl.upload depuis le lot 3.3 ; l'espace souscripteur
- * ne lit aucun fichier (fl.get reste plateforme).
+ * (décision 24, lot 2.1). La preuve d'un souscripteur se dépose par fl.upload depuis le lot 3.3 et se relit par fl.get
+ * depuis le lot 3.4 (justificatifs de l'historique). La preuve vue par un gestionnaire reste simulée.
  */
-const PLATFORM = ['platform'] as const
 
 export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<EndpointId, BasculeRule>([
   ['sys.health', 'all'],
@@ -26,7 +25,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['auth.reset', 'all'],
   ['me', 'all'],
   ['fl.upload', ['platform', 'subscriber']],
-  ['fl.get', PLATFORM],
+  ['fl.get', ['platform', 'subscriber']],
   // Lot 1.2 : plans (tarifs publics, gestion par le super-admin).
   ['pub.plans', 'all'],
   ['pf.plans', 'all'],

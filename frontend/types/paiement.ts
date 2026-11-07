@@ -8,9 +8,10 @@ export type StatutPaiement = 'en_attente' | 'valide' | 'rejete'
 export type MotifRejet = 'preuve_illisible' | 'montant_non_recu' | 'montant_different' | 'autre'
 
 /** Preuve jointe : image, PDF, ou seulement une référence de transaction. */
+/** `fichierId` : fichier déposé (fl.get), absent d'une preuve d'exemple ; `url` reste `[URL]` tant qu'il n'est pas lu. */
 export type Preuve
-  = | { type: 'image', nomFichier: string, url: string, reference?: string }
-    | { type: 'pdf', nomFichier: string, url: string, reference?: string }
+  = | { type: 'image', nomFichier: string, url: string, fichierId?: string, reference?: string }
+    | { type: 'pdf', nomFichier: string, url: string, fichierId?: string, reference?: string }
     | { type: 'reference', reference: string }
 
 /** Déclaration de paiement d'un souscripteur, vérifiée puis validée ou rejetée par un gestionnaire. */

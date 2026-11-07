@@ -21,6 +21,7 @@ const router = useRouter()
 const { data: paiements, pending, error, refresh } = usePaiements()
 const { data: echeances } = useEcheances()
 const { data: souscriptions } = useMesSouscriptions()
+const { data: associations } = useMesAssociations()
 
 /** Couleurs des projets, dans l'ordre d'inscription (Centre en corail, Mutuelle en violet). */
 const COULEURS = ['var(--corail)', 'var(--violet)', 'var(--info)', 'var(--warning)']
@@ -91,6 +92,15 @@ const groupes = computed(() => {
   }
   return [...g.values()]
 })
+
+// ---------------------------------------------------------------- Détail d'un paiement (feuille)
+const choisi = ref<PaiementListe | null>(null)
+const detailOuvert = ref(false)
+function ouvrir(p: PaiementListe) {
+  choisi.value = p
+  detailOuvert.value = true
+}
+const nomAssociation = (id: string) => associations.value?.find(a => a.association.id === id)?.association.nom ?? ''
 
 function couverture(p: PaiementListe) {
   const ids = new Set(p.repartition.map(r => r.echeanceId))
@@ -232,27 +242,41 @@ function couverture(p: PaiementListe) {
             v-for="p in g.paiements"
             :key="p.id"
           >
-            <span
-              class="historique__point"
-              :style="{ background: couleur(p.projetId) }"
-              aria-hidden="true"
-            />
-            <div class="historique__texte">
-              <b>{{ p.projet.nom }}</b>
-              <span>{{ formatDate(p.declareLe, 'numerique') }}<template v-if="couverture(p)"> · {{ couverture(p) }}</template></span>
-            </div>
-            <div class="historique__montant">
-              <b>{{ formatFCFA(p.montant) }}</b>
-              <BadgeStatut
-                type="paiement"
-                :statut="p.statut"
-                petit
+            <button
+              type="button"
+              class="historique__ligne"
+              @click="ouvrir(p)"
+            >
+              <span
+                class="historique__point"
+                :style="{ background: couleur(p.projetId) }"
+                aria-hidden="true"
               />
-            </div>
+              <span class="historique__texte">
+                <b>{{ p.projet.nom }}</b>
+                <span>{{ formatDate(p.declareLe, 'numerique') }}<template v-if="couverture(p)"> · {{ couverture(p) }}</template></span>
+              </span>
+              <span class="historique__montant">
+                <b>{{ formatFCFA(p.montant) }}</b>
+                <BadgeStatut
+                  type="paiement"
+                  :statut="p.statut"
+                  petit
+                />
+              </span>
+            </button>
           </li>
         </ul>
       </section>
     </template>
+
+    <DetailPaiementSouscripteur
+      v-if="choisi"
+      v-model:ouvert="detailOuvert"
+      :paiement="choisi"
+      :association="nomAssociation(choisi.associationId)"
+      :couverture="couverture(choisi)"
+    />
   </div>
 </template>
 
@@ -332,12 +356,27 @@ function couverture(p: PaiementListe) {
 }
 
 .historique__liste li {
+  border-bottom: 1px solid var(--divider-row);
+}
+
+.historique__ligne {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: var(--space-3);
   min-height: 66px;
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--divider-row);
+}
+
+.historique__ligne:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
 }
 
 .historique__liste li:last-child {

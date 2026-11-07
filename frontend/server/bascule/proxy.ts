@@ -102,5 +102,9 @@ export async function bascule(event: H3Event, config: BasculeConfig) {
     setResponseHeader(event, 'X-Request-Id', requested && REQUEST_ID.test(requested) ? requested : randomUUID())
     return
   }
-  return proxyRequest(event, `${config.apiOrigin.replace(/\/$/, '')}${url.pathname}${url.search}`)
+  // Une redirection (fl.get, as.file : URL signée du stockage) va au navigateur : l'URL vise l'adresse publique du
+  // stockage, que le serveur Nitro ne sait pas toujours joindre (conteneur web : `localhost` n'est pas MinIO).
+  return proxyRequest(event, `${config.apiOrigin.replace(/\/$/, '')}${url.pathname}${url.search}`, {
+    fetchOptions: { redirect: 'manual' },
+  })
 }
