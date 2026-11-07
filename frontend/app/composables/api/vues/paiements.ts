@@ -12,10 +12,10 @@ export function vueEcheance(i: Installment, souscripteurId: string): Echeance {
   }
 }
 
-/** Preuve : fichier (image ou PDF, URL de dépôt non servie en V0 → `[URL]`) ou référence de transaction seule. */
+/** Preuve : fichier (image ou PDF ; `[URL]` jusqu'à sa lecture par fl.get, `fichierId` pour la lire) ou référence seule. */
 function preuve(p: PaymentSummary['proof']): Preuve {
   if (!p.fileId) return { type: 'reference', reference: p.transactionReference ?? '[RÉFÉRENCE]' }
-  return { type: p.mimeType === 'application/pdf' ? 'pdf' : 'image', nomFichier: p.fileName ?? '[FICHIER]', url: '[URL]', ...(p.transactionReference ? { reference: p.transactionReference } : {}) }
+  return { type: p.mimeType === 'application/pdf' ? 'pdf' : 'image', nomFichier: p.fileName ?? '[FICHIER]', url: '[URL]', fichierId: p.fileId, ...(p.transactionReference ? { reference: p.transactionReference } : {}) }
 }
 
 type Commun = Pick<PaymentSummary, 'id' | 'status' | 'amountDeclared' | 'amountReceived' | 'paidOn' | 'declaredAt' | 'paymentMethodKind' | 'covered' | 'proof' | 'reviewedAt'>

@@ -3,7 +3,7 @@
 import type { z } from 'zod'
 import type {
   Association, Enrollment, Installment, PaymentMethod, PaymentSummary, PersonContact,
-  PersonRef, ProjectSummary, PublicPlan, SubscriberPayment, SubscriberProjectCard,
+  PersonRef, ProjectSummary, PublicPlan, SubscriberProjectCard,
 } from '@cotiz/contracts'
 import { db } from './db'
 import type { AssociationRow, EnrollmentRow, PaymentRow, PlanRow, ProjectRow, UserRow } from './db'
@@ -139,15 +139,6 @@ export function paymentSummary(p: PaymentRow): In<typeof PaymentSummary> {
     paidOn: p.paidOn, declaredAt: p.declaredAt, paymentMethodKind: p.paymentMethodKind, member: personRef(userRow(p.userId)),
     project: projectRef(projectRow(p.projectId)), covered: covered(p), proof: proof(p), reviewedBy: personRefById(p.reviewedBy),
     reviewedAt: p.reviewedAt,
-  }
-}
-
-export function subscriberPayment(p: PaymentRow): In<typeof SubscriberPayment> {
-  return {
-    id: p.id, status: p.status, amountDeclared: money(p.amountDeclared), amountReceived: moneyOrNull(p.amountReceived),
-    paidOn: p.paidOn, declaredAt: p.declaredAt, paymentMethodKind: p.paymentMethodKind, project: projectRef(projectRow(p.projectId)),
-    association: associationRef(associationRow(p.associationId)), covered: covered(p), proof: proof(p),
-    rejection: p.rejection ? { ...p.rejection } : null, reviewedAt: p.reviewedAt,
   }
 }
 

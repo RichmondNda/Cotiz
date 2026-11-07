@@ -4,6 +4,17 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 
 ## Points ouverts
 
+- **2026-11-07** · Lot 3.4 (`me.history`) — **paiements d'un projet quitté** : l'historique reprend les inscriptions de
+  me.dash/me.payment (non retirées, appartenance souscripteur active), donc les paiements d'une inscription retirée ou
+  d'une association quittée n'y figurent plus, alors que l'écran promet de « retrouver n'importe quel paiement ».
+  Choix pris : cohérence avec me.payment (404 sur ces paiements, lot 3.3). Source : `get-subscriber-history.use-case.ts`,
+  test d'isolation `me-history.test.ts` (inscription retirée). · Confirmer, ou décider de garder les paiements
+  des inscriptions retirées (me.payment devrait alors suivre).
+- **2026-11-07** · Lot 3.4 — **série filtrée par période** : `cumulative` repart de 0 au début de la période, `target`
+  reste l'engagement total (contrat « versé cumulé par mois », fiche « courbe cumulative avec objectif » : non tranché).
+  Sans effet aujourd'hui : la page calcule son graphique depuis la liste. · Choisir : cumul depuis le début (versé avant
+  la période compris) ou depuis la période (actuel).
+
 - **2026-11-03** · `architecture/07-notifications.md` renvoie à une section `notification-matrix` de `specs/events.yaml` qui
   n'existe pas — la matrice est le tableau d'`architecture/07` (cohérent avec les consommateurs d'`events.yaml`). Lot 2.5 :
   matrice en code + test contre `events.yaml`. · Ajouter la section à `events.yaml` ou corriger le renvoi (au choix).
@@ -124,3 +135,10 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   solidaire (525 000 F restants au lieu de 395 000 F) ; `seed-dev` ne modifie pas l'existant. Les chiffres de référence sont
   prouvés par `backend/test/integration/me-dashboard.test.ts` sur une base neuve. · Réinitialiser la base de dev
   (suppression de données) seulement sur accord.
+- **2026-11-07** · Lot 3.4, étape 2 — preuve d'un paiement **côté gestionnaire** : `fl.get` n'est basculé que pour les
+  espaces plateforme et souscripteur ; la file de validation et le détail (`lg.pay.get`, réel) affichent encore une preuve
+  fichier sans contenu (`[URL]`). Le back l'autorise déjà (test `files.test.ts`, « preuve rattachée à A »). · À faire dans
+  un lot gestionnaire ou une `chore/` : brancher `useLectureFichier` dans VisionneusePreuve côté `/asso/paiements`.
+- **2026-11-07** · Lot 3.4, démonstration — un paiement de 25 000 F (Centre communautaire, preuve `recu.png`) a été déclaré
+  en attente pour Moussa dans la base de dev Docker afin de montrer la preuve. · Le laisser (données de dev) ou le rejeter
+  depuis `/asso/paiements` ; aucune suppression faite.

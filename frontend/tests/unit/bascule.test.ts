@@ -35,8 +35,8 @@ describe('decide', () => {
   const base = { mocks: true, apiOrigin: 'http://api' }
 
   it('mock par défaut, NestJS pour un id du registre', () => {
-    expect(decide('GET', '/api/v1/me/history', base)).toBe('mock')
-    expect(decide('GET', '/api/v1/me/history', { ...base, real: new Set(['me.history']) })).toBe('proxy')
+    expect(decide('GET', '/api/v1/me/contracts', base)).toBe('mock')
+    expect(decide('GET', '/api/v1/me/contracts', { ...base, real: new Set(['me.contracts']) })).toBe('proxy')
     expect(decide('GET', '/api/v1/health/live', base)).toBe('proxy')
   })
 
@@ -48,12 +48,12 @@ describe('decide', () => {
     expect(REAL_ENDPOINTS.get('sys.health')).toBe('all')
   })
 
-  it('lot 1.2 : authentification et /me pour tous les espaces ; fichiers pour la plateforme (dépôt de preuve du souscripteur : lot 3.3) ; plans', () => {
+  it('lot 1.2 : authentification et /me pour tous les espaces ; fichiers pour la plateforme (preuve du souscripteur : dépôt au lot 3.3, lecture au lot 3.4) ; plans', () => {
     for (const id of ['auth.login', 'auth.refresh', 'auth.logout', 'auth.activate', 'auth.forgot', 'auth.verify', 'auth.reset', 'me'] as const) {
       expect(REAL_ENDPOINTS.get(id), id).toBe('all')
     }
     expect(REAL_ENDPOINTS.get('fl.upload')).toEqual(['platform', 'subscriber'])
-    expect(REAL_ENDPOINTS.get('fl.get')).toEqual(['platform'])
+    expect(REAL_ENDPOINTS.get('fl.get')).toEqual(['platform', 'subscriber'])
     for (const id of ['pub.plans', 'pf.plans', 'pf.plan.write', 'pf.plan.archive'] as const) expect(REAL_ENDPOINTS.get(id), id).toBe('all')
     // Second facteur du super-admin : simulé jusqu'au lot 4.7.
     expect(REAL_ENDPOINTS.has('auth.mfa')).toBe(false)
@@ -93,6 +93,8 @@ describe('requestSpace', () => {
   })
 })
 
+const SIGNEE = 'http://127.0.0.1:1/cotiz-files/preuve.png?X-Amz-Expires=300'
+
 describe('proxy de bascule (serveurs HTTP réels)', () => {
   const servers: ReturnType<typeof createServer>[] = []
   let nest = ''
@@ -107,6 +109,12 @@ describe('proxy de bascule (serveurs HTTP réels)', () => {
       return `http://127.0.0.1:${(s.address() as AddressInfo).port}`
     }
     nest = await listen(createServer((req, res) => {
+      // fl.get : redirection vers une URL signée que seul le navigateur sait joindre (port fermé ici).
+      if (req.url?.startsWith('/api/v1/files/')) {
+        res.writeHead(302, { location: SIGNEE })
+        res.end()
+        return
+      }
       let raw = ''
       req.on('data', (chunk: Buffer) => (raw += chunk.toString()))
       req.on('end', () => {
@@ -144,6 +152,12 @@ describe('proxy de bascule (serveurs HTTP réels)', () => {
   it('avec l’id au registre : la requête est transmise à NestJS (chemin et paramètres conservés)', async () => {
     real.add('pub.plans')
     expect(await (await fetch(`${front}/api/v1/public/plans?x=1`)).json()).toEqual({ from: 'nest', url: '/api/v1/public/plans?x=1' })
+  })
+
+  it('redirection de NestJS (fl.get, URL signée) : transmise au navigateur, jamais suivie par le serveur', async () => {
+    real.add('fl.get')
+    const res = await fetch(`${front}/api/v1/files/0190a8b2-0000-7000-8000-000000000001`, { redirect: 'manual' })
+    expect([res.status, res.headers.get('location')]).toEqual([302, SIGNEE])
   })
 
   describe('par espace (registre en Map)', () => {

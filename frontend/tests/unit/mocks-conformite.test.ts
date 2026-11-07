@@ -94,7 +94,6 @@ const READS: Record<string, Call> = {
   'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
   'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
   'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
-  'me.history list': {}, 'me.history series': {},
   'me.contract get': { params: { pid: ID.voyage } }, 'me.contracts list': {}, 'me.assos list': {}, 'me.assos get': { params: { aid } },
 }
 

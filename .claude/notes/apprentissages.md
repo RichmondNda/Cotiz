@@ -80,7 +80,8 @@ Format : **date** · contexte — apprentissage. *Source.*
 - **2026-11-07** · `pnpm verify` (lot 3.3) — Autre faux échec possible : toutes les assertions vertes mais « 1 unhandled
   error » `terminating connection due to administrator command` (57P01) attribuée à un fichier d'intégration (vu sur
   `ledger-validate.test.ts`) : connexion du pool coupée à l'arrêt du conteneur. Relancé seul : vert, sans erreur.
-  *verify du 2026-11-07, relances.*
+  Revu au lot 3.4 étape 2 (même fichier, 2 135/2 135 tests verts) : faux échec récurrent, à corriger un jour (fermer le
+  pool avant d'arrêter le conteneur, ou écouter `error` sur le pool). *verify du 2026-11-07, relances.*
 - **2026-11-03** · poste local — Le port 3000 est pris par un service Docker du poste : `pnpm --filter frontend dev` passe sur
   3001. `timeout N pnpm dev` laisse un `node …/nuxt.mjs dev` orphelin (ppid 1) : l'arrêter par son PID. *`ss -ltnp`, `ps`.*
 - **2026-11-03** · poste local — Machine chargée en permanence (ClickHouse/SigNoz, Plane, Dokploy ; charge ~5,5 sur 8 cœurs) :

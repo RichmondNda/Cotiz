@@ -106,6 +106,7 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
 - Refus du back dans une page : `messageRefus(e)` (titre du Problem, conservé aussi par `traduireErreur`) plutôt qu'un « Vérifiez votre connexion » ; If-Match = la version affichée à l'écran, jamais celle d'une relecture juste avant l'écriture.
 - Page statique sous un segment dynamique (`/asso/souscripteurs/reinitialisations`) : l'ajouter à `SOUS_PAGES` de `scripts/route-mock.mjs`, sinon la capture la remplace par un UUID.
 - Après une bascule, un parcours de `scripts/parcours/` qui saisit un placeholder (`[Opérateur]`…) peut être refusé par le vrai back : y saisir une valeur valide du contrat.
+- Fichier servi par `fl.get` (302 vers une URL signée du stockage) : `useLectureFichier()` (client Bearer → URL `blob:`, à libérer par `URL.revokeObjectURL`) ; le proxy de bascule transmet la 302 au navigateur (`redirect: 'manual'`), jamais un lien direct sans jeton.
 - Capture de `/plateforme` sur le vrai back : `pnpm db:migrate` puis rafraîchir les statistiques (`BEGIN; SET LOCAL app.space = 'system'; SELECT refresh_platform_stats(); COMMIT;` en psql) ; sinon les vues matérialisées sont vides jusqu'au prochain `stats.refresh` (15 min).
 
 ## Session et routes
