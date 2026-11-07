@@ -1,20 +1,17 @@
-// Espace souscripteur (tableau de bord et projets : NestJS depuis le lot 3.2) : aperçu et déclaration d'un paiement, historique, contrats, associations.
+// Espace souscripteur (tableau de bord et projets : NestJS depuis le lot 3.2 ; déclaration et suivi d'un paiement : lot 3.3) : historique, contrats, associations.
 import { createHash } from 'node:crypto'
-import { DomainError, formatMoney, proposeAllocation, validateAllocation } from '@cotiz/domain'
-import type { AllocationIssue } from '@cotiz/domain'
+import { formatMoney } from '@cotiz/domain'
 import { formatTelephone } from '../../../app/utils/format'
 import { db } from '../db'
-import type { EnrollmentRow, PaymentRow } from '../db'
+import type { EnrollmentRow } from '../db'
 import type { MockContext } from '../http'
 import { nowInstant, problem, requireSession } from '../http'
-import { uid } from '../ids'
-import { enrollmentFigures, ledgerInstallments, monthOf, openTotal, scheduleFrom, subscriberTotals, sum } from '../ledger'
+import { enrollmentFigures, monthOf, scheduleFrom, subscriberTotals, sum } from '../ledger'
 import { signEnrollment } from '../scenarios'
 import {
   associationRef, associationRow, enrollmentsOfUser, money, moneyOrNull, paymentMethodsOf, projectRef, projectRow,
   subscriberPayment, subscriberProjectCard, userRow,
 } from '../views'
-import { uploads } from './imports'
 import { page } from './list'
 
 function myEnrollment(userId: string, projectId: string): EnrollmentRow {
@@ -23,61 +20,6 @@ function myEnrollment(userId: string, projectId: string): EnrollmentRow {
 
 function myPayments(userId: string) {
   return db.payments.filter(p => p.userId === userId).sort((a, b) => b.declaredAt.localeCompare(a.declaredAt))
-}
-
-// ---------------------------------------------------------------- Déclaration
-
-export function allocationPreview(ctx: MockContext<'me.alloc', 'preview'>) {
-  const e = myEnrollment(requireSession(ctx).userId, ctx.body.projectId)
-  const installments = ledgerInstallments(e.id)
-  try {
-    const allocations = proposeAllocation(ctx.body.amount.amount, installments)
-    const open = openTotal(installments)
-    return {
-      allocations: allocations.map(a => ({ installmentId: a.installmentId, amount: money(a.amount) })),
-      remainingAfter: money(open - ctx.body.amount.amount),
-    }
-  }
-  catch (err) {
-    if (err instanceof DomainError && err.code === 'amount_exceeds_remaining') problem('amount_exceeds_remaining', { maxAmount: err.details.maxAmount })
-    if (err instanceof DomainError) problem('validation_failed', { fields: { amount: err.code } })
-    throw err
-  }
-}
-
-export function declare(ctx: MockContext<'me.declare', 'declare'>) {
-  const userId = requireSession(ctx).userId
-  const b = ctx.body
-  const e = myEnrollment(userId, b.projectId)
-  if (e.status === 'pending_signature') problem('signature_required')
-  if (e.status !== 'active') problem('invalid_state')
-  const p = projectRow(e.projectId)
-  const installments = ledgerInstallments(e.id)
-  const maxAmount = openTotal(installments)
-  if (b.amount.amount > maxAmount) problem('amount_exceeds_remaining', { maxAmount })
-  const allocations = b.allocations.map(a => ({ installmentId: a.installmentId, amount: a.amount.amount }))
-  const result = validateAllocation(b.amount.amount, allocations, installments, { enrollmentId: e.id })
-  if (!result.ok) allocationProblem(result.errors)
-  const method = b.paymentMethodId ? db.paymentMethods.find(m => m.id === b.paymentMethodId && m.associationId === p.associationId) ?? problem('validation_failed', { fields: { paymentMethodId: 'unknown' } }) : null
-  const file = b.proofFileId ? uploads.get(b.proofFileId) ?? problem('validation_failed', { fields: { proofFileId: 'unknown' } }) : null
-  const id = uid('payment', `${userId}-${Date.now()}-${Math.random()}`)
-  const row: PaymentRow = {
-    id, associationId: p.associationId, projectId: p.id, enrollmentId: e.id, userId, amountDeclared: b.amount.amount,
-    amountReceived: null, paidOn: b.paidOn, paymentMethodId: method?.id ?? null, paymentMethodKind: method?.kind ?? null,
-    proof: { fileId: b.proofFileId ?? null, fileName: file?.fileName ?? null, mimeType: file?.mimeType ?? null, transactionReference: b.transactionReference ?? null },
-    comment: b.comment ?? null, status: 'pending', declaredAt: nowInstant(), reviewedBy: null, reviewedAt: null, rejection: null,
-    allocationAdjusted: false, declaredAllocations: allocations.map(a => ({ ...a })), version: 1,
-  }
-  db.payments.push(row)
-  for (const a of allocations) db.allocations.push({ paymentId: id, installmentId: a.installmentId, amount: a.amount, state: 'proposed' })
-  return subscriberPayment(row)
-}
-
-export function paymentGet(ctx: MockContext<'me.payment', 'get'>) {
-  const userId = requireSession(ctx).userId
-  const p = db.payments.find(x => x.id === ctx.params.id && x.userId === userId) ?? problem('not_found')
-  const method = p.paymentMethodId ? paymentMethodsOf(p.associationId).find(m => m.id === p.paymentMethodId) ?? null : null
-  return { ...subscriberPayment(p), paymentMethod: method, comment: p.comment }
 }
 
 // ---------------------------------------------------------------- Historique
@@ -205,14 +147,4 @@ export function associationGet(ctx: MockContext<'me.assos', 'get'>) {
     projects: enrollmentsOfUser(userId).filter(e => projectRow(e.projectId).associationId === a.id).map(subscriberProjectCard),
     paymentMethods: paymentMethodsOf(a.id),
   }
-}
-
-// Répartition refusée par validateAllocation() (le registre gestionnaire est servi par NestJS depuis le lot 2.4).
-/** Première erreur de validateAllocation → code du catalogue (errors.yaml). */
-export function allocationProblem(errors: AllocationIssue[]): never {
-  const exceeds = errors.find(e => e.code === 'allocation_exceeds_remaining')
-  if (exceeds) problem('allocation_exceeds_remaining', { installmentId: exceeds.installmentId, remaining: exceeds.remaining })
-  const mismatch = errors.find(e => e.code === 'allocation_mismatch')
-  if (mismatch) problem('allocation_mismatch', { expected: mismatch.expected, allocated: mismatch.allocated })
-  problem('validation_failed', { fields: Object.fromEntries(errors.map(e => ['installmentId' in e ? `allocations.${e.installmentId}` : 'allocations', e.code])) })
 }

@@ -27,6 +27,9 @@ x-backend-env: &backend-env
   TRUST_PROXY_HOPS: '1'
   # Poste local : tout le trafic (navigateur, parcours e2e) vient d'une seule IP ; 300/min par défaut coupe une session.
   RATE_LIMIT_IP_PER_MIN: ${COTIZ_RATE_LIMIT_IP_PER_MIN:-5000}
+  # Analyse des fichiers déposés (preuves, logos) : service clamav de local.yml, profil `antivirus`
+  # (`--profile antivirus up -d`). Sans lui, un dépôt reste « en analyse » et la déclaration avec preuve est refusée.
+  CLAMAV_URL: tcp://clamav:3310
 
 x-api-build: &api-build
   context: ../..

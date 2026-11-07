@@ -17,12 +17,12 @@ type RejectionReason = NonNullable<SubscriberPayment['rejection']>['reasonCode']
 /**
  * Paiements déclarés par le souscripteur connecté (espace subscriber, RLS `subscriber_self_read`), sur ces
  * inscriptions, les plus récents d'abord (date de déclaration, puis identifiant) ; `limit` : les premiers seulement.
- * Un paiement dont le projet ou l'association n'est pas dans `refs` n'est pas présenté.
+ * Un paiement dont le projet ou l'association n'est pas dans `refs` n'est pas présenté. `ids` : ceux-là seulement.
  */
 export async function subscriberPaymentsOf(
   enrollmentIds: readonly string[],
   refs: SubscriberPaymentRefs,
-  options: { limit?: number } = {},
+  options: { limit?: number; ids?: readonly string[] } = {},
 ): Promise<SubscriberPayment[]> {
   const context = currentContext();
   if (context?.space !== 'subscriber' || !context.userId) {
@@ -40,6 +40,7 @@ export async function subscriberPaymentsOf(
         inArray(payments.enrollmentId, [...new Set(enrollmentIds)]),
         inArray(payments.projectId, [...refs.projects.keys()]),
         inArray(payments.associationId, [...refs.associations.keys()]),
+        options.ids === undefined ? undefined : inArray(payments.id, [...options.ids]),
       ),
     )
     .orderBy(desc(payments.declaredAt), desc(payments.id));

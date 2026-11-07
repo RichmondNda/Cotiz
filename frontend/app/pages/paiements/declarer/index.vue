@@ -11,6 +11,7 @@
 <script setup lang="ts">
 import type { MoyenPaiement, NouvelleDeclaration } from '~~/types'
 import type { EcheanceSelecteur } from '~/components/metier/SelecteurEcheances.vue'
+import { messageRefus } from '~/composables/api/client'
 import { ETAPES_DECLARATION } from '~/composables/useDeclaration'
 import { maintenant } from '~/utils/date-reference'
 import { libelleCouverture, libelleEcheance } from '~/utils/echeances'
@@ -21,7 +22,7 @@ definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur', fab:
 useHead({ title: 'Déclarer un paiement · Cotiz' })
 
 const route = useRoute()
-const { etat, commencer, choisirProjet, cleEnvoi, reinitialiser } = useDeclaration()
+const { etat, commencer, choisirProjet, choisirPreuve, contenuPreuve, cleEnvoi, reinitialiser } = useDeclaration()
 
 const projetDemande = typeof route.query.projet === 'string' ? route.query.projet : undefined
 if (projetDemande && etat.value.projetId !== projetDemande) commencer(projetDemande)
@@ -90,9 +91,13 @@ const entreePhoto = ref<HTMLInputElement | null>(null)
 const entreeImage = ref<HTMLInputElement | null>(null)
 function fichierChoisi(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
-  if (f) etat.value.preuve = { nom: f.name, taille: f.size }
+  if (f) choisirPreuve(f)
   ;(e.target as HTMLInputElement).value = ''
 }
+// Page rechargée : le nom de la preuve est resté dans l'état, plus son contenu → à rechoisir.
+onMounted(() => {
+  if (etat.value.preuve && !contenuPreuve()) choisirPreuve(null)
+})
 const taillePreuve = computed(() => (etat.value.preuve ? `${Math.max(1, Math.round(etat.value.preuve.taille / 1024))} Ko` : ''))
 
 /** JJ/MM/AAAA → ISO, si la date existe et n'est pas dans le futur. */
@@ -150,7 +155,7 @@ function scrollHaut() {
 // ---------------------------------------------------------------- Envoi
 const declarer = useDeclarationPaiement()
 const envoi = ref(false)
-const erreurEnvoi = ref(false)
+const erreurEnvoi = ref<string | null>(null)
 
 async function envoyer() {
   if (envoi.value) return
@@ -171,15 +176,15 @@ async function envoyer() {
     ...(etat.value.commentaire.trim() ? { commentaire: etat.value.commentaire.trim() } : {}),
   }
   envoi.value = true
-  erreurEnvoi.value = false
+  erreurEnvoi.value = null
   try {
-    const paiement = await declarer(corps, cleEnvoi(corps))
+    const paiement = await declarer(corps, cleEnvoi(corps), contenuPreuve())
     reinitialiser()
     await refreshNuxtData()
     await navigateTo({ path: '/paiements/declarer/ok', query: { paiement: paiement.id } })
   }
-  catch {
-    erreurEnvoi.value = true
+  catch (e) {
+    erreurEnvoi.value = messageRefus(e) ?? 'La déclaration n’a pas pu être envoyée. Vérifiez votre connexion, puis réessayez.'
   }
   finally {
     envoi.value = false
@@ -414,7 +419,7 @@ async function envoyer() {
             <CzButton
               variante="fantome"
               taille="sm"
-              @click="etat.preuve = null"
+              @click="choisirPreuve(null)"
             >
               Changer
             </CzButton>
@@ -506,7 +511,7 @@ async function envoyer() {
           v-if="erreurEnvoi"
           ton="danger"
         >
-          La déclaration n’a pas pu être envoyée. Vérifiez votre connexion, puis réessayez.
+          {{ erreurEnvoi }}
         </CzAlert>
       </section>
 

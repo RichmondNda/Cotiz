@@ -13,7 +13,15 @@ export { firstSubscriptionPeriod, periodEnd } from './subscription.js';
 export type { BillingPeriod, FirstPeriod, FirstPeriodInput } from './subscription.js';
 export { monthlyEquivalent, monthlyRecurringRevenue } from './recurring-revenue.js';
 export type { RecurringRevenueLine } from './recurring-revenue.js';
-export { byDueOrder, excludingPayment, proposeAllocation, remainingOf, validateAllocation } from './allocation.js';
+export {
+  byDueOrder,
+  excludingPayment,
+  openRemainingOf,
+  previewAllocation,
+  proposeAllocation,
+  remainingOf,
+  validateAllocation,
+} from './allocation.js';
 export type { AllocationIssue, ValidateOptions, ValidationResult } from './allocation.js';
 export { canRevert, REVERT_WINDOW_MS, revertDeadline } from './payment-review.js';
 export type { ReviewedPayment } from './payment-review.js';

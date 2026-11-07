@@ -178,6 +178,28 @@ export async function writeBalances(
   }
 }
 
+/**
+ * Déclaration (espace subscriber, lot 3.3) : seuls le montant en attente et le statut changent (le trigger
+ * `guard_installment_update` refuse au souscripteur toute autre colonne) ; la date de retard reste celle que tient la
+ * tâche `installments.refresh-statuses`, le montant payé et la date de solde ne bougent pas.
+ */
+export async function writePending(
+  associationId: string,
+  userId: string,
+  changed: readonly LedgerInstallment[],
+  today: string,
+  graceDays: number,
+): Promise<void> {
+  for (const i of changed) {
+    await currentTx()
+      .update(installments)
+      .set({ amountPending: BigInt(i.amountPending), status: installmentStatus(i, today, graceDays) })
+      .where(
+        and(eq(installments.associationId, associationId), eq(installments.userId, userId), eq(installments.id, i.id)),
+      );
+  }
+}
+
 /** Contrôles différés (Σ confirmées = montant reçu…) vérifiés avant la fin du cas d'usage, traduits en Problem. */
 export async function checkDeferred(): Promise<void> {
   try {
@@ -195,7 +217,13 @@ export async function checkDeferred(): Promise<void> {
 export const FINAL_INSTALLMENT_STATUSES = ['paid', 'waived', 'canceled'] as const;
 
 /** Échéance vue par le domaine : montants en entiers de la devise du paiement (ou du projet). */
-export function toLedger(i: InstallmentRecord, currency: Currency): LedgerInstallment {
+export function toLedger(
+  i: Pick<
+    InstallmentRecord,
+    'id' | 'enrollmentId' | 'kind' | 'sequence' | 'dueDate' | 'amountDue' | 'amountPaid' | 'amountPending' | 'status'
+  >,
+  currency: Currency,
+): LedgerInstallment {
   return {
     id: i.id,
     enrollmentId: i.enrollmentId,

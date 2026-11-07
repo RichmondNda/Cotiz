@@ -112,3 +112,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   solidaire (525 000 F restants au lieu de 395 000 F) ; `seed-dev` ne modifie pas l'existant. Les chiffres de référence sont
   prouvés par `backend/test/integration/me-dashboard.test.ts` sur une base neuve. · Réinitialiser la base de dev
   (suppression de données) seulement sur accord.
+
+- **2026-11-07** · Lot 3.3, étape 2 (me.declare) — questions relevées par `money-reviewer`, non tranchées :
+  (a) **même preuve réutilisée** par deux paiements de la même association (deux déclarations, une photo) : acceptée
+  aujourd'hui (aucune règle dans domain-rules ni errors.yaml) ; refuser ? (b) preuve **encore en analyse** (`pending`) →
+  `file_not_clean`, dont le message parle d'un fichier non sain : un code « analyse en cours » serait plus juste
+  (changement d'errors.yaml → accord requis) ; le front attend `clean` avant d'envoyer (étape 4). (c) Proposition pour
+  `docs/specs/events.yaml` : ajouter « files : rattachement de la preuve » aux consommateurs de `payment.declared`
+  (consommateur `payment-proof` du worker, ledger).

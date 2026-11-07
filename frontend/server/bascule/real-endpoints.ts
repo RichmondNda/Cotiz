@@ -8,8 +8,9 @@ export type BasculeSpace = 'platform' | 'association' | 'subscriber'
 export type BasculeRule = 'all' | readonly BasculeSpace[]
 
 /**
- * Dépôt et lecture de fichiers (fl.*) : espace plateforme seulement. Le logo d'une association passe par as.upload et
- * as.file (décision 24, lot 2.1) ; la preuve d'un souscripteur (lot 3.3) reste simulée avec les écrans qui s'en servent.
+ * Dépôt et lecture de fichiers (fl.*) : espace plateforme. Le logo d'une association passe par as.upload et as.file
+ * (décision 24, lot 2.1). La preuve d'un souscripteur se dépose par fl.upload depuis le lot 3.3 ; l'espace souscripteur
+ * ne lit aucun fichier (fl.get reste plateforme).
  */
 const PLATFORM = ['platform'] as const
 
@@ -24,7 +25,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['auth.verify', 'all'],
   ['auth.reset', 'all'],
   ['me', 'all'],
-  ['fl.upload', PLATFORM],
+  ['fl.upload', ['platform', 'subscriber']],
   ['fl.get', PLATFORM],
   // Lot 1.2 : plans (tarifs publics, gestion par le super-admin).
   ['pub.plans', 'all'],
@@ -104,4 +105,8 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['me.dash', 'all'],
   ['me.projects', 'all'],
   ['me.project', 'all'],
+  // Lot 3.3 : déclaration de paiement (aperçu de répartition ; l'assistant garde aussi son calcul local), suivi.
+  ['me.alloc', 'all'],
+  ['me.declare', 'all'],
+  ['me.payment', 'all'],
 ])

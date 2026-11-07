@@ -16,7 +16,7 @@ export interface EtatDeclaration {
   /** Date du versement saisie (JJ/MM/AAAA). */
   date: string
   moyen: MoyenPaiement | null
-  /** Fichier de preuve choisi (nom et taille ; l'envoi du fichier viendra avec l'API). */
+  /** Fichier de preuve choisi (nom et taille) ; le contenu est gardé à part (`fichierPreuve`), hors de l'état partagé. */
   preuve: { nom: string, taille: number } | null
   reference: string
   commentaire: string
@@ -42,11 +42,30 @@ function etatInitial(): EtatDeclaration {
   }
 }
 
+/**
+ * Contenu du fichier de preuve choisi : jamais dans `useState` (sérialisé dans la page, partagé côté serveur). Gardé
+ * en mémoire du navigateur seulement, le temps du parcours ; perdu au rechargement (la preuve est alors à rechoisir).
+ */
+let fichierPreuve: File | null = null
+
 export function useDeclaration() {
   const etat = useState<EtatDeclaration>('declaration-paiement', etatInitial)
 
+  /** Preuve choisie (ou retirée) : son nom et sa taille dans l'état, son contenu en mémoire. */
+  function choisirPreuve(fichier: File | null) {
+    fichierPreuve = import.meta.client ? fichier : null
+    etat.value.preuve = fichier ? { nom: fichier.name, taille: fichier.size } : null
+  }
+
+  /** Contenu de la preuve choisie, s'il est encore en mémoire (sinon `null` : à rechoisir). */
+  function contenuPreuve(): File | null {
+    const p = etat.value.preuve
+    return p && fichierPreuve?.name === p.nom && fichierPreuve.size === p.taille ? fichierPreuve : null
+  }
+
   /** Nouvelle déclaration ; `projetId` fourni (depuis un projet) : l'étape « Projet » est sautée. */
   function commencer(projetId?: string) {
+    fichierPreuve = null
     etat.value = { ...etatInitial(), ...(projetId ? { projetId, etape: 2 } : {}) }
   }
 
@@ -63,8 +82,9 @@ export function useDeclaration() {
   }
 
   function reinitialiser() {
+    fichierPreuve = null
     etat.value = etatInitial()
   }
 
-  return { etat, commencer, choisirProjet, cleEnvoi, reinitialiser }
+  return { etat, commencer, choisirProjet, choisirPreuve, contenuPreuve, cleEnvoi, reinitialiser }
 }

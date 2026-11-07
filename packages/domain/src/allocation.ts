@@ -34,14 +34,22 @@ export function byDueOrder(a: LedgerInstallment, b: LedgerInstallment): number {
 }
 
 /**
+ * Reste dû des échéances ouvertes (§ 3 et § 4.3) : le plus grand montant que `proposeAllocation` accepte (`maxAmount`),
+ * et, moins le montant déclaré, le reste après la déclaration (aperçu me.alloc). Montants invalides → `invalid_amount`.
+ */
+export function openRemainingOf(installments: readonly LedgerInstallment[]): number {
+  installments.forEach(assertInstallment);
+  return installments.filter(isOpen).reduce((total, x) => total + remainingOf(x), 0);
+}
+
+/**
  * Proposition gloutonne (§ 4) : chaque échéance ouverte, dans l'ordre, reçoit `min(reste à répartir, reste dû)`.
  * Montant supérieur au total dû → `amount_exceeds_remaining` avec `maxAmount` (trop-perçu refusé en V1).
  */
 export function proposeAllocation(amount: number, installments: readonly LedgerInstallment[]): Allocation[] {
   if (!Number.isSafeInteger(amount) || amount <= 0) throw new DomainError('invalid_amount', { amount });
-  installments.forEach(assertInstallment);
+  const maxAmount = openRemainingOf(installments);
   const open = installments.filter(isOpen).sort(byDueOrder);
-  const maxAmount = open.reduce((total, x) => total + remainingOf(x), 0);
   if (amount > maxAmount) throw new DomainError('amount_exceeds_remaining', { maxAmount });
 
   const allocations: Allocation[] = [];
@@ -53,6 +61,18 @@ export function proposeAllocation(amount: number, installments: readonly LedgerI
     left -= part;
   }
   return allocations;
+}
+
+/**
+ * Aperçu d'une déclaration (me.alloc, architecture/04 § 4.4) : la proposition de `proposeAllocation` (mêmes erreurs)
+ * et le reste dû ouvert une fois ce montant réparti.
+ */
+export function previewAllocation(
+  amount: number,
+  installments: readonly LedgerInstallment[],
+): { allocations: Allocation[]; remainingAfter: number } {
+  const allocations = proposeAllocation(amount, installments);
+  return { allocations, remainingAfter: openRemainingOf(installments) - amount };
 }
 
 export type AllocationIssue =

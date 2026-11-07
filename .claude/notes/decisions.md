@@ -237,3 +237,85 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     cloche, nt.list).
   - `late.since` d'une carte = date d'échéance du plus ancien retard (« depuis le 5 août », règle des mocks).
   - `contract.required` = inscription en attente de signature (aucune colonne de contrat avant le lot 4.1).
+
+- **2026-11-07** · Lot 3.3 (déclaration de paiement) — plan, une seule PR vers `backend` (comme 3.1 et 3.2).
+  Dépendance 3.2 `terminé` (PR #37 fusionnée), décision 6 `adopté` (trop-perçu refusé). Aucune migration : politiques
+  `subscriber_declare` (payments), `subscriber_propose` (allocations), `subscriber_pending_update` (installments),
+  `owner_access` (files), `append` (outbox, audit) déjà en place (0003, 0012, 0013). Contrats `me.alloc`, `me.declare`,
+  `me.payment` déjà écrits (packages/contracts/src/endpoints/me.ts). Module : **ledger** (contrôleur `me/payments`).
+  - Étape 1 · `me.alloc` : cas d'usage en espace subscriber (inscription par `subscriberEnrollmentsOf({ projectId })`,
+    échéances ouvertes hors attente, `proposeAllocation()`, `amount_exceeds_remaining` + `maxAmount`, `remainingAfter`) ;
+    tests d'intégration rejouant `test-vectors/allocation.json` par l'API (échéances semées aux montants du vecteur) ;
+    bascule `me.alloc` (le front garde son calcul local, 04-flows § 4.4 « ou »).
+  - Étape 2 · `me.declare` : contrôles (inscription du projet sinon 404 ; `pending_signature` → 403 `signature_required` ;
+    autre statut, ou projet terminé/archivé → 409 `invalid_state` ; preuve `clean` de la personne sinon `file_not_clean`,
+    ni preuve ni référence → `proof_required` ; devise ; `paidOn` pas dans le futur ; moyen retenu du projet), puis
+    transaction : paiement inséré **d'abord** (la clé étrangère pose FOR KEY SHARE sur l'inscription : même ordre que
+    en.withdraw, inscription → échéances), échéances de l'inscription verrouillées par id et relues,
+    `amount_exceeds_remaining`, `validateAllocation()` → `allocationProblem`, allocations `proposed`,
+    `moveAllocations({ addPending })` + `writeBalances` (statut `declared`), audit `payment.declare`,
+    `payment.declared` { paymentId, projectId, userId, amount }, `checkDeferred()`. Idempotence : intercepteur (Redis)
+    + `UNIQUE (user_id, idempotency_key)` (rejeu après 24 h → même paiement). Preuve rattachée à l'association par un
+    consommateur du worker (ledger, `ownTransactions`, espace system via `files.public`) : la RLS interdit au souscripteur
+    de la rattacher (schema.sql § files). Tests : double envoi → un paiement ; deux déclarations concurrentes sur la même
+    échéance → la seconde voit le reste réduit ; isolation (autre souscripteur, autre association, preuve d'autrui).
+  - Étape 3 · `me.payment` : statut, répartition (`covered`), motif de rejet, moyen, commentaire ; 404 identique pour
+    un paiement d'autrui ; tests d'intégration et d'isolation ; bascule.
+  - Étape 4 · front + bout en bout : vrai dépôt de la preuve (fichier gardé en mémoire, pas dans l'état partagé),
+    bascule de `fl.upload`/`fl.get` pour l'espace subscriber (nécessaire au dépôt réel, hors liste du lot), handlers
+    simulés de `me.alloc`/`me.declare`/`me.payment` supprimés ; parcours Playwright `declaration` sur la pile Docker :
+    Moussa déclare 75 000 F (3 échéances) avec photo → Awa valide → 3 cases « Payée » → notification de Moussa.
+  Choix (option conventionnelle prise) :
+  - Le tableau du lot omet `allocation_exceeds_remaining` pour me.declare ; endpoints.yaml (normatif) le liste : levé.
+  - `me.payment` présente un paiement dans les mêmes limites que 3.2 (inscription non retirée, appartenance active) :
+    sinon 404.
+  - Preuve encore en analyse (`pending`) ou infectée → `file_not_clean` ; inconnue, d'autrui ou rattachée à une autre
+    association → 422 `validation_failed` (`fields.proofFileId = 'not_found'`).
+  - Étape 1 faite : `openRemainingOf` et `previewAllocation` ajoutés à `@cotiz/domain` (reste dû ouvert, aperçu
+    complet ; propriétés fast-check bornées aux totaux sûrs, comme `total_too_large`), utilisés par le cas d'usage et
+    le mock ; un montant ≤ 0 est refusé par le contrat (`validation_failed`) avant le domaine (vecteur
+    `erreur-montant` vérifié en `invalid_amount` dans le domaine seulement). Aperçu servi aussi sur une inscription
+    en attente de signature ou terminée (comme me.project) : me.declare refusera (relevé par `money-reviewer`).
+    Plus d'une inscription renvoyée pour un projet → erreur interne (garde-fou, `isolation-reviewer`).
+  - Étape 2 faite (me.declare), choix :
+    - Écriture des échéances par `writePending` (payment-review) : seuls `amount_pending` et `status`, filtre
+      association + `user_id` ; `writeBalances` échouait (500) sur une échéance `late` sans `late_since` (trigger
+      `guard_installment_update`, espace subscriber). Test de non-régression.
+    - Date du versement après le jour de l'association → `fields.paidOn = 'in_future'` ; moyen inactif, d'une autre
+      association ou non retenu par le projet (s'il en retient) → `fields.paymentMethodId = 'not_found'`.
+    - Preuve déjà citée par un paiement de la personne dans une autre association (pas encore rattachée) → `not_found`
+      (sinon rattachée à la première traitée, illisible pour l'autre).
+    - Rejeu par la contrainte (après 24 h) : même projet, montant, date, moyen, référence, preuve et répartition
+      déclarée (ordre et casse indifférents), sinon `idempotency_key_reused` (relevé par `money-reviewer`).
+    - Ordre des verrous : paiement inséré (FK → KEY SHARE sur l'inscription) puis échéances par id ; pas de verrou sur
+      le projet (interdit au souscripteur) ; testé en concurrence avec lg.pay.validate et en.withdraw.
+  - Étape 3 faite (me.payment) : lecture filtrée par `user_id` du jeton puis inscription présentée
+    (`subscriberEnrollmentsOf`, même association) ; inconnu, d'autrui ou hors limites → même 404. Moyen absent
+    (désactivé depuis, ou d'une autre association) → `paymentMethod: null`.
+    **Bascule de me.declare et me.payment reportée à l'étape 4**, avec fl.upload/fl.get : basculer me.payment seul
+    rendrait 404 sur les paiements déclarés par le mock, et me.declare réel exige une preuve réellement déposée.
+  - Relecture `isolation-reviewer` (étapes 2-3), suites données :
+    - Même preuve citée **en même temps** dans deux associations : les deux déclarations passaient (course, prouvée
+      par un test qui échouait). `subscriberProofOf` verrouille la ligne du fichier (`FOR UPDATE`, permis par
+      `owner_access`) : la seconde voit le paiement de la première → 422. Test de concurrence dans `me-declare.test.ts`.
+    - 404 de me.declare comparés au corps du projet inconnu ; `payments.subscriber_self_read` élargie dans le test
+      d'isolation de me.declare, avec un paiement de Fatou portant la clé envoyée par Moussa (échoue sans le filtre
+      `user_id` du rejeu, vérifié par mutation).
+    - Écarté : « rejeu sur une ancienne inscription du même projet → 500 » impossible, `UNIQUE (project_id, user_id)`
+      sur enrollments (schema.sql) ; verrou `lockInstallments` sans filtre `user_id` (partagé avec lg.pay.*, aucune
+      écriture possible sur l'échéance d'autrui : `writePending` filtre `user_id`) laissé tel quel.
+  - Étape 4 (front + bout en bout), choix :
+    - Contenu de la preuve gardé hors de `useState` (variable du module `useDeclaration`, navigateur seulement) ;
+      page rechargée → preuve à rechoisir. Fichier déposé mémorisé par `File` (WeakMap) : un nouvel essai de la même
+      déclaration renvoie le même `proofFileId` avec la même clé (sinon `idempotency_key_reused`).
+    - Analyse : `complete` attend jusqu'à FILE_SCAN_WAIT_MS ; encore `pending` → nouvelle confirmation (sans effet),
+      au plus 3 fois, puis message « encore en cours de vérification ». Erreur d'envoi : titre du Problem (`messageRefus`).
+    - Bascule : `me.declare`, `me.payment` (`all`), `fl.upload` pour `subscriber` en plus de `platform` ; `fl.get`
+      inchangé (l'espace souscripteur ne lit aucun fichier). Handlers simulés me.alloc/me.declare/me.payment retirés ;
+      test d'idempotence générique des mocks déplacé sur `rm.send`.
+    - Parcours `souscripteur` (mocks + back réel) : s'arrête au récapitulatif (l'envoi réel changerait les échéances de
+      Moussa d'un passage à l'autre). Parcours `declaration` : compte neuf (rejouable) ; son fonds d'entrée (50 000 F,
+      plus ancienne échéance) est d'abord déclaré par référence et validé, pour que les 75 000 F couvrent 3 mois comme
+      pour Moussa (critère du lot).
+    - Pile Docker : `CLAMAV_URL: tcp://clamav:3310` dans `infra/compose/app.yml` (service `clamav`, profil
+      `antivirus`) : sans antivirus, un dépôt reste en analyse et la déclaration avec photo est refusée.

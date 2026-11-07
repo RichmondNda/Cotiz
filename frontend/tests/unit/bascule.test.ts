@@ -48,11 +48,12 @@ describe('decide', () => {
     expect(REAL_ENDPOINTS.get('sys.health')).toBe('all')
   })
 
-  it('lot 1.2 : authentification et /me pour tous les espaces ; fichiers pour la plateforme seulement ; plans', () => {
+  it('lot 1.2 : authentification et /me pour tous les espaces ; fichiers pour la plateforme (dépôt de preuve du souscripteur : lot 3.3) ; plans', () => {
     for (const id of ['auth.login', 'auth.refresh', 'auth.logout', 'auth.activate', 'auth.forgot', 'auth.verify', 'auth.reset', 'me'] as const) {
       expect(REAL_ENDPOINTS.get(id), id).toBe('all')
     }
-    for (const id of ['fl.upload', 'fl.get'] as const) expect(REAL_ENDPOINTS.get(id), id).toEqual(['platform'])
+    expect(REAL_ENDPOINTS.get('fl.upload')).toEqual(['platform', 'subscriber'])
+    expect(REAL_ENDPOINTS.get('fl.get')).toEqual(['platform'])
     for (const id of ['pub.plans', 'pf.plans', 'pf.plan.write', 'pf.plan.archive'] as const) expect(REAL_ENDPOINTS.get(id), id).toBe('all')
     // Second facteur du super-admin : simulé jusqu'au lot 4.7.
     expect(REAL_ENDPOINTS.has('auth.mfa')).toBe(false)
