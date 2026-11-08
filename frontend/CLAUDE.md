@@ -107,6 +107,8 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
 - Page statique sous un segment dynamique (`/asso/souscripteurs/reinitialisations`) : l'ajouter à `SOUS_PAGES` de `scripts/route-mock.mjs`, sinon la capture la remplace par un UUID.
 - Après une bascule, un parcours de `scripts/parcours/` qui saisit un placeholder (`[Opérateur]`…) peut être refusé par le vrai back : y saisir une valeur valide du contrat.
 - Fichier servi par `fl.get` (302 vers une URL signée du stockage) : `useLectureFichier()` (client Bearer → URL `blob:`, à libérer par `URL.revokeObjectURL`) ; le proxy de bascule transmet la 302 au navigateur (`redirect: 'manual'`), jamais un lien direct sans jeton.
+- Build sans mocks (`NUXT_MOCKS=0` au build, production) : `AVEC_MOCKS` faux (`vite.define`), seuls les endpoints du registre existent ; un appel à un endpoint d'un lot non livré passe par `endpointDisponible(id, espace)` (`utils/bascule.ts`) ou une fonctionnalité de `GET /me`, sinon 404 de NestJS. Recette : `tools/repetition-production.sh` (parcours `jalon` en `COTIZ_STRICT=1`).
+- Rendu serveur dans un conteneur : le client SSR appelle `/api/v1` par `useRequestEvent().fetch` (Nitro local), jamais par l'origine publique (injoignable depuis le conteneur).
 - Capture de `/plateforme` sur le vrai back : `pnpm db:migrate` puis rafraîchir les statistiques (`BEGIN; SET LOCAL app.space = 'system'; SELECT refresh_platform_stats(); COMMIT;` en psql) ; sinon les vues matérialisées sont vides jusqu'au prochain `stats.refresh` (15 min).
 
 ## Session et routes

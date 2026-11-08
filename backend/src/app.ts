@@ -26,10 +26,23 @@ export async function createApp(
 export function configureApp(app: INestApplication, config: Config): void {
   app.useLogger(app.get(PinoNestLogger));
   app.setGlobalPrefix('api/v1');
-  if (config.TRUST_PROXY_HOPS > 0) {
-    (app.getHttpAdapter().getInstance() as { set(name: string, value: unknown): void }).set(
-      'trust proxy',
-      config.TRUST_PROXY_HOPS,
-    );
-  }
+  const express = app.getHttpAdapter().getInstance() as {
+    set(name: string, value: unknown): void;
+    disable(name: string): void;
+  };
+  if (config.TRUST_PROXY_HOPS > 0) express.set('trust proxy', config.TRUST_PROXY_HOPS);
+  // En-têtes de sécurité (architecture/02, lot 3.5) : réponses JSON, jamais exécutées ni encadrées ; la page de
+  // documentation (développement) pose sa propre politique de contenu, plus loin.
+  express.disable('x-powered-by');
+  app.use((_req: unknown, res: { setHeader(name: string, value: string): void }, next: () => void) => {
+    for (const [name, value] of API_SECURITY_HEADERS) res.setHeader(name, value);
+    next();
+  });
 }
+
+const API_SECURITY_HEADERS: readonly (readonly [string, string])[] = [
+  ['X-Content-Type-Options', 'nosniff'],
+  ['X-Frame-Options', 'DENY'],
+  ['Referrer-Policy', 'no-referrer'],
+  ['Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'"],
+];

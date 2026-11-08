@@ -13,17 +13,16 @@ import { vuePlans } from './vues/plans'
 
 /** Association du gestionnaire (profil, moyens, compteurs), au format de l'interface. */
 export async function chargerAssociation(client: ApiClient, aid: string): Promise<Association> {
-  const [a, moyens, tdb, sub, equipe] = await Promise.all([
+  // Équipe (tm.team, lot 4.5) non livrée : nombre et limite de gestionnaires lus dans les quotas de l'abonnement (réels).
+  const [a, moyens, tdb, sub] = await Promise.all([
     client.call('as.get', 'get', { params: { aid } }),
     client.call('as.pm.list', 'list', { params: { aid } }),
-    // Tableau de bord et équipe encore simulés (lots 2.6, 4.5) : inconnus des mocks pour une association créée en réel.
     client.call('as.dashboard', 'get', { params: { aid } }).catch(() => null),
     client.call('bl.sub', 'get', { params: { aid } }),
-    client.call('tm.team', 'list', { params: { aid } }).catch(() => null),
   ])
   return vueAssociation(a, moyens.items, {
     planId: sub.plan.id, projets: tdb?.projectsCount ?? sub.quotas.projects.used, souscripteurs: tdb?.subscribersCount ?? sub.quotas.subscribers.used,
-    gestionnaires: equipe?.items.length ?? sub.quotas.managers.used, limiteSecondaires: equipe?.seats.limit ?? sub.quotas.managers.limit ?? undefined,
+    gestionnaires: sub.quotas.managers.used, limiteSecondaires: sub.quotas.managers.limit ?? undefined,
     prochaineEcheance: sub.currentPeriodEnd ?? undefined,
   })
 }

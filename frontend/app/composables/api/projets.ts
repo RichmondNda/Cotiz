@@ -10,7 +10,7 @@ import type {
 import { DATE_REFERENCE } from '~/utils/date-reference'
 import { jourEcheanceDe } from '~/utils/echeancier'
 import { formatTelephone } from '~/utils/format'
-import { associationCourante } from './session'
+import { associationCourante, usePermissions } from './session'
 import { CALENDRIER_INVERSE, FREQUENCE_INVERSE, MOYEN_INVERSE, STATUT_PROJET_INVERSE, versE164, vueAcces } from './vues/communs'
 import { traduireErreur } from './vues/erreurs'
 import { apercuDepuis, vueContratProjet, vueGrille, vueProjet, vueRapport, vueSouscription, vueSynthese } from './vues/projets'
@@ -35,8 +35,12 @@ async function enrichir(client: ApiClient, aid: string, p: ProjectSummary | Proj
   return vueProjet(p, { associationId: aid, moyens: moyens.items, apercu: apercuDepuis(enr.filter(e => e.status !== 'withdrawn')), contrat })
 }
 
-export async function chargerProjet(client: ApiClient, aid: string, pid: string): Promise<Projet> {
-  return enrichir(client, aid, await client.call('pr.get', 'get', { params: { aid, pid } }), { contrat: true })
+/**
+ * `avecContrat` : fonctionnalité `contracts` active pour la session (lot 4.1) ; sinon `ct.get` n'est pas appelé
+ * (build de production avant le lot 4.1 : l'endpoint n'existe pas encore).
+ */
+export async function chargerProjet(client: ApiClient, aid: string, pid: string, avecContrat: boolean): Promise<Projet> {
+  return enrichir(client, aid, await client.call('pr.get', 'get', { params: { aid, pid } }), { contrat: avecContrat })
 }
 
 export const useProjets = (filtres: MaybeRefOrGetter<{ associationId?: string, statut?: string }> = {}) =>
@@ -51,8 +55,14 @@ export const useProjets = (filtres: MaybeRefOrGetter<{ associationId?: string, s
   })
 
 /** `immediat: false` : pas d'appel tant que `refresh()` n'est pas demandé (identifiant optionnel). */
-export const useProjet = (id: MaybeRefOrGetter<string>, options: { immediat?: boolean } = {}) =>
-  useLecture<Projet>(() => `projet:${toValue(id)}`, async client => chargerProjet(client, await associationCourante(client), toValue(id)), options)
+export const useProjet = (id: MaybeRefOrGetter<string>, options: { immediat?: boolean } = {}) => {
+  const { active } = usePermissions()
+  return useLecture<Projet>(
+    () => `projet:${toValue(id)}`,
+    async client => chargerProjet(client, await associationCourante(client), toValue(id), active('contracts')),
+    options,
+  )
+}
 
 /** Souscripteurs d'un projet (onglet Souscripteurs). */
 export const useSouscripteursProjet = (id: MaybeRefOrGetter<string>) =>
@@ -99,12 +109,13 @@ async function versProjet(client: ApiClient, aid: string, p: NouveauProjet) {
 /** Création d'un projet (MgNouveauProjet) : brouillon, puis publié (« Inscriptions ouvertes ») sauf brouillon demandé. */
 export function useCreationProjet() {
   const client = useClient()
+  const { active } = usePermissions()
   return async (projet: NouveauProjet) => {
     const aid = await associationCourante(client)
     try {
       const cree = await client.call('pr.create', 'create', { params: { aid }, body: await versProjet(client, aid, projet) })
       if (!projet.brouillon) await client.call('pr.lifecycle', 'publish', { params: { aid, pid: cree.id } })
-      return chargerProjet(client, aid, cree.id)
+      return chargerProjet(client, aid, cree.id, active('contracts'))
     }
     catch (e) {
       traduireErreur(e, { validation_failed: 'projet_incomplet', quota_exceeded: 'quota_exceeded' })
@@ -147,6 +158,7 @@ const STATUT_LIGNE = { ready: 'prete', existing: 'compte_existant', duplicate: '
 /** Mutations du détail d'un projet (gestionnaire) : à appeler dans `setup`. */
 export function useActionsProjet() {
   const client = useClient()
+  const { active } = usePermissions()
   let importEnCours: string | null = null
   return {
     rechercherSouscripteur: async (projetId: string, telephone: string): Promise<ResultatRechercheSouscripteur> => {
@@ -204,7 +216,7 @@ export function useActionsProjet() {
               : mod.instructionsPaiement !== undefined ? { paymentMethods: p.paymentMethods.map(x => ({ ...x, instructionsOverride: mod.instructionsPaiement || null })) } : {}),
           },
         })
-        return chargerProjet(client, aid, projetId)
+        return chargerProjet(client, aid, projetId, active('contracts'))
       }
       catch (e) {
         traduireErreur(e, { 'champ:name': 'nom_obligatoire' })
@@ -214,7 +226,7 @@ export function useActionsProjet() {
       const aid = await associationCourante(client)
       try {
         await client.call('pr.lifecycle', 'close', { params: { aid, pid: projetId } })
-        return chargerProjet(client, aid, projetId)
+        return chargerProjet(client, aid, projetId, active('contracts'))
       }
       catch (e) {
         traduireErreur(e, { invalid_state: 'deja_cloture' })

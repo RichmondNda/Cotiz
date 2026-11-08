@@ -13,7 +13,10 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --offline --frozen-lockfile --filter "frontend..."
-RUN pnpm --filter "frontend..." run build
+# NUXT_MOCKS=0 (production, recette : `--build-arg NUXT_MOCKS=0`) : handlers simulés et outils de dev exclus du build
+# (nitro.ignore), fonctionnalités de `GET /me` seules. Absent (pile de dev, app.yml) : mocks inclus.
+ARG NUXT_MOCKS
+RUN NUXT_MOCKS=${NUXT_MOCKS} pnpm --filter "frontend..." run build
 
 FROM node:22-bookworm-slim AS runtime
 # Correctifs de sécurité Debian publiés après l'image de base (ex. pcre2, CVE-2026-103111).

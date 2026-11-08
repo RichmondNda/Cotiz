@@ -30,16 +30,22 @@ export async function contient(page, attendu, message) {
  * Lance un parcours : `etapes` est une liste [nom, fonction(page)].
  * Capture chaque étape dans .verif/e2e/<parcours>/, collecte les erreurs console, arrête au premier échec.
  */
-export async function parcours(nom, { viewport = { width: 1440, height: 900 }, mobile = false } = {}, etapes) {
+export async function parcours(nom, { viewport = { width: 1440, height: 900 }, mobile = false, tolerer = () => false } = {}, etapes) {
   mkdirSync(`.verif/e2e/${nom}`, { recursive: true })
   await fetch(new URL('/api/_dev/reinitialiser', BASE), { method: 'POST' }).catch(() => {})
   const browser = await chromium.launch()
   const ctx = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile, baseURL: BASE })
   const page = await ctx.newPage()
   const erreurs = []
+  erreurs.tolerees = []
   page.on('pageerror', e => erreurs.push(e.message))
-  page.on('console', m => m.type() === 'error' && erreurs.push(m.text()))
-  page.on('response', r => r.status() >= 400 && r.url().includes('/api/') && erreurs.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`))
+  // « Failed to load resource » double chaque réponse en erreur (déjà relevée ci-dessus, tolérée ou non).
+  page.on('console', m => m.type() === 'error' && !m.text().startsWith('Failed to load resource') && erreurs.push(m.text()))
+  page.on('response', (r) => {
+    if (r.status() < 400 || !r.url().includes('/api/')) return
+    if (tolerer(r)) return erreurs.tolerees.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
+    erreurs.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
+  })
   let ok = true
   for (const [i, [etape, fn]] of etapes.entries()) {
     const n = String(i + 1).padStart(2, '0')
@@ -56,6 +62,7 @@ export async function parcours(nom, { viewport = { width: 1440, height: 900 }, m
       break
     }
   }
+  if (erreurs.tolerees.length) console.log('  ℹ tolérées (endpoint encore simulé, entité réelle) :\n    - ' + [...new Set(erreurs.tolerees)].join('\n    - '))
   if (erreurs.length) {
     ok = false
     console.log('  ⚠ erreurs console / API :\n    - ' + [...new Set(erreurs)].join('\n    - '))

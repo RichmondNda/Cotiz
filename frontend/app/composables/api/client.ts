@@ -1,7 +1,9 @@
 // Seul point d'accès aux données : client typé de @cotiz/api-client sur les chemins du contrat (`/api/v1/...`).
 // Le navigateur ne parle qu'à Nuxt (même origine) : le middleware de bascule sert le mock ou transmet à NestJS.
 // - le `?scenario=` de la page part dans l'en-tête `x-cotiz-scenario` (états de données de l'inventaire, dev) ;
-// - au rendu serveur, l'appel vise l'origine de la requête et fait suivre le cookie de session ;
+// - au rendu serveur, l'appel passe par le `fetch` local de Nitro (`event.fetch` : traité dans le processus, middleware de
+//   bascule compris) et fait suivre le cookie de session ; jamais par l'origine publique de la requête, que le serveur
+//   ne sait pas toujours joindre (conteneur : `localhost:3080` n'écoute pas dedans ; production : détour par Internet) ;
 // - espaces basculés : jeton d'accès en `Authorization` (mémoire de l'onglet), renouvelé puis rejoué sur une 401 ;
 // - une erreur `Problem` est convertie en erreur Nuxt (`statusCode`, `data` = Problem) pour les écrans d'erreur.
 import { ApiError, createClient } from '@cotiz/api-client'
@@ -14,12 +16,14 @@ export type { ApiClient }
 export function useClient(): ApiClient {
   const route = useRoute()
   const cookie = import.meta.server ? useRequestHeaders(['cookie']) : {}
-  const origin = import.meta.server ? useRequestURL().origin : ''
+  const evenement = import.meta.server ? useRequestEvent() : undefined
   const jeton = useJetonAcces()
   return createClient({
-    baseUrl: origin,
+    baseUrl: '',
     credentials: 'same-origin',
-    ...(import.meta.client ? { fetch: fetchAvecRenouvellement(globalThis.fetch.bind(globalThis), jeton) } : {}),
+    ...(import.meta.client
+      ? { fetch: fetchAvecRenouvellement(globalThis.fetch.bind(globalThis), jeton) }
+      : evenement ? { fetch: evenement.fetch as typeof globalThis.fetch } : {}),
     headers: () => {
       const headers: Record<string, string> = { ...cookie }
       const acces = jeton.valeur()

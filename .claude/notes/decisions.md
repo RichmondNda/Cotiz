@@ -360,3 +360,83 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Recette `/historique` (pile Docker, vrai back) : rendu conforme ; écarts = base de dev (Voyage actif, 525 000 F,
     a-verifier du 2026-11-07), ordre de juillet identique aux mocks, artefacts de capture des éléments fixes.
 
+
+- **2026-11-07** · `/lot 3.5` (recette locale du jalon V1), branche `lot/3.5-jalon-v1` (depuis `origin/backend`, cf37f4e) —
+  dépendance 3.4 `terminé` ; aucune décision listée. Plan exécuté sans validation :
+  - **Étape 1 · Parcours complets** : nouveau parcours `jalon` dans `frontend/tests/e2e/parcours.mjs`, sur une association
+    neuve à chaque passage (nom et numéros tirés au hasard) : demande publique → Richy approuve (`/plateforme/demandes`,
+    code remis par HandoffCard) → la responsable active son compte et fait l'onboarding (`/asso/bienvenue`) → crée un
+    projet (`/asso/projets/nouveau`) → inscrit un souscripteur (code remis) → activation → déclaration couvrant plusieurs
+    échéances avec preuve → validation → notification du souscripteur. Briques existantes (`nouveauCompte`, `declarer`,
+    `valider`) paramétrées par association/projet/compte gestionnaire. Vérif : vert sur la pile Docker (`app.yml`, api et
+    worker réels, `--profile antivirus`).
+  - **Étape 2 · Sans fournisseur** : test d'acceptation `backend/test/integration/no-provider.test.ts` : le schéma de
+    configuration n'accepte aucune variable de canal externe (liste de `features.yaml` `externalProvider`), `GET /me`
+    n'annonce aucune fonctionnalité `externalProvider` ; le parcours `jalon` lancé avec un environnement vérifié sans ces
+    variables (script `tools/sans-fournisseur.mjs` : refuse de démarrer si une variable SMTP/SMS/PAY/PUSH… est définie).
+  - **Étape 3 · Charge et sécurité** : scripts k6 dans `infra/load/` (grille 200 × 24, tableau de bord, 100 déclarations,
+    2 validations concurrentes) contre la pile locale, jeu de charge `pnpm db:seed:load` ; objectifs de
+    architecture/09 (lectures p95 < 300 ms, écritures < 800 ms, grille < 500 ms). ZAP baseline (image officielle
+    `ghcr.io/zaproxy/zaproxy:stable`, k6 : `grafana/k6`, versions épinglées : sources vérifiées, rien installé sur le poste)
+    ; revue des en-têtes et de la CSP (front Nitro et api). Vérif : objectifs tenus, aucune alerte ZAP haute.
+  - **Étape 4 · Répétition de production** : `infra/compose/production.yml` (migrate en tâche préalable, api, worker, web
+    `NUXT_MOCKS=0`, `NODE_ENV=production`, configuration par variables `${VAR:?}` uniquement) + surcouche locale
+    `production.local.yml` (services de données locaux, ports) ; secrets de la répétition générés à la volée par
+    `infra/compose/production-local.sh` (clés JWT et de chiffrement éphémères, jamais écrites dans un fichier `.env`).
+    Front : en build sans mocks, fonctionnalités = celles de `GET /me` seulement (plus de tolérance « lot non basculé »)
+    ; écrans et zones des lots ≥ 4 → « Bientôt disponible » (architecture/10, « Fonction pas encore livrée ») ;
+    `DELIVERED_FEATURES` complété (`payments` 3.3, `activation_codes` 2.3 manquaient). Vérif : `/health/ready` 200, parcours
+    `jalon` vert sur cette pile, revue des écrans V1 sans aucune donnée simulée.
+  Écarts avec la réalité du dépôt (option conventionnelle prise) :
+  - « images construites par la CI » : la CI ne tourne plus (depuis le 2026-11-05) → images construites en local avec les
+    mêmes Dockerfiles (`infra/docker/*.Dockerfile`), étiquettes `cotiz-*:prod-local`.
+  - `me.assos` (lot 4.5) sert des écrans V1 (`/associations`, nom de l'association dans le détail d'un paiement) : en build
+    sans mocks, `/associations` affiche « Bientôt disponible » ; le détail d'un paiement prend le nom porté par le paiement
+    (`SubscriberPayment.association`, déjà au contrat) au lieu de me.assos.
+  - Étape 1 faite (2026-11-08) : parcours `jalon` vert sur la pile Docker (10 étapes, association neuve, paiement de
+    100 000 F couvrant fonds d'entrée + 2 mois avec preuve, validé, notifié). Deux défauts réels trouvés et corrigés :
+    (1) rendu serveur des pages publiques cassé dans toute image Docker : `useClient` appelait l'origine publique de la
+    requête (`localhost:3080`, injoignable dans le conteneur ; détour par Internet en production) → `event.fetch` local de
+    Nitro (« Les plans n'ont pas pu être chargés » sur `/demande`) ; (2) `chargerAssociation` appelait `tm.team` (lot 4.5,
+    simulé : 404 pour une association réelle, et en production) → quotas de `bl.sub` (réels). Reste toléré sur la pile de
+    dev seulement (`COTIZ_STRICT=1` l'interdit) : `ct.get` (lot 4.1) appelé par la fiche projet, à filtrer par
+    fonctionnalité à l'étape 4. Reprise sans nouvelle demande (5/h par IP) : `COTIZ_JALON_REPRISE=<email>`.
+  - Étape 2 faite (2026-11-08) : `backend/test/acceptance/sans-fournisseur.test.ts` (schéma de configuration — `ConfigSchema`
+    exporté —, fonctionnalités `externalProvider` jamais annoncées même livrées, fichiers compose, dépendances npm, hôtes
+    tiers dans le code livré ; 3 mutations vues échouer : `SMTP_HOST` dans app.yml, `nodemailer`, URL Google Fonts) ;
+    liste unique `backend/test/acceptance/fournisseurs.ts` (un `.mjs` dans `tools/` cassait le projectService d'ESLint) ; recette `tools/sans-fournisseur.mjs` (`docker inspect` des conteneurs api,
+    worker, web — noms seuls, jamais les valeurs — puis parcours `jalon`) verte sur la pile Docker. Un « Failed to fetch
+    dynamically imported module » vu une fois (navigation pendant un chargement), absent au passage suivant.
+  - Étape 3 faite (2026-11-08), pile Docker, poste partagé (ClickHouse et d'autres services hors Cotiz chargent le CPU,
+    charge moyenne 4 à 8 sur 8 cœurs : chiffres indicatifs).
+    · **En-têtes** : front `server/securite/entetes.ts` + plugin Nitro (fonctions pures testées, `tests/unit/securite.test.ts`) :
+    CSP à nonce par requête pour `<script>` et `<style>` (`style-src-attr 'unsafe-inline'` seul permis en ligne : attributs
+    `style` des composants), `connect-src` limité au stockage (`NUXT_STORAGE_ORIGIN`) et à GlitchTip, `frame-ancestors 'none'`,
+    X-Frame-Options DENY, nosniff, Referrer-Policy, COOP, CORP, Permissions-Policy ; pas de CSP en dev (HMR). Api :
+    `x-powered-by` retiré, nosniff, DENY, `no-referrer`, CSP `default-src 'none'` (test `health.test.ts`). HSTS : Traefik (7.1).
+    · **ZAP baseline** 2.16.1 (`infra/securite/.rapports/`, ignoré) : 0 FAIL, 62 PASS, aucune alerte haute ni moyenne. Reste
+    une basse acceptée : 90004 (pas de `Cross-Origin-Embedder-Policy`) — `require-corp` bloquerait les images signées du
+    stockage (autre origine), et l'app n'utilise pas `SharedArrayBuffer`. Le reste est informatif.
+    · **k6** 1.0.0 (`infra/load/charge.js`, jeu `preparer.mjs` par l'API, api relancée avec
+    `COTIZ_RATE_LIMIT_ENDPOINT_PER_MIN=1000` le temps de préparer, puis remise à 20) : lecture retenue des objectifs
+    d'architecture/09 = p95 **par requête à charge nominale**, scénarios successifs ; les 100 déclarations simultanées
+    d'architecture/12 = robustesse (toutes acceptées, aucune expiration). Le pool de 10 connexions les met en file : une
+    déclaration seule ≈ 185 ms, en rafale médiane ≈ 3 s, max 5,5 s. Résultats : grille (1 gestionnaire, pages de 100 lignes,
+    comme test/perf du lot 2.4) p95 252 ms, 2 gestionnaires 274 ms ; tableau de bord p95 147 ms ; 100 déclarations à 5 en
+    parallèle p95 703 ms ; rafale 100/100 en 201 ; 2 validations distinctes 200, même paiement 200 + 409 (aucun interblocage),
+    p95 242 ms ; 0 refus inattendu. La grille recalcule tout le projet à chaque page (O(inscriptions)) : voir a-verifier.md.
+  - Étape 4 faite (2026-11-08) : `infra/compose/production.yml` (celui du lot 7.1 : images par variable, secrets en
+    `${VAR:?}` sans défaut, NODE_ENV=production, `migrate` en tâche préalable, ClamAV exigé, aucun port publié) +
+    `production.local.yml` (ports 127.0.0.1 : web 3090, api 4090, MinIO 9090 ; limite par IP relevée à 5000 : une seule
+    IP sur le poste, 300/min coupait le parcours) ; rôles PostgreSQL par `postgres-init-production/00-roles.sh`
+    (`\getenv`, mots de passe jamais en argument) puis `postgres-init/01-roles.sql`. Recette `tools/repetition-production.sh` :
+    images construites en local (CI arrêtée ; front `--build-arg NUXT_MOCKS=0`), secrets générés en mémoire à chaque
+    lancement (aucun fichier `.env`), projet compose `cotiz-prod` séparé, mots de passe des rôles remis sur un volume
+    existant, owner plateforme neuf (`create-platform-owner`, code jamais affiché), plan Découverte créé par `pf.plan.write`
+    s'il manque (base neuve : aucun plan), puis `/health/ready` (200) et parcours `jalon` en `COTIZ_STRICT=1` : vert.
+    Choix front : build sans mocks = constante `__COTIZ_MOCKS__` (vite.define, fixée au build comme nitro.ignore) ;
+    `endpointDisponible(id, espace)` (utils/bascule.ts) : sans mocks, seuls les endpoints du registre existent ;
+    fonctionnalités = `GET /me` seul ; `ct.get` appelé seulement si `contracts` est active ; `contexteSouscripteur` sans
+    `me.assos` (lot 4.5) prend les associations des cartes et les moyens de `me.project`. Back : `DELIVERED_FEATURES`
+    complété (`payments`, `activation_codes`). Rendu de dev inchangé (parcours de la pile Docker verts).
+

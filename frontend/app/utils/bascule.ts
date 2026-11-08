@@ -13,6 +13,17 @@ export function espaceBascule(espace: Espace): boolean {
   return couvre(REAL_ENDPOINTS.get('me'), espace)
 }
 
+/**
+ * Build avec handlers simulés (`NUXT_MOCKS` différent de `0` au build, nuxt.config.ts `vite.define`). Sans eux
+ * (production, lot 3.5) : rien n'est simulé, seuls les endpoints du registre existent.
+ */
+export const AVEC_MOCKS: boolean = typeof __COTIZ_MOCKS__ === 'undefined' ? true : __COTIZ_MOCKS__ !== false
+
+/** Endpoint appelable : simulé (build avec mocks) ou basculé pour cet espace. Sinon, il n'existe pas encore. */
+export function endpointDisponible(id: keyof typeof ENDPOINT_LOTS, espace: Espace): boolean {
+  return AVEC_MOCKS || couvre(REAL_ENDPOINTS.get(id), espace)
+}
+
 /** Lots dont au moins un endpoint est basculé pour cet espace. */
 export function lotsBascules(espace: Espace): Set<string> {
   const lots = new Set<string>()

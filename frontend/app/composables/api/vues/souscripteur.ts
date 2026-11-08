@@ -4,6 +4,7 @@ import type { PaymentMethod, Profile as ProfileSchema, SubscriberProjectCard, Su
 import type { z } from 'zod'
 import type { ApiClient } from '../client'
 import type { Association, Echeance, Projet, Souscripteur, SouscriptionMembre } from '~~/types'
+import { endpointDisponible } from '~/utils/bascule'
 import { initiales } from '~/utils/format'
 import { CALENDRIER, email, FREQUENCE, jour, m, SITUATION, STATUT_PROJET, tel } from './communs'
 import { vueModalites } from './associations'
@@ -71,18 +72,26 @@ export interface ContexteSouscripteur {
   associations: Map<string, Association>
 }
 
-/** Profil, projets (cartes + détail de chacun) et associations du souscripteur connecté. */
+/**
+ * Profil, projets (cartes + détail de chacun) et associations du souscripteur connecté. Sans `me.assos` (lot 4.5, pas
+ * encore livré dans un build sans mocks) : associations tirées des cartes de projet, avec les moyens de paiement retenus
+ * par leurs projets (`me.project`).
+ */
 export async function contexteSouscripteur(client: ApiClient): Promise<ContexteSouscripteur> {
+  const avecFiches = endpointDisponible('me.assos', 'subscriber')
   const [profil, projets, assos] = await Promise.all([
-    client.call('me.profile', 'get'), client.call('me.projects', 'list'), client.call('me.assos', 'list'),
+    client.call('me.profile', 'get'), client.call('me.projects', 'list'),
+    avecFiches ? client.call('me.assos', 'list') : Promise.resolve(null),
   ])
-  const moi = vueMoi(profil, assos.items.map(a => ({ id: a.association.id, memberSince: a.memberSince })))
+  const moi = assos
+    ? vueMoi(profil, assos.items.map(a => ({ id: a.association.id, memberSince: a.memberSince })))
+    : { ...vueMoi(profil, []), associationIds: [...new Set(projets.items.map(c => c.association.id))] }
   const details = await Promise.all(projets.items.map(c => client.call('me.project', 'get', { params: { pid: c.project.id } })))
-  const fiches = await Promise.all(assos.items.map(a => client.call('me.assos', 'get', { params: { aid: a.association.id } })))
+  const fiches = assos ? await Promise.all(assos.items.map(a => client.call('me.assos', 'get', { params: { aid: a.association.id } }))) : []
   const associations = new Map(fiches.map(f => [f.association.id, vueAssociationMembre(f.association, f.paymentMethods)]))
-  for (const c of projets.items) {
-    if (!associations.has(c.association.id)) associations.set(c.association.id, vueAssociationMembre(c.association))
-  }
+  projets.items.forEach((c, i) => {
+    if (!associations.has(c.association.id)) associations.set(c.association.id, vueAssociationMembre(c.association, assos ? [] : details[i]!.paymentMethods))
+  })
   const souscriptions = projets.items.map((c, i) => vueSouscriptionMembre(c, details[i]!, moi, associations.get(c.association.id)!))
   return {
     moi, details, souscriptions,

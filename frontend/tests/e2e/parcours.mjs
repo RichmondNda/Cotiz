@@ -1,10 +1,20 @@
 // Parcours de fumée de la V0 (lots 09 et 0.3), rejoués sur le serveur de dev (mocks Nitro conformes au contrat).
-//   node tests/e2e/parcours.mjs            → les 4 parcours
-//   node tests/e2e/parcours.mjs plateforme → un seul (public | souscripteur | gestionnaire | plateforme)
+//   node tests/e2e/parcours.mjs            → tous les parcours
+//   node tests/e2e/parcours.mjs plateforme → un seul (jalon | public | souscripteur | gestionnaire | plateforme |
+//                                            activation | reinitialisation | declaration)
+//   COTIZ_BASE=http://localhost:3080 node tests/e2e/parcours.mjs jalon → boucle V1 complète sur la pile Docker (lot 3.5)
 // Captures de chaque étape : .verif/e2e/<parcours>/. Code de sortie 1 si une étape échoue.
 import { ID, uid } from '../../server/mocks/ids.ts'
 import { COMPTES } from '../../scripts/session-test.mjs'
 import { assert, contient, EchecEtape, parcours, texte } from './outils.mjs'
+
+/**
+ * Compte plateforme : celui de seed-dev, ou (pile de production, tools/repetition-production.sh) l'owner créé par
+ * `create-platform-owner` pour la répétition : COTIZ_SUPERADMIN_EMAIL et COTIZ_SUPERADMIN_PASSWORD.
+ */
+const SUPERADMIN = process.env.COTIZ_SUPERADMIN_EMAIL
+  ? { identifiant: process.env.COTIZ_SUPERADMIN_EMAIL, password: process.env.COTIZ_SUPERADMIN_PASSWORD ?? '' }
+  : COMPTES.superadmin
 
 // Les routes portent les UUID déterministes du jeu simulé (server/mocks/ids.ts), plus des slugs.
 const PAIEMENT_AWA = uid('payment', 'pm-awa-kone')
@@ -41,18 +51,26 @@ async function attendreCompteur(page, entree, condition) {
  * base), inscrit par la gestionnaire d'Entraide Yopougon, puis activé avec le code remis (saisi en minuscules avec une
  * espace, comme recopié d'un message WhatsApp).
  */
-function nouveauCompte() {
-  const tel = `07${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`
+const telephoneAuHasard = () => `07${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`
+
+/**
+ * `cadre` (parcours `jalon`) : projet et compte gestionnaire d'une association créée par le parcours ; sinon Centre
+ * communautaire d'Entraide Yopougon, avec le compte d'Awa.
+ */
+function nouveauCompte(cadre = {}) {
+  const projetId = cadre.projetId ?? (() => ID.centre)
+  const gestionnaire = cadre.gestionnaire ?? { email: COMPTES.gestionnaire.identifiant, motDePasse: COMPTES.gestionnaire.password }
+  const tel = telephoneAuHasard()
   const c = { tel, prenom: 'Aya', nom: `Essai${tel.slice(-4)}`, code: '', motDePasse: 'Plateau-Essai-2026' }
   c.connexionGestionnaire = async (page) => {
     await page.goto('/connexion/association', { waitUntil: 'networkidle' })
-    await page.getByLabel('Email').fill(COMPTES.gestionnaire.identifiant)
-    await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.gestionnaire.password)
+    await page.getByLabel('Email').fill(gestionnaire.email)
+    await page.getByLabel('Mot de passe', { exact: true }).fill(gestionnaire.motDePasse)
     await page.getByRole('button', { name: 'Se connecter' }).click()
     await page.waitForURL(u => new URL(u).pathname.startsWith('/asso'))
   }
   c.inscrire = async (page) => {
-    await page.goto(`/asso/projets/${ID.centre}/souscripteurs`, { waitUntil: 'networkidle' })
+    await page.goto(`/asso/projets/${projetId()}/souscripteurs`, { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Ajouter un souscripteur', exact: true }).first().click()
     await page.getByRole('textbox', { name: 'Téléphone' }).fill(tel)
     await page.getByRole('button', { name: 'Continuer', exact: true }).click()
@@ -78,7 +96,50 @@ function nouveauCompte() {
   return c
 }
 
+/** Assistant de bout en bout ; renvoie l'id du paiement déclaré (page de confirmation, lue par me.payment). */
+async function declarer(page, { montant, raccourci, reference, preuve, projetId = ID.centre }) {
+  await page.goto(`/paiements/declarer?projet=${projetId}`, { waitUntil: 'networkidle' })
+  if (raccourci) await page.getByRole('button', { name: raccourci }).click()
+  else await page.getByLabel('Montant versé').fill(String(montant))
+  await contient(page, `Total affecté ${formatFCFA(montant)}`, 'Répartition proposée : total affecté')
+  const cochees = await page.getByRole('checkbox', { checked: true }).evaluateAll(els => els.map(e => e.closest('label, li, div')?.innerText.split('\n')[0].trim() ?? ''))
+  await page.getByRole('button', { name: 'Continuer' }).click()
+  if (reference) await page.getByLabel('Référence de la transaction').fill(reference)
+  if (preuve) {
+    await page.locator('input[type="file"]:not([capture])').setInputFiles(preuve)
+    await contient(page, preuve.name, 'Preuve choisie affichée')
+  }
+  await page.getByRole('button', { name: 'Continuer' }).click()
+  await contient(page, formatFCFA(montant), 'Récapitulatif : montant déclaré')
+  await page.getByRole('button', { name: 'Envoyer ma déclaration' }).click()
+  await page.waitForURL('**/paiements/declarer/ok**', { timeout: 30_000 })
+  await page.getByRole('heading', { name: 'Déclaration envoyée !' }).waitFor()
+  await contient(page, formatFCFA(montant), 'Confirmation : montant déclaré (me.payment)')
+  const id = new URL(page.url()).searchParams.get('paiement') ?? ''
+  await assert(/^[0-9a-f-]{36}$/.test(id), `Identifiant du paiement déclaré : « ${id} »`)
+  return { id, cochees }
+}
+/** Le gestionnaire de `c` (autre navigateur) valide le paiement `id` ; `verifier(g)` : contrôles avant fermeture. */
+async function valider(c, page, id, verifier = async () => {}) {
+  const gestion = await page.context().browser().newContext({ baseURL: new URL(page.url()).origin, viewport: { width: 1440, height: 900 } })
+  try {
+    const g = await gestion.newPage()
+    await c.connexionGestionnaire(g)
+    await g.goto(`/asso/paiements/${id}`, { waitUntil: 'networkidle' })
+    await contient(g, `${c.prenom} ${c.nom}`, 'Détail du paiement : nom du souscripteur')
+    await verifier(g, 'avant')
+    await g.getByRole('button', { name: 'Valider le paiement' }).click()
+    await g.getByRole('button', { name: 'Oui, valider' }).click()
+    await contient(g, 'Paiement validé', 'Message de confirmation de la validation')
+    await verifier(g, 'apres')
+  }
+  finally {
+    await gestion.close()
+  }
+}
+
 const PARCOURS = {
+  jalon,
   // Public → demande de création → confirmation.
   public: () => parcours('public', {}, [
     ['landing', async (page) => {
@@ -211,8 +272,8 @@ const PARCOURS = {
     ['connexion', async (page) => {
       await page.goto('/connexion/plateforme', { waitUntil: 'networkidle' })
       // Espace basculé (lot 1.1) : vraie connexion avec le compte de développement, sans second facteur (TOTP au lot 4.7).
-      await page.getByLabel('Email').fill(COMPTES.superadmin.identifiant)
-      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.superadmin.password)
+      await page.getByLabel('Email').fill(SUPERADMIN.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(SUPERADMIN.password)
       await page.getByRole('button', { name: 'Se connecter' }).click()
       await page.waitForURL(u => new URL(u).pathname === '/plateforme')
     }],
@@ -360,47 +421,6 @@ const PARCOURS = {
     const c = nouveauCompte()
     const nom = `${c.prenom} ${c.nom}`
     let mois = []
-    /** Assistant de bout en bout ; renvoie l'id du paiement déclaré (page de confirmation, lue par me.payment). */
-    const declarer = async (page, { montant, raccourci, reference, preuve }) => {
-      await page.goto(`/paiements/declarer?projet=${ID.centre}`, { waitUntil: 'networkidle' })
-      if (raccourci) await page.getByRole('button', { name: raccourci }).click()
-      else await page.getByLabel('Montant versé').fill(String(montant))
-      await contient(page, `Total affecté ${formatFCFA(montant)}`, 'Répartition proposée : total affecté')
-      const cochees = await page.getByRole('checkbox', { checked: true }).evaluateAll(els => els.map(e => e.closest('label, li, div')?.innerText.split('\n')[0].trim() ?? ''))
-      await page.getByRole('button', { name: 'Continuer' }).click()
-      if (reference) await page.getByLabel('Référence de la transaction').fill(reference)
-      if (preuve) {
-        await page.locator('input[type="file"]:not([capture])').setInputFiles(preuve)
-        await contient(page, preuve.name, 'Preuve choisie affichée')
-      }
-      await page.getByRole('button', { name: 'Continuer' }).click()
-      await contient(page, formatFCFA(montant), 'Récapitulatif : montant déclaré')
-      await page.getByRole('button', { name: 'Envoyer ma déclaration' }).click()
-      await page.waitForURL('**/paiements/declarer/ok**', { timeout: 30_000 })
-      await page.getByRole('heading', { name: 'Déclaration envoyée !' }).waitFor()
-      await contient(page, formatFCFA(montant), 'Confirmation : montant déclaré (me.payment)')
-      const id = new URL(page.url()).searchParams.get('paiement') ?? ''
-      await assert(/^[0-9a-f-]{36}$/.test(id), `Identifiant du paiement déclaré : « ${id} »`)
-      return { id, cochees }
-    }
-    /** Awa (autre navigateur) valide le paiement `id` ; `verifier(g)` : contrôles sur sa session avant fermeture. */
-    const valider = async (page, id, verifier = async () => {}) => {
-      const gestion = await page.context().browser().newContext({ baseURL: new URL(page.url()).origin, viewport: { width: 1440, height: 900 } })
-      try {
-        const g = await gestion.newPage()
-        await c.connexionGestionnaire(g)
-        await g.goto(`/asso/paiements/${id}`, { waitUntil: 'networkidle' })
-        await contient(g, nom, 'Détail du paiement : nom du souscripteur')
-        await verifier(g, 'avant')
-        await g.getByRole('button', { name: 'Valider le paiement' }).click()
-        await g.getByRole('button', { name: 'Oui, valider' }).click()
-        await contient(g, 'Paiement validé', 'Message de confirmation de la validation')
-        await verifier(g, 'apres')
-      }
-      finally {
-        await gestion.close()
-      }
-    }
     let paiementId = ''
     return parcours('declaration', {}, [
       ['connexion-gestionnaire', c.connexionGestionnaire],
@@ -409,7 +429,7 @@ const PARCOURS = {
       ['fonds-d-entree', async (page) => {
         const { id, cochees } = await declarer(page, { montant: 50000, reference: 'OM-E2E-ENTREE' })
         await assert(cochees.length === 1 && cochees[0].startsWith('Fonds d’entrée'), `Fonds d’entrée seul couvert : ${JSON.stringify(cochees)}`)
-        await valider(page, id)
+        await valider(c, page, id)
       }],
       ['declaration-75000', async (page) => {
         const preuve = { name: 'recu-orange.png', mimeType: 'image/png', buffer: Buffer.from(PNG_RECU, 'base64') }
@@ -419,7 +439,7 @@ const PARCOURS = {
         paiementId = id
       }],
       ['validation-et-grille', async (page) => {
-        await valider(page, paiementId, async (g, moment) => {
+        await valider(c, page, paiementId, async (g, moment) => {
           if (moment === 'avant') {
             await contient(g, 'recu-orange.png', 'Détail du paiement : preuve rattachée à l’association')
             return
@@ -444,6 +464,160 @@ const PARCOURS = {
       }],
     ])
   },
+}
+
+/**
+ * Lot 3.5, étape 1 : boucle complète du jalon V1 sur une association neuve (rejouable sans réinitialiser la base), contre
+ * api et worker réels, sans fournisseur : demande publique → Richy approuve et remet les accès → la responsable active son
+ * compte → assistant de démarrage → projet → inscription d'un souscripteur et code remis → activation → déclaration d'un
+ * paiement couvrant trois échéances (fonds d'entrée + deux mois) avec la photo du reçu → validation → notification.
+ * Attention : 5 demandes publiques par heure et par IP (pub.request) : au-delà, la première étape reçoit 429. Reprise
+ * sans nouvelle demande : `COTIZ_JALON_REPRISE=<email>` repart d'une association déjà approuvée et configurée par un
+ * passage précédent (mêmes mot de passe), à partir de la connexion de sa responsable.
+ */
+/**
+ * Pile de dev (mocks Nitro) : un endpoint d'un lot ultérieur encore simulé ne connaît pas l'entité créée en réel et répond
+ * 404 (écart de transition, frontend/CLAUDE.md). Toléré ici seulement ; `COTIZ_STRICT=1` (pile de production, lot 3.5
+ * étape 4, `NUXT_MOCKS=0`) : aucun appel de ce genre ne doit plus partir.
+ */
+const SIMULES_LOTS_ULTERIEURS = [
+  /\/api\/v1\/associations\/[0-9a-f-]{36}\/projects\/[0-9a-f-]{36}\/contract$/, // ct.get, lot 4.1
+]
+const tolererSimules = r => process.env.COTIZ_STRICT !== '1' && r.status() === 404
+  && SIMULES_LOTS_ULTERIEURS.some(motif => motif.test(new URL(r.url()).pathname))
+
+function jalon() {
+  const suffixe = String(Date.now()).slice(-6)
+  const reprise = process.env.COTIZ_JALON_REPRISE
+  const asso = {
+    nom: `Coopérative Essai ${suffixe}`,
+    email: reprise ?? `jalon-${suffixe}@essai.cotiz.app`,
+    motDePasse: 'Lagune-Jalon-2026',
+    code: '',
+  }
+  const projet = { nom: `Puits du village ${suffixe}`, id: '' }
+  const c = nouveauCompte({ projetId: () => projet.id, gestionnaire: { email: asso.email, motDePasse: asso.motDePasse } })
+  const nomSouscripteur = `${c.prenom} ${c.nom}`
+  let paiementId = ''
+  const suivant = async (page, libelle) => {
+    await page.getByRole('button', { name: libelle }).filter({ visible: true }).first().click()
+  }
+  /** Reprise : plan Découverte (un seul projet) : le projet créé au premier passage. */
+  const projetExistant = async (page) => {
+    await page.goto('/asso/projets', { waitUntil: 'networkidle' })
+    const carte = page.getByRole('main').getByText(/^Puits du village \d+$/).first()
+    projet.nom = (await carte.textContent())?.trim() ?? projet.nom
+    await carte.click()
+    await page.waitForURL(u => /^\/asso\/projets\/[0-9a-f-]{36}$/.test(new URL(u).pathname))
+    projet.id = /\/asso\/projets\/([0-9a-f-]{36})/.exec(page.url())?.[1] ?? ''
+    await assert(projet.id !== '', `Projet existant de l’association reprise : « ${page.url()} »`)
+  }
+  const debut = [
+    ['demande', async (page) => {
+      await page.goto('/demande', { waitUntil: 'networkidle' })
+      await page.getByLabel('Nom de l’association').fill(asso.nom)
+      await page.getByLabel('Ville').fill('Bouaké')
+      await page.getByLabel('Description de l’activité').fill('Cotisations des familles pour creuser un puits au village.')
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      await page.getByLabel('Prénom').fill('Mariam')
+      await page.getByLabel(/^Nom\s*\*?$/).fill('Traoré')
+      await page.getByLabel('Fonction dans l’association').fill('Présidente')
+      await page.getByLabel('Email').fill(asso.email)
+      await page.getByLabel('Téléphone').fill(telephoneAuHasard())
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      await page.getByRole('combobox', { name: 'Nombre estimé de souscripteurs' }).click()
+      await page.getByRole('option', { name: 'Moins de 50', exact: true }).click()
+      await page.getByRole('combobox', { name: 'Comment avez-vous connu Cotiz ?' }).click()
+      await page.getByRole('option', { name: 'Bouche-à-oreille', exact: true }).click()
+      await page.getByRole('radio', { name: /Découverte/ }).click()
+      await page.getByRole('checkbox', { name: /conditions générales/ }).check({ force: true })
+      await page.getByRole('button', { name: 'Envoyer ma demande' }).click()
+      await page.waitForURL('**/demande/confirmation', { timeout: 30_000 })
+      await contient(page, asso.email, 'Confirmation : email de réponse')
+    }],
+    ['approbation', async (page) => {
+      await page.goto('/connexion/plateforme', { waitUntil: 'networkidle' })
+      await page.getByLabel('Email').fill(SUPERADMIN.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(SUPERADMIN.password)
+      await page.getByRole('button', { name: 'Se connecter' }).click()
+      await page.waitForURL(u => new URL(u).pathname === '/plateforme')
+      await page.goto('/plateforme/demandes', { waitUntil: 'networkidle' })
+      await page.getByRole('link', { name: asso.nom }).first().click()
+      await page.waitForURL(u => /^\/plateforme\/demandes\/[0-9a-f-]{36}$/.test(new URL(u).pathname))
+      await page.getByRole('button', { name: 'Approuver et créer l’espace' }).click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Approuver et créer l’espace' }).click()
+      // Pas d'email (ui-deviations.md) : les accès de la responsable s'affichent une fois, à transmettre soi-même.
+      const carte = page.getByRole('region', { name: 'Accès du gestionnaire' })
+      await carte.waitFor({ timeout: 15_000 })
+      asso.code = /[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}/.exec(await texte(carte))?.[0] ?? ''
+      await assert(asso.code !== '', 'Code d’activation de la responsable affiché dans « Accès du gestionnaire »')
+    }],
+    ['activation-responsable', async (page) => {
+      await page.context().clearCookies()
+      await page.goto('/activer?espace=association', { waitUntil: 'networkidle' })
+      await page.getByLabel('Email').fill(asso.email)
+      await page.getByLabel('Code d’activation').fill(asso.code)
+      await page.getByLabel('Nouveau mot de passe', { exact: true }).fill(asso.motDePasse)
+      await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill(asso.motDePasse)
+      await page.getByRole('button', { name: 'Activer mon compte' }).click()
+      await page.waitForURL('**/asso/bienvenue', { timeout: 15_000 })
+    }],
+    ['assistant-de-demarrage', async (page) => {
+      await contient(page, asso.nom, 'Assistant : nom de l’association approuvée')
+      await suivant(page, 'Commencer')
+      await suivant(page, 'Continuer')
+      // Moyens de paiement : Mobile money seul (la déclaration du souscripteur choisira parmi les moyens du projet).
+      await page.getByRole('checkbox', { name: 'Mobile money' }).check({ force: true })
+      await page.getByLabel('Numéro et opérateur').fill('07 01 02 03 04 · Wave')
+      await suivant(page, 'Continuer')
+      await page.getByRole('heading', { name: 'C’est prêt !' }).waitFor({ timeout: 15_000 })
+    }],
+  ]
+  return parcours('jalon', { tolerer: tolererSimules }, [
+    ...(reprise ? [['connexion-responsable', c.connexionGestionnaire], ['projet-existant', projetExistant]] : debut),
+    ...(reprise
+      ? []
+      : [['projet', async (page) => {
+          await page.goto('/asso/projets/nouveau', { waitUntil: 'networkidle' })
+          await page.getByRole('textbox', { name: 'Nom du projet' }).fill(projet.nom)
+          await page.getByRole('textbox', { name: 'Description' }).fill('Creusement et équipement d’un puits pour les familles du village.')
+          await page.getByRole('button', { name: 'Continuer' }).click()
+          await page.getByRole('textbox', { name: 'Montant du fonds d’entrée' }).fill('50000')
+          await page.getByRole('textbox', { name: 'Montant par échéance' }).fill('25000')
+          await page.getByRole('button', { name: 'Continuer' }).click()
+          await page.getByRole('textbox', { name: 'Date de début' }).fill('05/03/2026')
+          await page.getByRole('textbox', { name: 'Date de fin' }).fill('05/08/2027')
+          await page.getByRole('button', { name: 'Continuer' }).click()
+          await page.getByRole('button', { name: 'Continuer' }).click()
+          await page.getByRole('button', { name: 'Créer le projet' }).click()
+          await page.getByText('Projet créé !').waitFor({ timeout: 15_000 })
+          const lien = await page.getByRole('link', { name: 'Voir le projet' }).first().getAttribute('href')
+          projet.id = /\/asso\/projets\/([0-9a-f-]{36})/.exec(lien ?? '')?.[1] ?? ''
+          await assert(projet.id !== '', `Identifiant du projet créé : « ${lien} »`)
+        }]]),
+    ['inscription-et-code', c.inscrire],
+    ['activation-souscripteur', c.activer],
+    ['declaration-plusieurs-echeances', async (page) => {
+      const preuve = { name: 'recu-wave.png', mimeType: 'image/png', buffer: Buffer.from(PNG_RECU, 'base64') }
+      const { id, cochees } = await declarer(page, { montant: 100000, preuve, projetId: projet.id })
+      await assert(cochees.length === 3 && cochees[0].startsWith('Fonds d’entrée'),
+        `Fonds d’entrée et deux mois couverts par un seul paiement : ${JSON.stringify(cochees)}`)
+      paiementId = id
+    }],
+    ['validation', async (page) => {
+      await valider(c, page, paiementId, async (g, moment) => {
+        if (moment === 'avant') await contient(g, 'recu-wave.png', 'Détail du paiement : preuve rattachée à l’association')
+      })
+    }],
+    ['notification-souscripteur', async (page) => {
+      for (let i = 0; i < 5; i++) {
+        await page.goto('/notifications', { waitUntil: 'networkidle' })
+        if ((await texte(page.locator('main'))).includes(`Vos ${formatFCFA(100000)} pour ${projet.nom}`)) return
+        await page.waitForTimeout(2000)
+      }
+      throw new EchecEtape(`Notification « Paiement validé » (100 000 F, ${projet.nom}) pour ${nomSouscripteur} absente`)
+    }],
+  ])
 }
 
 const choix = process.argv.slice(2)

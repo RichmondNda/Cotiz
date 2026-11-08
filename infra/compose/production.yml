@@ -1,0 +1,198 @@
+# Pile de production (architecture/11) : celle que le lot 7.1 déploie sur Dokploy, répétée en local au lot 3.5
+# (`tools/repetition-production.sh`, avec `production.local.yml` pour les ports du poste).
+#
+# - Images construites à l'avance (CI, ou en local tant qu'elle ne tourne pas) : COTIZ_API_IMAGE, COTIZ_WEB_IMAGE.
+#   Le front est construit avec NUXT_MOCKS=0 : handlers simulés et outils de dev exclus (nitro.ignore).
+# - Configuration uniquement par variables d'environnement, sans valeur par défaut pour un secret (`:?` : la pile
+#   refuse de démarrer s'il manque) ; aucun fichier `.env` lu ni écrit. NODE_ENV=production : l'api et le worker
+#   exigent leurs clés au démarrage (backend/src/config.ts).
+# - Migrations en tâche préalable (`migrate`, cotiz_migrator en direct), puis api et worker via PgBouncer (cotiz_app).
+# - Aucun port publié : Traefik (lot 7.1) route le domaine vers `web` (et le stockage public vers `minio`) ; HSTS là-bas.
+# - Rôles PostgreSQL : créés au premier démarrage par postgres-init-production (mots de passe des variables), puis
+#   attributs et droits de postgres-init/01-roles.sql.
+
+x-backend-env: &backend-env
+  NODE_ENV: production
+  DATABASE_URL: postgres://cotiz_app:${COTIZ_DB_APP_PASSWORD:?}@pgbouncer:5432/cotiz
+  DATABASE_POOL_MAX: ${COTIZ_DATABASE_POOL_MAX:-10}
+  PLATFORM_DATABASE_URL: postgres://cotiz_platform:${COTIZ_DB_PLATFORM_PASSWORD:?}@postgres:5432/cotiz
+  REDIS_URL: redis://redis:6379
+  S3_ENDPOINT: http://minio:9000
+  S3_PUBLIC_ENDPOINT: ${COTIZ_STORAGE_PUBLIC_URL:?}
+  S3_ACCESS_KEY_ID: ${COTIZ_S3_ACCESS_KEY_ID:?}
+  S3_SECRET_ACCESS_KEY: ${COTIZ_S3_SECRET_ACCESS_KEY:?}
+  APP_PUBLIC_URL: ${COTIZ_PUBLIC_URL:?}
+  JWT_PRIVATE_KEY: ${COTIZ_JWT_PRIVATE_KEY:?}
+  JWT_PUBLIC_KEY: ${COTIZ_JWT_PUBLIC_KEY:?}
+  CODES_ENCRYPTION_KEY: ${COTIZ_CODES_ENCRYPTION_KEY:?}
+  ALTCHA_HMAC_KEY: ${COTIZ_ALTCHA_HMAC_KEY:?}
+  LOG_PSEUDONYM_KEY: ${COTIZ_LOG_PSEUDONYM_KEY:?}
+  CLAMAV_URL: tcp://clamav:3310
+  # Traefik puis le front (proxy Nitro) devant l'api.
+  TRUST_PROXY_HOPS: ${COTIZ_TRUST_PROXY_HOPS:-2}
+  APP_VERSION: ${COTIZ_VERSION:-dev}
+  # Observabilité (GLITCHTIP_DSN, OTEL_*, ports de métriques) et PLATFORM_ALLOWED_IPS : ajoutés au lot 7.1. Une variable
+  # optionnelle n'est jamais posée vide (le schéma de configuration refuse une chaîne vide).
+
+x-backend: &backend
+  image: ${COTIZ_API_IMAGE:?}
+  environment: *backend-env
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    pgbouncer:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio-init:
+      condition: service_completed_successfully
+  restart: unless-stopped
+
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 3s
+  retries: 20
+  start_period: 30s
+  start_interval: 1s
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cotiz
+      POSTGRES_PASSWORD: ${COTIZ_DB_SUPERUSER_PASSWORD:?}
+      POSTGRES_DB: cotiz
+      COTIZ_DB_MIGRATOR_PASSWORD: ${COTIZ_DB_MIGRATOR_PASSWORD:?}
+      COTIZ_DB_APP_PASSWORD: ${COTIZ_DB_APP_PASSWORD:?}
+      COTIZ_DB_PLATFORM_PASSWORD: ${COTIZ_DB_PLATFORM_PASSWORD:?}
+      COTIZ_DB_READONLY_PASSWORD: ${COTIZ_DB_READONLY_PASSWORD:?}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres-init-production/00-roles.sh:/docker-entrypoint-initdb.d/00-roles.sh:ro
+      - ./postgres-init/01-roles.sql:/docker-entrypoint-initdb.d/01-roles.sql:ro
+    shm_size: 128mb
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD-SHELL', 'pg_isready -U cotiz -d cotiz']
+    restart: unless-stopped
+
+  # Mode transaction : le contexte tenant passe par SET LOCAL (architecture/02).
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    environment:
+      DB_HOST: postgres
+      DB_USER: cotiz_app
+      DB_PASSWORD: ${COTIZ_DB_APP_PASSWORD:?}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_PREPARED_STATEMENTS: '100'
+      MAX_CLIENT_CONN: '200'
+      DEFAULT_POOL_SIZE: '20'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U cotiz_app']
+    restart: unless-stopped
+
+  # noeviction : BullMQ exige que Redis n'évince jamais une clé.
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '256mb', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis:/data
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'redis-cli', 'ping']
+    restart: unless-stopped
+
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    command: ['server', '/data']
+    environment:
+      MINIO_ROOT_USER: ${COTIZ_S3_ACCESS_KEY_ID:?}
+      MINIO_ROOT_PASSWORD: ${COTIZ_S3_SECRET_ACCESS_KEY:?}
+    volumes:
+      - minio:/data
+    restart: unless-stopped
+
+  # Compartiments (architecture/08), idempotent.
+  minio-init:
+    build: ./minio-init
+    environment:
+      MINIO_ROOT_USER: ${COTIZ_S3_ACCESS_KEY_ID:?}
+      MINIO_ROOT_PASSWORD: ${COTIZ_S3_SECRET_ACCESS_KEY:?}
+    depends_on:
+      - minio
+    restart: 'no'
+
+  # Analyse des fichiers déposés, exigée en production (premier démarrage : téléchargement des signatures).
+  clamav:
+    image: clamav/clamav:stable
+    environment:
+      CLAMAV_NO_MILTERD: 'true'
+    volumes:
+      - clamav:/var/lib/clamav
+    healthcheck:
+      test: ['CMD', 'clamdcheck.sh']
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+    restart: unless-stopped
+
+  migrate:
+    image: ${COTIZ_API_IMAGE:?}
+    command: ['node', 'node_modules/@cotiz/db/dist/migrate.js']
+    environment:
+      MIGRATION_DATABASE_URL: postgres://cotiz_migrator:${COTIZ_DB_MIGRATOR_PASSWORD:?}@postgres:5432/cotiz
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    <<: *backend
+    healthcheck:
+      <<: *healthcheck
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+
+  worker:
+    <<: *backend
+    command: ['node', '--import', './dist/telemetry.js', 'dist/worker.js']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      clamav:
+        condition: service_healthy
+
+  web:
+    image: ${COTIZ_WEB_IMAGE:?}
+    environment:
+      NUXT_MOCKS: '0'
+      NUXT_API_ORIGIN: http://api:4000
+      NUXT_STORAGE_ORIGIN: ${COTIZ_STORAGE_PUBLIC_URL:?}
+      NUXT_PUBLIC_APP_VERSION: ${COTIZ_VERSION:-dev}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  redis:
+  minio:
+  clamav:
