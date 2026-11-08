@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { CreateProjectInput, Project } from '@cotiz/contracts';
 import { projects } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
+import { sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { QuotaService } from '../../billing/billing.public.js';
 import { assertContractsFeature, createProjectContract } from '../../contracts/contracts.public.js';
@@ -80,6 +81,8 @@ export class CreateProjectUseCase {
         graceDays: input.graceDays,
         currency,
         createdBy: actor.userId,
+        // Contrat signé par l'association à la création : conditions figées aussitôt (domain-rules § 9).
+        ...(input.contract?.signNow ? { financialTermsLockedAt: sql`now()` } : {}),
       })
       .returning();
     if (!row) throw new Error('pr.create : aucune ligne insérée');

@@ -5,6 +5,7 @@ import { sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, expectedVersion, requireActor } from '../../../shared/http/index.js';
+import { lockFinancialTerms, projectOf } from '../../projects/projects.public.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import {
@@ -19,8 +20,9 @@ import { ContractViews } from './contract-views.js';
 
 /**
  * ct.get (lock) : signature de l'association par la personne connectée et verrouillage, sous verrou optimiste
- * (`If-Match`, 412) ; empreinte du modèle verrouillé. Déjà verrouillé : 409 `contract_locked`. `projects.manage`
- * exigé ; `contract.locked` (souscripteurs en attente avertis), audité.
+ * (`If-Match`, 412) ; empreinte du modèle verrouillé. Déjà verrouillé : 409 `contract_locked`. Conditions financières
+ * du projet figées (domain-rules § 9 : le souscripteur signe ces montants). Verrous : projet puis contrat, l'ordre
+ * d'en.create (projet FOR SHARE, puis contrat). `projects.manage` exigé ; `contract.locked`, audité.
  */
 @Injectable()
 export class LockContractUseCase {
@@ -36,7 +38,8 @@ export class LockContractUseCase {
     const associationId = contextAssociationId(aid);
     assertCanManageContract();
     await assertContractsFeature(associationId);
-    const current = await contractOfProject(associationId, projectId, { lock: true });
+    const project = await projectOf(associationId, projectId, { lock: true });
+    const current = project ? await contractOfProject(associationId, projectId, { lock: true }) : null;
     if (!current) throw new DomainProblem('not_found');
     if (current.lockedAt) throw new DomainProblem('contract_locked');
 
@@ -52,6 +55,7 @@ export class LockContractUseCase {
       },
     );
     if (!updated) throw new DomainProblem('not_found');
+    await lockFinancialTerms(associationId, projectId);
     await publishContractLocked(this.outbox, updated, actor.userId);
     recordAudit({
       entityType: 'contract',

@@ -529,3 +529,7 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     roulante a pu passer entre-temps), verrous projet → inscription → échéances, me.declare refusé proprement tant que
     l'échéancier n'existe pas, signature tardive d'un cycle roulant (rattrapage `late`). Question posée à l'utilisateur
     (spec) : figer les conditions financières au verrouillage du contrat (`a-verifier.md`).
+- **2026-11-08** · Lot 4.1 — **accordé par l'utilisateur** (« D'accord, fige les conditions au verrouillage ») :
+  `domain-rules.md` § 9 — `financial_terms_locked_at` posé aussi au verrouillage du contrat (ct.lock, pr.create avec
+  `signNow`), une seule fois (la première date gardée ; lg.pay.revert ne libère que des conditions figées par ce
+  paiement : inchangé). ct.lock verrouille le projet (FOR NO KEY UPDATE) puis le contrat : ordre d'en.create.

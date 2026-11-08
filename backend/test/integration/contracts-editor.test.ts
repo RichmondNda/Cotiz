@@ -112,9 +112,9 @@ describe('éditeur de contrat (ct.get, ct.list)', () => {
   const audits = async (action: string) =>
     (
       await f.h.superuser(
-        `SELECT actor_user_id, association_id, entity_id, before, after FROM audit_logs WHERE action = $1
-          ORDER BY occurred_at`,
-        [action],
+        `SELECT actor_user_id, association_id, entity_id, before, after FROM audit_logs
+          WHERE action = $1 AND occurred_at >= $2 ORDER BY occurred_at`,
+        [action, testStart],
       )
     ).rows as Record<string, unknown>[];
   const setPlanFeatures = (planId: string, features: string[]) =>
@@ -134,7 +134,11 @@ describe('éditeur de contrat (ct.get, ct.list)', () => {
 
   afterAll(() => f.stop());
 
+  /** Début du test en cours (le journal d'audit est en ajout seul : il garde les tests précédents). */
+  let testStart: Date;
+
   beforeEach(async () => {
+    testStart = ((await f.h.superuser('SELECT clock_timestamp() AS t')).rows as [{ t: Date }])[0].t;
     await f.h.superuser(
       `BEGIN; SET LOCAL session_replication_role = replica;
        DELETE FROM contract_signatures; DELETE FROM files WHERE purpose = 'contract_pdf'; DELETE FROM contracts;
@@ -146,6 +150,14 @@ describe('éditeur de contrat (ct.get, ct.list)', () => {
       Object.values(PROJECTS),
     ]);
     await f.h.superuser(`DELETE FROM projects WHERE NOT (id = ANY($1::uuid[]))`, [Object.values(PROJECTS)]);
+    // Projets du jeu : conditions de nouveau modifiables, nom d'origine.
+    await f.h.superuser(
+      `UPDATE projects SET financial_terms_locked_at = NULL, name = 'Centre communautaire' WHERE id = $1`,
+      [PROJECTS.a],
+    );
+    await f.h.superuser(`UPDATE projects SET financial_terms_locked_at = NULL WHERE id = ANY($1::uuid[])`, [
+      Object.values(PROJECTS),
+    ]);
     // A (Essentiel) et B (Pro) : contrats compris dans le plan, sauf test contraire.
     await setPlanFeatures(PLANS.essentiel, ['contracts']);
     await setPlanFeatures(PLANS.pro, ['contracts']);
@@ -308,6 +320,42 @@ describe('éditeur de contrat (ct.get, ct.list)', () => {
   });
 
   describe('signature de l’association et verrouillage', () => {
+    const termsLockedAt = async (pid: string) =>
+      (
+        (await f.h.superuser('SELECT financial_terms_locked_at::text AS t FROM projects WHERE id = $1', [pid]))
+          .rows as [{ t: string | null }]
+      )[0].t;
+
+    it('lock fige les conditions financières du projet (domain-rules § 9) : montant refusé, nom permis', async () => {
+      await insertContract(PROJECTS.a);
+      expect(await termsLockedAt(PROJECTS.a)).toBeNull();
+      expect((await lock(PROJECTS.a)).status).toBe(200);
+      expect(await termsLockedAt(PROJECTS.a)).not.toBeNull();
+      const version = (
+        (await f.h.superuser('SELECT version FROM projects WHERE id = $1', [PROJECTS.a])).rows as [{ version: number }]
+      )[0].version;
+      const patch = (patchBody: unknown) =>
+        f.call(`/associations/${A.id}/projects/${PROJECTS.a}`, {
+          token: f.tokens.awa,
+          method: 'PATCH',
+          body: patchBody,
+          headers: { 'if-match': `W/"${String(version)}"` },
+        });
+      const amount = await patch({ installmentAmount: { amount: 30000, currency: 'XOF' } });
+      expect(amount.status).toBe(409);
+      expect(await codeOf(amount)).toBe('financial_terms_locked');
+      expect((await patch({ name: 'Centre de Yopougon' })).status).toBe(200);
+    });
+
+    it('conditions déjà figées par un paiement validé : date d’origine gardée', async () => {
+      await insertContract(PROJECTS.a);
+      await f.h.superuser(`UPDATE projects SET financial_terms_locked_at = '2026-09-01T10:00:00Z' WHERE id = $1`, [
+        PROJECTS.a,
+      ]);
+      expect((await lock(PROJECTS.a)).status).toBe(200);
+      expect(await termsLockedAt(PROJECTS.a)).toBe('2026-09-01 10:00:00+00');
+    });
+
     it('lock : signé par la personne connectée, verrouillé, contract.locked ; audité', async () => {
       const contractId = await insertContract(PROJECTS.a);
       const res = await lock(PROJECTS.a, { token: f.tokens.awa });
@@ -430,6 +478,7 @@ describe('éditeur de contrat (ct.get, ct.list)', () => {
   describe('contrat saisi à la création du projet (pr.create)', () => {
     it('sans signature : contrat modifiable, version 1', async () => {
       const project = await f.created({ ...FIXED, contract: { ...body, signNow: false } });
+      expect(project.financialTermsLockedAt).toBeNull();
       const contract = await contractOf(project.id);
       expect(contract).toMatchObject({
         projectId: project.id,
@@ -447,6 +496,8 @@ describe('éditeur de contrat (ct.get, ct.list)', () => {
       const project = Project.parse(
         await (await f.create({ ...FIXED, contract: { ...body, signNow: true } }, { token: f.tokens.aminata })).json(),
       );
+      // Contrat verrouillé : conditions financières figées dès la création.
+      expect(project.financialTermsLockedAt).not.toBeNull();
       const contract = await contractOf(project.id);
       expect(contract.lockedAt).not.toBeNull();
       expect(contract.associationSignedAt).toBe(contract.lockedAt);
