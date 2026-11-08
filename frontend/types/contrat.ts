@@ -18,5 +18,6 @@ export interface Contrat {
   signeParAssociationLe?: DateISO
   /** Signataire pour l'association (« Awa Koné, trésorière »). */
   signataireAssociation?: string
-  pdfUrl?: string
+  /** PDF signé (fl.get), une fois produit par le serveur (lot 4.1). */
+  pdfFichierId?: Identifiant
 }

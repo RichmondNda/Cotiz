@@ -80,6 +80,9 @@ export const ConfigSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   /** clamd en TCP (architecture/08), ex. tcp://clamav:3310 : exigé en production pour le worker. */
   CLAMAV_URL: z.url({ protocol: /^tcp$/ }).optional(),
+  /** Gotenberg (Chromium) pour les PDF de la file `documents` (architecture/08), ex. http://gotenberg:3000 : exigé en
+   * production pour le worker. Sans lui, un PDF reste en attente (jamais produit par défaut). */
+  GOTENBERG_URL: z.url({ protocol: /^https?$/ }).optional(),
   /** fl.upload › complete : attente du résultat de l'analyse avant de répondre `pending` (lot 0.5). */
   FILE_SCAN_WAIT_MS: z.coerce.number().int().min(0).max(30_000).default(5_000),
   /**
@@ -172,6 +175,7 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
     'S3_ACCESS_KEY_ID',
     'S3_SECRET_ACCESS_KEY',
     'CLAMAV_URL',
+    'GOTENBERG_URL',
     'LOG_PSEUDONYM_KEY',
     'APP_PUBLIC_URL',
     'JWT_PRIVATE_KEY',

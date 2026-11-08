@@ -22,7 +22,8 @@ export function verifiedMembershipRole(request: object): ManagementRole | null {
  * (non-membre, souscripteur, invitée, retirée, aid invalide) : 404 `not_found`, comme une association inexistante.
  * Association suspendue (pf.asso.suspend) : 403 `association_suspended` dès la requête suivante, vérifié après le 404
  * (un non-membre n'apprend rien du statut).
- * Jeton association ailleurs (/me, routes communes) : la personne, sans association.
+ * Jeton association ailleurs (routes `/me/…`, routes communes) : la personne, sans association ; `GET /me` seul porte
+ * l'association courante (première gérée), pour les fonctionnalités de son plan.
  */
 @Injectable()
 export class MembershipGuard implements CanActivate {
@@ -40,7 +41,15 @@ export class MembershipGuard implements CanActivate {
     if (claims.space !== 'association') return true;
 
     if (access.def.space !== 'association') {
-      setRequestContext(request, { space: 'association', userId: claims.sub });
+      // GET /me : l'association courante (première gérée), pour les fonctionnalités de son plan (lot 4.1). Les autres
+      // routes `/me/…` restent sans association.
+      const current = access.def.id === 'me' ? await this.selfRoles.currentManagedAssociation(claims.sub) : null;
+      setRequestContext(
+        request,
+        current
+          ? { space: 'association', associationId: current, userId: claims.sub }
+          : { space: 'association', userId: claims.sub },
+      );
       return true;
     }
     const raw = request.params?.aid;

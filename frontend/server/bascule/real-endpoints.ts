@@ -110,4 +110,10 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['me.payment', 'all'],
   // Lot 3.4 : historique du souscripteur (liste et série mensuelle).
   ['me.history', 'all'],
+  // Lot 4.1 : contrats (éditeur et liste du gestionnaire, signature et contrats du souscripteur, PDF signé).
+  ['ct.get', 'all'],
+  ['ct.list', 'all'],
+  ['me.contract', 'all'],
+  ['me.sign', 'all'],
+  ['me.contracts', 'all'],
 ])

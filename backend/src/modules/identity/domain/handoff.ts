@@ -21,6 +21,26 @@ const SPACE_LABEL: Record<HandoffInput['space'], string> = {
   subscriber: 'votre espace souscripteur',
 };
 
+/** Vue de la page /activer (`?espace=`) de chaque espace ; souscripteur : vue par défaut. */
+const ACTIVATE_VIEW: Record<HandoffInput['space'], string | null> = {
+  platform: 'plateforme',
+  association: 'association',
+  subscriber: null,
+};
+
+/**
+ * Lien de la page d'activation, sur la vue de l'espace du compte (identifiant email du gestionnaire et du personnel,
+ * téléphone du souscripteur). Le téléphone du souscripteur seulement (architecture/03) : pas d'email dans une URL
+ * (journaux d'accès des proxys), ni le téléphone d'un gestionnaire, qui s'identifie par son email.
+ */
+function activationPage(appUrl: string, space: HandoffInput['space'], phone: string | null): string {
+  const url = new URL('/activer', appUrl);
+  const view = ACTIVATE_VIEW[space];
+  if (view) url.searchParams.set('espace', view);
+  else if (phone) url.searchParams.set('t', phone);
+  return url.href;
+}
+
 const DAY = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Africa/Abidjan' });
 
 /**
@@ -30,9 +50,7 @@ const DAY = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', ti
 export function buildHandoff(input: HandoffInput): Handoff {
   const { recipient, code } = input;
   const activation = input.purpose !== 'password_reset';
-  // Le téléphone seulement (architecture/03) : pas d'email dans une URL (journaux d'accès des proxys).
-  const activatePage = new URL('/activer', input.appUrl).href;
-  const activatePageFor = recipient.phone ? `${activatePage}?t=${encodeURIComponent(recipient.phone)}` : activatePage;
+  const activatePageFor = activationPage(input.appUrl, input.space, recipient.phone);
   const lines = activation
     ? [
         `Bonjour ${recipient.firstName}, voici votre code d’activation Cotiz pour ${SPACE_LABEL[input.space]} : ${code} (valable jusqu’au ${DAY.format(input.expiresAt)}).`,

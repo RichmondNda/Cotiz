@@ -3,7 +3,8 @@
   - Lecture : résumé de l'engagement, texte intégral, signature de l'association ; pied de signature
     (case « J'ai lu et j'accepte… », « Signer le contrat » désactivé tant qu'elle n'est pas cochée).
     En mobile, ce pied est collant et remplace la navigation basse.
-  - Signé : écran de succès (« Voir mon échéancier », « Télécharger le contrat signé »).
+  - Signé : écran de succès (« Voir mon échéancier », « Télécharger le contrat signé » : PDF du serveur par fl.get,
+    bandeau « en cours de préparation » tant qu'il n'est pas produit).
   - Consultation : contrat déjà signé, bandeau de confirmation et téléchargement.
   Scénario : `consultation` (le contrat de Voyage solidaire apparaît signé).
 -->
@@ -63,9 +64,39 @@ async function signer() {
   }
 }
 
-function telecharger() {
-  // V0 : pas de PDF généré côté serveur ; l'impression du navigateur permet d'enregistrer le contrat en PDF.
-  window.print()
+// PDF signé produit par le serveur (quelques secondes après la signature) : lu par fl.get, puis enregistré.
+const lireFichier = useLectureFichier()
+const telechargement = ref(false)
+const pdfEnPreparation = ref(false)
+async function telecharger() {
+  if (!contrat.value || telechargement.value) return
+  telechargement.value = true
+  pdfEnPreparation.value = false
+  try {
+    let fichier = contrat.value.pdfFichierId
+    if (!fichier) {
+      // Signé à l'instant : le PDF est peut-être prêt depuis le premier chargement.
+      signeMaintenant.value = null
+      await refresh()
+      fichier = contrat.value?.pdfFichierId
+    }
+    if (!fichier) {
+      pdfEnPreparation.value = true
+      return
+    }
+    const url = await lireFichier(fichier)
+    const lien = document.createElement('a')
+    lien.href = url
+    lien.download = `contrat-${contrat.value?.projet.nom ?? projetId.value}.pdf`
+    lien.click()
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+  catch {
+    pdfEnPreparation.value = true
+  }
+  finally {
+    telechargement.value = false
+  }
 }
 </script>
 
@@ -145,11 +176,18 @@ function telecharger() {
           <CzButton
             variante="secondaire"
             bloc
+            :chargement="telechargement"
             @click="telecharger"
           >
             Télécharger le contrat signé
           </CzButton>
         </div>
+        <CzAlert
+          v-if="pdfEnPreparation"
+          ton="info"
+        >
+          Le contrat signé (PDF) est en cours de préparation. Réessayez dans un instant.
+        </CzAlert>
       </CzCard>
 
       <template v-else>
@@ -178,10 +216,17 @@ function telecharger() {
           v-if="!aSigner"
           variante="secondaire"
           bloc
+          :chargement="telechargement"
           @click="telecharger"
         >
           Télécharger le contrat signé
         </CzButton>
+        <CzAlert
+          v-if="!aSigner && pdfEnPreparation"
+          ton="info"
+        >
+          Le contrat signé (PDF) est en cours de préparation. Réessayez dans un instant.
+        </CzAlert>
 
         <div
           v-else

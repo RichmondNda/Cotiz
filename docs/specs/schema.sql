@@ -572,12 +572,14 @@ CREATE TABLE contracts (
   association_signed_by uuid,
   association_signed_at timestamptz,
   locked_at timestamptz,
+  version int NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE contracts IS 'Contrat d''un projet. Immuable une fois verrouillé.';
 COMMENT ON COLUMN contracts.association_id IS 'RLS';
 COMMENT ON COLUMN contracts.body_template IS 'Markdown avec variables {nom_souscripteur}, {montant}…';
 COMMENT ON COLUMN contracts.template_sha256 IS 'empreinte du modèle verrouillé';
+COMMENT ON COLUMN contracts.version IS 'verrouillage optimiste (If-Match de ct.get : modification et verrouillage)';
 
 -- contract_signatures · module contracts · V2 · lot 4.1
 -- Contre-signature d'un souscripteur, avec éléments de preuve.
@@ -588,18 +590,23 @@ CREATE TABLE contract_signatures (
   enrollment_id uuid NOT NULL,
   user_id uuid NOT NULL,
   rendered_sha256 text NOT NULL,
+  rendered_body text NOT NULL,
   consent_text text NOT NULL,
   signed_at timestamptz NOT NULL,
   ip inet,
   user_agent text,
   pdf_file_id uuid NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (enrollment_id),
+  UNIQUE (pdf_file_id)
 );
 COMMENT ON TABLE contract_signatures IS 'Contre-signature d''un souscripteur, avec éléments de preuve.';
 COMMENT ON COLUMN contract_signatures.association_id IS 'RLS';
 COMMENT ON COLUMN contract_signatures.rendered_sha256 IS 'empreinte du contrat personnalisé tel qu''affiché';
+COMMENT ON COLUMN contract_signatures.rendered_body IS 'texte du contrat personnalisé tel que signé (empreinte rendered_sha256), reproduit dans le PDF';
 COMMENT ON COLUMN contract_signatures.consent_text IS '« J''ai lu et j''accepte… » exact au moment de la signature';
 COMMENT ON COLUMN contract_signatures.pdf_file_id IS 'PDF signé avec page de preuve';
+COMMENT ON COLUMN contract_signatures.enrollment_id IS 'une signature par inscription';
 
 -- import_jobs · module imports · V2 · lot 4.4
 -- Import Excel.
@@ -1088,6 +1095,8 @@ ALTER TABLE allocations ADD FOREIGN KEY (payment_id, association_id, enrollment_
 ALTER TABLE allocations ADD FOREIGN KEY (installment_id, association_id, enrollment_id)
   REFERENCES installments(id, association_id, enrollment_id);
 ALTER TABLE contracts ADD FOREIGN KEY (association_id) REFERENCES associations(id);
+-- Le projet du contrat est de la même association (comme enrollments, lot 2.3).
+ALTER TABLE contracts ADD FOREIGN KEY (project_id, association_id) REFERENCES projects(id, association_id);
 ALTER TABLE contracts ADD FOREIGN KEY (association_signed_by) REFERENCES users(id);
 ALTER TABLE contract_signatures ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 ALTER TABLE contract_signatures ADD FOREIGN KEY (contract_id) REFERENCES contracts(id);
@@ -1472,7 +1481,7 @@ CREATE POLICY tenant_isolation ON contracts
   USING (association_id = app_association_id())
   WITH CHECK (association_id = app_association_id());
 CREATE POLICY subscriber_enrolled_read ON contracts FOR SELECT
-  USING (app_space() = 'subscriber' AND EXISTS (SELECT 1 FROM enrollments e WHERE e.project_id = contracts.project_id AND e.user_id = app_user_id()));
+  USING (app_space() = 'subscriber' AND EXISTS (SELECT 1 FROM enrollments e WHERE e.project_id = contracts.project_id AND e.association_id = contracts.association_id AND e.user_id = app_user_id()));
 
 -- contract_signatures
 ALTER TABLE contract_signatures ENABLE ROW LEVEL SECURITY;
@@ -1482,8 +1491,22 @@ CREATE POLICY tenant_isolation ON contract_signatures
   WITH CHECK (association_id = app_association_id());
 CREATE POLICY subscriber_self_read ON contract_signatures FOR SELECT
   USING (user_id = app_user_id() AND app_space() = 'subscriber');
+-- Seul le souscripteur signe (lot 4.1) : restrictive, elle s'ajoute par ET à tenant_isolation, qu'un gestionnaire ne
+-- puisse ni signer à la place d'un souscripteur ni bloquer une inscription d'une autre association (UNIQUE).
+CREATE POLICY subscriber_insert_only ON contract_signatures AS RESTRICTIVE FOR INSERT
+  WITH CHECK (app_space() = 'subscriber');
+-- Sa propre inscription en attente de signature, le contrat verrouillé de son projet, son propre PDF de contrat
+-- dans la même association (lot 4.1).
 CREATE POLICY subscriber_sign ON contract_signatures FOR INSERT
-  WITH CHECK (user_id = app_user_id() AND app_space() = 'subscriber');
+  WITH CHECK (user_id = app_user_id() AND app_space() = 'subscriber'
+              AND EXISTS (SELECT 1 FROM enrollments e JOIN contracts c ON c.project_id = e.project_id AND c.association_id = e.association_id
+                           WHERE e.id = contract_signatures.enrollment_id AND e.user_id = app_user_id()
+                             AND e.association_id = contract_signatures.association_id AND e.status = 'pending_signature'
+                             AND c.id = contract_signatures.contract_id AND c.locked_at IS NOT NULL)
+              AND EXISTS (SELECT 1 FROM files f
+                           WHERE f.id = contract_signatures.pdf_file_id AND f.owner_user_id = app_user_id()
+                             AND f.purpose = 'contract_pdf' AND f.association_id = contract_signatures.association_id
+                             AND f.scan_status = 'pending' AND f.sha256 IS NULL));
 
 -- import_jobs
 ALTER TABLE import_jobs ENABLE ROW LEVEL SECURITY;
@@ -1574,6 +1597,17 @@ CREATE POLICY owner_access ON files
 CREATE POLICY system_access ON files
   USING (app_space() = 'system')
   WITH CHECK (app_space() = 'system');
+-- PDF de son contrat signé (lot 4.1) : le souscripteur le lit, et le crée en attente (complété par le worker), à la clé
+-- d'objet imposée, pour une association où une inscription attend sa signature ; jamais de modification ni de
+-- suppression.
+CREATE POLICY subscriber_contract_pdf_read ON files FOR SELECT
+  USING (app_space() = 'subscriber' AND owner_user_id = app_user_id() AND purpose = 'contract_pdf');
+CREATE POLICY subscriber_contract_pdf_create ON files FOR INSERT
+  WITH CHECK (app_space() = 'subscriber' AND owner_user_id = app_user_id() AND purpose = 'contract_pdf'
+              AND scan_status = 'pending' AND sha256 IS NULL AND expires_at IS NULL AND bucket = 'cotiz-legal'
+              AND object_key = association_id::text || '/contract_pdf/' || id::text || '.pdf'
+              AND EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = app_user_id() AND e.association_id = files.association_id
+                            AND e.status = 'pending_signature'));
 
 -- outbox_events
 ALTER TABLE outbox_events ENABLE ROW LEVEL SECURITY;

@@ -98,7 +98,7 @@ ou un rejet rend la même date) ; sinon `null`.
 Toute autre transition → `invalid_state`.
 
 ## 9. Verrouillage des conditions financières
-Au **premier paiement validé** d'un projet, `financial_terms_locked_at` est posé. Deviennent non modifiables : `installment_amount`, `entry_fee_amount`, `frequency`, `due_day`, `schedule_type`, `start_date`, `end_date`, `currency`. Restent modifiables : nom, description, couverture, délai de grâce (pour l'avenir), moyens de paiement.
+Au **premier paiement validé** d'un projet, ou au **verrouillage de son contrat** (signature de l'association, lot 4.1 : le souscripteur signe ces montants), `financial_terms_locked_at` est posé (une seule fois : la première de ces deux dates est gardée ; l'annulation d'un paiement ne libère que des conditions figées par ce paiement). Deviennent non modifiables : `installment_amount`, `entry_fee_amount`, `frequency`, `due_day`, `schedule_type`, `start_date`, `end_date`, `currency`. Restent modifiables : nom, description, couverture, délai de grâce (pour l'avenir), moyens de paiement.
 
 ## 10. Première période d'un abonnement — `firstSubscriptionPeriod({ startsOn, billingPeriod, trialDays })`
 Abonnement créé à l'approbation d'une demande ou à la création directe d'une association.

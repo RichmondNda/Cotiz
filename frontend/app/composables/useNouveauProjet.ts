@@ -10,13 +10,12 @@ import type { TermesEcheancier } from '~/utils/echeancier'
 const TOUTES_ETAPES = ['Informations', 'Financement', 'Calendrier', 'Paiement', 'Contrat', 'Récapitulatif'] as const
 export type EtapeProjet = typeof TOUTES_ETAPES[number]
 
-/** Étape « Contrat » masquée jusqu'aux contrats (lot 4.1) : pr.create refuse `contract` (docs/specs/ui-deviations.md). */
-export const CONTRAT_DISPONIBLE = false
-
-export const ETAPES_PROJET: readonly EtapeProjet[] = TOUTES_ETAPES.filter(e => CONTRAT_DISPONIBLE || e !== 'Contrat')
-
-/** Numéro (à partir de 1) d'une étape dans l'assistant affiché. */
-export const numeroEtape = (nom: EtapeProjet) => ETAPES_PROJET.indexOf(nom) + 1
+/**
+ * Étapes de l'assistant : « Contrat » seulement si la fonctionnalité `contracts` est active pour l'association (plan,
+ * `GET /me`, lot 4.1) ; sinon 5 étapes, et pr.create refuserait `contract` (403 `feature_disabled`).
+ */
+export const etapesProjet = (avecContrat: boolean): readonly EtapeProjet[] =>
+  TOUTES_ETAPES.filter(e => avecContrat || e !== 'Contrat')
 
 export const MOYENS_ORDRE: MoyenPaiement[] = ['virement', 'mobile_money', 'especes']
 
@@ -90,9 +89,14 @@ function etatInitial(association: Association | null, signataire: { nom: string,
 export function creerFormulaireProjet(
   association: Ref<Association | null | undefined>,
   signataire: Ref<{ nom: string, fonction: string }>,
+  contratActif: Ref<boolean> = ref(false),
 ) {
   const etat = reactive(etatInitial(association.value ?? null, signataire.value))
   const etape = ref(1)
+  const avecContrat = computed(() => contratActif.value)
+  const etapes = computed(() => [...etapesProjet(avecContrat.value)])
+  /** Numéro (à partir de 1) d'une étape dans l'assistant affiché ; 0 si elle n'y est pas. */
+  const numeroEtape = (nom: EtapeProjet) => etapes.value.indexOf(nom) + 1
   /** Étapes pour lesquelles « Continuer » a été tenté : leurs erreurs s'affichent. */
   const tentees = reactive(new Set<number>())
   const modifie = ref(false)
@@ -146,7 +150,7 @@ export function creerFormulaireProjet(
   // ---------------------------------------------------------------- Validation
   function erreursEtape(n: number): Erreurs {
     const e: Erreurs = {}
-    switch (ETAPES_PROJET[n - 1]) {
+    switch (etapes.value[n - 1]) {
       case 'Informations':
         if (!etat.nom.trim()) e.nom = 'Donnez un nom au projet.'
         if (!etat.sansLimite && etat.souscripteursRequis < 1) e.souscripteursRequis = 'Au moins 1 souscripteur, ou « Sans limite ».'
@@ -181,7 +185,7 @@ export function creerFormulaireProjet(
   function continuer(): boolean {
     tentees.add(etape.value)
     if (!etapeValide(etape.value)) return false
-    etape.value = Math.min(ETAPES_PROJET.length, etape.value + 1)
+    etape.value = Math.min(etapes.value.length, etape.value + 1)
     return true
   }
   function retour() {
@@ -192,7 +196,7 @@ export function creerFormulaireProjet(
   }
   /** Première étape invalide (création finale), ou null. */
   function premiereEtapeInvalide(): number | null {
-    for (let n = 1; n < ETAPES_PROJET.length; n++) {
+    for (let n = 1; n < etapes.value.length; n++) {
       if (!etapeValide(n)) {
         tentees.add(n)
         return n
@@ -271,9 +275,9 @@ export function creerFormulaireProjet(
       souscripteursRequis: etat.sansLimite ? null : etat.souscripteursRequis,
       modalitesPaiement: modalites(),
       instructionsPaiement: etat.instructions.trim() || undefined,
-      contratModele: CONTRAT_DISPONIBLE ? texteContrat.value : '',
+      contratModele: avecContrat.value ? texteContrat.value : '',
       signataire: { nom: etat.signataireNom.trim(), fonction: etat.signataireFonction.trim() },
-      contratSigne: CONTRAT_DISPONIBLE && etat.signe,
+      contratSigne: avecContrat.value && etat.signe,
       brouillon,
     }
   }
@@ -281,6 +285,9 @@ export function creerFormulaireProjet(
   return {
     etat,
     etape,
+    etapes,
+    numeroEtape,
+    avecContrat,
     modifie,
     erreurs,
     continuer,

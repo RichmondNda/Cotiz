@@ -74,7 +74,10 @@ export class RateLimitInterceptor implements NestInterceptor {
       return new DomainProblem('too_many_requests');
     };
 
-    if (tenant?.space === 'association' && tenant.associationId) {
+    // Routes `/associations/{aid}/…` seulement : GET /me porte aussi l'association courante (fonctionnalités de son
+    // plan, lot 4.1) sans être une requête de l'association (`rateLimited: false`) ; sinon des collègues qui épuisent
+    // le quota de l'association bloqueraient le /me de chacun.
+    if (tenant?.space === 'association' && tenant.associationId && endpoint?.def.space === 'association') {
       const hit = await this.hit(`aid:${tenant.associationId}`);
       if (hit && hit.count > this.config.RATE_LIMIT_ASSOCIATION_PER_MIN) throw refuse(hit.resetSeconds);
     }

@@ -229,7 +229,7 @@ describe('création directe d’une association (pf.asso.create)', () => {
 
       expect(body.handoff).toMatchObject({
         recipient: { email: NEW_EMAIL, phone: '+2250707070707' },
-        activationUrl: 'https://app.cotiz.test/activer?t=%2B2250707070707',
+        activationUrl: 'https://app.cotiz.test/activer?espace=association',
       });
       expect(body.handoff?.message).toContain(body.handoff?.code);
     });

@@ -5,5 +5,12 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src", "test", "vitest.config.ts", "vitest.clamav.config.ts", "vitest.perf.config.ts"]
+  "include": [
+    "src",
+    "test",
+    "vitest.config.ts",
+    "vitest.clamav.config.ts",
+    "vitest.gotenberg.config.ts",
+    "vitest.perf.config.ts"
+  ]
 }

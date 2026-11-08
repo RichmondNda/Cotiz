@@ -155,3 +155,52 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   menu par `endpointDisponible`. · Pile `cotiz-prod` (conteneurs et volumes de la répétition) laissée en place :
   `tools/repetition-production.sh --arreter` l'arrête ; supprimer ses volumes seulement sur accord.
 
+
+- **2026-11-08** · Lot 4.1 (revue `money-reviewer`, étape 2) — **à trancher par l'utilisateur (spec)** :
+  `domain-rules.md` § 9 ne fige les conditions financières qu'au premier paiement validé ; sur un projet sous contrat, un
+  gestionnaire peut donc changer montant, fonds d'entrée ou fréquence après le verrouillage du contrat ou des signatures,
+  alors que `{montant}`… sont calculés depuis le projet courant (le souscripteur aurait signé d'autres montants).
+  Proposition : poser `financial_terms_locked_at` au verrouillage du contrat (ou refuser `financial_terms_locked` dès
+  qu'un contrat est verrouillé). → **Tranché** (2026-11-08, accord de l'utilisateur) : figées au verrouillage, commit
+  a3b806b. Autres points de spec signalés : retrait d'une inscription jamais signée
+  (`pending_signature → withdrawn` absent de domain-rules), décision 20 encore `proposé`, architecture/04 l. 22
+  (« échéances générées à l'inscription »).
+
+- **2026-11-08** · Lot 4.1, étape 3 (revue `isolation-reviewer`) — corrigés : mise à jour de l'inscription vérifiée à
+  la signature, tests « autre personne de la même association, RLS élargies » et « événement d'une autre association »
+  (consommateurs). **À proposer, sur accord (RLS ou spec)** :
+  - consommateur `contract-schedule` : ne relit pas `contract_signatures` (aucune politique `system_*` en 0015) ;
+  - `contracts.subscriber_enrolled_read` (0015) ignore le statut de l'inscription (retirée comprise) et l'appartenance
+    active ; le code compense (`subscriberEnrollmentsOf`) — à resserrer par une nouvelle migration ;
+  - me.contract montre un contrat pas encore verrouillé (texte encore modifiable) : à confirmer côté produit ;
+  - `events.yaml` annonce le consommateur de `contract.signed` dans `ledger`, il est dans `members` ;
+  - production : `TRUST_PROXY_HOPS` derrière Traefik, sinon l'IP enregistrée comme preuve de signature est celle du
+    proxy (`src/app.ts`).
+- **2026-11-08** · Lot 4.1, étape 3 (revue `money-reviewer`) — corrigés : consommateur `contract-schedule` en erreur
+  (réessai de l'outbox) au lieu d'abandonner en silence ; horizon roulant rétabli au jour de la signature ; tests
+  « même échéancier qu'en.create » (dont `late_since`) et « cycle roulant signé tard ». **À trancher par l'utilisateur** :
+  - rattrapage : les échéances passées entre l'inscription et la signature naissent `late` (comme en.create, Q3), alors
+    que me.declare refusait tout paiement avant la signature (`signature_required`) — garder, ou dater le retard de la
+    signature ?
+  - signature sur un projet clos (`completed`, `archived`) → **tranché** (utilisateur, 2026-11-08 : « on ne peut pas
+    signer un projet clos ») : refusée en 404 (rien à signer, sans changer `endpoints.yaml`), statut relu après le verrou.
+  - à noter : pas d'audit de la génération par le consommateur (journal seulement), fonds d'entrée à la signature non
+    testé (aucun projet de test avec fonds d'entrée).
+- **2026-11-08** · Lot 4.1, étape 4 — **à trancher par l'utilisateur** :
+  - `GET /me` en espace association lit `features` sans le plan (`planFeatures: null`, contexte sans association :
+    RLS de `subscriptions`) → `contracts` (planGated) jamais annoncé, onglet contrat « Bientôt disponible » après
+    bascule. Options : (1, recommandée) contexte de l'association courante posé par MembershipGuard pour `me` seulement ;
+    (2) fonction SQL SECURITY DEFINER (migration) ; (3) front déduit du plan (bl.sub).
+  - PDF : texte rendu à nouveau depuis le profil et le nom de l'association **courants** ; un changement de nom
+    (me.profile, as.update) entre la signature et la génération casse l'égalité d'empreinte → PDF jamais produit (8
+    tentatives, puis GlitchTip). Figer le texte rendu (ou ses valeurs) à la signature demande une colonne
+    (`contract_signatures`, schema.sql) — changement de spec.
+  - Accès au PDF après la fin de l'adhésion : fl.get le sert toujours au souscripteur (son contrat) ; me.contracts ne
+    le liste plus. À confirmer.
+
+## 2026-11-08 · Test instable `auth-password.test.ts` « demandes simultanées : jamais plus de 3 » (hors lot 4.1)
+- Échec une fois sur `pnpm verify` complet (4 demandes au lieu de 3), 3/3 vert isolé ; code non touché par le lot 4.1.
+- Hypothèse non vérifiée : `request-password-reset.use-case.ts` compte les demandes par `countDistinct(created_at)`
+  (heure de début de transaction) ; deux transactions commencées à la même microseconde comptent pour une, d'où une
+  4e demande sous forte charge. Piste : compter un identifiant de demande (colonne ou regroupement) plutôt que l'heure.
+  À trancher par l'utilisateur (correctif dans un lot ou une PR `chore/`).

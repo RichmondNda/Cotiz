@@ -8,8 +8,11 @@ import { currentTx, TenantDatabase } from '../../../shared/tenant-context/index.
 
 /** Projets dont les inscriptions suivent encore leur cycle (ni clos, ni archivés). */
 const OPEN_PROJECTS = ['enrolling', 'active'] as const;
-/** Inscriptions dont l'échéancier se prolonge (retirées et terminées : jamais). */
-const RUNNING = ['pending_signature', 'active'] as const;
+/**
+ * Inscriptions dont l'échéancier se prolonge (retirées et terminées : jamais). En attente de signature (lot 4.1) : pas
+ * encore d'échéancier, généré à la signature (décision 20) ; le prolonger ici créerait des échéances non signées.
+ */
+const RUNNING = ['active'] as const;
 
 /**
  * Tâche `schedule.extend-rolling` (jobs.yaml : mensuelle, lot 2.3), espace system (politiques `system_access`) :

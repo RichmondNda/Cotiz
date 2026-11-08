@@ -10,9 +10,10 @@ import {
   permissionsOf,
   platformRoleOf,
 } from '../../access/access.public.js';
+import { planFeaturesOf } from '../../billing/billing.public.js';
 import { activeFeatures } from '../../../shared/features/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
-import { currentTx } from '../../../shared/tenant-context/index.js';
+import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 const isManagement = (role: string): role is ManagementRole => (MANAGEMENT_ROLES as readonly string[]).includes(role);
 
@@ -22,7 +23,7 @@ const isManagement = (role: string): role is ManagementRole => (MANAGEMENT_ROLES
  * - Appartenances : actives seulement, dans l'ordre où la personne les a rejointes.
  * - Association courante (espace association) : la première gérée (owner, manager, viewer), choix du lot 1.2 ; ses
  *   permissions sont celles de ce rôle. Ailleurs : `null`.
- * Plan et fonctionnalités soumises au plan : lot 1.2, étape 5.
+ * Fonctionnalités soumises au plan : celles du plan de l'association courante (lot 4.1).
  */
 @Injectable()
 export class GetMeUseCase {
@@ -69,7 +70,20 @@ export class GetMeUseCase {
       })),
       platformRole,
       permissions: permissionsOf(role),
-      features: activeFeatures({ planFeatures: null }),
+      features: activeFeatures({ planFeatures: await this.planFeatures(current?.association.id ?? null) }),
     };
+  }
+
+  /**
+   * Fonctionnalités du plan de l'association courante, lues dans son contexte (posé par MembershipGuard sur `me`).
+   * Contexte d'une autre association (appartenance changée entre la garde et cette lecture) ou sans association :
+   * aucune fonctionnalité soumise au plan, jamais celles d'une autre association.
+   */
+  private async planFeatures(currentAssociationId: string | null) {
+    const context = currentContext();
+    if (!currentAssociationId || context?.space !== 'association' || context.associationId !== currentAssociationId) {
+      return null;
+    }
+    return planFeaturesOf(currentAssociationId);
   }
 }

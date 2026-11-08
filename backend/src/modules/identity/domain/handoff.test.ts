@@ -58,7 +58,34 @@ describe('buildHandoff (message prêt à transmettre)', () => {
     expect(handoff.smsUrl).toBeNull();
     expect(handoff.mailtoUrl).toMatch(/^mailto:awa\.kone@entraide-yopougon\.ci\?subject=/);
     expect(decodeURIComponent(handoff.mailtoUrl ?? '')).toContain(handoff.message);
-    expect(handoff.activationUrl).toBe('https://app.cotiz.app/activer');
+    // Vue d'activation de l'espace association (identifiant : email), pas celle du souscripteur (téléphone).
+    expect(handoff.activationUrl).toBe('https://app.cotiz.app/activer?espace=association');
+  });
+
+  it('gestionnaire avec téléphone : vue association, ni téléphone ni email dans le lien', () => {
+    const handoff = buildHandoff({
+      purpose: 'activation',
+      space: 'association',
+      code: 'K7M4-P9QX',
+      expiresAt,
+      recipient: { ...awa, phone: '+2250707070707' },
+      appUrl: base,
+    });
+    expect(handoff.activationUrl).toBe('https://app.cotiz.app/activer?espace=association');
+    expect(handoff.message).toContain('https://app.cotiz.app/activer?espace=association');
+    expect(handoff.whatsappUrl).toMatch(/^https:\/\/wa\.me\/2250707070707\?text=/);
+  });
+
+  it('personnel de la plateforme : vue plateforme', () => {
+    const handoff = buildHandoff({
+      purpose: 'activation',
+      space: 'platform',
+      code: 'K7M4-P9QX',
+      expiresAt,
+      recipient: awa,
+      appUrl: base,
+    });
+    expect(handoff.activationUrl).toBe('https://app.cotiz.app/activer?espace=plateforme');
   });
 
   it('réinitialisation : 6 chiffres, durée en minutes, aucun lien d’activation', () => {

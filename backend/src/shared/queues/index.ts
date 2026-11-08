@@ -26,6 +26,17 @@ export const QUEUES = {
       removeOnFail: { age: 7 * 24 * 3600 },
     },
   },
+  /** Génération PDF par Gotenberg (jobs.yaml : concurrence 2) ; un moteur indisponible est repris plus tard. */
+  documents: {
+    name: 'documents',
+    concurrency: 2,
+    jobOptions: {
+      attempts: 8,
+      backoff: { type: 'exponential', delay: 5_000 },
+      removeOnComplete: { age: 24 * 3600, count: 10_000 },
+      removeOnFail: { age: 30 * 24 * 3600 },
+    },
+  },
   /** Tâches planifiées (jobs.yaml, section scheduled) : une purge en échec (MinIO absent…) est reprise. */
   scheduled: {
     name: 'scheduled',

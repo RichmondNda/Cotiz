@@ -6,6 +6,7 @@ import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { isActiveSubscriberIn, notifiedManagersOf, notifiedPlatformStaff } from '../../access/access.public.js';
 import { associationPersonNameOf, notifiableUsersOf } from '../../identity/identity.public.js';
+import { enrollmentContractOf, pendingSignersOf } from '../../contracts/contracts.public.js';
 import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
 import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
@@ -16,6 +17,9 @@ import type { Recipient, RenderedMessage } from '../domain/channel.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
 import {
   associationRequestSubmittedMessage,
+  contractLockedMessage,
+  contractSignatureRequiredMessage,
+  contractSignedMessage,
   installmentDueSoonMessage,
   memberEnrolledMessage,
   passwordResetRequestedMessage,
@@ -38,6 +42,9 @@ export const NOTIFIED_TYPES = [
   'password_reset.requested',
   'association.request_submitted',
   'installment.due_soon',
+  'contract.signature_required',
+  'contract.locked',
+  'contract.signed',
 ] as const satisfies readonly EventType[];
 
 /** Regroupement (architecture/07) : au-delà de 5 déclarations en 1 h, une notification récapitulative. */
@@ -53,6 +60,8 @@ const Payloads = {
   reset: z.object({ userId: Id }),
   request: z.object({ requestId: Id, reference: z.string(), associationName: z.string() }),
   dueSoon: z.object({ userId: Id, projectId: Id, installmentIds: z.array(Id), dueDate: z.iso.date() }),
+  enrollment: z.object({ enrollmentId: Id }),
+  locked: z.object({ projectId: Id }),
 };
 
 /** Une notification à créer : message, destinataires, base de la clé de déduplication. */
@@ -142,6 +151,11 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         return this.planRequest(event);
       case 'installment.due_soon':
         return aid ? this.inAssociation(aid, () => this.planDueSoon(event, aid)) : [];
+      case 'contract.signature_required':
+      case 'contract.signed':
+        return aid ? this.inAssociation(aid, () => this.planContractEnrollment(event, aid)) : [];
+      case 'contract.locked':
+        return aid ? this.inAssociation(aid, () => this.planContractLocked(event, aid)) : [];
       default:
         return [];
     }
@@ -200,6 +214,65 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         recipients: managers.map((userId) => ({ userId, associationId: aid, audience: 'manager' })),
         dedupeBase: event.id,
         digest: { associationId: aid, pendingCount: await pendingPaymentsCountOf(aid) },
+      },
+    ];
+  }
+
+  /**
+   * Contrats (lot 4.1), relus au moment de notifier. À signer : le souscripteur encore actif, inscription encore en
+   * attente, contrat déjà verrouillé (sinon `contract.locked` l'avertira). Signé : les gestionnaires (nom de la personne
+   * lu dans l'association).
+   */
+  private async planContractEnrollment(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { enrollmentId } = Payloads.enrollment.parse(event.payload);
+    const enrollment = await enrollmentContractOf(aid, enrollmentId);
+    const project = enrollment ? await projectOf(aid, enrollment.projectId) : null;
+    if (!enrollment || !project) return [];
+    if (event.type === 'contract.signed') {
+      const managers = await notifiedManagersOf(aid);
+      const name = await associationPersonNameOf(aid, enrollment.userId);
+      if (managers.length === 0 || !name) return [];
+      return [
+        {
+          msg: contractSignedMessage({ name, projectId: project.id, projectName: project.name }),
+          recipients: managers.map((userId) => ({ userId, associationId: aid, audience: 'manager' })),
+          dedupeBase: event.id,
+        },
+      ];
+    }
+    if (enrollment.status !== 'pending_signature' || !enrollment.contractLocked) return [];
+    if (!(await isActiveSubscriberIn(aid, enrollment.userId))) return [];
+    const association = await ownAssociationOf(aid);
+    if (!association) return [];
+    return [
+      {
+        msg: contractSignatureRequiredMessage({
+          associationName: association.name,
+          projectId: project.id,
+          projectName: project.name,
+        }),
+        recipients: [{ userId: enrollment.userId, associationId: aid, audience: 'subscriber' }],
+        dedupeBase: event.id,
+      },
+    ];
+  }
+
+  /** Contrat verrouillé : chaque souscripteur actif dont l'inscription attend sa signature. */
+  private async planContractLocked(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { projectId } = Payloads.locked.parse(event.payload);
+    const [association, project] = await Promise.all([ownAssociationOf(aid), projectOf(aid, projectId)]);
+    if (!association || !project) return [];
+    const recipients: Recipient[] = [];
+    for (const userId of await pendingSignersOf(aid, projectId)) {
+      if (await isActiveSubscriberIn(aid, userId))
+        recipients.push({ userId, associationId: aid, audience: 'subscriber' });
+    }
+    if (recipients.length === 0) return [];
+    return [
+      {
+        msg: contractLockedMessage({ associationName: association.name, projectId, projectName: project.name }),
+        recipients,
+        dedupeBase: event.id,
       },
     ];
   }

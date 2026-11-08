@@ -33,6 +33,9 @@ x-backend-env: &backend-env
   # Analyse des fichiers déposés (preuves, logos) : service clamav de local.yml, profil `antivirus`
   # (`--profile antivirus up -d`). Sans lui, un dépôt reste « en analyse » et la déclaration avec preuve est refusée.
   CLAMAV_URL: tcp://clamav:3310
+  # PDF des contrats signés (lot 4.1) : service gotenberg de local.yml, profil `pdf` (`--profile pdf up -d`). Sans lui,
+  # un contrat signé reste sans PDF (« en préparation ») jusqu'à ce que le moteur réponde (job repris).
+  GOTENBERG_URL: http://gotenberg:3000
 
 x-api-build: &api-build
   context: ../..

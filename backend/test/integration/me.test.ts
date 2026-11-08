@@ -6,7 +6,7 @@ import { createApp } from '../../src/app.js';
 import { loadConfig } from '../../src/config.js';
 import { AccessTokenSigner } from '../../src/modules/identity/infra/access-token-signer.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
-import { DELIVERED_FEATURES } from '../../src/shared/features/index.js';
+import { activeFeatures } from '../../src/shared/features/index.js';
 import { type IsolationHarness, startIsolationHarness } from '../isolation/harness.js';
 
 /** GET /me (lot 1.1, étape 5) : identité, espace, rôles, permissions et fonctionnalités de la personne connectée. */
@@ -88,7 +88,8 @@ describe('GET /me', () => {
       currentAssociationId: null,
       memberships: [],
       platformRole: 'owner',
-      features: [...DELIVERED_FEATURES],
+      // Espace plateforme : aucune association, donc aucune fonctionnalité soumise au plan.
+      features: activeFeatures({ planFeatures: null }),
     });
     expect(body.permissions).toContain('platform.staff.manage');
     expect(body.permissions).toContain('platform.associations.manage');

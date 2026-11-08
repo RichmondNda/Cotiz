@@ -440,3 +440,161 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     `me.assos` (lot 4.5) prend les associations des cartes et les moyens de `me.project`. Back : `DELIVERED_FEATURES`
     complété (`payments`, `activation_codes`). Rendu de dev inchangé (parcours de la pile Docker verts).
 
+
+- **2026-11-08** · `/lot 4.1` (contrats et génération PDF), branche `lot/4.1-contrats-pdf` (depuis `origin/backend`, c11da64)
+  — dépendance 3.5 `terminé` ; aucune décision listée (décision 20, `proposé` : échéancier généré à la signature).
+  **Tranché par l'utilisateur** (contradiction architecture/04 § 4.7 ↔ events.yaml, consommateur « ledger : génération de
+  l'échéancier » de `contract.signed`) : d'abord « synchrone », puis, la RLS cible l'empêchant (en espace subscriber,
+  `installments` n'a que SELECT/UPDATE ; `files.owner_access` ne couvre que `payment_proof`), **asynchrone, conforme à la
+  spec** : transaction souscripteur = signature (`subscriber_sign`) + inscription `active` (`guard_enrollment_update`) +
+  `contract.signed` ; ligne `files` du PDF créée juste avant en espace system ; consommateur système idempotent de
+  `contract.signed` = échéancier (quelques secondes ; le front attend avant de proposer la déclaration). Aucune politique
+  RLS touchée. Correction d'architecture/04 § 4.7 (« échéancier généré » → par le worker) proposée dans la PR.
+  Choix pris en autonome (conventionnels, à relire dans la PR) :
+  - « Le projet exige un contrat » = une ligne `contracts` existe pour le projet (`project_id UNIQUE`, saisie à l'étape 5
+    de la création ou par `ct.get` PUT) ; aucune colonne ajoutée à `projects`. Les mocks font pareil (`contractRequired`).
+    Une inscription créée alors → `pending_signature` sans échéance (décision 20) + `contract.signature_required`.
+  - Signer suppose un contrat **verrouillé** (signé par l'association) : avant, `me.contract` montre le texte
+    (`associationSigner.signedAt: null`) et `me.sign` répond 404 `not_found` (aucun code dédié dans errors.yaml).
+  - `contract_signatures.pdf_file_id NOT NULL` alors que le PDF est produit après coup par le worker : à la signature,
+    ligne `files` `pending` (purpose `contract_pdf`, bucket `cotiz-legal`, taille 0), complétée par le worker
+    (`sha256`, taille, `clean`). Un PDF déjà `clean` n'est jamais régénéré.
+  - `ProjectContract.pdfFileId` (ct.get) : aucune colonne de PDF au niveau du contrat dans schema.sql → `null`.
+  - Rendu du texte (variables `{association}`, `{nom_souscripteur}`, `{telephone}`, `{projet}`, `{montant}`, `{fonds_entree}`,
+    `{nb_echeances}`, `{frequence}`, `{montant_echeance}`, `{jour}`, `{date_debut}`, celles des mocks et du front) dans
+    `@cotiz/domain` (pur, partagé avec le front) ; SHA-256 côté back.
+  Plan :
+  - **Étape 1 · Tables** : migration `0015_contracts.sql` (tables, FK, `contracts_locked`, `signatures_append_only`,
+    `signatures_no_truncate`, RLS + politiques souscripteur, `REVOKE UPDATE, DELETE`), schéma Drizzle
+    `packages/db/src/schema/contracts.ts`. Tests d'invariants (`packages/db`) : mise à jour d'un contrat verrouillé →
+    `contract_locked`, UPDATE/DELETE/TRUNCATE d'une signature refusés, isolation RLS des deux tables, politiques
+    souscripteur (lecture de ses signatures, insertion pour soi seulement). Conformité au schéma cible.
+  - **Étape 2 · Éditeur** : `@cotiz/domain` `renderContract()` (tests d'abord) ; module back `contracts` : `ct.get`
+    (lecture, PUT du modèle, `lock` = signature de l'association + `template_sha256` + `contract.locked`), `ct.list` ;
+    `pr.create` accepte `contract` ; garde de fonctionnalité `contracts` (plan) → `feature_disabled` ; `en.create` →
+    `pending_signature` si contrat. Tests d'intégration : `contract_locked` après verrouillage, `version_conflict`,
+    permissions, isolation HTTP (404 entre associations), plan sans `contracts`.
+  - **Étape 3 · Signature** : `me.contract` (texte rendu + SHA-256), `me.sign` (Idempotency-Key, empreinte comparée,
+    consentement exact, IP et navigateur, inscription `active` + échéancier dans la même transaction, `contract.signed`,
+    audit ; échéancier par le consommateur système), notifications (`contract.signature_required`, `contract.locked`, `contract.signed`). Tests :
+    `contract_changed`, `already_signed`, double envoi, `signature_required` avant déclaration, isolation souscripteur.
+  - **Étape 4 · PDF** : `packages/pdf-templates` (contrat + page de preuve, polices @fontsource embarquées, charte),
+    file `documents` (concurrence 2) → Gotenberg (`GOTENBERG_URL`, service ajouté à app.yml et production.yml) →
+    `cotiz-legal` ; `me.contracts`. Front : bascule des 5 endpoints, handlers simulés supprimés, `DELIVERED_FEATURES`
+    + `contracts`, `/verifier-ecran` des 4 écrans, parcours e2e « contrat ». Vérif : PDF identique octet pour octet à
+    chaque téléchargement (empreinte = `files.sha256`), page de preuve présente.
+  Sous-agents `isolation-reviewer` (étapes 1 à 3) et `test-skeptic` en fin d'étape.
+- **2026-11-08** · Lot 4.1, étape 1 — **changement de `docs/specs/schema.sql` accordé par l'utilisateur** (revue
+  `isolation-reviewer`) :
+  (a) PDF signé : l'api ne peut créer la ligne `files` du PDF dans aucun espace (`owner_access` = `payment_proof`
+  seulement, espace system réservé au worker par `tenant-database.ts`) → politiques `files.subscriber_contract_pdf_read`
+  (SELECT) et `subscriber_contract_pdf_create` (INSERT en attente, association où il est inscrit) ; fichier et signature
+  dans la même transaction souscripteur ;
+  (b) resserrement : clé composite `contracts (project_id, association_id) → projects`, `e.association_id` dans
+  `contracts.subscriber_enrolled_read`, `subscriber_sign` lié à son inscription `pending_signature`, au contrat verrouillé
+  du même projet et à son PDF `contract_pdf` de la même association, `UNIQUE (enrollment_id)` et `UNIQUE (pdf_file_id)`.
+  Reportés dans la migration 0015 (non encore commitée) et `data-model.md`. Ordre imposé à `me.sign` (étape 3) :
+  fichier, puis signature (inscription encore en attente), puis inscription `active`.
+- **2026-11-08** · Lot 4.1, étape 1 — **second resserrement accordé par l'utilisateur** (2e passe d'`isolation-reviewer`) :
+  `contract_signatures.subscriber_insert_only` (RESTRICTIVE, INSERT en espace subscriber seulement : un gestionnaire ne
+  signe pas à la place d'un souscripteur ni ne bloque une inscription d'une autre association par UNIQUE ; politique
+  restrictive plutôt que `tenant_isolation FOR SELECT`, que le garde-fou `auditTenantSecurity` refuse) ; création du PDF
+  à la clé imposée (`cotiz-legal`, `{association}/contract_pdf/{id}.pdf`, sans expiration) et seulement avec une
+  inscription `pending_signature` ; `subscriber_sign` exige un PDF neuf (`pending`, sans empreinte). Test d'isolation : 69 cas.
+- **2026-11-08** · Lot 4.1, étape 2 — **tranché par l'utilisateur** : (a) `contracts.version int NOT NULL DEFAULT 1`
+  (changement de schema.sql, migration 0016 : 0015 est commitée) → If-Match réel sur PUT et lock (`version_conflict`) ;
+  (b) `ct.get` garde `@Can('association.read')` (contrat), mais PUT et lock exigent en plus `projects.manage` dans le cas
+  d'usage (owner, manager ; viewer → 403 `forbidden`) ; à proposer dans la PR pour permissions.yaml.
+- **2026-11-08** · Lot 4.1, étape 2 — choix pris en autonome (à relire dans la PR) :
+  - Signatures de ct.get / ct.list : `signed` = lignes `contract_signatures` du contrat ; `total` = `signed` + inscriptions
+    `pending_signature` du projet (une inscription retirée, ou née active avant le contrat, n'est pas comptée). Les mocks
+    comptaient toute inscription non en attente comme signée.
+  - Fonctionnalité `contracts` : vérifiée sur le **plan** de l'abonnement en cours (`billing.planFeaturesOf`, lu en base
+    sous RLS), pas sur `DELIVERED_FEATURES` (ajoutée à l'étape 4, au moment de la bascule front) ; ct.get, ct.list et
+    pr.create avec contrat → 403 `feature_disabled`. en.create ne la vérifie pas : un contrat existant reste à signer
+    même si le plan change. `GET /me` reste à `planFeatures: null` jusqu'à l'étape 4 (les routes `/me` n'ont pas
+    d'association dans leur contexte : à résoudre à la bascule).
+  - PUT d'un projet sans contrat : 404 (comme les mocks) ; le contrat se crée avec le projet (pr.create, étape 5 de
+    l'assistant). Verrouillage : `associationSignedAt = lockedAt = now()`, `templateSha256` recalculée.
+  - ct.list : tri unique (le plus récent d'abord), tout `sort` → 422 ; « non signés > 7 jours » = `joined_at` antérieur
+    de plus de 7 jours.
+  - en.create sous contrat : `pending_signature`, `activated_at` NULL, aucune échéance, `contract.signature_required`
+    (émis par une fonction de `contracts.public`, émetteur `contracts` d'events.yaml) ; en.bulk hérite (même cas d'usage).
+  - Revue `isolation-reviewer` (étape 2) : aucun bloquant ; ajoutés les tests jeton souscripteur et `aid` = B (garde
+    d'appartenance, 404 sur les 4 routes). Corrigé : `schedule.extend-rolling` prolongeait aussi les inscriptions
+    `pending_signature` (tout l'échéancier depuis `startsFrom`) → `RUNNING = ['active']` (test d'abord, vu échouer).
+  - Revue `money-reviewer` (étape 2) : aucun bloquant ; tests en.create renforcés (statut `active` + `activated_at`,
+    montants d'une inscription en attente, cycle roulant sous contrat, rejeu Idempotency-Key). À reprendre à l'étape 3 :
+    consommateur `contract.signed` = insertion `onConflictDoNothing (enrollment_id, kind, sequence)` (une extension
+    roulante a pu passer entre-temps), verrous projet → inscription → échéances, me.declare refusé proprement tant que
+    l'échéancier n'existe pas, signature tardive d'un cycle roulant (rattrapage `late`). Question posée à l'utilisateur
+    (spec) : figer les conditions financières au verrouillage du contrat (`a-verifier.md`).
+- **2026-11-08** · Lot 4.1 — **accordé par l'utilisateur** (« D'accord, fige les conditions au verrouillage ») :
+  `domain-rules.md` § 9 — `financial_terms_locked_at` posé aussi au verrouillage du contrat (ct.lock, pr.create avec
+  `signNow`), une seule fois (la première date gardée ; lg.pay.revert ne libère que des conditions figées par ce
+  paiement : inchangé). ct.lock verrouille le projet (FOR NO KEY UPDATE) puis le contrat : ordre d'en.create.
+- **2026-11-08** · Lot 4.1, étape 3 (signature) — choix pris en autonome (à relire dans la PR) :
+  - me.sign, espace subscriber, une transaction : inscription relue FOR UPDATE (`subscriber_sign_update` ; projet et
+    contrat non verrouillables par le souscripteur — aucune politique UPDATE —, mais contrat verrouillé immuable et
+    conditions figées) ; déjà signée → 409 `already_signed` (aussi ON CONFLICT sur `enrollment_id`) ; inscription qui
+    n'attend pas de signature, ou contrat pas encore verrouillé → 404 ; empreinte ≠ texte rendu → 409
+    `contract_changed` ; puis `files` (PDF `pending`, clé `{aid}/contract_pdf/{id}.pdf`, `cotiz-legal`), signature
+    (consentement exact du mock, IP si valide, navigateur), inscription `active`, `contract.signed`, audit
+    `contract.sign`. Rejeu : intercepteur (24 h) ; au-delà, `already_signed`.
+  - Échéancier : `members/events/contract-schedule.consumer.ts` (espace system, `contract.signed`) : projet FOR SHARE →
+    inscription FOR SHARE → insertion ON CONFLICT DO NOTHING, statuts au jour de l'association (rattrapage) ;
+    inscription retirée ou inconnue : rien. Quelques secondes « active sans échéance » entre la signature et le
+    consommateur (montants à 0 sur les écrans pendant ce temps) : accepté.
+  - me.contract : `pdfFileId` seulement quand le PDF est `clean` (étape 4) ; `{montant}` d'un cycle roulant = une
+    échéance (le mock additionnait l'horizon) ; téléphone absent : « non renseigné » (mock : « +225 [XX XX XX XX] »).
+  - Notifications (in-app seulement, matrice) : `contract.signature_required` → le souscripteur si le contrat est déjà
+    verrouillé (sinon `contract.locked` l'avertira) ; `contract.locked` → souscripteurs en attente ; `contract.signed`
+    → gestionnaires, lien `/asso/projets/:id/contrat`. Souscripteur : `/projets/:id/contrat`.
+  - Reste pour l'étape 4 : `Enrollment.contractSignedAt` (toujours `null` dans les vues gestionnaire) à remplir à la
+    bascule des écrans ; proposition de correction d'architecture/04 (§ 4.3 l. 22, § 4.7) et décision 20 → adopté.
+- **2026-11-08** · Lot 4.1, étape 4 (PDF, partie back) — choix pris en autonome (à relire dans la PR) :
+  - `packages/pdf-templates` : `contractDocument()` (contrat + page de preuve, tout texte échappé, polices @fontsource
+    Poppins 600/700 et Inter 400/600 jointes, couleurs de cotiz-tokens.css, « 1er » du mois) ; build `dist` comme
+    `@cotiz/domain` (image Docker).
+  - Module back `documents` (worker seulement, events.yaml « documents : PDF signé ») : `contract.signed` → job
+    `contract-pdf` (jobId = événement) de la file `documents` (concurrence 2, 8 tentatives, 5 s exponentiel) ;
+    génération : contexte association (texte rendu à nouveau par `renderedContractOf`, partagé avec me.contract, et
+    comparé à l'empreinte signée — sinon erreur, jamais de PDF d'un autre texte), rendu Gotenberg hors transaction, puis
+    espace system : `files` FOR UPDATE, objet écrit **une seule fois** (`If-None-Match: *` ; objet déjà présent après un
+    COMMIT perdu = celui qui fait foi), `files` complété (`clean`, sha256, taille). Sans `GOTENBERG_URL` (exigée en
+    production) : rendu refusé, PDF en attente.
+  - Téléchargement : souscripteur par fl.get (`findFile` : `contract_pdf` lisible en espace subscriber, propriétaire
+    revérifié dans le code) ; gestionnaire par as.file (`/associations/:aid/files/:id`, décision 24). fl.upload ›
+    complete refuse (404) un usage qu'on ne dépose pas depuis son espace (le PDF de contrat).
+  - me.contracts : à signer (inscription `pending_signature`) puis signés ; `pdfFileId` une fois `clean`.
+  - `Enrollment.contractSignedAt` : `contractSignedAtOf` ; espace plateforme : aucune politique de
+    `contract_signatures` → toujours `null` (sans lecture).
+  - Gotenberg : `app.yml`/`production.yml` (`GOTENBERG_URL`, service interne non publié, `--chromium-allow-list` :
+    fichiers envoyés seulement) ; test réel hors `pnpm verify` : `pnpm --filter backend test:gotenberg`.
+  - Accord de l'utilisateur (2026-11-08, « ok pour les deux, fais comme tu recommandes ») :
+    - `contract_signatures.rendered_body` (migration 0017, `schema.sql`, `data-model.md`) : texte signé figé ; le PDF
+      reprend ce texte (contrôle sha256 = `rendered_sha256`), plus de nouveau rendu : un renommage ultérieur (projet,
+      association, souscripteur) ne change plus le document.
+    - `GET /me` en espace association : MembershipGuard pose l'association courante (première gérée, même choix que
+      GetMe) pour l'endpoint `me` seul ; `features` = livrées ∩ plan de cette association. `contracts` livrée
+      (`DELIVERED_FEATURES`). Les autres routes `/me/…` restent sans association.
+- 2026-11-08 · Correctif demandé par l'utilisateur (« la vue retournée n'est pas la bonne » pour l'activation du
+  compte association) : le lien du message prêt d'un gestionnaire (`buildHandoff`, espace association) était
+  `/activer?t=<téléphone>` → vue souscripteur (téléphone). Désormais `/activer?espace=association` (plateforme :
+  `?espace=plateforme`), sans téléphone ni email ; souscripteur inchangé (`?t=`). Exemple de `architecture/03` à
+  compléter (proposition, docs non modifiés).
+  - Revue d'isolation (2026-11-08) : `GET /me` ne compte plus dans le quota de l'association (le quota `aid:` ne vaut
+    que pour les routes de l'espace association ; test `rate-limit.interceptor.test.ts`). Association courante
+    suspendue : `GET /me` rend les fonctionnalités de son plan, comme le choix de l'association courante du lot 1.2 ;
+    les routes `/associations/{aid}/…` restent en 403 `association_suspended`.
+- 2026-11-08 · Lot 4.1, étape 4, partie front (« ok continue avec la partie front ») :
+  - Bascule de `ct.get`, `ct.list`, `me.contract`, `me.sign`, `me.contracts` ; leurs 7 routes simulées et handlers
+    supprimés (test de conformité des mocks : plus d'écriture simulée à If-Match, assertions version_conflict retirées).
+  - Assistant de création de projet : étape « Contrat » affichée si `contracts` est active (`GET /me`), 6 étapes ; sinon
+    5 (`etapesProjet(avecContrat)`). L'écart temporaire de `ui-deviations.md` (« Création de projet, lot 2.2 ») est
+    donc levé : proposer sa suppression dans la PR (docs non modifiés).
+  - « Télécharger le contrat signé » (souscripteur) : PDF du serveur (`pdfFileId` de me.contract, `fl.get`) ; pas
+    encore produit : nouveau chargement, puis bandeau « en cours de préparation ». Gestionnaire : impression du modèle.
+  - `monContrat` : seul un 404 vaut « pas de contrat » (les autres erreurs remontent).
+  - Parcours e2e `contrat` (pile réelle, `COTIZ_BASE=http://localhost:3080`) : projet avec contrat (ou repris : quota
+    du plan), inscription, activation, signature, PDF `%PDF-`, Mes contrats, Contrats du gestionnaire — 9/9.

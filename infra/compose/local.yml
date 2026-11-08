@@ -123,9 +123,16 @@ services:
   gotenberg:
     image: gotenberg/gotenberg:8
     profiles: [pdf]
-    # Un seul Chromium, redémarré souvent : mémoire contenue.
+    # Un seul Chromium, redémarré souvent : mémoire contenue. Il ne charge que les fichiers envoyés (allow-list) : ni
+    # réseau interne ni Internet, même si un texte échappait un jour à l'échappement du gabarit.
     command:
-      ['gotenberg', '--chromium-max-queue-size=1', '--chromium-restart-after=10', '--libreoffice-restart-after=10']
+      [
+        'gotenberg',
+        '--chromium-max-queue-size=1',
+        '--chromium-restart-after=10',
+        '--libreoffice-restart-after=10',
+        '--chromium-allow-list=^file:///tmp/.*',
+      ]
     ports:
       - '127.0.0.1:${COTIZ_GOTENBERG_PORT:-3100}:3000'
     mem_limit: 768m
