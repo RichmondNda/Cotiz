@@ -5,12 +5,12 @@ import type { UserProfiles } from '../../identity/identity.public.js';
 import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
-import { renderedContractOf } from './contract-rendering.js';
+import { sha256Of } from './contract-records.js';
 
 /**
  * Contenu du PDF d'une signature (worker documents), lu dans le contexte de son association : signature, contrat
- * verrouillé, inscription, projet, association et souscripteur. Le texte est rendu à nouveau par le même calcul que
- * me.contract et doit redonner l'empreinte signée : sinon erreur, jamais de PDF d'un autre texte que celui signé.
+ * verrouillé, inscription, projet, association et souscripteur. Le texte est celui figé à la signature
+ * (`rendered_body`), qui doit redonner l'empreinte signée : sinon erreur, jamais de PDF d'un autre texte que celui signé.
  * `null` : signature inconnue dans cette association.
  */
 export async function signedContractDocumentOf(
@@ -33,7 +33,7 @@ export async function signedContractDocumentOf(
     .from(contracts)
     .where(and(eq(contracts.id, signature.contractId), eq(contracts.associationId, associationId)));
   const [enrollment] = await tx
-    .select({ projectId: enrollments.projectId, startsFrom: enrollments.startsFrom, userId: enrollments.userId })
+    .select({ projectId: enrollments.projectId, userId: enrollments.userId })
     .from(enrollments)
     .where(and(eq(enrollments.id, signature.enrollmentId), eq(enrollments.associationId, associationId)));
   if (!contract?.associationSignedAt || enrollment?.userId !== signature.userId) {
@@ -45,22 +45,16 @@ export async function signedContractDocumentOf(
   if (!project || !association || !profile) {
     throw new Error(`contrat signé ${signatureId} : projet, association ou souscripteur introuvable`);
   }
-  const rendered = renderedContractOf({
-    associationName: association.name,
-    project,
-    startsFrom: enrollment.startsFrom,
-    bodyTemplate: contract.bodyTemplate,
-    subscriber: { firstName: profile.firstName, lastName: profile.lastName, phone: profile.phone },
-  });
-  if (rendered.renderedSha256 !== signature.renderedSha256) {
-    throw new Error(`contrat signé ${signatureId} : le texte ne redonne plus l'empreinte signée`);
+  // Texte figé à la signature : un renommage ultérieur (projet, association, souscripteur) ne le change pas.
+  if (sha256Of(signature.renderedBody) !== signature.renderedSha256) {
+    throw new Error(`contrat signé ${signatureId} : le texte stocké ne redonne plus l'empreinte signée`);
   }
   return {
     pdfFileId: signature.pdfFileId,
     input: {
       association: { name: association.name },
       project: { name: project.name },
-      body: rendered.body,
+      body: signature.renderedBody,
       associationSigner: {
         name: contract.associationSignerName,
         title: contract.associationSignerTitle,

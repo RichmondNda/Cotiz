@@ -61,6 +61,7 @@ export const contractSignatures = pgTable('contract_signatures', {
     .references(() => users.id),
   /** Empreinte du contrat personnalisé tel qu'affiché. */
   renderedSha256: text('rendered_sha256').notNull(),
+  renderedBody: text('rendered_body').notNull(),
   /** « J'ai lu et j'accepte… » exact au moment de la signature. */
   consentText: text('consent_text').notNull(),
   signedAt: timestamp('signed_at', { withTimezone: true }).notNull(),

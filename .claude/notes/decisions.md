@@ -571,3 +571,30 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     `contract_signatures` → toujours `null` (sans lecture).
   - Gotenberg : `app.yml`/`production.yml` (`GOTENBERG_URL`, service interne non publié, `--chromium-allow-list` :
     fichiers envoyés seulement) ; test réel hors `pnpm verify` : `pnpm --filter backend test:gotenberg`.
+  - Accord de l'utilisateur (2026-11-08, « ok pour les deux, fais comme tu recommandes ») :
+    - `contract_signatures.rendered_body` (migration 0017, `schema.sql`, `data-model.md`) : texte signé figé ; le PDF
+      reprend ce texte (contrôle sha256 = `rendered_sha256`), plus de nouveau rendu : un renommage ultérieur (projet,
+      association, souscripteur) ne change plus le document.
+    - `GET /me` en espace association : MembershipGuard pose l'association courante (première gérée, même choix que
+      GetMe) pour l'endpoint `me` seul ; `features` = livrées ∩ plan de cette association. `contracts` livrée
+      (`DELIVERED_FEATURES`). Les autres routes `/me/…` restent sans association.
+- 2026-11-08 · Correctif demandé par l'utilisateur (« la vue retournée n'est pas la bonne » pour l'activation du
+  compte association) : le lien du message prêt d'un gestionnaire (`buildHandoff`, espace association) était
+  `/activer?t=<téléphone>` → vue souscripteur (téléphone). Désormais `/activer?espace=association` (plateforme :
+  `?espace=plateforme`), sans téléphone ni email ; souscripteur inchangé (`?t=`). Exemple de `architecture/03` à
+  compléter (proposition, docs non modifiés).
+  - Revue d'isolation (2026-11-08) : `GET /me` ne compte plus dans le quota de l'association (le quota `aid:` ne vaut
+    que pour les routes de l'espace association ; test `rate-limit.interceptor.test.ts`). Association courante
+    suspendue : `GET /me` rend les fonctionnalités de son plan, comme le choix de l'association courante du lot 1.2 ;
+    les routes `/associations/{aid}/…` restent en 403 `association_suspended`.
+- 2026-11-08 · Lot 4.1, étape 4, partie front (« ok continue avec la partie front ») :
+  - Bascule de `ct.get`, `ct.list`, `me.contract`, `me.sign`, `me.contracts` ; leurs 7 routes simulées et handlers
+    supprimés (test de conformité des mocks : plus d'écriture simulée à If-Match, assertions version_conflict retirées).
+  - Assistant de création de projet : étape « Contrat » affichée si `contracts` est active (`GET /me`), 6 étapes ; sinon
+    5 (`etapesProjet(avecContrat)`). L'écart temporaire de `ui-deviations.md` (« Création de projet, lot 2.2 ») est
+    donc levé : proposer sa suppression dans la PR (docs non modifiés).
+  - « Télécharger le contrat signé » (souscripteur) : PDF du serveur (`pdfFileId` de me.contract, `fl.get`) ; pas
+    encore produit : nouveau chargement, puis bandeau « en cours de préparation ». Gestionnaire : impression du modèle.
+  - `monContrat` : seul un 404 vaut « pas de contrat » (les autres erreurs remontent).
+  - Parcours e2e `contrat` (pile réelle, `COTIZ_BASE=http://localhost:3080`) : projet avec contrat (ou repris : quota
+    du plan), inscription, activation, signature, PDF `%PDF-`, Mes contrats, Contrats du gestionnaire — 9/9.

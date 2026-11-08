@@ -287,7 +287,7 @@ describe('décision sur une demande (pf.req.approve, pf.req.reject)', () => {
       expect(body.handoff).not.toBeNull();
       expect(body.handoff).toMatchObject({
         recipient: { firstName: 'Adjoua', lastName: 'Koné', email: NEW_EMAIL, phone: '+2250708091099' },
-        activationUrl: 'https://app.cotiz.test/activer?t=%2B2250708091099',
+        activationUrl: 'https://app.cotiz.test/activer?espace=association',
       });
       expect(body.handoff?.code).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
       expect(body.handoff?.message).toContain(body.handoff?.code);

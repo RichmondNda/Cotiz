@@ -197,3 +197,10 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
     (`contract_signatures`, schema.sql) — changement de spec.
   - Accès au PDF après la fin de l'adhésion : fl.get le sert toujours au souscripteur (son contrat) ; me.contracts ne
     le liste plus. À confirmer.
+
+## 2026-11-08 · Test instable `auth-password.test.ts` « demandes simultanées : jamais plus de 3 » (hors lot 4.1)
+- Échec une fois sur `pnpm verify` complet (4 demandes au lieu de 3), 3/3 vert isolé ; code non touché par le lot 4.1.
+- Hypothèse non vérifiée : `request-password-reset.use-case.ts` compte les demandes par `countDistinct(created_at)`
+  (heure de début de transaction) ; deux transactions commencées à la même microseconde comptent pour une, d'où une
+  4e demande sous forte charge. Piste : compter un identifiant de demande (colonne ou regroupement) plutôt que l'heure.
+  À trancher par l'utilisateur (correctif dans un lot ou une PR `chore/`).

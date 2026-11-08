@@ -428,6 +428,7 @@ Contre-signature d'un souscripteur, avec éléments de preuve.
 | `association_id` | `uuid` | RLS |
 | `contract_id / enrollment_id / user_id` | `uuid FK` | `enrollment_id` UNIQUE : une signature par inscription |
 | `rendered_sha256` | `text` | empreinte du contrat personnalisé tel qu'affiché |
+| `rendered_body` | `text` | texte du contrat personnalisé tel que signé (empreinte `rendered_sha256`), reproduit dans le PDF |
 | `consent_text` | `text` | « J'ai lu et j'accepte… » exact au moment de la signature |
 | `signed_at` | `timestamptz` |  |
 | `ip / user_agent` | `inet / text` |  |

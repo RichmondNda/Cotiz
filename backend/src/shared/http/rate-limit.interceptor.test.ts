@@ -20,6 +20,11 @@ class Routes {
     // Route de test : seules ses métadonnées comptent.
   }
 
+  @Endpoint('me', 'get')
+  me(): void {
+    // Route de test : seules ses métadonnées comptent.
+  }
+
   outside(): void {
     // Route de test : seules ses métadonnées comptent.
   }
@@ -93,6 +98,14 @@ describe('RateLimitInterceptor (fenêtre d’une minute, Redis)', () => {
     expect(fifth.handled).toBe(false);
     expect(code(fifth.error)).toBe('too_many_requests');
     expect(fifth.response.getHeader('retry-after')).toBe('42');
+  });
+
+  it('GET /me (contexte de l’association courante, lot 4.1) : hors du quota de l’association', async () => {
+    const { counters, request } = setup();
+    for (let i = 0; i < 4; i++) await request('read', { userId: MOUSSA, associationId: A });
+    // Quota de A épuisé par une collègue : le /me d'Awa passe, et n'est pas compté.
+    expect((await request('me', { userId: AWA, associationId: A })).handled).toBe(true);
+    expect(counters.counts.get(`aid:${A}`)).toBe(4);
   });
 
   it('endpoint à débit limité (rateLimited) : par utilisateur, quelle que soit l’IP', async () => {

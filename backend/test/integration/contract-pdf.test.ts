@@ -95,7 +95,7 @@ describe('PDF du contrat signé (worker documents, me.contracts)', () => {
       (
         await f.h.superuser(
           `SELECT s.id, s.pdf_file_id, s.rendered_sha256, c.template_sha256, s.signed_at, host(s.ip) AS ip,
-                  s.user_agent, s.consent_text
+                  s.user_agent, s.consent_text, s.rendered_body, s.user_id
              FROM contract_signatures s JOIN contracts c ON c.id = s.contract_id WHERE s.enrollment_id = $1`,
           [enrollmentId],
         )
@@ -108,6 +108,8 @@ describe('PDF du contrat signé (worker documents, me.contracts)', () => {
         ip: string | null;
         user_agent: string | null;
         consent_text: string;
+        rendered_body: string;
+        user_id: string;
       }[]
     )[0];
   const fileRow = async (id: string) =>
@@ -255,23 +257,39 @@ describe('PDF du contrat signé (worker documents, me.contracts)', () => {
       if (signature.ip) expect(proof).toContain(signature.ip);
     });
 
-    it('texte qui ne donne plus l’empreinte signée : aucun PDF (erreur, rien n’est écrit)', async () => {
-      const { signature } = await signed();
-      // Projet renommé en contournant les gardes : le texte rendu change, l'empreinte signée non.
+    it('projet et souscripteur renommés après la signature : le PDF reproduit le texte signé', async () => {
+      const { shown, signature } = await signed();
+      expect(signature.rendered_body).toBe(shown.body);
+      // Renommés en contournant les gardes : le texte rendu aujourd'hui serait différent, le texte signé non.
       await f.h.superuser(
         `BEGIN; SET LOCAL session_replication_role = replica;
-         UPDATE projects SET name = name || ' (modifié)' WHERE id = '${PROJECTS.a}'; COMMIT;`,
+         UPDATE projects SET name = name || ' (modifié)' WHERE id = '${PROJECTS.a}';
+         UPDATE users SET first_name = first_name || 'x' WHERE id = '${signature.user_id}'; COMMIT;`,
       );
       try {
-        await expect(generate(signature.id)).rejects.toThrow(/empreinte/);
-        expect(gotenberg.requests).toHaveLength(0);
-        expect((await fileRow(signature.pdf_file_id))?.scan_status).toBe('pending');
+        await generate(signature.id);
+        const [request] = gotenberg.requests;
+        if (!request) throw new Error('aucune conversion');
+        expect(request.html).toContain(shown.body);
+        expect((await fileRow(signature.pdf_file_id))?.scan_status).toBe('clean');
       } finally {
         await f.h.superuser(
           `BEGIN; SET LOCAL session_replication_role = replica;
-           UPDATE projects SET name = replace(name, ' (modifié)', '') WHERE id = '${PROJECTS.a}'; COMMIT;`,
+           UPDATE projects SET name = replace(name, ' (modifié)', '') WHERE id = '${PROJECTS.a}';
+           UPDATE users SET first_name = left(first_name, -1) WHERE id = '${signature.user_id}'; COMMIT;`,
         );
       }
+    });
+
+    it('texte stocké qui ne donne plus l’empreinte signée : aucun PDF (erreur, rien n’est écrit)', async () => {
+      const { signature } = await signed();
+      await f.h.superuser(
+        `BEGIN; SET LOCAL session_replication_role = replica;
+         UPDATE contract_signatures SET rendered_body = rendered_body || ' ' WHERE id = '${signature.id}'; COMMIT;`,
+      );
+      await expect(generate(signature.id)).rejects.toThrow(/empreinte/);
+      expect(gotenberg.requests).toHaveLength(0);
+      expect((await fileRow(signature.pdf_file_id))?.scan_status).toBe('pending');
     });
 
     it('moteur indisponible : erreur (le job sera repris), PDF toujours en attente, puis produit', async () => {

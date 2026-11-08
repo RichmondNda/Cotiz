@@ -88,6 +88,7 @@ export class SignContractUseCase {
         enrollmentId: entry.row.id,
         userId: actor.userId,
         renderedSha256: shown.renderedSha256,
+        renderedBody: shown.body,
         consentText: CONSENT_TEXT,
         signedAt: sql`now()`,
         ip: request?.ip && isIP(request.ip) !== 0 ? request.ip : null,

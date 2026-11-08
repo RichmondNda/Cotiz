@@ -124,6 +124,8 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
         role ? { role, associationStatus: suspended.has(associationId) ? 'suspended' : 'active' } : null,
       );
     },
+    // Première association gérée (ordre d'insertion), comme activeMembershipsOf.
+    currentManagedAssociation: () => Promise.resolve(Object.keys(managementRoles)[0] ?? null),
   } as unknown as SelfRoles;
 
   beforeEach(() => {
@@ -255,15 +257,28 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       expect(await refusal(chain('associationGet', { bearer, aid: OTHER_AID }))).toBe('not_found');
     });
 
-    it('jeton association sur /me ou une route commune : la personne, sans association ni rôle', async () => {
+    it('jeton association sur une route commune : la personne, sans association ni rôle', async () => {
       managementRoles = { [AID]: 'owner' };
       const bearer = await token({ space: 'association' });
-      expect(await chain('me', { bearer, aid: AID })).toEqual({
+      expect(await chain('file', { bearer, aid: AID })).toEqual({
         context: { space: 'association', userId: USER },
         role: undefined,
         platformConnection: false,
       });
       expect(await refusal(chain('dashboard', { bearer }))).toBe('forbidden');
+    });
+
+    it('jeton association sur GET /me : association courante (fonctionnalités de son plan, lot 4.1), sans rôle', async () => {
+      managementRoles = { [AID]: 'owner' };
+      const bearer = await token({ space: 'association' });
+      expect(await chain('me', { bearer })).toEqual({
+        context: { space: 'association', associationId: AID, userId: USER },
+        role: undefined,
+        platformConnection: false,
+      });
+      // Plus aucune association gérée : la personne seule.
+      managementRoles = {};
+      expect((await chain('me', { bearer })).context).toEqual({ space: 'association', userId: USER });
     });
   });
 

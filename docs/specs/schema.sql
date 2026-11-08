@@ -590,6 +590,7 @@ CREATE TABLE contract_signatures (
   enrollment_id uuid NOT NULL,
   user_id uuid NOT NULL,
   rendered_sha256 text NOT NULL,
+  rendered_body text NOT NULL,
   consent_text text NOT NULL,
   signed_at timestamptz NOT NULL,
   ip inet,
@@ -602,6 +603,7 @@ CREATE TABLE contract_signatures (
 COMMENT ON TABLE contract_signatures IS 'Contre-signature d''un souscripteur, avec éléments de preuve.';
 COMMENT ON COLUMN contract_signatures.association_id IS 'RLS';
 COMMENT ON COLUMN contract_signatures.rendered_sha256 IS 'empreinte du contrat personnalisé tel qu''affiché';
+COMMENT ON COLUMN contract_signatures.rendered_body IS 'texte du contrat personnalisé tel que signé (empreinte rendered_sha256), reproduit dans le PDF';
 COMMENT ON COLUMN contract_signatures.consent_text IS '« J''ai lu et j''accepte… » exact au moment de la signature';
 COMMENT ON COLUMN contract_signatures.pdf_file_id IS 'PDF signé avec page de preuve';
 COMMENT ON COLUMN contract_signatures.enrollment_id IS 'une signature par inscription';

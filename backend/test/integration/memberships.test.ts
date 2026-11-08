@@ -381,6 +381,34 @@ describe('appartenances et connexion (association, souscripteur, plateforme)', (
       expect(body.permissions).toContain('subscriber.self');
     });
 
+    it('fonctionnalités soumises au plan : celles du plan de l’association courante (lot 4.1, contrats)', async () => {
+      const plan = '00000000-0000-7000-8000-0000000007b1';
+      await h.superuser(
+        `INSERT INTO plans (id, code, name, price_monthly, price_yearly, max_projects, max_subscribers, max_managers,
+                            features, is_active)
+         VALUES ($1, 'me-contracts', 'Avec contrats', 0, 0, NULL, NULL, NULL, '{contracts}', true)`,
+        [plan],
+      );
+      // Plan avec contrats pour A seulement : Awa (owner de A) les voit, Fatou (lectrice de B) non.
+      await h.superuser(
+        `INSERT INTO subscriptions (id, association_id, plan_id, billing_period, status, current_period_start)
+         VALUES (gen_random_uuid(), $1, $2, 'monthly', 'active', current_date)`,
+        [A.id, plan],
+      );
+      try {
+        const awa = await me((await session('association', email('awa'))).token);
+        const fatou = await me((await session('association', email('fatou'))).token);
+        const moussa = await me((await session('subscriber', email('moussa'))).token);
+        expect(awa.features).toContain('contracts');
+        expect(fatou.features).not.toContain('contracts');
+        expect(moussa.features).not.toContain('contracts');
+        expect(awa.features).toContain('payments');
+      } finally {
+        await h.superuser('DELETE FROM subscriptions WHERE plan_id = $1', [plan]);
+        await h.superuser('DELETE FROM plans WHERE id = $1', [plan]);
+      }
+    });
+
     it('gestionnaire dont toutes les appartenances de gestion ont été retirées : plus d’association courante', async () => {
       const { token } = await session('association', email('fatou'));
       await setStatus(B.id, USERS.fatou, 'viewer', 'removed');

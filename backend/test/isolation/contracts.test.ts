@@ -102,8 +102,9 @@ interface SignatureRow {
 
 const insertSignature = (tx: Tx, row: SignatureRow) =>
   tx.execute(sql`INSERT INTO contract_signatures (id, association_id, contract_id, enrollment_id, user_id,
-                                                  rendered_sha256, consent_text, signed_at, ip, user_agent, pdf_file_id)
-                 VALUES (${row.id}, ${row.association}, ${row.contract}, ${row.enrollment}, ${row.user}, ${SHA},
+                                                  rendered_sha256, rendered_body, consent_text, signed_at, ip,
+                                                  user_agent, pdf_file_id)
+                 VALUES (${row.id}, ${row.association}, ${row.contract}, ${row.enrollment}, ${row.user}, ${SHA}, 'Contrat',
                          'J’ai lu le contrat et je l’accepte.', now(), '10.0.0.1', 'test', ${row.file})`);
 
 /** Signature valide d'Aminata dans A (inscription en attente, contrat verrouillé, son PDF), absente du jeu. */
@@ -244,9 +245,9 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
     );
     await h.superuser(
       `INSERT INTO contract_signatures (id, association_id, contract_id, enrollment_id, user_id, rendered_sha256,
-                                        consent_text, signed_at, pdf_file_id)
-       VALUES ($1, $3, $4, $5, $6, $9, 'J’accepte.', now(), $10),
-              ($2, $7, $8, $11, $12, $9, 'J’accepte.', now(), $13)`,
+                                        rendered_body, consent_text, signed_at, pdf_file_id)
+       VALUES ($1, $3, $4, $5, $6, $9, 'Contrat', 'J’accepte.', now(), $10),
+              ($2, $7, $8, $11, $12, $9, 'Contrat', 'J’accepte.', now(), $13)`,
       [
         SIGNATURES.moussa,
         SIGNATURES.fatou,
@@ -459,8 +460,8 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
         h.superuserRollback((c) =>
           c.query(
             `INSERT INTO contract_signatures (id, association_id, contract_id, enrollment_id, user_id, rendered_sha256,
-                                              consent_text, signed_at, pdf_file_id)
-             VALUES ('00000000-0000-7000-8000-0000000ae4f4', $1, $2, $3, $4, $5, 'J’accepte.', now(), $6)`,
+                                              rendered_body, consent_text, signed_at, pdf_file_id)
+             VALUES ('00000000-0000-7000-8000-0000000ae4f4', $1, $2, $3, $4, $5, 'Contrat', 'J’accepte.', now(), $6)`,
             [A.id, CONTRACTS.a, enrollment, user, SHA, file],
           ),
         ),

@@ -96,8 +96,8 @@ describe('éditeur de contrat (ct.get, ct.list)', () => {
     );
     await f.h.superuser(
       `INSERT INTO contract_signatures (id, association_id, contract_id, enrollment_id, user_id, rendered_sha256,
-                                        consent_text, signed_at, pdf_file_id)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, repeat('c', 64), 'J’ai lu et j’accepte', now(), $5)`,
+                                        rendered_body, consent_text, signed_at, pdf_file_id)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, repeat('c', 64), 'Contrat', 'J’ai lu et j’accepte', now(), $5)`,
       [aid, contractId, enrollmentId, userId, fileId],
     );
   };
