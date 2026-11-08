@@ -74,7 +74,11 @@ Format : **date** · contexte — apprentissage. *Source.*
   (port 3000). Tests unitaires : `frontend/tests/unit/**/*.test.ts`. *`.github/workflows/ci.yml`, `frontend/vitest.config.ts`.*
 - **2026-11-02** · exploration initiale — Pas de `README.md` à la racine ; `frontend/README.md` est le gabarit Nuxt complété d'une
   section « Vérifications de la V0 ». Le point d'entrée de la doc est `docs/README.md`. *`ls`, `frontend/README.md`.*
-- **2026-11-02** · Tests d'intégration du back : `pnpm verify` dure environ 15 min (121 fichiers, un conteneur par suite). Une suite peut tomber
+- **2026-11-08** · Durée de `pnpm verify` : ≈ 10,5 min (back ≈ 7 min, 152 fichiers, 4 à la fois). Un seul PostgreSQL par
+  exécution (`backend/test/support/global-setup.ts`), une base copiée d'un modèle migré par fichier via le harnais ;
+  `COTIZ_TEST_SHARED_PG=0` rétablit un conteneur par fichier. Redis et MinIO restent par fichier. Plus long fichier :
+  `cli-platform-owner` (≈ 100 s, CLI en sous-processus). *verify du 2026-11-08, branche `chore/tests-postgres-partage`.*
+- **2026-11-02** · Tests d'intégration du back : `pnpm verify` durait environ 15 min (121 fichiers, un conteneur par suite). Une suite peut tomber
   au démarrage sur `Lock is not acquired/owned by you` (`proper-lockfile` dans `testcontainers/build/reaper`) : course au verrou
   du reaper, pas un échec du test. Relancer le fichier seul (`pnpm exec vitest run <fichier>` dans `backend/`). Source : verify du 2026-11-02.
 - **2026-11-07** · `pnpm verify` (lot 3.3) — Autre faux échec possible : toutes les assertions vertes mais « 1 unhandled

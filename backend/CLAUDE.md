@@ -19,6 +19,7 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Actions sensibles : `@Audited('<action>')`.
 - Tests : `test/integration` (Testcontainers, vraie PostgreSQL), `test/isolation` (obligatoire pour tout endpoint tenant ou `/me`),
   unitaires à côté du code.
+- PostgreSQL de test partagé par l'exécution (`test/support/global-setup.ts`) : le harnais donne à chaque fichier sa base, copiée du modèle migré ; ne rien modifier au niveau du serveur (rôles, `ALTER SYSTEM`) depuis un test qui passe par le harnais (sinon conteneur dédié via `startTestDatabase`). `COTIZ_TEST_SHARED_PG=0` : un conteneur par fichier.
 - Isolation : partir de `test/isolation/harness.ts` (`asManagerOf`, `asSubscriber`, `asRollback`) ; chaque politique testée l'est aussi
   affaiblie (`withPolicy`, `withoutPolicy`) pour prouver que le test échoue.
 - Un endpoint terminé est basculé côté front (`/bascule <id>`) : le front l'appelle via le proxy Nitro, même origine.
