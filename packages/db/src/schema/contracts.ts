@@ -1,5 +1,5 @@
 import { foreignKey, inet, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { createdAt, id } from '../columns.js';
+import { createdAt, id, version } from '../columns.js';
 import { files } from './files.js';
 import { users } from './identity.js';
 import { enrollments } from './members.js';
@@ -30,6 +30,8 @@ export const contracts = pgTable(
     associationSignedBy: uuid('association_signed_by').references(() => users.id),
     associationSignedAt: timestamp('association_signed_at', { withTimezone: true }),
     lockedAt: timestamp('locked_at', { withTimezone: true }),
+    /** Verrouillage optimiste (If-Match de ct.get), écrit par updateWithVersion. */
+    version: version(),
     createdAt: createdAt(),
   },
   (t) => [

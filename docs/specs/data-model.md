@@ -416,6 +416,7 @@ Contrat d'un projet. Immuable une fois verrouillé.
 | `association_signer_name / title` | `text` |  |
 | `association_signed_by` | `uuid FK users` |  |
 | `association_signed_at / locked_at` | `timestamptz` |  |
+| `version` | `int` | verrouillage optimiste (If-Match de ct.get : modification et verrouillage) |
 
 ## `contract_signatures` — lot 4.1
 

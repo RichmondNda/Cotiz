@@ -28,7 +28,7 @@ export { admitSubscriber, isSubscriberOf, subscriberMembershipOf } from './appli
 export { platformSubscribersCount, platformTeamSizes, type TeamSize } from './application/platform-team-stats.js';
 export { SeedDevMembershipsUseCase } from './application/seed-dev-memberships.use-case.js';
 export { SelfRoles } from './application/self-roles.js';
-export { actorRoleOf, permissionsOf } from './domain/permission-policy.js';
+export { actorRoleOf, holdsPermission, permissionsOf } from './domain/permission-policy.js';
 export {
   isActiveSubscriberIn,
   notifiedManagersOf,

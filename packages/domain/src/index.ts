@@ -76,3 +76,5 @@ export type { SubscriberEnrollmentFigures, SubscriberInstallment } from './subsc
 // Historique du souscripteur (lot 3.4).
 export { subscriberHistoryFigures } from './subscriber-history.js';
 export type { HistoryCommitment, HistoryFigures, HistoryPayment } from './subscriber-history.js';
+export { CONTRACT_VARIABLES, contractValues, renderContract } from './contract.js';
+export type { ContractContext, ContractValues, ContractVariable } from './contract.js';

@@ -155,3 +155,12 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   menu par `endpointDisponible`. · Pile `cotiz-prod` (conteneurs et volumes de la répétition) laissée en place :
   `tools/repetition-production.sh --arreter` l'arrête ; supprimer ses volumes seulement sur accord.
 
+
+- **2026-11-08** · Lot 4.1 (revue `money-reviewer`, étape 2) — **à trancher par l'utilisateur (spec)** :
+  `domain-rules.md` § 9 ne fige les conditions financières qu'au premier paiement validé ; sur un projet sous contrat, un
+  gestionnaire peut donc changer montant, fonds d'entrée ou fréquence après le verrouillage du contrat ou des signatures,
+  alors que `{montant}`… sont calculés depuis le projet courant (le souscripteur aurait signé d'autres montants).
+  Proposition : poser `financial_terms_locked_at` au verrouillage du contrat (ou refuser `financial_terms_locked` dès
+  qu'un contrat est verrouillé). Autres points de spec signalés : retrait d'une inscription jamais signée
+  (`pending_signature → withdrawn` absent de domain-rules), décision 20 encore `proposé`, architecture/04 l. 22
+  (« échéances générées à l'inscription »).

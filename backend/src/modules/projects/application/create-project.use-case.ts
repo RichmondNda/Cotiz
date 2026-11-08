@@ -4,6 +4,7 @@ import { projects } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
 import type { z } from 'zod';
 import { QuotaService } from '../../billing/billing.public.js';
+import { assertContractsFeature, createProjectContract } from '../../contracts/contracts.public.js';
 import { isUsableAssociationFile } from '../../files/files.public.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
@@ -17,9 +18,10 @@ type Input = z.infer<typeof CreateProjectInput>;
 
 /**
  * pr.create : projet en brouillon dans la devise de l'association. Conditions contrôlées par generateSchedule()
- * (422 sur le champ) ; contrat refusé avant le lot 4.1 (choix Q1) ; moyens de paiement de l'association, actifs, une
- * fois chacun (Q7) ; couverture déposée par pr.upload et analysée saine ; quota du plan (Q6). Idempotence par
- * l'intercepteur (`Idempotency-Key`), project.created par l'outbox, création auditée.
+ * (422 sur le champ) ; contrat (étape 5 de l'assistant, lot 4.1) : fonctionnalité `contracts` du plan
+ * (`feature_disabled`), écrit avec le projet, verrouillé aussitôt si l'association signe (`contract.locked`) ; moyens de
+ * paiement de l'association, actifs, une fois chacun (Q7) ; couverture déposée par pr.upload et analysée saine ; quota
+ * du plan (Q6). Idempotence par l'intercepteur (`Idempotency-Key`), project.created par l'outbox, création auditée.
  */
 @Injectable()
 export class CreateProjectUseCase {
@@ -32,9 +34,7 @@ export class CreateProjectUseCase {
   async execute(aid: string, input: Input): Promise<Project> {
     const actor = requireActor();
     const associationId = contextAssociationId(aid);
-    if (input.contract !== undefined) {
-      throw new DomainProblem('validation_failed', { fields: { contract: 'not_available' } });
-    }
+    if (input.contract !== undefined) await assertContractsFeature(associationId);
     const currency = await associationCurrencyOf(associationId);
     // Devise contrôlée sur le corps reçu (un fonds d'entrée à 0 dans une autre devise est refusé, comme par pr.preview).
     const currencyIssues = currencyProblems(input, currency);
@@ -92,9 +92,31 @@ export class CreateProjectUseCase {
       aggregate: { type: 'project', id: row.id },
       payload: { projectId: row.id },
     });
+    const contract = input.contract
+      ? await createProjectContract(this.outbox, {
+          associationId,
+          projectId: row.id,
+          actorUserId: actor.userId,
+          contract: input.contract,
+        })
+      : null;
     const project = await toProject(row);
     const { stats: _stats, ...after } = project;
     recordAudit({ entityType: 'project', entityId: row.id, associationId, after });
+    if (contract) {
+      recordAudit({
+        entityType: 'contract',
+        entityId: contract.id,
+        associationId,
+        after: {
+          projectId: row.id,
+          bodyTemplate: contract.bodyTemplate,
+          signerName: contract.associationSignerName,
+          signerTitle: contract.associationSignerTitle,
+          lockedAt: contract.lockedAt?.toISOString() ?? null,
+        },
+      });
+    }
     return project;
   }
 }

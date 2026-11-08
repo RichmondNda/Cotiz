@@ -141,6 +141,17 @@ describe('schedule.extend-rolling', () => {
     expect(after.find((l) => l.dueDate === '2027-03-05')?.status).toBe('late');
   });
 
+  it('inscription en attente de signature (lot 4.1) : aucune échéance avant la signature (décision 20)', async () => {
+    const pending = crypto.randomUUID();
+    await f.h.superuser(
+      `INSERT INTO enrollments (id, association_id, project_id, user_id, status, starts_from, joined_at)
+       VALUES ($1, $2, $3, $4, 'pending_signature', '2026-03-01', now())`,
+      [pending, A.id, PROJECTS.rollingA, USERS.moussa],
+    );
+    await run('2026-06-10T01:00:00Z');
+    expect(await lines(pending)).toEqual([]);
+  });
+
   it('inscription retirée, projet clos, dates fixes : inchangés', async () => {
     const withdrawn = await enroll(PROJECTS.rollingA, { userId: USERS.moussa });
     const res = await f.call(`/associations/${A.id}/enrollments/${withdrawn}/withdraw`, {

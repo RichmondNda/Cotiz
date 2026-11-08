@@ -6,6 +6,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { admitSubscriber, platformRoleOf, subscriberMembershipOf } from '../../access/access.public.js';
 import { QuotaService } from '../../billing/billing.public.js';
+import { projectRequiresContract, requestContractSignature } from '../../contracts/contracts.public.js';
 import {
   accountByPhone,
   type PreparedCode,
@@ -40,6 +41,8 @@ const CLOSED_ACCOUNTS = new Set<SubscriberContact['status']>(['disabled', 'anony
  * 3. une inscription par projet et par personne, sous verrou (`already_enrolled`, même retirée) ;
  * 4. appartenance souscripteur créée ou rétablie (active dès l'inscription), sous le quota du plan ;
  * 5. inscription et échéances, statut initial par installmentStatus() (rattrapage : passées dues ou en retard, Q3) ;
+ *    projet sous contrat (lot 4.1) : inscription `pending_signature`, sans échéance (générées à la signature, décision
+ *    20), `contract.signature_required` ;
  * 6. compte non activé créé par cette association : son code d'activation et le message prêt (Q8). Créé ailleurs
  *    (autre association, plateforme) : aucun code, la personne s'active avec celui d'origine ; un code émis ici
  *    fixerait le mot de passe d'un compte qui sert aussi ailleurs (prise de contrôle). `member.enrolled`, audit.
@@ -107,6 +110,7 @@ export class CreateEnrollmentUseCase {
       });
     }
 
+    const requiresContract = await projectRequiresContract(associationId, projectId);
     const enrollmentId = newId();
     const [row] = await tx
       .insert(enrollments)
@@ -115,36 +119,44 @@ export class CreateEnrollmentUseCase {
         associationId,
         projectId,
         userId: member.id,
-        // Contrat à signer d'abord (pending_signature) : lot 4.1.
-        status: 'active',
+        // Contrat à signer d'abord : active à la signature (me.sign).
+        status: requiresContract ? 'pending_signature' : 'active',
         startsFrom,
         joinedAt: sql`now()`,
-        activatedAt: sql`now()`,
+        activatedAt: requiresContract ? null : sql`now()`,
       })
       .returning();
     if (!row) throw new Error('en.create : inscription non écrite');
-    await tx.insert(installments).values(
-      lines.map((line) => {
-        const status = installmentStatus(
-          { dueDate: line.dueDate, amountDue: line.amountDue, amountPaid: 0, amountPending: 0, status: 'upcoming' },
-          today,
-          project.graceDays,
-        );
-        return {
-          id: newId(),
-          associationId,
-          projectId,
-          enrollmentId,
-          userId: member.id,
-          kind: line.kind,
-          sequence: line.sequence,
-          dueDate: line.dueDate,
-          amountDue: BigInt(line.amountDue),
-          status,
-          lateSince: status === 'late' ? lateSince(line, project.graceDays) : null,
-        };
-      }),
-    );
+    if (requiresContract) {
+      await requestContractSignature(
+        this.outbox,
+        { associationId, enrollmentId, userId: member.id, projectId },
+        actor.userId,
+      );
+    } else {
+      await tx.insert(installments).values(
+        lines.map((line) => {
+          const status = installmentStatus(
+            { dueDate: line.dueDate, amountDue: line.amountDue, amountPaid: 0, amountPending: 0, status: 'upcoming' },
+            today,
+            project.graceDays,
+          );
+          return {
+            id: newId(),
+            associationId,
+            projectId,
+            enrollmentId,
+            userId: member.id,
+            kind: line.kind,
+            sequence: line.sequence,
+            dueDate: line.dueDate,
+            amountDue: BigInt(line.amountDue),
+            status,
+            lateSince: status === 'late' ? lateSince(line, project.graceDays) : null,
+          };
+        }),
+      );
+    }
 
     const createdHere = isNewAccount || (await profileCreatorOf(member.id)) === associationId;
     const handoff =
@@ -173,7 +185,7 @@ export class CreateEnrollmentUseCase {
         userId: member.id,
         isNewAccount,
         startsFrom,
-        installments: lines.length,
+        installments: requiresContract ? 0 : lines.length,
         membership: membership === null ? 'created' : membership === 'removed' ? 'restored' : 'kept',
         // Jamais de clé « code » : l'audit la masquerait.
         account: handoff ? 'activation_code_issued' : member.status,

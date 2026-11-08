@@ -572,12 +572,14 @@ CREATE TABLE contracts (
   association_signed_by uuid,
   association_signed_at timestamptz,
   locked_at timestamptz,
+  version int NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE contracts IS 'Contrat d''un projet. Immuable une fois verrouillé.';
 COMMENT ON COLUMN contracts.association_id IS 'RLS';
 COMMENT ON COLUMN contracts.body_template IS 'Markdown avec variables {nom_souscripteur}, {montant}…';
 COMMENT ON COLUMN contracts.template_sha256 IS 'empreinte du modèle verrouillé';
+COMMENT ON COLUMN contracts.version IS 'verrouillage optimiste (If-Match de ct.get : modification et verrouillage)';
 
 -- contract_signatures · module contracts · V2 · lot 4.1
 -- Contre-signature d'un souscripteur, avec éléments de preuve.

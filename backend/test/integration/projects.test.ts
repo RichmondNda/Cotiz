@@ -9,8 +9,9 @@ import { FIXED, METHODS, ROLLING, type ProjectsFixture, startProjectsFixture, xo
  * Lot 2.2 · étape 2 : projets d'une association (pr.create, pr.get, pr.list). Création en brouillon, conditions
  * contrôlées par generateSchedule() de @cotiz/domain (422 sur le champ), devise de l'association, quota du plan
  * (brouillons, inscriptions ouvertes, en cours : Q6), idempotence, audit et project.created. Contrat du projet refusé
- * avant le lot 4.1 (Q1) ; moyens de paiement de l'association, actifs (Q7) ; couverture déposée par pr.upload. Lecture
- * avec ETag ; liste avec compteurs par statut. Isolation : une autre association, ou un souscripteur, reçoit 404.
+ * si le plan ne comprend pas les contrats (lot 4.1, voir contracts-editor.test.ts) ; moyens de paiement de
+ * l'association, actifs (Q7) ; couverture déposée par pr.upload. Lecture avec ETag ; liste avec compteurs par statut.
+ * Isolation : une autre association, ou un souscripteur, reçoit 404.
  */
 
 const Page = listOf(ProjectSummary);
@@ -241,7 +242,7 @@ describe('projets (pr.create, pr.get, pr.list)', () => {
       }
     });
 
-    it('contrat saisi à la création : 422 avant le lot 4.1 (Q1), rien n’est écrit', async () => {
+    it('contrat saisi à la création, plan sans contrats : 403 feature_disabled (lot 4.1), rien n’est écrit', async () => {
       const contract = {
         bodyTemplate: 'Je soussigné {nom_souscripteur}…',
         signerName: 'Awa Koné',
@@ -249,8 +250,8 @@ describe('projets (pr.create, pr.get, pr.list)', () => {
         signNow: true,
       };
       const res = await f.create({ ...FIXED, contract });
-      expect(res.status).toBe(422);
-      expect(await fieldsOf(res)).toEqual({ contract: 'not_available' });
+      expect(res.status).toBe(403);
+      expect(((await res.json()) as { code: string }).code).toBe('feature_disabled');
       expect(await projectRows()).toEqual([]);
     });
 
