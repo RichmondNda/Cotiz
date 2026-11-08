@@ -625,6 +625,6 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     exécution (échéances toujours relues FOR UPDATE par paiement) + @Audited en une instruction (paquets de 500).
     money-reviewer et isolation-reviewer : aucun défaut. Fichier 98 s → 50 s ; `pnpm verify` inchangé (634 s) : ce
     fichier n'était pas le chemin critique à 4 fichiers à la fois. SeedDevMembers laissé (≈ 1 s, verrous share).
-  - Redis partagé : NON fait, en attente d'accord. Gain estimé ≈ 9 s sur 420 s (≈ 1 s × ≈ 35 fichiers / 4) ; 31 appels
+  - Redis partagé : écarté par l’utilisateur le 2026-11-08 (« Ne pas le faire »). Gain estimé ≈ 9 s sur 420 s (≈ 1 s × ≈ 35 fichiers / 4) ; 31 appels
     `redis-cli` dans le conteneur dont 17 FLUSHALL (effaceraient les autres fichiers), sorties texte relues (TTL,
     EXISTS) ; health et redis-client arrêtent Redis exprès.
