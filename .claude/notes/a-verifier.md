@@ -186,3 +186,14 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
     signer un projet clos ») : refusée en 404 (rien à signer, sans changer `endpoints.yaml`), statut relu après le verrou.
   - à noter : pas d'audit de la génération par le consommateur (journal seulement), fonds d'entrée à la signature non
     testé (aucun projet de test avec fonds d'entrée).
+- **2026-11-08** · Lot 4.1, étape 4 — **à trancher par l'utilisateur** :
+  - `GET /me` en espace association lit `features` sans le plan (`planFeatures: null`, contexte sans association :
+    RLS de `subscriptions`) → `contracts` (planGated) jamais annoncé, onglet contrat « Bientôt disponible » après
+    bascule. Options : (1, recommandée) contexte de l'association courante posé par MembershipGuard pour `me` seulement ;
+    (2) fonction SQL SECURITY DEFINER (migration) ; (3) front déduit du plan (bl.sub).
+  - PDF : texte rendu à nouveau depuis le profil et le nom de l'association **courants** ; un changement de nom
+    (me.profile, as.update) entre la signature et la génération casse l'égalité d'empreinte → PDF jamais produit (8
+    tentatives, puis GlitchTip). Figer le texte rendu (ou ses valeurs) à la signature demande une colonne
+    (`contract_signatures`, schema.sql) — changement de spec.
+  - Accès au PDF après la fin de l'adhésion : fl.get le sert toujours au souscripteur (son contrat) ; me.contracts ne
+    le liste plus. À confirmer.

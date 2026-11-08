@@ -9,3 +9,7 @@ export {
   projectRequiresContract,
   requestContractSignature,
 } from './application/contract-records.js';
+// Worker documents : contenu du PDF d'une signature (texte revérifié contre l'empreinte signée).
+export { signedContractDocumentOf } from './application/signed-contract-documents.js';
+// Vues gestionnaire des inscriptions (members) : date de signature du contrat.
+export { contractSignedAtOf } from './application/contract-records.js';

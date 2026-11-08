@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "test:isolation": "vitest run test/isolation",
-    "test:clamav": "vitest run --config vitest.clamav.config.ts"
+    "test:clamav": "vitest run --config vitest.clamav.config.ts",
+    "test:gotenberg": "vitest run --config vitest.gotenberg.config.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",
@@ -24,6 +25,7 @@
     "@cotiz/contracts": "workspace:*",
     "@cotiz/db": "workspace:*",
     "@cotiz/domain": "workspace:*",
+    "@cotiz/pdf-templates": "workspace:*",
     "@nestjs/common": "^12.1.2",
     "@nestjs/core": "^12.1.2",
     "@nestjs/platform-express": "^12.1.2",

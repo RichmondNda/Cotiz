@@ -15,6 +15,7 @@ import { asc, inArray } from 'drizzle-orm';
 import type { SubscriberContact } from '../../identity/identity.public.js';
 import { enrollmentScheduleOf, type ProjectRecord } from '../../projects/projects.public.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
+import { contractSignedAtOf } from '../../contracts/contracts.public.js';
 import type { EnrollmentRecord } from './enrollment-records.js';
 
 /**
@@ -106,6 +107,7 @@ export function enrollmentView(
   today: IsoDate,
   lines: readonly InstallmentRecord[],
   states: readonly InstallmentComputed[] = computedStates(lines, project, today),
+  contractSignedAt: Date | null = null,
 ): Enrollment {
   const currency = project.currency as Currency;
   const totals = enrollmentTotals(pendingSignatureStates(row, project, lines) ?? states, project.scheduleType);
@@ -122,8 +124,8 @@ export function enrollmentView(
     standing: standing === 'up_to_date' && accountStatus === 'pending_activation' ? 'activation_pending' : standing,
     startsFrom: row.startsFrom,
     joinedAt: row.joinedAt.toISOString(),
-    // Signature des contrats : lot 4.1.
-    contractSignedAt: null,
+    // Contrat signé par le souscripteur (lot 4.1) ; null : sans contrat, ou pas encore signé.
+    contractSignedAt: contractSignedAt?.toISOString() ?? null,
     paid: Money.of(totals.paid, currency),
     remaining: Money.of(totals.remaining, currency),
     lateAmount: Money.of(totals.lateAmount, currency),
@@ -140,7 +142,8 @@ export async function toEnrollment(
   today: IsoDate,
 ): Promise<Enrollment> {
   const lines = (await installmentsByEnrollment([row.id])).get(row.id) ?? [];
-  return enrollmentView(row, project, member, today, lines);
+  const signedAt = (await contractSignedAtOf(row.associationId, [row.id])).get(row.id) ?? null;
+  return enrollmentView(row, project, member, today, lines, undefined, signedAt);
 }
 
 /** Case de la grille (fiche) : montants, reste dû (domain-rules § 3), statut et retard calculés au jour donné. */

@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { ProjectContractInput } from '@cotiz/contracts';
-import { contracts, enrollments } from '@cotiz/db';
+import { contracts, contractSignatures, enrollments } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { holdsPermission } from '../../access/access.public.js';
 import { assertPlanFeature } from '../../billing/billing.public.js';
@@ -188,4 +188,28 @@ export async function pendingSignersOf(associationId: string, projectId: string)
     )
     .orderBy(asc(enrollments.userId));
   return rows.map((r) => r.userId);
+}
+
+/**
+ * Date de signature du contrat de chaque inscription signée (contexte de l'association : vues gestionnaire). Espace
+ * plateforme (membres d'une association, super-admin) : aucune politique de `contract_signatures` ne l'ouvre, donc
+ * aucune date (`contractSignedAt` null), plutôt qu'une lecture qui ne rendrait rien.
+ */
+export async function contractSignedAtOf(
+  associationId: string,
+  enrollmentIds: readonly string[],
+): Promise<Map<string, Date>> {
+  if (currentContext()?.space === 'platform') return new Map();
+  assertAssociationContext('contractSignedAtOf', associationId);
+  if (enrollmentIds.length === 0) return new Map();
+  const rows = await currentTx()
+    .select({ enrollmentId: contractSignatures.enrollmentId, signedAt: contractSignatures.signedAt })
+    .from(contractSignatures)
+    .where(
+      and(
+        eq(contractSignatures.associationId, associationId),
+        inArray(contractSignatures.enrollmentId, [...enrollmentIds]),
+      ),
+    );
+  return new Map(rows.map((r) => [r.enrollmentId, r.signedAt]));
 }

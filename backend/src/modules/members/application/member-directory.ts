@@ -8,6 +8,7 @@ import { type ProjectRecord, projectsOf } from '../../projects/projects.public.j
 import { DomainProblem } from '../../../shared/http/index.js';
 import { type Cursor, decodeCursor } from '../../../shared/pagination/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
+import { contractSignedAtOf } from '../../contracts/contracts.public.js';
 import type { EnrollmentRecord } from './enrollment-records.js';
 import {
   computedStates,
@@ -74,6 +75,10 @@ export class MemberDirectory {
     );
     const members = await this.accounts.contactsOf([...new Set(rows.map((r) => r.row.userId))]);
     const lines = await installmentsByEnrollment(rows.map((r) => r.row.id));
+    const signedAt = await contractSignedAtOf(
+      associationId,
+      rows.map((r) => r.row.id),
+    );
     return rows.map(({ row, at }) => {
       const project = projects.get(row.projectId);
       const member = members.get(row.userId);
@@ -87,7 +92,7 @@ export class MemberDirectory {
         member,
         lines: installments,
         states,
-        view: enrollmentView(row, project, member, today, installments, states),
+        view: enrollmentView(row, project, member, today, installments, states, signedAt.get(row.id) ?? null),
       };
     });
   }

@@ -13,6 +13,7 @@ const production = loadConfig({
   S3_ACCESS_KEY_ID: 'test',
   S3_SECRET_ACCESS_KEY: 'test',
   CLAMAV_URL: 'tcp://127.0.0.1:1',
+  GOTENBERG_URL: 'http://127.0.0.1:1',
   LOG_PSEUDONYM_KEY: 'cle-de-test-pseudonymisation-0123456789',
   APP_PUBLIC_URL: 'https://app.cotiz.test',
   JWT_PRIVATE_KEY: jwt.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),

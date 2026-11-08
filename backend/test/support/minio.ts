@@ -27,7 +27,10 @@ export async function startMinio(): Promise<TestMinio> {
     forcePathStyle: true,
     credentials: { accessKeyId, secretAccessKey },
   });
-  for (const bucket of new Set(Object.values(BUCKETS))) await s3.send(new CreateBucketCommand({ Bucket: bucket }));
+  // cotiz-legal : verrouillage d'objet (WORM), comme infra/compose/minio-init/init.sh.
+  for (const bucket of new Set(Object.values(BUCKETS))) {
+    await s3.send(new CreateBucketCommand({ Bucket: bucket, ObjectLockEnabledForBucket: bucket === 'cotiz-legal' }));
+  }
   s3.destroy();
   return {
     container,

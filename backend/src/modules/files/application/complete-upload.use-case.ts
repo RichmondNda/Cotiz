@@ -7,6 +7,7 @@ import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { StorageService } from '../../../shared/storage/index.js';
 import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant-context/index.js';
+import { UPLOAD_SPACE } from '../domain/upload-policy.js';
 import { findFile } from './find-file.js';
 import { toStoredFile } from './stored-file.js';
 
@@ -32,8 +33,11 @@ export class CompleteUploadUseCase {
   async execute(id: string): Promise<Stored | AfterCommit<Stored>> {
     const actor = requireActor();
     const file = await findFile(actor, id);
-    // Seul le déposant confirme son dépôt ; pour les autres, le fichier n'existe pas.
-    if (file?.ownerUserId !== actor.userId) throw new DomainProblem('not_found');
+    // Seul le déposant confirme son dépôt, et seulement un usage qu'on dépose depuis son espace (pas un PDF produit par
+    // le serveur, lisible par le souscripteur depuis le lot 4.1) ; pour les autres, le fichier n'existe pas.
+    if (file?.ownerUserId !== actor.userId || UPLOAD_SPACE[file.purpose] !== actor.space) {
+      throw new DomainProblem('not_found');
+    }
     if (file.scanStatus === 'infected') throw new DomainProblem('file_not_clean');
     if (file.scanStatus === 'clean') return toStoredFile(file);
 

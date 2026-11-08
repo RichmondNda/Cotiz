@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { SubscriberContract } from '@cotiz/contracts';
 import { contracts, contractSignatures, files } from '@cotiz/db';
-import { contractValues, Money, renderContract } from '@cotiz/domain';
 import { and, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { UserProfiles } from '../../identity/identity.public.js';
 import type { SubscriberEnrollment } from '../../members/members.public.js';
-import { enrollmentScheduleOf, termsOf } from '../../projects/projects.public.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
-import { type ContractRecord, sha256Of } from './contract-records.js';
+import { type ContractRecord } from './contract-records.js';
+import { renderedContractOf } from './contract-rendering.js';
 
 /** « J'ai lu le contrat et je l'accepte… » : texte exact enregistré avec chaque signature (preuve). */
 export const CONSENT_TEXT =
@@ -54,32 +53,13 @@ export class SubscriberContracts {
     const { project, association } = entry;
     const profile = await this.profiles.read(entry.row.userId);
     if (!profile) throw new Error('me.contract : compte introuvable');
-    const terms = termsOf(project);
-    const currency = terms.installmentAmount.currency;
-    const fixed = project.scheduleType === 'fixed';
-    const lines = fixed ? enrollmentScheduleOf(project, entry.row.startsFrom) : null;
-    const schedule = Array.isArray(lines) ? lines : null;
-    const body = renderContract(
-      contract.bodyTemplate,
-      contractValues({
-        associationName: association.name,
-        projectName: project.name,
-        currency,
-        entryFee: terms.entryFee?.amount ?? null,
-        installmentAmount: terms.installmentAmount.amount,
-        frequency: terms.frequency,
-        dueDay: terms.dueDay,
-        startDate: entry.row.startsFrom,
-        schedule,
-        subscriber: { firstName: profile.firstName, lastName: profile.lastName, phone: profile.phone },
-      }),
-    );
-    const total = schedule
-      ? Money.sum(
-          schedule.map((l) => Money.of(l.amountDue, currency)),
-          currency,
-        )
-      : null;
+    const { body, renderedSha256, terms, schedule, total } = renderedContractOf({
+      associationName: association.name,
+      project,
+      startsFrom: entry.row.startsFrom,
+      bodyTemplate: contract.bodyTemplate,
+      subscriber: { firstName: profile.firstName, lastName: profile.lastName, phone: profile.phone },
+    });
     return {
       project: { id: project.id, name: project.name },
       association: { id: association.id, name: association.name, logoFileId: association.logoFileId },
@@ -91,7 +71,7 @@ export class SubscriberContracts {
         total,
       },
       body,
-      renderedSha256: sha256Of(body),
+      renderedSha256,
       associationSigner: {
         name: contract.associationSignerName,
         title: contract.associationSignerTitle,
@@ -99,12 +79,13 @@ export class SubscriberContracts {
       },
       consentText: CONSENT_TEXT,
       signedAt: signature?.signedAt.toISOString() ?? null,
-      pdfFileId: signature ? await this.readyPdf(signature.pdfFileId, entry.row.userId) : null,
+      pdfFileId: signature ? await this.readyPdfOf(signature, entry.row.userId) : null,
     };
   }
 
-  /** PDF signé téléchargeable : produit et analysé (`clean`, étape 4) ; avant, `null`. */
-  private async readyPdf(fileId: string, userId: string): Promise<string | null> {
+  /** PDF signé téléchargeable : produit par le worker documents (`clean`) ; avant, `null`. */
+  async readyPdfOf(signature: SignatureRecord, userId: string): Promise<string | null> {
+    const fileId = signature.pdfFileId;
     const [row] = await currentTx()
       .select({ scanStatus: files.scanStatus })
       .from(files)

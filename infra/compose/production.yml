@@ -28,6 +28,7 @@ x-backend-env: &backend-env
   ALTCHA_HMAC_KEY: ${COTIZ_ALTCHA_HMAC_KEY:?}
   LOG_PSEUDONYM_KEY: ${COTIZ_LOG_PSEUDONYM_KEY:?}
   CLAMAV_URL: tcp://clamav:3310
+  GOTENBERG_URL: http://gotenberg:3000
   # Traefik puis le front (proxy Nitro) devant l'api.
   TRUST_PROXY_HOPS: ${COTIZ_TRUST_PROXY_HOPS:-2}
   APP_VERSION: ${COTIZ_VERSION:-dev}
@@ -142,6 +143,28 @@ services:
       start_period: 120s
     restart: unless-stopped
 
+  # PDF produits par le serveur (contrats signés, lot 4.1), réseau interne seulement (jamais publié). Un Chromium,
+  # redémarré régulièrement : mémoire contenue. Il ne charge que les fichiers envoyés (allow-list) : ni réseau interne
+  # ni Internet.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    command:
+      [
+        'gotenberg',
+        '--chromium-max-queue-size=4',
+        '--chromium-restart-after=50',
+        '--libreoffice-restart-after=50',
+        '--chromium-allow-list=^file:///tmp/.*',
+      ]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    mem_limit: 1g
+    restart: unless-stopped
+
   migrate:
     image: ${COTIZ_API_IMAGE:?}
     command: ['node', 'node_modules/@cotiz/db/dist/migrate.js']
@@ -177,6 +200,8 @@ services:
       minio-init:
         condition: service_completed_successfully
       clamav:
+        condition: service_healthy
+      gotenberg:
         condition: service_healthy
 
   web:

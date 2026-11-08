@@ -552,3 +552,22 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     → gestionnaires, lien `/asso/projets/:id/contrat`. Souscripteur : `/projets/:id/contrat`.
   - Reste pour l'étape 4 : `Enrollment.contractSignedAt` (toujours `null` dans les vues gestionnaire) à remplir à la
     bascule des écrans ; proposition de correction d'architecture/04 (§ 4.3 l. 22, § 4.7) et décision 20 → adopté.
+- **2026-11-08** · Lot 4.1, étape 4 (PDF, partie back) — choix pris en autonome (à relire dans la PR) :
+  - `packages/pdf-templates` : `contractDocument()` (contrat + page de preuve, tout texte échappé, polices @fontsource
+    Poppins 600/700 et Inter 400/600 jointes, couleurs de cotiz-tokens.css, « 1er » du mois) ; build `dist` comme
+    `@cotiz/domain` (image Docker).
+  - Module back `documents` (worker seulement, events.yaml « documents : PDF signé ») : `contract.signed` → job
+    `contract-pdf` (jobId = événement) de la file `documents` (concurrence 2, 8 tentatives, 5 s exponentiel) ;
+    génération : contexte association (texte rendu à nouveau par `renderedContractOf`, partagé avec me.contract, et
+    comparé à l'empreinte signée — sinon erreur, jamais de PDF d'un autre texte), rendu Gotenberg hors transaction, puis
+    espace system : `files` FOR UPDATE, objet écrit **une seule fois** (`If-None-Match: *` ; objet déjà présent après un
+    COMMIT perdu = celui qui fait foi), `files` complété (`clean`, sha256, taille). Sans `GOTENBERG_URL` (exigée en
+    production) : rendu refusé, PDF en attente.
+  - Téléchargement : souscripteur par fl.get (`findFile` : `contract_pdf` lisible en espace subscriber, propriétaire
+    revérifié dans le code) ; gestionnaire par as.file (`/associations/:aid/files/:id`, décision 24). fl.upload ›
+    complete refuse (404) un usage qu'on ne dépose pas depuis son espace (le PDF de contrat).
+  - me.contracts : à signer (inscription `pending_signature`) puis signés ; `pdfFileId` une fois `clean`.
+  - `Enrollment.contractSignedAt` : `contractSignedAtOf` ; espace plateforme : aucune politique de
+    `contract_signatures` → toujours `null` (sans lecture).
+  - Gotenberg : `app.yml`/`production.yml` (`GOTENBERG_URL`, service interne non publié, `--chromium-allow-list` :
+    fichiers envoyés seulement) ; test réel hors `pnpm verify` : `pnpm --filter backend test:gotenberg`.

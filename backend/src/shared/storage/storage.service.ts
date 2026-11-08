@@ -137,10 +137,52 @@ export class StorageService implements OnModuleDestroy {
     return objects;
   }
 
+  /**
+   * Somme de contrôle SHA-256 envoyée avec le contenu : exigée par un compartiment à verrouillage d'objet (cotiz-legal,
+   * WORM), et vérifiée par MinIO pour tous les autres.
+   */
   async putObject(bucket: string, key: string, content: Buffer, contentType: string): Promise<void> {
     await this.s3().internal.send(
-      new PutObjectCommand({ Bucket: bucket, Key: key, Body: content, ContentType: contentType }),
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: content,
+        ContentType: contentType,
+        ChecksumAlgorithm: 'SHA256',
+      }),
     );
+  }
+
+  /**
+   * Écrit l'objet seulement s'il n'existe pas encore à cette clé (`If-None-Match: *`) : un document légal (cotiz-legal,
+   * WORM) n'est jamais réécrit, même par une reprise après un COMMIT perdu. Renvoie le contenu conservé : celui écrit
+   * ici, ou celui déjà présent (sa première écriture fait foi).
+   */
+  async putObjectOnce(
+    bucket: string,
+    key: string,
+    content: Buffer,
+    contentType: string,
+    maxBytes: number,
+  ): Promise<Buffer> {
+    try {
+      await this.s3().internal.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: content,
+          ContentType: contentType,
+          ChecksumAlgorithm: 'SHA256',
+          IfNoneMatch: '*',
+        }),
+      );
+      return content;
+    } catch (error) {
+      if (!isPreconditionFailed(error)) throw error;
+      const existing = await this.getObject(bucket, key, maxBytes);
+      if (!existing) throw new Error(`stockage : objet ${key} annoncé présent mais illisible`, { cause: error });
+      return existing;
+    }
   }
 
   /** Supprime l'objet (sans erreur s'il n'existe déjà plus). */
@@ -189,4 +231,10 @@ export class StorageService implements OnModuleDestroy {
     };
     return this.clients;
   }
+}
+
+/** Écriture conditionnelle refusée : un objet existe déjà à cette clé (HTTP 412). */
+function isPreconditionFailed(error: unknown): boolean {
+  const status = (error as { $metadata?: { httpStatusCode?: number } } | null)?.$metadata?.httpStatusCode;
+  return status === 412 || (error as { name?: string } | null)?.name === 'PreconditionFailed';
 }
