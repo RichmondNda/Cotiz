@@ -38,7 +38,7 @@ export class AltchaService {
     const challenge = await createChallenge({
       algorithm: 'PBKDF2/SHA-256',
       cost: this.config.ALTCHA_COST,
-      counter: randomInt(10_000, 5_000),
+      counter: randomInt(this.config.ALTCHA_COUNTER_MAX, Math.ceil(this.config.ALTCHA_COUNTER_MAX / 2)),
       deriveKey,
       expiresAt: new Date(now.getTime() + CHALLENGE_TTL_SECONDS * 1000),
       hmacSignatureSecret: this.signatureSecret,
