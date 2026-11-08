@@ -609,5 +609,14 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Fichiers les plus longs ensuite : association-requests (114 s : défi ALTCHA résolu à chaque dépôt, compteur codé
     en dur `randomInt(10_000, 5_000)` dans `altcha.service.ts`, ALTCHA_COST=1 n'y change rien) et cli-platform-owner
     (97 s : CLI lancée en sous-processus, deux fois par test).
-  - Restent proposés (non commencés) : un PostgreSQL partagé avec une base copiée d'un modèle par fichier, plus de
-    workers, Redis partagé, cache de transformation de vitest.
+  - ALTCHA (« oui, enchaîne avec ALTCHA puis le point 2 »), branche `chore/tests-altcha` : `ALTCHA_COUNTER_MAX`
+    (10 000 par défaut, ≥ 2, compteur tiré dans [max/2 ; max], production inchangée), 20 dans association-requests :
+    114 s → 30 s.
+  - Point 2, branche `chore/tests-postgres-partage` : `globalSetup` vitest qui démarre un PostgreSQL (max_connections
+    500) et migre la base modèle ; le harnais copie le modèle par fichier (`CREATE DATABASE … TEMPLATE`) puis rejoue
+    la partie « base » de 01-roles.sql (propriétaire, REVOKE TEMPORARY, schéma public), que la copie perd — pas ses
+    ALTER ROLE, globaux au serveur (conflits entre fichiers). Test ajouté dans harness.test.ts (échoue sans).
+    Repli sur un conteneur par fichier si Docker manque au démarrage ou COTIZ_TEST_SHARED_PG=0. Les fichiers qui
+    démarrent eux-mêmes leur base (tenant-context avec PgBouncer, metrics, outbox, worker-tenant-context, @cotiz/db)
+    ne changent pas. maxWorkers local 2 → 4. `pnpm verify` 1 212 s → 631 s, back 1 003 s → 420 s.
+  - Restent possibles : Redis partagé, cli-platform-owner (≈ 100 s), project-preview (≈ 46 s).

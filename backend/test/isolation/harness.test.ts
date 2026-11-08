@@ -76,6 +76,23 @@ describe('harnais d’isolation (base migrée, table créée avec enableTenantRl
     expect(await h.withoutContext(context)).toEqual({ aid: null, uid: null, space: 'none' });
   });
 
+  it('base réglée comme par 01-roles.sql : propriétaire cotiz_migrator, ni table temporaire ni schéma public à PUBLIC', async () => {
+    const { rows } = await h.superuser(
+      `SELECT pg_get_userbyid(d.datdba) AS owner,
+              has_database_privilege('cotiz_app', d.datname, 'TEMPORARY') AS app_temp,
+              pg_get_userbyid(n.nspowner) AS schema_owner,
+              has_schema_privilege('public', 'public', 'CREATE') AS public_create
+         FROM pg_database d, pg_namespace n
+        WHERE d.datname = current_database() AND n.nspname = 'public'`,
+    );
+    expect(rows[0]).toEqual({
+      owner: 'cotiz_migrator',
+      app_temp: false,
+      schema_owner: 'cotiz_migrator',
+      public_create: false,
+    });
+  });
+
   it('chacun ne voit que ses lignes ; sans contexte, aucune', async () => {
     await expect(checkIsolation(h)).resolves.toBeUndefined();
   });

@@ -1,11 +1,12 @@
 import { runMigrations } from '@cotiz/db/migrate';
 import { enableTenantRls } from '@cotiz/db/rls';
-import { loadSpecSchema, startTestDatabase, type TestDatabase } from '@cotiz/db/testing';
+import { loadSpecSchema, startTestDatabase } from '@cotiz/db/testing';
 import { sql } from 'drizzle-orm';
 import pg from 'pg';
 import { currentTx, type TenantContext, TenantDatabase, type Tx } from '../../src/shared/tenant-context/index.js';
 // Clé interne (FOR_REQUEST) : la transaction d'une requête HTTP, exactement comme TenantContextInterceptor.
 import { FOR_REQUEST } from '../../src/shared/tenant-context/tenant-database.js';
+import { createFileDatabase, type FileDatabase, sharedPostgres } from '../support/shared-postgres.js';
 
 /**
  * Harnais d'isolation (architecture/02) : deux associations A et B, un accès aux données par le même chemin que l'api
@@ -105,7 +106,7 @@ export class IsolationHarness {
    */
   private readonly setupPools = new Map<string, pg.Pool>();
 
-  constructor(readonly db: TestDatabase) {
+  constructor(readonly db: FileDatabase) {
     this.tenantDb = new TenantDatabase({ connectionString: db.urlFor('cotiz_app'), max: 4 });
   }
 
@@ -286,7 +287,7 @@ export class IsolationHarness {
     await this.tenantDb.onModuleDestroy();
     await Promise.all([...this.setupPools.values()].map((pool) => pool.end()));
     this.setupPools.clear();
-    await this.db.container.stop();
+    await this.db.dispose();
   }
 }
 
@@ -296,12 +297,33 @@ export class IsolationHarness {
  * - `spec` : docs/specs/schema.sql, tant que les migrations ne créent pas les tables du test de fumée (lots 0.5–2.4).
  */
 export async function startIsolationHarness(schema: 'migrated' | 'spec'): Promise<IsolationHarness> {
-  const db = await startTestDatabase();
-  const migratorUrl = db.urlFor('cotiz_migrator');
-  await (schema === 'migrated' ? runMigrations(migratorUrl) : loadSpecSchema(migratorUrl));
+  const db = await harnessDatabase(schema);
   const harness = new IsolationHarness(db);
   if (schema === 'migrated') await seedUsers(harness);
   return harness;
+}
+
+/**
+ * Base du harnais : copie de la base modèle sur le PostgreSQL partagé de l'exécution (`test/support/global-setup.ts`),
+ * sinon conteneur dédié (COTIZ_TEST_SHARED_PG=0, Docker absent au démarrage) migré ici.
+ */
+async function harnessDatabase(schema: 'migrated' | 'spec'): Promise<FileDatabase> {
+  const shared = sharedPostgres();
+  if (shared) {
+    const db = await createFileDatabase(shared, schema === 'migrated');
+    if (schema === 'spec') await loadSpecSchema(db.urlFor('cotiz_migrator'));
+    return db;
+  }
+  const db = await startTestDatabase();
+  const migratorUrl = db.urlFor('cotiz_migrator');
+  await (schema === 'migrated' ? runMigrations(migratorUrl) : loadSpecSchema(migratorUrl));
+  return {
+    superuserUrl: db.superuserUrl,
+    urlFor: (role, database) => db.urlFor(role, database),
+    dispose: async () => {
+      await db.container.stop();
+    },
+  };
 }
 
 /** Personnes de USERS (clés étrangères vers users, lot 1.1), actives. Le schéma `spec` a ses propres données. */
