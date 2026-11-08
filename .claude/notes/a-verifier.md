@@ -142,3 +142,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - **2026-11-07** · Lot 3.4, démonstration — un paiement de 25 000 F (Centre communautaire, preuve `recu.png`) a été déclaré
   en attente pour Moussa dans la base de dev Docker afin de montrer la preuve. · Le laisser (données de dev) ou le rejeter
   depuis `/asso/paiements` ; aucune suppression faite.
+- **2026-11-08** · Lot 3.5, étape 3 — **grille et déclarations proches des seuils** sur la pile locale : `lg.grid` charge et
+  calcule toutes les inscriptions du projet à chaque page (`MemberDirectory.entries` puis `pageOf` en mémoire) ≈ 200 ms pour
+  200 × 24 ; déclarations p95 ≈ 700 ms à 5 en parallèle (seuil 800). Pas d'optimisation au lot 3.5 (touche le calcul des
+  états, lot 2.4). · À reprendre si un projet dépasse quelques centaines d'inscriptions, ou au réglage du pool (10 connexions).
+- **2026-11-08** · Lot 3.5 — données de recette dans la base de dev Docker : associations « Coopérative Essai … » (parcours
+  `jalon`) et « Charge … » (k6, 200 inscrits, 200 déclarations) avec leurs comptes. · Les laisser ou réinitialiser la base
+  de dev, seulement sur accord. PR #43 (chore/fin-lot-3.4) encore ouverte.
+

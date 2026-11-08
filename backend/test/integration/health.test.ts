@@ -47,6 +47,15 @@ describe('sys.health', () => {
     expect(HealthLiveResponse.parse(await res.json())).toEqual({ status: 'ok' });
   });
 
+  it('en-têtes de sécurité (lot 3.5, architecture/02) : JSON sans contenu actif ni encadrement, sans X-Powered-By', async () => {
+    const res = await fetch(`${baseUrl}/health/live`);
+    expect(res.headers.get('x-powered-by')).toBeNull();
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(res.headers.get('x-frame-options')).toBe('DENY');
+    expect(res.headers.get('referrer-policy')).toBe('no-referrer');
+    expect(res.headers.get('content-security-policy')).toBe("default-src 'none'; frame-ancestors 'none'");
+  });
+
   it('GET /health/ready renvoie 200 quand PostgreSQL, Redis et MinIO répondent', async () => {
     const res = await fetch(`${baseUrl}/health/ready`);
     expect(res.status).toBe(200);

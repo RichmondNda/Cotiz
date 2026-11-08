@@ -40,6 +40,9 @@ export default defineNuxtConfig({
     // Bascule mock → NestJS (server/middleware/bascule.ts) : NUXT_MOCKS=0 transmet tout `/api/v1` à NUXT_API_ORIGIN.
     mocks: true,
     apiOrigin: 'http://localhost:4000',
+    // Origine publique du stockage (NUXT_STORAGE_ORIGIN) : le navigateur y suit l'URL signée d'une preuve (fl.get) ;
+    // autorisée dans la politique de contenu (server/plugins/securite.ts). Même valeur que S3_PUBLIC_ENDPOINT du back.
+    storageOrigin: 'http://localhost:9000',
     public: {
       // GlitchTip (lot 0.6) : vide = inactif, raccordé au lot 7.1 (NUXT_PUBLIC_GLITCHTIP_DSN, NUXT_PUBLIC_APP_VERSION).
       glitchtipDsn: '',

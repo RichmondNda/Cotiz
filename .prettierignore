@@ -11,3 +11,6 @@ pnpm-lock.yaml
 coverage/
 # Journal et instantanés générés par drizzle-kit (réécrits à chaque migration).
 packages/db/migrations/meta
+# Sorties locales du lot 3.5 (ignorées par git) : jeu de charge k6, rapports ZAP.
+infra/load/.jeu/
+infra/securite/.rapports/
