@@ -182,7 +182,7 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   - rattrapage : les échéances passées entre l'inscription et la signature naissent `late` (comme en.create, Q3), alors
     que me.declare refusait tout paiement avant la signature (`signature_required`) — garder, ou dater le retard de la
     signature ?
-  - signature sur un projet clos (`completed`, `archived`) : acceptée aujourd'hui ; la refuser demande une erreur
-    (`invalid_state`) absente de `me.sign` dans `endpoints.yaml` (changement de spec).
+  - signature sur un projet clos (`completed`, `archived`) → **tranché** (utilisateur, 2026-11-08 : « on ne peut pas
+    signer un projet clos ») : refusée en 404 (rien à signer, sans changer `endpoints.yaml`), statut relu après le verrou.
   - à noter : pas d'audit de la génération par le consommateur (journal seulement), fonds d'entrée à la signature non
     testé (aucun projet de test avec fonds d'entrée).

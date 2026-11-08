@@ -1,7 +1,7 @@
 import { isIP } from 'node:net';
 import { Injectable } from '@nestjs/common';
 import type { SubscriberContract } from '@cotiz/contracts';
-import { contractSignatures, enrollments, files } from '@cotiz/db';
+import { contractSignatures, enrollments, files, projects } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
 import { and, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
@@ -13,6 +13,8 @@ import { currentRequestInfo } from '../../../shared/request-info/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { CONSENT_TEXT, SubscriberContracts } from './subscriber-contracts.js';
 
+/** Projets clos : plus rien à signer (comme me.declare). */
+const CLOSED_PROJECTS = new Set(['completed', 'archived']);
 /** Bucket des documents légaux (architecture/05) : PDF signés, jamais supprimés. */
 const LEGAL_BUCKET = 'cotiz-legal';
 
@@ -53,6 +55,13 @@ export class SignContractUseCase {
     if (!locked) throw new DomainProblem('not_found');
     if (await this.contracts.signatureOf(entry)) throw new DomainProblem('already_signed');
     if (locked.status !== 'pending_signature') throw new DomainProblem('not_found');
+    // Projet clos (terminé, archivé) : rien à signer. Relu après le verrou de l'inscription : une clôture commitée
+    // entre-temps est vue (READ COMMITTED) ; le souscripteur ne peut pas verrouiller le projet (aucune politique UPDATE).
+    const [project] = await tx
+      .select({ status: projects.status })
+      .from(projects)
+      .where(and(eq(projects.id, entry.row.projectId), eq(projects.associationId, associationId)));
+    if (!project || CLOSED_PROJECTS.has(project.status)) throw new DomainProblem('not_found');
 
     const shown = await this.contracts.view(entry, contract, null);
     if (shown.renderedSha256 !== input.renderedSha256.toLowerCase()) throw new DomainProblem('contract_changed');

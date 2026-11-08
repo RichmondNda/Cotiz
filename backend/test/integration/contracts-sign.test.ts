@@ -422,6 +422,29 @@ describe('signature du contrat (me.contract, me.sign)', () => {
       expect(await outbox('contract.signed')).toEqual([]);
     });
 
+    it('projet clos (terminé, archivé) : 404, rien à signer, rien n’est écrit', async () => {
+      await insertContract(PROJECTS.a);
+      const enrollmentId = await enrollment(PROJECTS.a);
+      const { renderedSha256 } = await contractOf(PROJECTS.a);
+      const [before] = (await f.h.superuser('SELECT status FROM projects WHERE id = $1', [PROJECTS.a])).rows as [
+        { status: string },
+      ];
+      for (const status of ['completed', 'archived']) {
+        await f.h.superuser(`UPDATE projects SET status = $2::projects_status WHERE id = $1`, [PROJECTS.a, status]);
+        expect((await sign(PROJECTS.a, renderedSha256)).status).toBe(404);
+      }
+      await f.h.superuser(`UPDATE projects SET status = $2::projects_status WHERE id = $1`, [
+        PROJECTS.a,
+        before.status,
+      ]);
+      const [row] = (await f.h.superuser('SELECT status FROM enrollments WHERE id = $1', [enrollmentId])).rows as [
+        { status: string },
+      ];
+      expect(row.status).toBe('pending_signature');
+      expect((await f.h.superuser('SELECT 1 FROM contract_signatures')).rowCount).toBe(0);
+      expect(await outbox('contract.signed')).toEqual([]);
+    });
+
     it('consentement absent : 422', async () => {
       await insertContract(PROJECTS.a);
       await enrollment(PROJECTS.a);
