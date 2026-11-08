@@ -99,9 +99,37 @@ export interface PolicyReplacement {
 export class IsolationHarness {
   /** Pool cotiz_app en accès direct, comme l'api derrière PgBouncer. */
   readonly tenantDb: TenantDatabase;
+  /**
+   * Connexions de préparation (superutilisateur, cotiz_migrator) gardées ouvertes : en ouvrir une par requête coûte
+   * ≈ 40 ms (authentification), contre ≈ 3 ms réutilisée.
+   */
+  private readonly setupPools = new Map<string, pg.Pool>();
 
   constructor(readonly db: TestDatabase) {
     this.tenantDb = new TenantDatabase({ connectionString: db.urlFor('cotiz_app'), max: 4 });
+  }
+
+  /**
+   * Requête sur une connexion réutilisée. Après une erreur, la connexion est détruite : un texte à plusieurs
+   * instructions (`BEGIN; …; COMMIT;`) qui échoue la laisserait dans une transaction interrompue.
+   */
+  private async setupQuery(url: string, text: string, values?: unknown[]): Promise<pg.QueryResult> {
+    let pool = this.setupPools.get(url);
+    if (!pool) {
+      pool = new pg.Pool({ connectionString: url, max: 4, allowExitOnIdle: true });
+      // Connexion inactive coupée (arrêt du conteneur) : sans écouteur, l'erreur ferait tomber le processus.
+      pool.on('error', () => undefined);
+      this.setupPools.set(url, pool);
+    }
+    const client = await pool.connect();
+    try {
+      const result = await client.query(text, values);
+      client.release();
+      return result;
+    } catch (error) {
+      client.release(true);
+      throw error;
+    }
   }
 
   /** Transaction en cotiz_app dans le contexte donné, celle d'une requête HTTP ; validée si `fn` réussit. */
@@ -150,12 +178,12 @@ export class IsolationHarness {
 
   /** Préparation des données, hors RLS (superutilisateur du conteneur). Jamais dans une assertion d'isolation. */
   superuser(text: string, values?: unknown[]): Promise<pg.QueryResult> {
-    return query(this.db.superuserUrl, text, values);
+    return this.setupQuery(this.db.superuserUrl, text, values);
   }
 
   /** DDL en propriétaire des tables (cotiz_migrator), comme une migration. */
   migrator(text: string, values?: unknown[]): Promise<pg.QueryResult> {
-    return query(this.db.urlFor('cotiz_migrator'), text, values);
+    return this.setupQuery(this.db.urlFor('cotiz_migrator'), text, values);
   }
 
   /** Transaction superutilisateur toujours annulée : invariants (contraintes, déclencheurs) sans trace. */
@@ -256,6 +284,8 @@ export class IsolationHarness {
 
   async stop(): Promise<void> {
     await this.tenantDb.onModuleDestroy();
+    await Promise.all([...this.setupPools.values()].map((pool) => pool.end()));
+    this.setupPools.clear();
     await this.db.container.stop();
   }
 }
@@ -347,8 +377,4 @@ async function withClient<T>(url: string, fn: (client: pg.Client) => Promise<T>)
   } finally {
     await client.end();
   }
-}
-
-function query(url: string, text: string, values?: unknown[]): Promise<pg.QueryResult> {
-  return withClient(url, (client) => client.query(text, values));
 }

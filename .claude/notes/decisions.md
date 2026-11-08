@@ -598,3 +598,16 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - `monContrat` : seul un 404 vaut « pas de contrat » (les autres erreurs remontent).
   - Parcours e2e `contrat` (pile réelle, `COTIZ_BASE=http://localhost:3080`) : projet avec contrat (ou repris : quota
     du plan), inscription, activation, signature, PDF `%PDF-`, Mes contrats, Contrats du gestionnaire — 9/9.
+- 2026-11-08 · Durée des tests back (« oui, lance le point 1 »), branche `chore/tests-rapides` :
+  - Mesures (sonde jetable) : par fichier, conteneur PostgreSQL ≈ 5 s, migrations ≈ 2 s, Redis ≈ 1 s, arrêt ≈ 1 s ;
+    `h.superuser()` ouvrait une connexion par requête (≈ 40 ms, contre ≈ 3 ms réutilisée), `resetMembers()` ≈ 750 ms
+    par test ; `CREATE DATABASE … TEMPLATE` d'une base migrée ≈ 155 ms.
+  - Point 1 fait : `superuser()` et `migrator()` du harnais (`test/isolation/harness.ts`) passent par un `pg.Pool` par
+    URL, fermé dans `stop()` ; connexion détruite après une erreur (texte `BEGIN; …; COMMIT;` de rls-smoke qui échoue).
+    `superuserRollback` et `countWithoutTenantDatabase` gardent une connexion neuve. Mesuré : enrollment-create +
+    ledger-validate + isolation/ledger, 88 s → 54 s ; `pnpm verify` vert, 1 212 s au total (back 1 003 s, 151 fichiers).
+  - Fichiers les plus longs ensuite : association-requests (114 s : défi ALTCHA résolu à chaque dépôt, compteur codé
+    en dur `randomInt(10_000, 5_000)` dans `altcha.service.ts`, ALTCHA_COST=1 n'y change rien) et cli-platform-owner
+    (97 s : CLI lancée en sous-processus, deux fois par test).
+  - Restent proposés (non commencés) : un PostgreSQL partagé avec une base copiée d'un modèle par fichier, plus de
+    workers, Redis partagé, cache de transformation de vitest.
