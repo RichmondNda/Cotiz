@@ -619,4 +619,12 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     Repli sur un conteneur par fichier si Docker manque au démarrage ou COTIZ_TEST_SHARED_PG=0. Les fichiers qui
     démarrent eux-mêmes leur base (tenant-context avec PgBouncer, metrics, outbox, worker-tenant-context, @cotiz/db)
     ne changent pas. maxWorkers local 2 → 4. `pnpm verify` 1 212 s → 631 s, back 1 003 s → 420 s.
-  - Restent possibles : Redis partagé, cli-platform-owner (≈ 100 s), project-preview (≈ 46 s).
+  - cli-platform-owner (« oui, occupe-toi de cli-platform-owner et Redis »), branche `chore/tests-cli`, PR #51 : la CLI
+    tourne dans le processus du test (pas de sous-processus) ; coût = 12 passes de seed-dev, dont SeedDevPayments
+    (3 requêtes × 276 paiements même déjà présents) et l'audit ligne par ligne. Lectures groupées une fois par
+    exécution (échéances toujours relues FOR UPDATE par paiement) + @Audited en une instruction (paquets de 500).
+    money-reviewer et isolation-reviewer : aucun défaut. Fichier 98 s → 50 s ; `pnpm verify` inchangé (634 s) : ce
+    fichier n'était pas le chemin critique à 4 fichiers à la fois. SeedDevMembers laissé (≈ 1 s, verrous share).
+  - Redis partagé : NON fait, en attente d'accord. Gain estimé ≈ 9 s sur 420 s (≈ 1 s × ≈ 35 fichiers / 4) ; 31 appels
+    `redis-cli` dans le conteneur dont 17 FLUSHALL (effaceraient les autres fichiers), sorties texte relues (TTL,
+    EXISTS) ; health et redis-client arrêtent Redis exprès.
