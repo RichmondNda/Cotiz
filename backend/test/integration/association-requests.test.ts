@@ -111,6 +111,7 @@ describe('formulaire public de demande (pub.challenge, pub.request)', () => {
       RATE_LIMIT_IP_PER_MIN: '10000',
       // Preuve de travail légère : le test résout chaque défi en quelques millisecondes.
       ALTCHA_COST: '1',
+      ALTCHA_COUNTER_MAX: '20',
     });
     app = await createApp(config, { logger: false });
     await app.listen(0, '127.0.0.1');

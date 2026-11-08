@@ -101,6 +101,11 @@ export const ConfigSchema = z.object({
   ALTCHA_HMAC_KEY: z.string().min(32).optional(),
   /** Coût PBKDF2 d'un essai du défi ALTCHA (difficulté pour le navigateur ; les tests le baissent). */
   ALTCHA_COST: z.coerce.number().int().min(1).default(5000),
+  /**
+   * Compteur maximal du défi ALTCHA, tiré dans [max/2 ; max] : nombre d'essais à faire (les tests le baissent). Au moins
+   * 2 : un compteur nul résoudrait le défi sans travail.
+   */
+  ALTCHA_COUNTER_MAX: z.coerce.number().int().min(2).default(10_000),
   /** Intervalle du relais outbox du worker (jobs.yaml : chaque seconde) ; 0 le désactive (tests). */
   OUTBOX_RELAY_INTERVAL_MS: z.coerce.number().int().min(0).max(60_000).default(1_000),
   /**
