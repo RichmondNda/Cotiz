@@ -58,7 +58,7 @@ export function Audited(action: string): MethodDecorator {
       if (current.records.length === 0) {
         throw new Error(`@Audited('${action}') : aucune entité décrite par recordAudit()`);
       }
-      for (const record of current.records) await write(action, record);
+      await write(action, current.records);
       return result;
     };
     // Les métadonnées des décorateurs Nest posés avant (@Get…) restent sur la nouvelle fonction.
@@ -69,7 +69,19 @@ export function Audited(action: string): MethodDecorator {
   };
 }
 
-async function write(action: string, record: AuditRecord): Promise<void> {
+/** Entrées par paquets (une instruction pour toutes, et non une par entité : seed-dev en décrit des centaines). */
+const AUDIT_BATCH = 500;
+
+async function write(action: string, records: readonly AuditRecord[]): Promise<void> {
+  const rows = records.map((record) => auditRow(action, record));
+  for (let i = 0; i < rows.length; i += AUDIT_BATCH) {
+    await currentTx()
+      .insert(auditLogs)
+      .values(rows.slice(i, i + AUDIT_BATCH));
+  }
+}
+
+function auditRow(action: string, record: AuditRecord): typeof auditLogs.$inferInsert {
   const context = currentContext();
   let associationId = record.associationId ?? null;
   if (context?.space === 'association') {
@@ -81,20 +93,18 @@ async function write(action: string, record: AuditRecord): Promise<void> {
   }
   const request = currentRequestInfo();
   const { before, after } = auditDiff(record.before, record.after);
-  await currentTx()
-    .insert(auditLogs)
-    .values({
-      actorUserId: context?.userId ?? null,
-      // Rôle posé par les gardes ; à défaut, l'espace (system pour le worker, subscriber…), ou anonymous.
-      actorRole: request?.actorRole ?? context?.space ?? 'anonymous',
-      associationId,
-      action,
-      entityType: record.entityType,
-      entityId: record.entityId,
-      before,
-      after,
-      requestId: request?.requestId ?? null,
-      ip: request?.ip && isIP(request.ip) !== 0 ? request.ip : null,
-      userAgent: request?.userAgent ?? null,
-    });
+  return {
+    actorUserId: context?.userId ?? null,
+    // Rôle posé par les gardes ; à défaut, l'espace (system pour le worker, subscriber…), ou anonymous.
+    actorRole: request?.actorRole ?? context?.space ?? 'anonymous',
+    associationId,
+    action,
+    entityType: record.entityType,
+    entityId: record.entityId,
+    before,
+    after,
+    requestId: request?.requestId ?? null,
+    ip: request?.ip && isIP(request.ip) !== 0 ? request.ip : null,
+    userAgent: request?.userAgent ?? null,
+  };
 }

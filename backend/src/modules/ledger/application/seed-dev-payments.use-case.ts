@@ -9,7 +9,7 @@ import {
   todayIn,
   validateAllocation,
 } from '@cotiz/domain';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { seedDevProof } from '../../files/files.public.js';
 import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
@@ -225,18 +225,45 @@ export class SeedDevPaymentsUseCase {
     const seeded = { pending: 0, validated: 0 };
     const crowd = { pending: 0, validated: 0 };
     const crowdKeys = new Set(crowdPayments(slug).map((p) => p.key));
-    for (const p of [...(REFERENCE_PAYMENTS[slug] ?? []), ...crowdPayments(slug)]) {
+    const references = [...(REFERENCE_PAYMENTS[slug] ?? []), ...crowdPayments(slug)];
+    // Lus une fois pour toute l'exécution (des centaines de paiements) : inscriptions actives, paiements déjà présents,
+    // projets. Les échéances, elles, sont relues sous verrou à chaque paiement (insert()).
+    const enrollmentIds = [...new Set(references.map((p) => mockId('enrollment', `${p.project}:${p.user}`)))];
+    const activeEnrollments = new Map(
+      (
+        await tx
+          .select({ id: enrollments.id, projectId: enrollments.projectId })
+          .from(enrollments)
+          .where(and(inArray(enrollments.id, enrollmentIds), eq(enrollments.status, 'active')))
+      ).map((e) => [e.id, e.projectId]),
+    );
+    const existingPayments = new Set(
+      (
+        await tx
+          .select({ id: payments.id })
+          .from(payments)
+          .where(
+            inArray(
+              payments.id,
+              references.map((p) => mockId('payment', p.key)),
+            ),
+          )
+      ).map((row) => row.id),
+    );
+    const projectsById = new Map<string, Awaited<ReturnType<typeof projectOf>>>();
+    for (const projectId of new Set(activeEnrollments.values())) {
+      projectsById.set(projectId, await projectOf(associationId, projectId));
+    }
+    const methods = new Map<string, string | null>();
+    for (const p of references) {
       const id = mockId('payment', p.key);
       const enrollmentId = mockId('enrollment', `${p.project}:${p.user}`);
       const userId = mockId('user', p.user);
-      const [enrollment] = await tx
-        .select({ projectId: enrollments.projectId })
-        .from(enrollments)
-        .where(and(eq(enrollments.id, enrollmentId), eq(enrollments.status, 'active')));
-      const project = enrollment ? await projectOf(associationId, enrollment.projectId) : null;
-      if (!enrollment || !project) continue;
-      const [existing] = await tx.select({ id: payments.id }).from(payments).where(eq(payments.id, id));
-      if (!existing) await this.insert(p, { id, associationId, enrollmentId, userId, project, today });
+      const projectId = activeEnrollments.get(enrollmentId);
+      const project = projectId ? projectsById.get(projectId) : null;
+      if (!projectId || !project) continue;
+      const existing = existingPayments.has(id);
+      if (!existing) await this.insert(p, { id, associationId, enrollmentId, userId, project, today, methods });
       (crowdKeys.has(p.key) ? crowd : seeded)[p.reviewed ? 'validated' : 'pending'] += 1;
       recordAudit({
         entityType: 'payment',
@@ -261,6 +288,8 @@ export class SeedDevPaymentsUseCase {
       userId: string;
       project: { id: string; currency: string; graceDays: number };
       today: string;
+      /** Moyen de paiement actif retenu par type, lu une fois par exécution. */
+      methods: Map<string, string | null>;
     },
   ): Promise<void> {
     const tx = currentTx();
@@ -290,18 +319,22 @@ export class SeedDevPaymentsUseCase {
     const check = validateAllocation(p.amount, split, ledger, { enrollmentId: ctx.enrollmentId });
     if (!check.ok) throw new Error(`seed-dev : répartition refusée pour ${p.key} (${check.errors[0]?.code ?? '?'})`);
 
-    const [method] = await tx
-      .select({ id: associationPaymentMethods.id })
-      .from(associationPaymentMethods)
-      .where(
-        and(
-          eq(associationPaymentMethods.associationId, ctx.associationId),
-          eq(associationPaymentMethods.kind, p.method),
-          eq(associationPaymentMethods.isActive, true),
-        ),
-      )
-      .orderBy(associationPaymentMethods.position)
-      .limit(1);
+    if (!ctx.methods.has(p.method)) {
+      const [method] = await tx
+        .select({ id: associationPaymentMethods.id })
+        .from(associationPaymentMethods)
+        .where(
+          and(
+            eq(associationPaymentMethods.associationId, ctx.associationId),
+            eq(associationPaymentMethods.kind, p.method),
+            eq(associationPaymentMethods.isActive, true),
+          ),
+        )
+        .orderBy(associationPaymentMethods.position)
+        .limit(1);
+      ctx.methods.set(p.method, method?.id ?? null);
+    }
+    const methodId = ctx.methods.get(p.method) ?? null;
     const proofFileId = p.proofName ? mockId('file', p.key) : null;
     if (proofFileId && p.proofName) {
       await seedDevProof(this.storage, this.config, {
@@ -322,7 +355,7 @@ export class SeedDevPaymentsUseCase {
       amountDeclared: BigInt(p.amount),
       currency,
       paidOn: p.declared.slice(0, 10),
-      paymentMethodId: method?.id ?? null,
+      paymentMethodId: methodId,
       transactionReference: proofFileId ? null : REF,
       proofFileId,
       status: p.reviewed ? 'validated' : 'pending',
