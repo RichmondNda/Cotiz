@@ -4,7 +4,7 @@ import { FEATURE_SPECS, FEATURES, type Feature } from '@cotiz/contracts';
  * Fonctionnalités livrées (lot terminé ou en cours de clôture) : à compléter par chaque lot qui en livre une
  * (`/fin-lot`). Une fonctionnalité absente de `GET /me` affiche « Bientôt disponible » (architecture/10).
  */
-export const DELIVERED_FEATURES: readonly Feature[] = ['password_reset_manual'];
+export const DELIVERED_FEATURES: readonly Feature[] = ['payments', 'activation_codes', 'password_reset_manual'];
 
 /**
  * Fonctionnalités actives (docs/specs/features.yaml) : livrées ; si `planGated`, contenues dans le plan de

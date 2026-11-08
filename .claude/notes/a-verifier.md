@@ -149,4 +149,9 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - **2026-11-08** · Lot 3.5 — données de recette dans la base de dev Docker : associations « Coopérative Essai … » (parcours
   `jalon`) et « Charge … » (k6, 200 inscrits, 200 déclarations) avec leurs comptes. · Les laisser ou réinitialiser la base
   de dev, seulement sur accord. PR #43 (chore/fin-lot-3.4) encore ouverte.
+- **2026-11-08** · Lot 3.5, étape 4 — build sans mocks : les écrans V2 (lots 4.x et suivants : `/associations`
+  souscripteur via `me.assos`, contrats, équipe…) appellent encore des endpoints absents (404 de NestJS) ; seuls les
+  parcours V1 sont filtrés. Sans conséquence avant le lot 7.1 (tout le V2 est livré avant), sinon masquer ces entrées de
+  menu par `endpointDisponible`. · Pile `cotiz-prod` (conteneurs et volumes de la répétition) laissée en place :
+  `tools/repetition-production.sh --arreter` l'arrête ; supprimer ses volumes seulement sur accord.
 

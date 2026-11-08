@@ -62,6 +62,9 @@ export default defineNuxtConfig({
   // Dépendances découvertes en cours de route (imports dynamiques, dont le solveur ALTCHA) : pré-optimisées au
   // démarrage du serveur de dev, sinon Vite recharge la page au premier passage (parcours e2e en CI).
   vite: {
+    // Build avec handlers simulés (fixé au build, comme nitro.ignore) : sans eux, seuls les endpoints du registre de
+    // bascule existent et les fonctionnalités sont celles de `GET /me` (utils/bascule.ts, AVEC_MOCKS).
+    define: { __COTIZ_MOCKS__: JSON.stringify(process.env.NUXT_MOCKS !== '0') },
     optimizeDeps: { include: ['@sentry/vue', 'zod', 'markdown-it', 'altcha/lib', 'qrcode'] },
   },
 

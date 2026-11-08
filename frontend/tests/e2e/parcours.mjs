@@ -8,6 +8,14 @@ import { ID, uid } from '../../server/mocks/ids.ts'
 import { COMPTES } from '../../scripts/session-test.mjs'
 import { assert, contient, EchecEtape, parcours, texte } from './outils.mjs'
 
+/**
+ * Compte plateforme : celui de seed-dev, ou (pile de production, tools/repetition-production.sh) l'owner créé par
+ * `create-platform-owner` pour la répétition : COTIZ_SUPERADMIN_EMAIL et COTIZ_SUPERADMIN_PASSWORD.
+ */
+const SUPERADMIN = process.env.COTIZ_SUPERADMIN_EMAIL
+  ? { identifiant: process.env.COTIZ_SUPERADMIN_EMAIL, password: process.env.COTIZ_SUPERADMIN_PASSWORD ?? '' }
+  : COMPTES.superadmin
+
 // Les routes portent les UUID déterministes du jeu simulé (server/mocks/ids.ts), plus des slugs.
 const PAIEMENT_AWA = uid('payment', 'pm-awa-kone')
 const DEMANDE_TONTINE = uid('request', 'tontine-commercantes-adjame')
@@ -264,8 +272,8 @@ const PARCOURS = {
     ['connexion', async (page) => {
       await page.goto('/connexion/plateforme', { waitUntil: 'networkidle' })
       // Espace basculé (lot 1.1) : vraie connexion avec le compte de développement, sans second facteur (TOTP au lot 4.7).
-      await page.getByLabel('Email').fill(COMPTES.superadmin.identifiant)
-      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.superadmin.password)
+      await page.getByLabel('Email').fill(SUPERADMIN.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(SUPERADMIN.password)
       await page.getByRole('button', { name: 'Se connecter' }).click()
       await page.waitForURL(u => new URL(u).pathname === '/plateforme')
     }],
@@ -529,8 +537,8 @@ function jalon() {
     }],
     ['approbation', async (page) => {
       await page.goto('/connexion/plateforme', { waitUntil: 'networkidle' })
-      await page.getByLabel('Email').fill(COMPTES.superadmin.identifiant)
-      await page.getByLabel('Mot de passe', { exact: true }).fill(COMPTES.superadmin.password)
+      await page.getByLabel('Email').fill(SUPERADMIN.identifiant)
+      await page.getByLabel('Mot de passe', { exact: true }).fill(SUPERADMIN.password)
       await page.getByRole('button', { name: 'Se connecter' }).click()
       await page.waitForURL(u => new URL(u).pathname === '/plateforme')
       await page.goto('/plateforme/demandes', { waitUntil: 'networkidle' })

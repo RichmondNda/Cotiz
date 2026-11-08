@@ -1,0 +1,18 @@
+# Répétition de la pile de production sur le poste (lot 3.5) : par-dessus production.yml, ports liés à 127.0.0.1 à la
+# place de Traefik. Lancement : tools/repetition-production.sh (secrets générés à la volée, jamais écrits).
+services:
+  web:
+    ports:
+      - '127.0.0.1:${COTIZ_PROD_WEB_PORT:-3090}:3000'
+  # Stockage public (URL signées des preuves) : en production, un sous-domaine routé par Traefik.
+  minio:
+    ports:
+      - '127.0.0.1:${COTIZ_PROD_MINIO_PORT:-9090}:9000'
+  # Essais directs (curl /health/ready) et préparation de jeux de données.
+  api:
+    ports:
+      - '127.0.0.1:${COTIZ_PROD_API_PORT:-4090}:4000'
+    environment:
+      # Sur le poste, tout le trafic (navigateur, parcours, sessions) vient d'une seule IP : 300/min par défaut coupe un
+      # parcours (429 avant routage, puis `auth.refresh` refusé). En production, la valeur par défaut reste.
+      RATE_LIMIT_IP_PER_MIN: ${COTIZ_PROD_RATE_LIMIT_IP_PER_MIN:-5000}

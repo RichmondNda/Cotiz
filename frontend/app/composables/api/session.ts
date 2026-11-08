@@ -3,7 +3,7 @@ import type { Feature, Permission } from '@cotiz/contracts'
 import type { ApiClient } from './client'
 import type { CompteursNavigation, Role, UtilisateurSession } from '~~/types'
 import { initiales } from '~/utils/format'
-import { espaceBascule, lotsBascules } from '~/utils/bascule'
+import { AVEC_MOCKS, espaceBascule, lotsBascules } from '~/utils/bascule'
 import { fonctionnalitesActives } from '~/utils/fonctionnalites'
 import { useSession } from '~/composables/useSession'
 
@@ -39,8 +39,9 @@ export const useMoi = () => {
         .filter(x => x.role === 'subscriber')
         .map(x => ({ id: x.association.id, nom: x.association.name })),
       permissions: me.permissions,
-      // Espace basculé : les écrans encore simulés gardent leurs fonctionnalités (transition, lot 1.1).
-      features: espaceBascule(me.space)
+      // Espace basculé : les écrans encore simulés gardent leurs fonctionnalités (transition, lot 1.1). Build sans
+      // handlers simulés (production) : rien n'est simulé, `GET /me` seul fait foi (« Bientôt disponible » sinon).
+      features: AVEC_MOCKS && espaceBascule(me.space)
         ? fonctionnalitesActives(me.features, lotsBascules(me.space), typeof route.query.scenario === 'string' ? route.query.scenario : undefined)
         : me.features,
     }

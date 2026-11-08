@@ -425,3 +425,18 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     comme test/perf du lot 2.4) p95 252 ms, 2 gestionnaires 274 ms ; tableau de bord p95 147 ms ; 100 déclarations à 5 en
     parallèle p95 703 ms ; rafale 100/100 en 201 ; 2 validations distinctes 200, même paiement 200 + 409 (aucun interblocage),
     p95 242 ms ; 0 refus inattendu. La grille recalcule tout le projet à chaque page (O(inscriptions)) : voir a-verifier.md.
+  - Étape 4 faite (2026-11-08) : `infra/compose/production.yml` (celui du lot 7.1 : images par variable, secrets en
+    `${VAR:?}` sans défaut, NODE_ENV=production, `migrate` en tâche préalable, ClamAV exigé, aucun port publié) +
+    `production.local.yml` (ports 127.0.0.1 : web 3090, api 4090, MinIO 9090 ; limite par IP relevée à 5000 : une seule
+    IP sur le poste, 300/min coupait le parcours) ; rôles PostgreSQL par `postgres-init-production/00-roles.sh`
+    (`\getenv`, mots de passe jamais en argument) puis `postgres-init/01-roles.sql`. Recette `tools/repetition-production.sh` :
+    images construites en local (CI arrêtée ; front `--build-arg NUXT_MOCKS=0`), secrets générés en mémoire à chaque
+    lancement (aucun fichier `.env`), projet compose `cotiz-prod` séparé, mots de passe des rôles remis sur un volume
+    existant, owner plateforme neuf (`create-platform-owner`, code jamais affiché), plan Découverte créé par `pf.plan.write`
+    s'il manque (base neuve : aucun plan), puis `/health/ready` (200) et parcours `jalon` en `COTIZ_STRICT=1` : vert.
+    Choix front : build sans mocks = constante `__COTIZ_MOCKS__` (vite.define, fixée au build comme nitro.ignore) ;
+    `endpointDisponible(id, espace)` (utils/bascule.ts) : sans mocks, seuls les endpoints du registre existent ;
+    fonctionnalités = `GET /me` seul ; `ct.get` appelé seulement si `contracts` est active ; `contexteSouscripteur` sans
+    `me.assos` (lot 4.5) prend les associations des cartes et les moyens de `me.project`. Back : `DELIVERED_FEATURES`
+    complété (`payments`, `activation_codes`). Rendu de dev inchangé (parcours de la pile Docker verts).
+
