@@ -25,7 +25,8 @@ function isEd25519Pair(privatePem: string, publicPem: string): boolean {
 
 // Configuration validée au démarrage : une variable manquante ou invalide arrête le processus.
 // Les messages nomment les variables, jamais leurs valeurs (elles peuvent contenir des secrets).
-const ConfigSchema = z.object({
+/** Schéma des variables d'environnement (exporté pour le test « sans fournisseur », lot 3.5). */
+export const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
   /** Via PgBouncer (mode transaction) pour l'api et le worker. */
