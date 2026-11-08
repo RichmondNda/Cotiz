@@ -1,5 +1,5 @@
 <!--
-  MgNouveauProjet — création de projet en 6 étapes (5 tant que l'étape « Contrat » est masquée, lot 4.1) : configurer un projet complet sans erreur, en comprenant
+  MgNouveauProjet — création de projet en 6 étapes (5 sans la fonctionnalité `contracts` du plan, lot 4.1) : configurer un projet complet sans erreur, en comprenant
   l'impact de chaque paramètre sur l'échéancier.
   Desktop : indicateur d'étapes, formulaire à gauche (60 %), aperçu côté souscripteur collant à droite (40 %),
   barre d'actions fixe en bas (« Enregistrer le brouillon », « Retour », « Continuer » / « Créer le projet »).
@@ -11,7 +11,7 @@
 import type { Projet } from '~~/types'
 import type { Component } from 'vue'
 import { messageRefus } from '~/composables/api/client'
-import { creerFormulaireProjet, ETAPES_PROJET, fournirFormulaireProjet } from '~/composables/useNouveauProjet'
+import { creerFormulaireProjet, fournirFormulaireProjet } from '~/composables/useNouveauProjet'
 import type { EtapeProjet } from '~/composables/useNouveauProjet'
 import EtapeProjetCalendrier from '~/components/metier/creation-projet/EtapeProjetCalendrier.vue'
 import EtapeProjetContrat from '~/components/metier/creation-projet/EtapeProjetContrat.vue'
@@ -35,9 +35,10 @@ const signataire = computed(() => ({
   nom: [moi.value?.prenom, moi.value?.nom].filter(Boolean).join(' '),
   fonction: moi.value?.fonction ?? '',
 }))
-const f = creerFormulaireProjet(association, signataire)
+const { active } = usePermissions()
+const f = creerFormulaireProjet(association, signataire, computed(() => active('contracts')))
 fournirFormulaireProjet(f)
-const { etat, etape, modifie } = f
+const { etat, etape, etapes, modifie } = f
 
 // Duplication (menu ⋯ « Dupliquer » de la liste) : `?modele=<id>` préremplit le formulaire depuis ce projet,
 // une fois les valeurs par défaut de l'association posées.
@@ -50,7 +51,7 @@ watch([association, modele], ([a, m]) => {
   f.preremplir(m)
 }, { immediate: true })
 
-// « Contrat » absent de ETAPES_PROJET tant que les contrats ne sont pas disponibles (lot 4.1).
+// « Contrat » absent des étapes sans la fonctionnalité `contracts` (plan de l'association, lot 4.1).
 const COMPOSANTS: Record<EtapeProjet, Component> = {
   Informations: EtapeProjetInformations,
   Financement: EtapeProjetFinancement,
@@ -59,8 +60,7 @@ const COMPOSANTS: Record<EtapeProjet, Component> = {
   Contrat: EtapeProjetContrat,
   Récapitulatif: EtapeProjetRecapitulatif,
 }
-const etapes = [...ETAPES_PROJET]
-const nomEtape = computed(() => ETAPES_PROJET[etape.value - 1])
+const nomEtape = computed(() => etapes.value[etape.value - 1])
 
 const cree = ref<Projet | null>(null)
 const envoi = ref<'creation' | 'brouillon' | null>(null)
@@ -79,7 +79,7 @@ async function creerProjet() {
   const invalide = f.premiereEtapeInvalide()
   if (invalide) {
     etape.value = invalide
-    toast.alerte('Projet incomplet', { message: `Complétez l’étape « ${ETAPES_PROJET[invalide - 1]} ».` })
+    toast.alerte('Projet incomplet', { message: `Complétez l’étape « ${etapes.value[invalide - 1]} ».` })
     return
   }
   envoi.value = 'creation'
@@ -96,7 +96,7 @@ async function creerProjet() {
 }
 
 /** Action principale de l'étape, commune à la barre desktop et à la barre mobile. */
-const principal = computed(() => (etape.value < etapes.length
+const principal = computed(() => (etape.value < etapes.value.length
   ? { label: 'Continuer', action: continuer, chargement: false, libelleChargement: undefined }
   : { label: 'Créer le projet', action: creerProjet, chargement: envoi.value === 'creation', libelleChargement: 'Création…' }))
 
@@ -192,7 +192,7 @@ onBeforeRouteLeave((to) => {
 
       <div class="creation__grille">
         <CzCard class="creation__formulaire">
-          <component :is="COMPOSANTS[ETAPES_PROJET[etape - 1]!]" />
+          <component :is="COMPOSANTS[etapes[etape - 1]!]" />
         </CzCard>
         <ApercuProjetSouscripteur
           class="creation__apercu cz-desktop"

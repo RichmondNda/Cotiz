@@ -45,7 +45,8 @@ function relancerSignature(n: ContratProjet['nonSignataires'][number]) {
 }
 
 function telecharger() {
-  // V0 : pas de PDF généré côté serveur ; l'impression du navigateur permet d'enregistrer le contrat en PDF.
+  // Modèle du contrat : impression du navigateur (enregistrable en PDF). Le serveur produit le PDF de chaque signature
+  // (lot 4.1), téléchargé par le souscripteur depuis son contrat.
   window.print()
 }
 </script>

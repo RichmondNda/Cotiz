@@ -134,7 +134,11 @@ export const useMesSouscriptions = () =>
 
 /** Contrat d'un projet vu par le souscripteur (texte personnalisé, signatures). */
 export async function monContrat(client: ApiClient, pid: string, souscripteurId: string, enrollmentId: string): Promise<Contrat | undefined> {
-  const c = await client.call('me.contract', 'get', { params: { pid } }).catch(() => null)
+  // Projet sans contrat : 404 ; toute autre erreur remonte (jamais masquée en « pas de contrat »).
+  const c = await client.call('me.contract', 'get', { params: { pid } }).catch((e: unknown) => {
+    if (codeErreur(e) === 'not_found') return null
+    throw e
+  })
   if (!c) return undefined
   return {
     id: enrollmentId, projetId: pid, souscripteurId, associationId: c.association.id, texte: c.body,
@@ -142,6 +146,7 @@ export async function monContrat(client: ApiClient, pid: string, souscripteurId:
     ...(c.signedAt ? { signeLe: local(c.signedAt) } : {}),
     ...(c.associationSigner.signedAt ? { signeParAssociationLe: jour(c.associationSigner.signedAt) } : {}),
     signataireAssociation: [c.associationSigner.name, c.associationSigner.title].filter(Boolean).join(', '),
+    ...(c.pdfFileId ? { pdfFichierId: c.pdfFileId } : {}),
   }
 }
 

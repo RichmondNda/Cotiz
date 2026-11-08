@@ -92,9 +92,8 @@ const READS: Record<string, Call> = {
   'me.prefs get': {},
   'pf.invoices list': {}, 'pf.staff list': {},
   'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
-  'ct.list list': { params: { aid } }, 'ct.get get': { params: P },
   'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
-  'me.contract get': { params: { pid: ID.voyage } }, 'me.contracts list': {}, 'me.assos list': {}, 'me.assos get': { params: { aid } },
+  'me.assos list': {}, 'me.assos get': { params: { aid } },
 }
 
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
@@ -104,8 +103,6 @@ const WRITES: Record<string, () => Call> = {
   'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
   'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
   'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
-  'ct.get update': () => ({ params: { aid, pid: ID.tontine }, body: { bodyTemplate: 'Texte', signerName: 'Awa Koné', signerTitle: 'trésorière' }, ifMatch: 1 }),
-  'ct.get lock': () => ({ params: { aid, pid: ID.tontine }, ifMatch: 1 }),
   'rm.rules create': () => ({ params: { aid }, body: { projectId: null, trigger: 'after_due', offsetDays: 30, channels: ['in_app'], message: 'Rappel', isActive: true } }),
   'rm.rules patch': () => ({ params: { aid, id: uid('reminder-rule', 'jour-j') }, body: { isActive: false } }),
   'rm.queue handled': () => ({ params: { aid, id: uid('reminder-run', `queue-${uid('installment', 'centre-communautaire:moussa-diarra:6')}`) }, body: { outcome: 'handled' } }),
@@ -118,7 +115,6 @@ const WRITES: Record<string, () => Call> = {
   'im.steps mapping': () => ({ params: { aid, id: 'X' }, body: { mapping: { Mail: null } }, setup: importJob } as Call),
   'im.steps row': () => ({ params: { aid, id: 'X', rowId: 'X' }, body: { ignore: true }, setup: importJob } as Call),
   'im.commit commit': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-  'me.sign sign': () => ({ params: { pid: ID.voyage }, setup: async (c: Call) => { c.body = { renderedSha256: ((await call('me.contract', 'get', { params: { pid: ID.voyage } })) as { renderedSha256: string }).renderedSha256, accepted: true } } } as Call),
 }
 
 // Étapes préalables de certaines écritures (dépôt, import) : elles remplissent les `X` de l'appel.
@@ -217,14 +213,10 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
     return e.code
   }
 
-  it('scénarios : quota_exceeded, version_conflict, association_suspended', async () => {
+  // version_conflict (If-Match) : plus aucune écriture simulée ne l'exige depuis la bascule de ct.get (lot 4.1).
+  it('scénarios : quota_exceeded, association_suspended', async () => {
     expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
-    expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), scenario: 'version_conflict' })).toBe('version_conflict')
     expect(await problem('tm.team', 'list', { ...READS['tm.team list'], scenario: 'association_suspended' })).toBe('association_suspended')
-  })
-
-  it('If-Match périmé → version_conflict', async () => {
-    expect(await problem('ct.get', 'update', { ...WRITES['ct.get update']!(), ifMatch: 7 })).toBe('version_conflict')
   })
 
   it('ressource d’une autre association → 404', async () => {

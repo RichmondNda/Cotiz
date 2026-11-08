@@ -4,11 +4,11 @@
   Mobile : résumé en lignes libellé / valeur (comme la capture).
 -->
 <script setup lang="ts">
-import { CONTRAT_DISPONIBLE, numeroEtape, useFormulaireProjet } from '~/composables/useNouveauProjet'
+import { useFormulaireProjet } from '~/composables/useNouveauProjet'
 import { formatDate, formatFCFA } from '~/utils/format'
 import { MOYENS_PAIEMENT } from '~/utils/statuts'
 
-const { etat, aller, fondsEntree, nbEcheances, total, echeancier, unite, moyensChoisis, resumeCalendrier, periodeCourte } = useFormulaireProjet()
+const { etat, aller, numeroEtape, avecContrat, fondsEntree, nbEcheances, total, echeancier, unite, moyensChoisis, resumeCalendrier, periodeCourte } = useFormulaireProjet()
 
 const requis = computed(() => (etat.sansLimite ? 'sans limite de souscripteurs' : `${etat.souscripteursRequis} souscripteurs requis`))
 const financement = computed(() => {
@@ -31,7 +31,7 @@ const BLOCS = computed(() => [
   { etape: numeroEtape('Financement'), libelle: 'Financement', valeur: financement.value },
   { etape: numeroEtape('Calendrier'), libelle: 'Calendrier', valeur: resumeCalendrier.value },
   { etape: numeroEtape('Paiement'), libelle: 'Paiement', valeur: paiement.value },
-  ...(CONTRAT_DISPONIBLE ? [{ etape: numeroEtape('Contrat'), libelle: 'Contrat', valeur: contrat.value }] : []),
+  ...(avecContrat.value ? [{ etape: numeroEtape('Contrat'), libelle: 'Contrat', valeur: contrat.value }] : []),
 ])
 </script>
 
@@ -104,7 +104,7 @@ const BLOCS = computed(() => [
       <div><dt>Souscripteurs requis</dt><dd>{{ etat.sansLimite ? 'Sans limite' : etat.souscripteursRequis }}</dd></div>
       <div><dt>Engagement</dt><dd>{{ engagement }}</dd></div>
       <div><dt>Calendrier</dt><dd>{{ periodeCourte }}</dd></div>
-      <div v-if="CONTRAT_DISPONIBLE">
+      <div v-if="avecContrat">
         <dt>Contrat</dt><dd>{{ etat.signe ? 'Signé par l’association' : 'Non signé' }}</dd>
       </div>
     </dl>

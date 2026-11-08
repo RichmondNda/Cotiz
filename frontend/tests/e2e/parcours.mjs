@@ -1,9 +1,10 @@
 // Parcours de fumée de la V0 (lots 09 et 0.3), rejoués sur le serveur de dev (mocks Nitro conformes au contrat).
 //   node tests/e2e/parcours.mjs            → tous les parcours
 //   node tests/e2e/parcours.mjs plateforme → un seul (jalon | public | souscripteur | gestionnaire | plateforme |
-//                                            activation | reinitialisation | declaration)
+//                                            activation | reinitialisation | declaration | contrat)
 //   COTIZ_BASE=http://localhost:3080 node tests/e2e/parcours.mjs jalon → boucle V1 complète sur la pile Docker (lot 3.5)
 // Captures de chaque étape : .verif/e2e/<parcours>/. Code de sortie 1 si une étape échoue.
+import { readFileSync } from 'node:fs'
 import { ID, uid } from '../../server/mocks/ids.ts'
 import { COMPTES } from '../../scripts/session-test.mjs'
 import { assert, contient, EchecEtape, parcours, texte } from './outils.mjs'
@@ -140,6 +141,7 @@ async function valider(c, page, id, verifier = async () => {}) {
 
 const PARCOURS = {
   jalon,
+  contrat,
   // Public → demande de création → confirmation.
   public: () => parcours('public', {}, [
     ['landing', async (page) => {
@@ -467,6 +469,94 @@ const PARCOURS = {
 }
 
 /**
+ * Lot 4.1 : contrat de bout en bout, contre api et worker réels (Gotenberg et MinIO compris). Awa (plan Essentiel :
+ * fonctionnalité `contracts`) crée un projet avec contrat signé au nom de l'association (assistant en 6 étapes) — ou
+ * reprend celui d'un passage précédent (quota de projets du plan) —, inscrit un nouveau compte (inscription en attente de
+ * signature), qui s'active, lit son contrat personnalisé, le signe et télécharge le PDF signé produit par le worker ;
+ * Awa voit la signature dans « Contrats ».
+ */
+const PROJET_CONTRAT = 'Caisse de prévoyance (contrat e2e)'
+function contrat() {
+  const projet = { id: '' }
+  const c = nouveauCompte({ projetId: () => projet.id })
+  return parcours('contrat', {}, [
+    ['connexion-gestionnaire', c.connexionGestionnaire],
+    ['projet-avec-contrat', async (page) => {
+      await page.goto('/asso/projets', { waitUntil: 'networkidle' })
+      const existant = page.getByRole('main').getByText(PROJET_CONTRAT, { exact: true }).first()
+      if (await existant.isVisible().catch(() => false)) {
+        await existant.click()
+        await page.waitForURL(u => /^\/asso\/projets\/[0-9a-f-]{36}$/.test(new URL(u).pathname))
+        projet.id = /\/asso\/projets\/([0-9a-f-]{36})/.exec(page.url())?.[1] ?? ''
+        return
+      }
+      await page.goto('/asso/projets/nouveau', { waitUntil: 'networkidle' })
+      // Assistant en 6 étapes : « Contrat » présente (fonctionnalité contracts du plan, GET /me).
+      await page.locator('.creation__etapes').waitFor()
+      const etapes = await texte(page.locator('.creation__etapes'))
+      await assert(etapes.includes('Contrat') && etapes.includes('6'), `Indicateur d’étapes : « ${etapes} »`)
+      await page.getByRole('textbox', { name: 'Nom du projet' }).fill(PROJET_CONTRAT)
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      await page.getByRole('textbox', { name: 'Montant du fonds d’entrée' }).fill('10000')
+      await page.getByRole('textbox', { name: 'Montant par échéance' }).fill('5000')
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      await page.getByRole('textbox', { name: 'Date de début' }).fill('05/01/2027')
+      await page.getByRole('textbox', { name: 'Date de fin' }).fill('05/12/2027')
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      const texteContrat = await page.getByRole('textbox', { name: 'Texte du contrat' }).inputValue()
+      await assert(texteContrat.includes('{nom_souscripteur}'), `Modèle de contrat prérempli : « ${texteContrat.slice(0, 80)}… »`)
+      await page.getByRole('checkbox', { name: /Je signe ce contrat/ }).check({ force: true })
+      await page.getByRole('button', { name: 'Continuer' }).click()
+      await page.getByRole('button', { name: 'Créer le projet' }).click()
+      await page.getByText('Projet créé !').waitFor({ timeout: 15_000 })
+      const lien = await page.getByRole('link', { name: 'Voir le projet' }).first().getAttribute('href')
+      projet.id = /\/asso\/projets\/([0-9a-f-]{36})/.exec(lien ?? '')?.[1] ?? ''
+      await assert(projet.id !== '', `Identifiant du projet créé : « ${lien} »`)
+    }],
+    ['onglet-contrat', async (page) => {
+      await page.goto(`/asso/projets/${projet.id}/contrat`, { waitUntil: 'networkidle' })
+      await contient(page, 'm’engage à verser', 'Onglet Contrat : texte du modèle (ct.get)')
+    }],
+    ['inscription-nouveau-compte', c.inscrire],
+    ['activation', c.activer],
+    ['signature', async (page) => {
+      await page.goto(`/projets/${projet.id}/contrat`, { waitUntil: 'networkidle' })
+      await contient(page, `${c.prenom} ${c.nom}`, 'Contrat personnalisé : nom du souscripteur (me.contract)')
+      await page.getByText('J’ai lu et j’accepte les termes du contrat.').click()
+      await page.getByRole('button', { name: 'Signer le contrat' }).click()
+      await page.getByRole('heading', { name: 'Contrat signé !' }).waitFor({ timeout: 15_000 })
+    }],
+    ['pdf-signe', async (page) => {
+      // PDF produit par le worker (outbox → documents → Gotenberg) : quelques secondes après la signature.
+      for (let i = 0; i < 8; i++) {
+        await page.waitForTimeout(2000)
+        const telechargement = page.waitForEvent('download', { timeout: 5000 }).catch(() => null)
+        await page.getByRole('button', { name: 'Télécharger le contrat signé' }).first().click()
+        const fichier = await telechargement
+        if (!fichier) continue
+        await assert(fichier.suggestedFilename().endsWith('.pdf'), `Nom du fichier : « ${fichier.suggestedFilename()} »`)
+        const chemin = await fichier.path()
+        const debut = chemin ? readFileSync(chemin).subarray(0, 5).toString('latin1') : ''
+        await assert(debut === '%PDF-', `Contenu PDF attendu (lu : « ${debut} »)`)
+        return
+      }
+      throw new EchecEtape('PDF du contrat signé jamais disponible (worker documents, Gotenberg)')
+    }],
+    ['mes-contrats', async (page) => {
+      await page.goto('/contrats', { waitUntil: 'networkidle' })
+      await contient(page, PROJET_CONTRAT, 'Mes contrats : contrat signé du projet (me.contracts)')
+    }],
+    ['contrats-gestionnaire', async (page) => {
+      await page.context().clearCookies()
+      await c.connexionGestionnaire(page)
+      await page.goto('/asso/contrats', { waitUntil: 'networkidle' })
+      await contient(page, PROJET_CONTRAT, 'Contrats de l’association : projet sous contrat (ct.list)')
+    }],
+  ])
+}
+
+/**
  * Lot 3.5, étape 1 : boucle complète du jalon V1 sur une association neuve (rejouable sans réinitialiser la base), contre
  * api et worker réels, sans fournisseur : demande publique → Richy approuve et remet les accès → la responsable active son
  * compte → assistant de démarrage → projet → inscription d'un souscripteur et code remis → activation → déclaration d'un
@@ -480,9 +570,8 @@ const PARCOURS = {
  * 404 (écart de transition, frontend/CLAUDE.md). Toléré ici seulement ; `COTIZ_STRICT=1` (pile de production, lot 3.5
  * étape 4, `NUXT_MOCKS=0`) : aucun appel de ce genre ne doit plus partir.
  */
-const SIMULES_LOTS_ULTERIEURS = [
-  /\/api\/v1\/associations\/[0-9a-f-]{36}\/projects\/[0-9a-f-]{36}\/contract$/, // ct.get, lot 4.1
-]
+// ct.get : réel depuis le lot 4.1 (et appelé seulement si le plan comprend les contrats) : plus aucun écart toléré.
+const SIMULES_LOTS_ULTERIEURS = []
 const tolererSimules = r => process.env.COTIZ_STRICT !== '1' && r.status() === 404
   && SIMULES_LOTS_ULTERIEURS.some(motif => motif.test(new URL(r.url()).pathname))
 

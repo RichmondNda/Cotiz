@@ -1,13 +1,12 @@
-// Espace association : factures, équipe, contrats (profil, moyens, onboarding et abonnement : NestJS, lot 2.1).
-import { createHash } from 'node:crypto'
+// Espace association : factures, équipe (profil, moyens, onboarding et abonnement : NestJS, lot 2.1 ; contrats : lot 4.1).
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext, MockSession } from '../http'
-import { checkVersion, nowInstant, problem, requireSession } from '../http'
+import { nowInstant, problem, requireSession } from '../http'
 import { uid } from '../ids'
-import { daysSince, enrollmentsOfProject, monthOf, today } from '../ledger'
+import { monthOf, today } from '../ledger'
 import {
-  associationRow, money, personRef, projectRef, projectRow, planRow, userRow,
+  associationRow, money, personRef, planRow, userRow,
 } from '../views'
 import { handoff } from './handoff'
 import { page } from './list'
@@ -16,9 +15,6 @@ import { page } from './list'
 export function sessionAssociation(ctx: { session: MockSession | null }): AssociationRow {
   return associationRow(requireSession(ctx).associationId ?? problem('forbidden'))
 }
-
-/** Un contrat est « en souffrance » au-delà de 7 jours sans signature. */
-const UNSIGNED_DAYS = 7
 
 // ---------------------------------------------------------------- Abonnement et factures
 
@@ -82,65 +78,4 @@ export function teamRemove(ctx: MockContext<'tm.team', 'remove'>) {
   if (m.role === 'owner') problem('last_owner')
   m.status = 'removed'
   return null
-}
-
-// ---------------------------------------------------------------- Contrats (V2)
-
-const sha256 = (text: string) => createHash('sha256').update(text).digest('hex')
-
-function contractOf(projectId: string) {
-  return db.contracts.find(c => c.projectId === projectId) ?? problem('not_found')
-}
-
-export function projectContract(projectId: string) {
-  const c = contractOf(projectId)
-  const enrollments = enrollmentsOfProject(projectId)
-  const unsigned = enrollments.filter(e => e.status === 'pending_signature')
-  const extra = db.unlisted.find(u => u.scopeId === projectId)?.members ?? 0
-  return {
-    id: c.id, projectId, bodyTemplate: c.bodyTemplate, templateSha256: sha256(c.bodyTemplate),
-    signer: { name: c.signerName, title: c.signerTitle }, associationSignedAt: c.associationSignedAt,
-    associationSignedBy: c.associationSignedBy ? personRef(userRow(c.associationSignedBy)) : null, lockedAt: c.lockedAt,
-    signatures: { signed: enrollments.length - unsigned.length + extra, total: enrollments.length + extra },
-    unsigned: unsigned.map(e => ({ enrollmentId: e.id, member: personRef(userRow(e.userId)), enrolledAt: e.joinedAt })),
-    pdfFileId: null,
-    version: c.version,
-  }
-}
-
-export function contractGet(ctx: MockContext<'ct.get', 'get'>) {
-  projectRow(ctx.params.pid, ctx.params.aid)
-  return projectContract(ctx.params.pid)
-}
-
-export function contractUpdate(ctx: MockContext<'ct.get', 'update'>) {
-  projectRow(ctx.params.pid, ctx.params.aid)
-  const c = contractOf(ctx.params.pid)
-  checkVersion(ctx, c.version)
-  if (c.lockedAt) problem('contract_locked')
-  Object.assign(c, { bodyTemplate: ctx.body.bodyTemplate, signerName: ctx.body.signerName, signerTitle: ctx.body.signerTitle, version: c.version + 1 })
-  return projectContract(ctx.params.pid)
-}
-
-export function contractLock(ctx: MockContext<'ct.get', 'lock'>) {
-  projectRow(ctx.params.pid, ctx.params.aid)
-  const c = contractOf(ctx.params.pid)
-  checkVersion(ctx, c.version)
-  if (c.lockedAt) problem('contract_locked')
-  const now = nowInstant()
-  Object.assign(c, { lockedAt: now, associationSignedAt: now, associationSignedBy: requireSession(ctx).userId, version: c.version + 1 })
-  return projectContract(ctx.params.pid)
-}
-
-export function contractsList(ctx: MockContext<'ct.list', 'list'>) {
-  if (ctx.scenario === 'aucun-contrat') return page([], ctx.query)
-  const rows = db.contracts
-    .filter(c => projectRow(c.projectId).associationId === ctx.params.aid)
-    .map((c) => {
-      const p = projectRow(c.projectId)
-      const view = projectContract(p.id)
-      const over7 = db.enrollments.filter(e => e.projectId === p.id && e.status === 'pending_signature' && daysSince(e.joinedAt) > UNSIGNED_DAYS).length
-      return { project: projectRef(p), createdAt: c.createdAt, lockedAt: c.lockedAt, signed: view.signatures.signed, total: view.signatures.total, unsignedOver7Days: over7 }
-    })
-  return page(rows, ctx.query)
 }
