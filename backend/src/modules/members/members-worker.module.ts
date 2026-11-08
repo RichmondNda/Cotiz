@@ -1,10 +1,14 @@
 import { Module, type OnModuleInit } from '@nestjs/common';
 import { ScheduledTasks } from '../../shared/scheduler/index.js';
 import { ExtendRollingSchedulesUseCase } from './application/extend-rolling-schedules.use-case.js';
+import { ContractScheduleConsumer } from './events/contract-schedule.consumer.js';
 
-/** Partie worker du module members : tâche `schedule.extend-rolling` (jobs.yaml : mensuelle, le 1er à 01:00). */
+/**
+ * Partie worker du module members : tâche `schedule.extend-rolling` (jobs.yaml : mensuelle, le 1er à 01:00) ;
+ * échéancier généré à la signature d'un contrat (`contract.signed`, lot 4.1).
+ */
 @Module({
-  providers: [ExtendRollingSchedulesUseCase],
+  providers: [ExtendRollingSchedulesUseCase, ContractScheduleConsumer],
   exports: [ExtendRollingSchedulesUseCase],
 })
 export class MembersWorkerModule implements OnModuleInit {

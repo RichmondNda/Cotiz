@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { ProjectContractInput } from '@cotiz/contracts';
-import { contracts } from '@cotiz/db';
+import { contracts, enrollments } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { holdsPermission } from '../../access/access.public.js';
 import { assertPlanFeature } from '../../billing/billing.public.js';
@@ -136,4 +136,56 @@ export async function requestContractSignature(
     aggregate: { type: 'enrollment', id: enrollment.enrollmentId },
     payload: { enrollmentId: enrollment.enrollmentId, userId: enrollment.userId, projectId: enrollment.projectId },
   });
+}
+
+function assertAssociationContext(name: string, associationId: string): void {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error(`${name} : contexte de cette association seulement`);
+  }
+}
+
+/**
+ * Inscription d'un événement de contrat et état du contrat de son projet, lus dans le contexte de son association
+ * (notifications) ; `null` si l'inscription n'existe pas (ou plus) dans cette association.
+ */
+export async function enrollmentContractOf(
+  associationId: string,
+  enrollmentId: string,
+): Promise<{ userId: string; projectId: string; status: string; contractLocked: boolean } | null> {
+  assertAssociationContext('enrollmentContractOf', associationId);
+  const [row] = await currentTx()
+    .select({
+      userId: enrollments.userId,
+      projectId: enrollments.projectId,
+      status: enrollments.status,
+      lockedAt: contracts.lockedAt,
+    })
+    .from(enrollments)
+    .leftJoin(
+      contracts,
+      and(eq(contracts.projectId, enrollments.projectId), eq(contracts.associationId, enrollments.associationId)),
+    )
+    .where(and(eq(enrollments.associationId, associationId), eq(enrollments.id, enrollmentId)))
+    .limit(1);
+  return row
+    ? { userId: row.userId, projectId: row.projectId, status: row.status, contractLocked: row.lockedAt !== null }
+    : null;
+}
+
+/** Personnes dont l'inscription au projet attend leur signature (contexte de l'association : notifications). */
+export async function pendingSignersOf(associationId: string, projectId: string): Promise<string[]> {
+  assertAssociationContext('pendingSignersOf', associationId);
+  const rows = await currentTx()
+    .select({ userId: enrollments.userId })
+    .from(enrollments)
+    .where(
+      and(
+        eq(enrollments.associationId, associationId),
+        eq(enrollments.projectId, projectId),
+        eq(enrollments.status, 'pending_signature'),
+      ),
+    )
+    .orderBy(asc(enrollments.userId));
+  return rows.map((r) => r.userId);
 }

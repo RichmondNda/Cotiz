@@ -161,6 +161,28 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   gestionnaire peut donc changer montant, fonds d'entrée ou fréquence après le verrouillage du contrat ou des signatures,
   alors que `{montant}`… sont calculés depuis le projet courant (le souscripteur aurait signé d'autres montants).
   Proposition : poser `financial_terms_locked_at` au verrouillage du contrat (ou refuser `financial_terms_locked` dès
-  qu'un contrat est verrouillé). Autres points de spec signalés : retrait d'une inscription jamais signée
+  qu'un contrat est verrouillé). → **Tranché** (2026-11-08, accord de l'utilisateur) : figées au verrouillage, commit
+  a3b806b. Autres points de spec signalés : retrait d'une inscription jamais signée
   (`pending_signature → withdrawn` absent de domain-rules), décision 20 encore `proposé`, architecture/04 l. 22
   (« échéances générées à l'inscription »).
+
+- **2026-11-08** · Lot 4.1, étape 3 (revue `isolation-reviewer`) — corrigés : mise à jour de l'inscription vérifiée à
+  la signature, tests « autre personne de la même association, RLS élargies » et « événement d'une autre association »
+  (consommateurs). **À proposer, sur accord (RLS ou spec)** :
+  - consommateur `contract-schedule` : ne relit pas `contract_signatures` (aucune politique `system_*` en 0015) ;
+  - `contracts.subscriber_enrolled_read` (0015) ignore le statut de l'inscription (retirée comprise) et l'appartenance
+    active ; le code compense (`subscriberEnrollmentsOf`) — à resserrer par une nouvelle migration ;
+  - me.contract montre un contrat pas encore verrouillé (texte encore modifiable) : à confirmer côté produit ;
+  - `events.yaml` annonce le consommateur de `contract.signed` dans `ledger`, il est dans `members` ;
+  - production : `TRUST_PROXY_HOPS` derrière Traefik, sinon l'IP enregistrée comme preuve de signature est celle du
+    proxy (`src/app.ts`).
+- **2026-11-08** · Lot 4.1, étape 3 (revue `money-reviewer`) — corrigés : consommateur `contract-schedule` en erreur
+  (réessai de l'outbox) au lieu d'abandonner en silence ; horizon roulant rétabli au jour de la signature ; tests
+  « même échéancier qu'en.create » (dont `late_since`) et « cycle roulant signé tard ». **À trancher par l'utilisateur** :
+  - rattrapage : les échéances passées entre l'inscription et la signature naissent `late` (comme en.create, Q3), alors
+    que me.declare refusait tout paiement avant la signature (`signature_required`) — garder, ou dater le retard de la
+    signature ?
+  - signature sur un projet clos (`completed`, `archived`) : acceptée aujourd'hui ; la refuser demande une erreur
+    (`invalid_state`) absente de `me.sign` dans `endpoints.yaml` (changement de spec).
+  - à noter : pas d'audit de la génération par le consommateur (journal seulement), fonds d'entrée à la signature non
+    testé (aucun projet de test avec fonds d'entrée).

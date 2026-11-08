@@ -28,6 +28,10 @@ export const NOTIFICATION_MATRIX = {
   'payment.reverted': { audience: 'subscriber', channels: ['in_app'] },
   'installment.due_soon': { audience: 'subscriber', channels: ['in_app', 'push'] },
   'installment.late': { audience: 'subscriber', channels: ['in_app', 'push'] },
+  // Contrats (lot 4.1) : architecture/07 « Contrat signé » (in-app) ; à signer : consommateurs d'events.yaml.
+  'contract.signature_required': { audience: 'subscriber', channels: ['in_app'] },
+  'contract.locked': { audience: 'subscriber', channels: ['in_app'] },
+  'contract.signed': { audience: 'manager', channels: ['in_app'] },
 } as const satisfies Partial<Record<EventType, MatrixEntry>>;
 
 export type NotifiedEventType = keyof typeof NOTIFICATION_MATRIX;

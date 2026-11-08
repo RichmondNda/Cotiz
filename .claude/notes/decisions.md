@@ -533,3 +533,22 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   `domain-rules.md` § 9 — `financial_terms_locked_at` posé aussi au verrouillage du contrat (ct.lock, pr.create avec
   `signNow`), une seule fois (la première date gardée ; lg.pay.revert ne libère que des conditions figées par ce
   paiement : inchangé). ct.lock verrouille le projet (FOR NO KEY UPDATE) puis le contrat : ordre d'en.create.
+- **2026-11-08** · Lot 4.1, étape 3 (signature) — choix pris en autonome (à relire dans la PR) :
+  - me.sign, espace subscriber, une transaction : inscription relue FOR UPDATE (`subscriber_sign_update` ; projet et
+    contrat non verrouillables par le souscripteur — aucune politique UPDATE —, mais contrat verrouillé immuable et
+    conditions figées) ; déjà signée → 409 `already_signed` (aussi ON CONFLICT sur `enrollment_id`) ; inscription qui
+    n'attend pas de signature, ou contrat pas encore verrouillé → 404 ; empreinte ≠ texte rendu → 409
+    `contract_changed` ; puis `files` (PDF `pending`, clé `{aid}/contract_pdf/{id}.pdf`, `cotiz-legal`), signature
+    (consentement exact du mock, IP si valide, navigateur), inscription `active`, `contract.signed`, audit
+    `contract.sign`. Rejeu : intercepteur (24 h) ; au-delà, `already_signed`.
+  - Échéancier : `members/events/contract-schedule.consumer.ts` (espace system, `contract.signed`) : projet FOR SHARE →
+    inscription FOR SHARE → insertion ON CONFLICT DO NOTHING, statuts au jour de l'association (rattrapage) ;
+    inscription retirée ou inconnue : rien. Quelques secondes « active sans échéance » entre la signature et le
+    consommateur (montants à 0 sur les écrans pendant ce temps) : accepté.
+  - me.contract : `pdfFileId` seulement quand le PDF est `clean` (étape 4) ; `{montant}` d'un cycle roulant = une
+    échéance (le mock additionnait l'horizon) ; téléphone absent : « non renseigné » (mock : « +225 [XX XX XX XX] »).
+  - Notifications (in-app seulement, matrice) : `contract.signature_required` → le souscripteur si le contrat est déjà
+    verrouillé (sinon `contract.locked` l'avertira) ; `contract.locked` → souscripteurs en attente ; `contract.signed`
+    → gestionnaires, lien `/asso/projets/:id/contrat`. Souscripteur : `/projets/:id/contrat`.
+  - Reste pour l'étape 4 : `Enrollment.contractSignedAt` (toujours `null` dans les vues gestionnaire) à remplir à la
+    bascule des écrans ; proposition de correction d'architecture/04 (§ 4.3 l. 22, § 4.7) et décision 20 → adopté.

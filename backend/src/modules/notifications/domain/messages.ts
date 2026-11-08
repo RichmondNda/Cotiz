@@ -194,3 +194,36 @@ export function managersDigestMessage(p: {
     data: { actionLabel: 'Ouvrir le tableau de bord', digest: true },
   };
 }
+
+const contractLink = (projectId: string) => `/projets/${projectId}/contrat`;
+
+/** Inscription à un projet sous contrat (contrat verrouillé) : le souscripteur est invité à le signer. */
+export function contractSignatureRequiredMessage(p: {
+  associationName: string;
+  projectId: string;
+  projectName: string;
+}): RenderedMessage {
+  return {
+    type: 'contract.signature_required',
+    title: 'Contrat à signer',
+    body: `${p.associationName} vous invite à signer le contrat du projet ${p.projectName}.`,
+    actionUrl: contractLink(p.projectId),
+    data: { actionLabel: 'Lire et signer', projectId: p.projectId },
+  };
+}
+
+/** Contrat verrouillé (signé par l'association) : les souscripteurs en attente peuvent signer. */
+export function contractLockedMessage(p: { associationName: string; projectId: string; projectName: string }) {
+  return { ...contractSignatureRequiredMessage(p), type: 'contract.locked' } satisfies RenderedMessage;
+}
+
+/** Contre-signature d'un souscripteur → gestionnaires (architecture/07 : « Contrat signé »). */
+export function contractSignedMessage(p: { name: string; projectId: string; projectName: string }): RenderedMessage {
+  return {
+    type: 'contract.signed',
+    title: 'Contrat signé',
+    body: `${p.name} a signé le contrat du projet ${p.projectName}.`,
+    actionUrl: `/asso/projets/${p.projectId}/contrat`,
+    data: { actionLabel: 'Voir le contrat', projectId: p.projectId },
+  };
+}
