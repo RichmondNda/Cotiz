@@ -25,7 +25,7 @@
 | `payments` | ledger | 2.4 | tenant_isolation, subscriber_self_read, subscriber_declare | Un paiement déclaré par un souscripteur (un virement réel). |
 | `allocations` | ledger | 2.4 | tenant_isolation, subscriber_self_read, subscriber_propose | Répartition d'un paiement sur une ou plusieurs échéances. |
 | `contracts` | contracts | 4.1 | tenant_isolation, subscriber_enrolled_read | Contrat d'un projet. Immuable une fois verrouillé. |
-| `contract_signatures` | contracts | 4.1 | tenant_isolation, subscriber_self_read, subscriber_sign | Contre-signature d'un souscripteur, avec éléments de preuve. |
+| `contract_signatures` | contracts | 4.1 | tenant_isolation, subscriber_self_read, subscriber_sign, subscriber_insert_only (restrictive) | Contre-signature d'un souscripteur, avec éléments de preuve. |
 | `import_jobs` | imports | 4.4 | tenant_isolation | Import Excel. |
 | `import_rows` | imports | 4.4 | tenant_isolation | Lignes d'un import, éditables avant validation. |
 | `reminder_rules` | reminders | 4.3 | tenant_isolation, system_access | Règles de relance automatique. |
@@ -34,7 +34,7 @@
 | `notification_preferences` | notifications | 4.2 | owner_access, system_access | Choix de canal par type et par utilisateur. |
 | `message_templates` | notifications | 4.2 | platform_templates_read, tenant_templates | Modèles de messages versionnés. |
 | `deliveries` | notifications | 2.5 | owner_access, system_access | Chaque envoi réel sur un canal externe. |
-| `files` | storage | 0.5 | tenant_isolation, owner_access, system_access | Référentiel de tous les fichiers stockés dans MinIO. |
+| `files` | storage | 0.5 | tenant_isolation, owner_access, system_access, subscriber_contract_pdf_read, subscriber_contract_pdf_create | Référentiel de tous les fichiers stockés dans MinIO. |
 | `outbox_events` | outbox | 0.5 | append, relay | Événements de domaine en attente de publication. |
 | `audit_logs` | audit | 0.5 | append, tenant_read, system_read | Journal d'audit, en ajout seul. |
 | `export_jobs` | reporting | 4.6 | tenant_isolation | Exports CSV et PDF asynchrones. |
@@ -410,7 +410,7 @@ Contrat d'un projet. Immuable une fois verrouillé.
 |---|---|---|
 | `id` | `uuid PK` |  |
 | `association_id` | `uuid FK` | RLS |
-| `project_id` | `uuid FK UNIQUE` |  |
+| `project_id` | `uuid FK UNIQUE` | clé composite (project_id, association_id) → projects |
 | `body_template` | `text` | Markdown avec variables {nom_souscripteur}, {montant}… |
 | `template_sha256` | `text` | empreinte du modèle verrouillé |
 | `association_signer_name / title` | `text` |  |
@@ -425,12 +425,12 @@ Contre-signature d'un souscripteur, avec éléments de preuve.
 |---|---|---|
 | `id` | `uuid PK` |  |
 | `association_id` | `uuid` | RLS |
-| `contract_id / enrollment_id / user_id` | `uuid FK` |  |
+| `contract_id / enrollment_id / user_id` | `uuid FK` | `enrollment_id` UNIQUE : une signature par inscription |
 | `rendered_sha256` | `text` | empreinte du contrat personnalisé tel qu'affiché |
 | `consent_text` | `text` | « J'ai lu et j'accepte… » exact au moment de la signature |
 | `signed_at` | `timestamptz` |  |
 | `ip / user_agent` | `inet / text` |  |
-| `pdf_file_id` | `uuid FK files` | PDF signé avec page de preuve |
+| `pdf_file_id` | `uuid FK files UNIQUE` | PDF signé avec page de preuve |
 
 ## `import_jobs` — lot 4.4
 
