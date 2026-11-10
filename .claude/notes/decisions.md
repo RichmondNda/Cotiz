@@ -647,3 +647,11 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   ui-deviations.md. Pas de scénario de mock : toutes les lectures `/me` concernées sont réelles.
 - Signature d'un contrat (`me.sign`) d'une association suspendue : non bloquée (hors de la consigne « aucune déclaration ») ;
   question notée dans a-verifier.md.
+
+## 2026-11-11 · PR C (règles produit), étape 6 — une seule devise
+- Choix de l'utilisateur : « XOF partout » (parmi : XOF partout, une devise par personne, ne rien imposer).
+- Migration 0021 : `associations_currency_xof` et `projects_currency_xof` (CHECK currency = 'XOF'), comme
+  `plans_currency_xof` (0010) ; schema.sql et domain-rules.md mis à jour. Aucune route ne choisissait la devise.
+- Tests qui passaient une association en XAF (projects, project-preview, project-overview) : retirés ou remplacés par
+  le refus de la base. Les refus `currency_mismatch` d'un montant en XAF restent testés. me.dash garde son erreur
+  explicite sur deux devises (défense en profondeur).

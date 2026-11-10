@@ -87,22 +87,6 @@ describe('vue d’ensemble d’un projet (pr.overview)', () => {
     expect((await read(project.id)).collectionBySequence).toHaveLength(18);
   });
 
-  it('association en XAF : montants dans la devise du projet', async () => {
-    await f.h.superuser(`UPDATE associations SET currency = 'XAF' WHERE id = $1`, [A.id]);
-    try {
-      const xaf = (amount: number) => ({ amount, currency: 'XAF' });
-      const project = await f.created({ ...FIXED, entryFee: xaf(50000), installmentAmount: xaf(25000) });
-      await setStatus(project.id, 'active');
-      const result = await read(project.id);
-      expect(result).toMatchObject({ collected: xaf(0), expectedToDate: xaf(0), late: { amount: xaf(0) } });
-      expect(new Set(result.collectionBySequence.flatMap((c) => [c.expected.currency, c.received.currency]))).toEqual(
-        new Set(['XAF']),
-      );
-    } finally {
-      await f.h.superuser(`UPDATE associations SET currency = 'XOF' WHERE id = $1`, [A.id]);
-    }
-  });
-
   it('viewer et manager : lecture permise', async () => {
     const project = await f.created(ROLLING);
     expect((await overview(project.id, f.tokens.koffi)).status).toBe(200);

@@ -223,23 +223,15 @@ describe('projets (pr.create, pr.get, pr.list)', () => {
       });
     });
 
-    it('association en XAF : projet dans sa devise ; montants en XOF refusés', async () => {
-      await f.h.superuser(`UPDATE associations SET currency = 'XAF' WHERE id = $1`, [A.id]);
-      try {
-        const xaf = (amount: number) => ({ amount, currency: 'XAF' });
-        const project = await f.created({ ...FIXED, entryFee: xaf(50000), installmentAmount: xaf(25000) });
-        expect(project).toMatchObject({
-          entryFee: xaf(50000),
-          installmentAmount: xaf(25000),
-          stats: { collected: xaf(0), expectedToDate: xaf(0), totalPerSubscriber: xaf(500000) },
-        });
-        expect((await f.h.superuser('SELECT currency FROM projects')).rows).toEqual([{ currency: 'XAF' }]);
-        const res = await f.create(FIXED);
-        expect(res.status).toBe(422);
-        expect(await fieldsOf(res)).toEqual({ installmentAmount: 'currency_mismatch', entryFee: 'currency_mismatch' });
-      } finally {
-        await f.h.superuser(`UPDATE associations SET currency = 'XOF' WHERE id = $1`, [A.id]);
-      }
+    it('une seule devise (migration 0021) : association ou projet hors XOF refusés par la base', async () => {
+      await expect(f.h.superuser(`UPDATE associations SET currency = 'XAF' WHERE id = $1`, [A.id])).rejects.toThrow(
+        /associations_currency_xof/,
+      );
+      const project = await f.created(FIXED);
+      await expect(f.h.superuser(`UPDATE projects SET currency = 'GNF' WHERE id = $1`, [project.id])).rejects.toThrow(
+        /projects_currency_xof/,
+      );
+      expect((await f.h.superuser('SELECT DISTINCT currency FROM projects')).rows).toEqual([{ currency: 'XOF' }]);
     });
 
     it('contrat saisi à la création, plan sans contrats : 403 feature_disabled (lot 4.1), rien n’est écrit', async () => {

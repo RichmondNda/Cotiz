@@ -29,11 +29,6 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   Fenêtre d'escalade fermée : `auth.reset` refuse (`reset_token_invalid`) un code émis par une association si la personne
   gère une association ou fait partie du personnel au moment de la réinitialisation (test dans association-resets).
 
-- **2026-11-07** · Lot 3.2 — `me.dash` additionne les inscriptions de toutes les associations dans un seul `Money`
-  (contrat `SubscriberDashboard.remainingTotal`) : une personne inscrite dans deux devises (XOF et XAF, permis par
-  `associations.currency` et domain-rules) ferait échouer son tableau de bord (erreur explicite, jamais d'addition de
-  devises). Relevé par `money-reviewer`. · Règle « une personne = une devise », ou totaux par devise dans le contrat (au choix).
-
 - **2026-11-07** · Lot 3.2 — association **suspendue** : rien ne dit si elle disparaît de l'espace `/me` (cartes,
   paiements) ; `subscriberEnrollmentsOf` l'affiche tant que l'appartenance est active. Le cache de 30 s n'est pas
   invalidé par `association.suspended` (pas de personne dans l'événement). Relevé par `isolation-reviewer`. · À trancher.
@@ -52,6 +47,13 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché
+- **2026-11-07** · Lot 3.2 — `me.dash` additionne les inscriptions de toutes les associations dans un seul `Money`
+  (contrat `SubscriberDashboard.remainingTotal`) : une personne inscrite dans deux devises (XOF et XAF, permis par
+  `associations.currency` et domain-rules) ferait échouer son tableau de bord (erreur explicite, jamais d'addition de
+  devises). Relevé par `money-reviewer`. · Règle « une personne = une devise », ou totaux par devise dans le contrat (au choix).
+  **Tranché le 2026-11-11** par l'utilisateur : « XOF partout » ; contraintes `associations_currency_xof` et
+  `projects_currency_xof` (migration 0021), branche `chore/devise-unique`.
+
 - **2026-11-07** · Lot 3.4 (`me.history`) — **paiements d'un projet quitté** : l'historique reprend les inscriptions de
   me.dash/me.payment (non retirées, appartenance souscripteur active), donc les paiements d'une inscription retirée ou
   d'une association quittée n'y figurent plus, alors que l'écran promet de « retrouver n'importe quel paiement ».
