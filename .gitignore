@@ -27,3 +27,9 @@ Thumbs.db
 
 # Rapports de couverture (vitest --coverage)
 coverage/
+
+# Captures de vérification d'écran et rapports de tests e2e
+.verif/
+test-results/
+playwright-report/
+*.tsbuildinfo

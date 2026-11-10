@@ -1,14 +1,41 @@
 # Contexte : racine du dépôt. Tout ce qui n'est pas nécessaire aux images est exclu.
+
+# Dépendances et sorties de build (reconstruites dans l'image)
 **/node_modules
+**/.pnpm-store
 **/dist
 **/.turbo
 **/.nuxt
 **/.output
+**/.nitro
+**/.data
+**/.cache
+**/*.tsbuildinfo
+
+# Tests, couverture, captures et rapports
+**/coverage
 **/.verif
+**/test-results
+**/playwright-report
+infra/load/.jeu
+infra/securite/.rapports
+
+# Environnement local et secrets
 **/.env
 **/.env.*
 !**/.env.example
+
+# Journaux, système, éditeurs
 **/*.log
+**/logs
+**/.DS_Store
+**/Thumbs.db
+**/.idea
+**/.vscode
+**/.fleet
+**/*.swp
+
+# Dépôt, outillage et documentation (inutiles aux images)
 .git
 .github
 .claude
@@ -16,6 +43,12 @@
 design
 docs
 prompts
+tools
 graphify-out
+backend data
 infra/compose
+infra/grafana
+infra/load
+infra/securite
 AGENTS.md
+**/CLAUDE.md
