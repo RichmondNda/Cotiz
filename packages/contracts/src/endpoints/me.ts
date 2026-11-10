@@ -187,6 +187,8 @@ export const SubscriberPayment = z
     proof: PaymentProof,
     rejection: Rejection.nullable(),
     reviewedAt: Instant.nullable(),
+    /** Inscription retirée depuis : paiement consultable (historique, détail), plus aucune déclaration (2026-11-10). */
+    enrollmentWithdrawn: z.boolean(),
   })
   .meta({ id: 'SubscriberPayment' });
 export type SubscriberPayment = z.infer<typeof SubscriberPayment>;

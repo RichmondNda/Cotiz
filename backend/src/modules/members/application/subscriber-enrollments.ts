@@ -31,11 +31,14 @@ export interface SubscriberEnrollment {
 
 /**
  * Inscriptions de la personne connectée (espace subscriber, RLS `subscriber_self_read`), non retirées, dans les
- * associations où elle est souscriptrice active (comme la cloche) ; `projectId` : celle de ce projet seulement.
+ * associations où elle est souscriptrice active (comme la cloche) ; `projectId` : celle de ce projet seulement ;
+ * `includeWithdrawn` : retirées comprises (me.history, me.payment : paiements en lecture seule, décision du 2026-11-10).
  * Mêmes calculs que la vue gestionnaire (`enrollmentView`) : statuts au jour de l'association, engagement d'une
  * inscription en attente de signature par `pendingSignatureStates`.
  */
-export async function subscriberEnrollmentsOf(filter: { projectId?: string } = {}): Promise<SubscriberEnrollment[]> {
+export async function subscriberEnrollmentsOf(
+  filter: { projectId?: string; includeWithdrawn?: boolean } = {},
+): Promise<SubscriberEnrollment[]> {
   const context = currentContext();
   const userId = context?.userId;
   if (context?.space !== 'subscriber' || !userId) {
@@ -52,7 +55,7 @@ export async function subscriberEnrollmentsOf(filter: { projectId?: string } = {
     .where(
       and(
         eq(enrollments.userId, userId),
-        ne(enrollments.status, 'withdrawn'),
+        filter.includeWithdrawn ? undefined : ne(enrollments.status, 'withdrawn'),
         inArray(enrollments.associationId, memberOf),
         filter.projectId ? eq(enrollments.projectId, filter.projectId) : undefined,
       ),

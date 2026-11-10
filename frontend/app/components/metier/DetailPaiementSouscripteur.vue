@@ -82,7 +82,13 @@ onBeforeUnmount(liberer)
         />
       </div>
       <dl class="detail__lignes">
-        <div><dt>Projet</dt><dd>{{ paiement.projet.nom }}</dd></div>
+        <div>
+          <dt>Projet</dt><dd>
+            {{ paiement.projet.nom }}<template v-if="paiement.inscriptionRetiree">
+              · inscription retirée
+            </template>
+          </dd>
+        </div>
         <div><dt>Association</dt><dd>{{ association }}</dd></div>
         <div v-if="couverture">
           <dt>Échéances couvertes</dt><dd>{{ couverture }}</dd>

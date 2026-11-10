@@ -23,12 +23,16 @@ const DEFAULT_CURRENCY: Currency = 'XOF';
 
 /** Inscriptions de la sélection : celles présentées au souscripteur (me.dash), filtrées par association et projet. */
 async function selected(filters: { associationId?: string; projectId?: string }) {
-  const entries = (await subscriberEnrollmentsOf(filters.projectId ? { projectId: filters.projectId } : {})).filter(
-    (e) => !filters.associationId || e.association.id === filters.associationId,
-  );
+  const entries = (
+    await subscriberEnrollmentsOf({
+      includeWithdrawn: true,
+      ...(filters.projectId ? { projectId: filters.projectId } : {}),
+    })
+  ).filter((e) => !filters.associationId || e.association.id === filters.associationId);
   const refs: SubscriberPaymentRefs = {
     projects: new Map(entries.map((e) => [e.project.id, { id: e.project.id, name: e.project.name }])),
     associations: new Map(entries.map((e) => [e.association.id, associationRefOf(e)])),
+    withdrawnEnrollments: new Set(entries.filter((e) => e.row.status === 'withdrawn').map((e) => e.row.id)),
   };
   const currencies = new Set(entries.map((e) => e.project.currency));
   // Les totaux additionnent des montants : jamais deux devises (le contrat n'a qu'un montant par total).
@@ -59,8 +63,9 @@ const commitments = (entries: readonly SubscriberEnrollment[]) =>
   entries.map((e) => ({ status: e.row.status, commitment: subscriberCard(e).commitment?.amount ?? null }));
 
 /**
- * me.history (mb-historique, lot 3.4), personne du jeton, mêmes inscriptions que me.dash (non retirées, appartenance
- * souscripteur active), filtrées par association, projet et date de virement (`paidOn`) :
+ * me.history (mb-historique, lot 3.4), personne du jeton, inscriptions des associations où elle est souscriptrice
+ * active, **retirées comprises** (paiements en lecture seule, `enrollmentWithdrawn`, décision du 2026-11-10), filtrées
+ * par association, projet et date de virement (`paidOn`) ; reste et objectif : inscriptions qui engagent seulement :
  * - liste : tous statuts, les plus récents d'abord (date de déclaration), paginée ;
  * - synthèse : versé et nombre des validés de la sélection (subscriberHistoryFigures : l'encaissé du gestionnaire pour
  *   cette personne), reste des inscriptions qui engagent (subscriberSummary, sans la période : un reste n'a pas de date) ;

@@ -261,6 +261,30 @@ describe('me.history : historique du souscripteur au 2026-09-25 (jeu de référe
     expect(man.byMonth.flatMap((m) => m.projects.map((p) => p.projectId))).toEqual(man.byMonth.map(() => MUTUELLE));
   });
 
+  // Modifie le jeu de référence (inscription retirée) : en dernier, sauf le test des accès.
+  it('inscription retirée : ses paiements restent dans l’historique et au détail (marqués), hors du reste et de l’objectif', async () => {
+    await h.superuser(
+      `UPDATE enrollments SET status = 'withdrawn', withdrawn_at = now() WHERE user_id = $1 AND project_id = $2`,
+      [MOUSSA, MUTUELLE],
+    );
+    const all = await historyOf('?limit=100');
+    expect(all.items.map((p) => [p.project.id, p.paidOn, p.amountDeclared.amount])).toEqual(MOUSSA_PAYMENTS);
+    expect(all.items.map((p) => [p.project.id, p.enrollmentWithdrawn])).toEqual(
+      MOUSSA_PAYMENTS.map(([pid]) => [pid, pid === MUTUELLE]),
+    );
+    // Versé : tout ce qui a été validé ; reste et objectif : inscriptions qui engagent seulement (Mutuelle : 70 000 F).
+    expect(all.summary.totalPaid).toEqual(XOF(225_000));
+    expect(all.summary.remaining).toEqual(XOF(325_000));
+    expect((await seriesOf()).target).toEqual(XOF(500_000));
+    expect((await historyOf(`?projectId=${MUTUELLE}`)).items).toHaveLength(3);
+    const mutuelle = all.items.find((p) => p.project.id === MUTUELLE);
+    const detail = await get(`/me/payments/${mutuelle?.id ?? ''}`);
+    expect(detail.status).toBe(200);
+    expect(((await detail.json()) as { enrollmentWithdrawn: boolean }).enrollmentWithdrawn).toBe(true);
+    // Plus de fiche projet (inscription retirée) : rien à déclarer.
+    expect((await get(`/me/projects/${MUTUELLE}`)).status).toBe(404);
+  });
+
   it('jeton gestionnaire → 403 ; sans jeton → 401 ; paramètre invalide → 422', async () => {
     const awa = await tokenOf('association', 'awa@entraide.ci');
     expect((await get('/me/history', awa)).status).toBe(403);

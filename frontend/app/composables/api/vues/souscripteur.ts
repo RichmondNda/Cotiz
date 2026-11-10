@@ -40,6 +40,20 @@ export function vueProjetSouscripteur(d: SubscriberProjectDetail): Projet {
   }
 }
 
+/**
+ * Projet d'une inscription retirée (historique, détail d'un paiement) : seuls son nom et son association sont connus
+ * (SubscriberPayment.project), le reste n'est pas affiché pour un paiement en lecture seule.
+ */
+export function vueProjetRetire(p: { id: string, name: string }, associationId: string): Projet {
+  return {
+    id: p.id, associationId, nom: p.name, statut: STATUT_PROJET.active!, fondsEntree: null, montantEcheance: 0, frequence: 'mensuelle',
+    jourEcheance: 1, typeCalendrier: 'dates_fixes', dateDebut: '', delaiGraceJours: 5, souscripteursRequis: null,
+    modalitesPaiement: [], contratModele: '', nbSouscripteurs: '[N]', montantCollecte: '[MONTANT]',
+    montantAttenduADate: '[MONTANT]', tauxRecouvrement: '[N]', avancement: '[N]', nbEnRetard: 0, nbSignaturesAttendues: 0,
+    nbPaiementsAValider: 0,
+  }
+}
+
 /** Association vue par le souscripteur (cartes, « Comment payer »). */
 export function vueAssociationMembre(a: { id: string, name: string, city?: string, country?: string, description?: string | null, contactEmail?: string, contactPhone?: string }, moyens: PaymentMethod[] = []): Association {
   return {
