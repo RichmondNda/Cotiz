@@ -400,6 +400,31 @@ describe('me.declare', () => {
     }
   });
 
+  it('en base (migration 0018) : une preuve ne sert qu’à un paiement en attente ou validé, même sans le verrou applicatif', async () => {
+    const mine = await proof(USERS.moussa);
+    const pay = (status: 'pending' | 'rejected', i: number) =>
+      f.record({
+        enrollmentId,
+        userId: USERS.moussa,
+        amount: 25000,
+        status,
+        declaredAt: '2026-11-06T09:00:00Z',
+        proofFileId: mine,
+        lines: [{ installmentId: nth(i), amount: 25000, state: status === 'pending' ? 'proposed' : 'voided' }],
+        ...(status === 'rejected'
+          ? {
+              reviewedBy: USERS.awa,
+              reviewedAt: '2026-11-06T10:00:00Z',
+              rejection: { code: 'not_received', message: null },
+            }
+          : {}),
+      });
+    await pay('rejected', 0);
+    await pay('pending', 1);
+    await expect(pay('pending', 2)).rejects.toMatchObject({ code: '23505', constraint: 'payments_proof_unique' });
+    expect(await count('SELECT count(*)::int AS n FROM payments WHERE proof_file_id = $1', [mine])).toBe(2);
+  });
+
   it('double envoi avec preuve, réponse mémorisée perdue : rejoué, pas proof_already_used', async () => {
     const key = crypto.randomUUID();
     const proofed = body({ transactionReference: undefined, proofFileId: await proof(USERS.moussa) });

@@ -127,6 +127,20 @@
       "when": 1794150000000,
       "tag": "0017_contract_signatures_rendered_body",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794500000000,
+      "tag": "0018_payments_proof_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794500001000,
+      "tag": "0019_contracts_subscriber_read",
+      "breakpoints": true
     }
   ]
 }

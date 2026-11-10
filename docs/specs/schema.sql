@@ -1299,6 +1299,7 @@ CREATE INDEX installments_self ON installments (user_id, due_date);
 CREATE INDEX installments_open_due ON installments (due_date) WHERE status IN ('upcoming', 'due', 'partial');
 CREATE INDEX payments_queue ON payments (association_id, declared_at) WHERE status = 'pending';
 CREATE INDEX payments_self ON payments (user_id, declared_at DESC);
+CREATE UNIQUE INDEX payments_proof_unique ON payments (proof_file_id) WHERE proof_file_id IS NOT NULL AND status IN ('pending', 'validated');
 CREATE INDEX allocations_installment ON allocations (installment_id);
 -- Une seule répartition vivante par paiement et par échéance : une proposition annulée (voided) laisse la place à la
 -- répartition confirmée, puis à la proposition recréée par une annulation (architecture/04 § 4.5).
@@ -1480,8 +1481,10 @@ ALTER TABLE contracts FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON contracts
   USING (association_id = app_association_id())
   WITH CHECK (association_id = app_association_id());
+-- Contrat signé par la personne (quel que soit le statut), sinon contrat verrouillé d'une inscription non retirée avec
+-- appartenance souscripteur active (migration 0019).
 CREATE POLICY subscriber_enrolled_read ON contracts FOR SELECT
-  USING (app_space() = 'subscriber' AND EXISTS (SELECT 1 FROM enrollments e WHERE e.project_id = contracts.project_id AND e.association_id = contracts.association_id AND e.user_id = app_user_id()));
+  USING (app_space() = 'subscriber' AND (EXISTS (SELECT 1 FROM contract_signatures s WHERE s.contract_id = contracts.id AND s.user_id = app_user_id()) OR (contracts.locked_at IS NOT NULL AND EXISTS (SELECT 1 FROM enrollments e JOIN memberships m ON m.association_id = e.association_id AND m.user_id = e.user_id WHERE e.project_id = contracts.project_id AND e.association_id = contracts.association_id AND e.user_id = app_user_id() AND e.status <> 'withdrawn' AND m.role = 'subscriber' AND m.status = 'active'))));
 
 -- contract_signatures
 ALTER TABLE contract_signatures ENABLE ROW LEVEL SECURITY;
