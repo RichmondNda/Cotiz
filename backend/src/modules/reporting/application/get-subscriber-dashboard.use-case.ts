@@ -4,6 +4,7 @@ import { type Currency, Money, subscriberSummary } from '@cotiz/domain';
 import type { z } from 'zod';
 import { subscriberPaymentsOf } from '../../ledger/ledger.public.js';
 import { subscriberEnrollmentsOf } from '../../members/members.public.js';
+import { subscriberContractStatesOf } from '../../contracts/contracts.public.js';
 import { requireActor } from '../../../shared/http/index.js';
 import { RedisClient } from '../../../shared/redis/redis.module.js';
 import { readSubscriberDashboard, writeSubscriberDashboard } from '../infra/subscriber-dashboard-cache.js';
@@ -21,7 +22,8 @@ const RECENT_PAYMENTS = 3;
  * - cartes : une par inscription non retirée (subscriberCard, mêmes chiffres que la vue gestionnaire), triées retard,
  *   signature, prochaine échéance (sortedCards) ;
  * - reste, retard et prochaine échéance : inscriptions qui engagent seulement (subscriberSummary) ;
- * - contrats à signer : inscriptions en attente de signature ; 3 derniers paiements déclarés.
+ * - contrats à signer : inscriptions en attente de signature dont le contrat est verrouillé (un brouillon n'est jamais
+ *   annoncé) ; 3 derniers paiements déclarés.
  */
 @Injectable()
 export class GetSubscriberDashboardUseCase {
@@ -60,6 +62,14 @@ export class GetSubscriberDashboardUseCase {
       },
       { limit: RECENT_PAYMENTS },
     );
+    const contractStates = await subscriberContractStatesOf(
+      entries.map(({ entry }) => ({
+        enrollmentId: entry.row.id,
+        projectId: entry.project.id,
+        associationId: entry.association.id,
+        userId: entry.row.userId,
+      })),
+    );
     return {
       remainingTotal: money(summary.remainingTotal),
       projectsCount: entries.length,
@@ -74,7 +84,9 @@ export class GetSubscriberDashboardUseCase {
           }
         : null,
       contractsToSign: entries
-        .filter((e) => e.entry.row.status === 'pending_signature')
+        .filter(
+          (e) => e.entry.row.status === 'pending_signature' && contractStates.get(e.entry.row.id)?.locked === true,
+        )
         .map((e) => ({
           project: { id: e.entry.project.id, name: e.entry.project.name },
           association: associationRefOf(e.entry),

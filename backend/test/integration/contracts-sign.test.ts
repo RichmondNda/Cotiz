@@ -2,9 +2,11 @@ import { createHash } from 'node:crypto';
 import type { INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ENDPOINTS, type EventEnvelope, type EventType } from '@cotiz/contracts';
+import { Redis } from 'ioredis';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { loadConfig } from '../../src/config.js';
 import { ContractScheduleConsumer } from '../../src/modules/members/events/contract-schedule.consumer.js';
+import { invalidateSubscriberDashboard } from '../../src/modules/reporting/infra/subscriber-dashboard-cache.js';
 import { NotificationsConsumer } from '../../src/modules/notifications/events/notifications.consumer.js';
 import { WorkerModule } from '../../src/worker.module.js';
 import { A, B, USERS } from '../isolation/harness.js';
@@ -454,6 +456,46 @@ describe('signature du contrat (me.contract, me.sign)', () => {
         headers: { 'idempotency-key': crypto.randomUUID() },
       });
       expect(res.status).toBe(422);
+    });
+  });
+
+  describe('contrat à signer annoncé seulement verrouillé (me.dash, me.project)', () => {
+    const dashboard = async () => {
+      const redis = new Redis(f.redis.getConnectionUrl());
+      await invalidateSubscriberDashboard(redis, USERS.moussa);
+      redis.disconnect();
+      const res = await f.call('/me/dashboard', { token: f.tokens.moussa });
+      expect(res.status).toBe(200);
+      return (await res.json()) as { contractsToSign: { project: { id: string } }[] };
+    };
+    const projectContract = async (pid: string) => {
+      const res = await f.call(`/me/projects/${pid}`, { token: f.tokens.moussa });
+      expect(res.status).toBe(200);
+      return ((await res.json()) as { contract: { required: boolean; signedAt: string | null } }).contract;
+    };
+
+    it('brouillon : rien à signer ; verrouillé : à signer ; signé : date de signature', async () => {
+      const contractId = await insertContract(PROJECTS.a, { locked: false });
+      await enrollment(PROJECTS.a);
+      expect((await dashboard()).contractsToSign).toEqual([]);
+      expect(await projectContract(PROJECTS.a)).toEqual({ required: false, signedAt: null });
+
+      await f.h.superuser(
+        `UPDATE contracts SET association_signed_by = $2, association_signed_at = now(), locked_at = now() WHERE id = $1`,
+        [contractId, USERS.awa],
+      );
+      expect((await dashboard()).contractsToSign.map((c) => c.project.id)).toEqual([PROJECTS.a]);
+      expect(await projectContract(PROJECTS.a)).toEqual({ required: true, signedAt: null });
+
+      const { renderedSha256 } = await contractOf(PROJECTS.a);
+      expect((await sign(PROJECTS.a, renderedSha256)).status).toBe(201);
+      const [{ signedAt }] = (
+        await f.h.superuser(`SELECT signed_at AS "signedAt" FROM contract_signatures WHERE user_id = $1`, [
+          USERS.moussa,
+        ])
+      ).rows as [{ signedAt: Date }];
+      expect(await projectContract(PROJECTS.a)).toEqual({ required: false, signedAt: signedAt.toISOString() });
+      expect((await dashboard()).contractsToSign).toEqual([]);
     });
   });
 

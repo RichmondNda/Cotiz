@@ -605,6 +605,7 @@ describe('CLI : create-platform-owner', () => {
       await h.superuser('DELETE FROM payments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('DELETE FROM installments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('DELETE FROM enrollments WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
+      await h.superuser('DELETE FROM contracts WHERE project_id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('DELETE FROM projects WHERE id = ANY($1::uuid[])', [Object.values(PROJECT)]);
       await h.superuser('UPDATE association_payment_methods SET is_active = false WHERE id = $1', [sgbci]);
       try {
@@ -617,6 +618,12 @@ describe('CLI : create-platform-owner', () => {
         expect(linked).toEqual(
           [PROJECT.centre, PROJECT.voyage].sort().map((pid) => ({ pid, pm: mockId('payment-method', 'entraide-0') })),
         );
+        // Contrat de référence de Voyage solidaire (seed-reference.yaml, contractRequired) : recréé, verrouillé.
+        const { rows: seededContracts } = await h.superuser(
+          `SELECT project_id AS pid, locked_at IS NOT NULL AS locked FROM contracts WHERE project_id = ANY($1::uuid[])`,
+          [Object.values(PROJECT)],
+        );
+        expect(seededContracts).toEqual([{ pid: PROJECT.voyage, locked: true }]);
       } finally {
         await h.superuser('UPDATE association_payment_methods SET is_active = true WHERE id = $1', [sgbci]);
       }

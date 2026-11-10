@@ -16,6 +16,7 @@ import {
   SeedRefusedError,
 } from '../modules/identity/application/seed-dev-accounts.use-case.js';
 import { SeedDevMembershipsUseCase } from '../modules/access/access.public.js';
+import { REFERENCE_CONTRACT_ASSOCIATIONS, SeedDevContractsUseCase } from '../modules/contracts/contracts.public.js';
 import { SeedDevPlansUseCase, SeedDevSubscriptionsUseCase } from '../modules/billing/billing.public.js';
 import { REFERENCE_PAYMENT_ASSOCIATIONS, SeedDevPaymentsUseCase } from '../modules/ledger/ledger.public.js';
 import { REFERENCE_MEMBER_ASSOCIATIONS, SeedDevMembersUseCase } from '../modules/members/members.public.js';
@@ -187,6 +188,12 @@ async function seedDev(app: INestApplicationContext, io: CliStreams): Promise<nu
         ...(await db.withTenantContext({ space: 'association', associationId: mockId('association', slug) }, () =>
           app.get(SeedDevProjectsUseCase).execute(slug),
         )),
+      );
+    }
+    // Contrats de référence (Voyage solidaire, verrouillé), dans le contexte de chaque association, après ses projets.
+    for (const slug of REFERENCE_CONTRACT_ASSOCIATIONS) {
+      await db.withTenantContext({ space: 'association', associationId: mockId('association', slug) }, () =>
+        app.get(SeedDevContractsUseCase).execute(slug),
       );
     }
     // Inscriptions (lot 2.3), dans le contexte de chaque association ; un compte non activé créé par l'association
