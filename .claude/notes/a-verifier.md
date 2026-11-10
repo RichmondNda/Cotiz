@@ -204,3 +204,13 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   (heure de début de transaction) ; deux transactions commencées à la même microseconde comptent pour une, d'où une
   4e demande sous forte charge. Piste : compter un identifiant de demande (colonne ou regroupement) plutôt que l'heure.
   À trancher par l'utilisateur (correctif dans un lot ou une PR `chore/`).
+
+## 2026-11-10 · PR C étape 1 (late_from) — **à trancher par l'utilisateur**
+- Reprise des données existantes : la migration 0020 pose `late_from = NULL` partout. Les inscriptions signées **avant**
+  la migration avec des échéances déjà passées gardent un retard compté depuis l'échéance (`status = 'late'`,
+  `late_since` ancien). Options : (1, recommandée) migration de reprise 0021 : `late_from` = jour local de
+  `contract_signatures.signed_at` quand `due_date` < ce jour, puis recalcul par `installments.refresh-statuses`
+  (statut et `late_since`) ; (2) règle « signatures futures seulement », consignée. Touche des données d'argent :
+  non faite sans accord. *Relecture money-reviewer du 2026-11-10.*
+- Lot 4.3 (relances `after_due`, `offsetDays`) : compter les jours de retard depuis `lateStart`/`lateSince`, pas
+  `due_date` (le mock `frontend/app/composables/api/relances.ts` part de `dueDate`).

@@ -40,7 +40,8 @@ const CLOSED_ACCOUNTS = new Set<SubscriberContact['status']>(['disabled', 'anony
  *    deux comptes), sinon créé en attente d'activation ;
  * 3. une inscription par projet et par personne, sous verrou (`already_enrolled`, même retirée) ;
  * 4. appartenance souscripteur créée ou rétablie (active dès l'inscription), sous le quota du plan ;
- * 5. inscription et échéances, statut initial par installmentStatus() (rattrapage : passées dues ou en retard, Q3) ;
+ * 5. inscription et échéances, statut initial par installmentStatus() (rattrapage : passées dues ou en retard, Q3 ;
+ *    sous contrat, le retard d'une échéance passée part de la signature, late_from) ;
  *    projet sous contrat (lot 4.1) : inscription `pending_signature`, sans échéance (générées à la signature, décision
  *    20), `contract.signature_required` ;
  * 6. compte non activé créé par cette association : son code d'activation et le message prêt (Q8). Créé ailleurs

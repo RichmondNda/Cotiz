@@ -69,8 +69,12 @@ export class ContractScheduleConsumer implements OnModuleInit, OnModuleDestroy {
       if (!timezone) throw new Error(`contract-schedule : association ${associationId} illisible`);
       const today = todayIn(timezone);
       // Jour de la signature (activated_at, posé par me.sign) : le retard d'une échéance déjà passée en part (lateFrom),
-      // pas de son échéance (domain-rules § 6) ; me.declare refusait tout paiement avant la signature.
-      const signedOn = todayIn(timezone, enrollment.activatedAt ?? new Date());
+      // pas de son échéance (domain-rules § 6) ; me.declare refusait tout paiement avant la signature. Absent : erreur,
+      // l'outbox réessaie (jamais le jour du traitement à la place de celui de la signature).
+      if (!enrollment.activatedAt) {
+        throw new Error(`contract-schedule : inscription ${enrollmentId} signée sans date d'activation`);
+      }
+      const signedOn = todayIn(timezone, enrollment.activatedAt);
       // Cycle roulant signé tard : l'horizon (12 échéances à venir) est rétabli dès la signature, à la suite.
       const lastPeriodic = Math.max(0, ...base.filter((l) => l.kind === 'periodic').map((l) => l.sequence));
       const lines =

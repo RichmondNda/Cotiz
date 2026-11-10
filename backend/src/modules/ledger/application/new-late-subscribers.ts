@@ -22,7 +22,8 @@ export async function newLateSubscribersOf(associationId: string, today: IsoDate
   }
   const late = new Set<string>();
   for (const project of await associationProjectsOf(associationId)) {
-    // Départ du retard (lateStart) : l'échéance, ou late_from s'il est postérieur (échéance passée à la signature).
+    // Départ du retard (lateStart) : late_from s'il est posé (toujours postérieur à l'échéance, contrainte
+    // installments_late_from_after_due), sinon l'échéance.
     const start = dueDateTurningLateOn(today, project.graceDays);
     const rows = await currentTx()
       .select({ installment: installments })
@@ -32,7 +33,7 @@ export async function newLateSubscribersOf(associationId: string, today: IsoDate
         and(
           eq(installments.associationId, associationId),
           eq(installments.projectId, project.id),
-          sql`GREATEST(${installments.dueDate}, COALESCE(${installments.lateFrom}, ${installments.dueDate})) = ${start}`,
+          sql`COALESCE(${installments.lateFrom}, ${installments.dueDate}) = ${start}`,
           notInArray(installments.status, [...FINAL_INSTALLMENT_STATUSES]),
           eq(enrollments.status, 'active'),
         ),
