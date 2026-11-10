@@ -723,9 +723,9 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
     });
 
     /** Politique 0019 avec une clause remplacée, pour prouver que chacune compte. */
-    const enrolledRead = (parts: { locked?: string; withdrawn?: string; membership?: string }) => ({
+    const enrolledRead = (parts: { signed?: string; locked?: string; withdrawn?: string; membership?: string }) => ({
       using: `app_space() = 'subscriber' AND (
-        EXISTS (SELECT 1 FROM contract_signatures s WHERE s.contract_id = contracts.id AND s.user_id = app_user_id())
+        EXISTS (SELECT 1 FROM contract_signatures s WHERE ${parts.signed ?? 's.contract_id = contracts.id'} AND s.user_id = app_user_id())
         OR (${parts.locked ?? 'contracts.locked_at IS NOT NULL'} AND EXISTS (
           SELECT 1 FROM enrollments e
           JOIN memberships m ON m.association_id = e.association_id AND m.user_id = e.user_id
@@ -733,6 +733,13 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
             AND e.user_id = app_user_id() AND ${parts.withdrawn ?? "e.status <> 'withdrawn'"}
             AND ${parts.membership ?? "m.role = 'subscriber' AND m.status = 'active'"})))`,
       withCheck: null,
+    });
+
+    it('subscriber_enrolled_read sans le lien signature → contrat : Moussa (une signature) lit tous les contrats', async () => {
+      const leaked = await h.withPolicy('contracts', 'subscriber_enrolled_read', enrolledRead({ signed: 'true' }), () =>
+        h.as(asSubscriber(USERS.moussa), contractIds),
+      );
+      expect(leaked).toEqual([CONTRACTS.a, CONTRACTS.a2, CONTRACTS.b, CONTRACTS.a3]);
     });
 
     it('subscriber_enrolled_read sans le verrouillage : Aminata lit le brouillon du projet a2', async () => {

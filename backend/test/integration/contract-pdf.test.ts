@@ -434,7 +434,7 @@ describe('PDF du contrat signé (worker documents, me.contracts)', () => {
 
   describe('me.contracts', () => {
     it('à signer d’abord, puis signés (date, PDF une fois produit) ; ni retirée, ni sans contrat, ni d’autrui', async () => {
-      await insertContract(PROJECTS.a2, { locked: false });
+      await insertContract(PROJECTS.a2);
       const toSign = await enrollment(PROJECTS.a2);
       const { signature } = await signed();
       await insertContract(PROJECTS.rollingA);
