@@ -125,7 +125,7 @@ describe('me.payment', () => {
     });
   });
 
-  it('inconnu, inscription retirée, appartenance retirée → même 404 ; jeton gestionnaire → 403', async () => {
+  it('inconnu, appartenance retirée → même 404 ; inscription retirée → lisible, marquée ; jeton gestionnaire → 403', async () => {
     const payment = await f.record({
       enrollmentId,
       userId: USERS.moussa,
@@ -140,9 +140,14 @@ describe('me.payment', () => {
     await f.h.superuser(`UPDATE enrollments SET status = 'withdrawn', withdrawn_at = now() WHERE id = $1`, [
       enrollmentId,
     ]);
-    expect(await notFound(payment)).toEqual(unknown);
+    // Inscription retirée : paiement gardé en lecture seule (décision du 2026-11-10).
+    const withdrawn = await get(payment);
+    expect(withdrawn.status).toBe(200);
+    expect(((await withdrawn.json()) as { enrollmentWithdrawn: boolean }).enrollmentWithdrawn).toBe(true);
     await f.h.superuser(`UPDATE enrollments SET status = 'active', withdrawn_at = NULL WHERE id = $1`, [enrollmentId]);
-    expect((await get(payment)).status).toBe(200);
+    const active = await get(payment);
+    expect(active.status).toBe(200);
+    expect(((await active.json()) as { enrollmentWithdrawn: boolean }).enrollmentWithdrawn).toBe(false);
 
     await f.h.superuser(
       `UPDATE memberships SET status = 'removed' WHERE user_id = $1 AND association_id = $2 AND role = 'subscriber'`,

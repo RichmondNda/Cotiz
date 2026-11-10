@@ -487,14 +487,45 @@ describe('PDF du contrat signé (worker documents, me.contracts)', () => {
     it('RLS élargies : seulement ses propres inscriptions et signatures (le code filtre seul)', async () => {
       await insertContract(PROJECTS.a);
       await enrollment(PROJECTS.a, { userId: USERS.fatou });
+      // Contrats signés d'inscriptions retirées : celle de Fatou (autrui) dans A ; celle de Moussa dans B, où il n'est
+      // pas souscripteur (association quittée). Ni l'un ni l'autre n'est présenté à Moussa.
+      const signedWithdrawn = async (pid: string, aid: string, userId: string) => {
+        await insertContract(pid, { aid });
+        const [{ id: contractId }] = (await f.h.superuser('SELECT id FROM contracts WHERE project_id = $1', [pid]))
+          .rows as [{ id: string }];
+        const enrollmentId = await enrollment(pid, { aid, userId, status: 'withdrawn' });
+        const fileId = crypto.randomUUID();
+        await f.h.superuser(
+          `INSERT INTO files (id, association_id, owner_user_id, purpose, bucket, object_key, original_name, mime_type,
+                              size_bytes, scan_status)
+           VALUES ($1::uuid, $2::uuid, $3, 'contract_pdf', 'cotiz-legal',
+                   $2::uuid::text || '/contract_pdf/' || $1::uuid::text || '.pdf', 'contrat.pdf', 'application/pdf', 0,
+                   'pending')`,
+          [fileId, aid, userId],
+        );
+        await f.h.superuser(
+          `INSERT INTO contract_signatures (id, association_id, contract_id, enrollment_id, user_id, rendered_sha256,
+                                            rendered_body, consent_text, signed_at, pdf_file_id)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, repeat('c', 64), 'Contrat', 'J’ai lu et j’accepte', now(), $5)`,
+          [aid, contractId, enrollmentId, userId, fileId],
+        );
+      };
+      await signedWithdrawn(PROJECTS.a2, A.id, USERS.fatou);
+      await signedWithdrawn(PROJECTS.b, B.id, USERS.moussa);
       const anyRow = { using: 'true', withCheck: null };
       await f.h.withPolicy('enrollments', 'subscriber_self_read', anyRow, () =>
         f.h.withPolicy('contracts', 'subscriber_enrolled_read', anyRow, () =>
           f.h.withPolicy('projects', 'subscriber_enrolled_read', anyRow, () =>
-            f.h.withPolicy('contract_signatures', 'subscriber_self_read', anyRow, async () => {
-              const res = await f.call('/me/contracts', { token: f.tokens.moussa });
-              expect(Contracts.parse(await res.json()).items).toEqual([]);
-            }),
+            f.h.withPolicy('contract_signatures', 'subscriber_self_read', anyRow, () =>
+              f.h.withPolicy('associations', 'member_read', anyRow, async () => {
+                const res = await f.call('/me/contracts', { token: f.tokens.moussa });
+                expect(Contracts.parse(await res.json()).items).toEqual([]);
+                for (const pid of [PROJECTS.a2, PROJECTS.b]) {
+                  const contract = await f.call(`/me/projects/${pid}/contract`, { token: f.tokens.moussa });
+                  expect(contract.status).toBe(404);
+                }
+              }),
+            ),
           ),
         ),
       );

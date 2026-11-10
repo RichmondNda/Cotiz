@@ -180,15 +180,17 @@ describe('isolation : historique du souscripteur (me.history)', () => {
     expect((await f.call('/me/history', { token: f.tokens.awa })).status).toBe(403);
   });
 
-  it('politiques élargies (paiements, inscriptions, échéances, répartitions) : toujours rien d’autrui', async () => {
+  it('politiques élargies (paiements, inscriptions, échéances, répartitions, associations) : rien d’autrui', async () => {
     const p = await scenario();
     await f.h.withPolicy('payments', 'subscriber_self_read', everyone, () =>
       f.h.withPolicy('enrollments', 'subscriber_self_read', everyone, () =>
         f.h.withPolicy('installments', 'subscriber_self_read', everyone, () =>
-          f.h.withPolicy('allocations', 'subscriber_self_read', everyone, async () => {
-            await moussaSeesOnlyHis(p);
-            expect((await f.call(`/me/payments/${p.fatouA}`, { token: f.tokens.moussa })).status).toBe(404);
-          }),
+          f.h.withPolicy('allocations', 'subscriber_self_read', everyone, () =>
+            f.h.withPolicy('associations', 'member_read', everyone, async () => {
+              await moussaSeesOnlyHis(p);
+              expect((await f.call(`/me/payments/${p.fatouA}`, { token: f.tokens.moussa })).status).toBe(404);
+            }),
+          ),
         ),
       ),
     );
