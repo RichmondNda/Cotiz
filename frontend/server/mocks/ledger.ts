@@ -38,7 +38,7 @@ export function installmentView(row: InstallmentRow): InstallmentView {
   const project = projectById(row.projectId)!
   const pending = amountPending(row.id)
   const status = installmentStatus(
-    { dueDate: row.dueDate, amountDue: row.amountDue, amountPaid: row.amountPaid, amountPending: pending, status: row.persistedStatus === 'open' ? 'upcoming' : row.persistedStatus },
+    { dueDate: row.dueDate, lateFrom: null, amountDue: row.amountDue, amountPaid: row.amountPaid, amountPending: pending, status: row.persistedStatus === 'open' ? 'upcoming' : row.persistedStatus },
     today(),
     project.graceDays,
   )
@@ -62,7 +62,7 @@ export function installmentsOf(enrollmentId: string): InstallmentView[] {
 /** Forme attendue par proposeAllocation / validateAllocation. */
 export function ledgerInstallments(enrollmentId: string): LedgerInstallment[] {
   return installmentsOf(enrollmentId).map(i => ({
-    id: i.id, enrollmentId: i.enrollmentId, kind: i.kind, sequence: i.sequence, dueDate: i.dueDate,
+    id: i.id, enrollmentId: i.enrollmentId, kind: i.kind, sequence: i.sequence, dueDate: i.dueDate, lateFrom: null,
     amountDue: i.amountDue, amountPaid: i.amountPaid, amountPending: i.amountPending,
     status: i.persistedStatus === 'open' ? i.status : i.persistedStatus,
   }))
