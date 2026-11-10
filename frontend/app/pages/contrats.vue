@@ -118,7 +118,7 @@ const dateSignature = (c: ContratDetaille) => (c.signeLe ? formatDate(c.signeLe,
                 <span class="contrats__icone contrats__icone--success"><CzIcon nom="contrat" /></span>
                 <span class="contrats__texte">
                   <b>{{ c.projet.nom }}</b>
-                  <span>{{ nomCourtAssociation(c.association.nom) }} · signé le {{ dateSignature(c) }}</span>
+                  <span>{{ nomCourtAssociation(c.association.nom) }} · signé le {{ dateSignature(c) }}<template v-if="c.inscriptionRetiree"> · adhésion terminée</template></span>
                 </span>
                 <BadgeStatut
                   type="contrat"

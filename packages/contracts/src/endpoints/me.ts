@@ -480,6 +480,8 @@ export const meContracts = defineEndpoint({
               status: z.enum(['to_sign', 'signed']),
               signedAt: Instant.nullable(),
               pdfFileId: Uuid.nullable(),
+              /** Inscription retirée depuis : contrat signé consultable et PDF téléchargeable (2026-11-10). */
+              enrollmentWithdrawn: z.boolean(),
             }),
           ),
         }),

@@ -461,6 +461,29 @@ describe('PDF du contrat signé (worker documents, me.contracts)', () => {
       expect((await list())[1]?.pdfFileId).toBe(signature.pdf_file_id);
     });
 
+    it('inscription retirée après la signature : contrat signé gardé (marqué), consultable, PDF téléchargeable', async () => {
+      const { enrollmentId, signature } = await signed();
+      await generate(signature.id);
+      await f.h.superuser(`UPDATE enrollments SET status = 'withdrawn', withdrawn_at = now() WHERE id = $1`, [
+        enrollmentId,
+      ]);
+      const res = await f.call('/me/contracts', { token: f.tokens.moussa });
+      expect(res.status).toBe(200);
+      expect(Contracts.parse(await res.json()).items).toEqual([
+        expect.objectContaining({
+          project: expect.objectContaining({ id: PROJECTS.a }) as unknown,
+          status: 'signed',
+          signedAt: signature.signed_at.toISOString(),
+          pdfFileId: signature.pdf_file_id,
+          enrollmentWithdrawn: true,
+        }),
+      ]);
+      const contract = await f.call(`/me/projects/${PROJECTS.a}/contract`, { token: f.tokens.moussa });
+      expect(contract.status).toBe(200);
+      expect(((await contract.json()) as { signedAt: string | null }).signedAt).toBe(signature.signed_at.toISOString());
+      expect((await download(signature.pdf_file_id, f.tokens.moussa)).status).toBe(302);
+    });
+
     it('RLS élargies : seulement ses propres inscriptions et signatures (le code filtre seul)', async () => {
       await insertContract(PROJECTS.a);
       await enrollment(PROJECTS.a, { userId: USERS.fatou });

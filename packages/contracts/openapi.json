@@ -11020,9 +11020,19 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "enrollmentWithdrawn": {
+                            "type": "boolean"
                           }
                         },
-                        "required": ["project", "association", "status", "signedAt", "pdfFileId"],
+                        "required": [
+                          "project",
+                          "association",
+                          "status",
+                          "signedAt",
+                          "pdfFileId",
+                          "enrollmentWithdrawn"
+                        ],
                         "additionalProperties": false
                       }
                     }
