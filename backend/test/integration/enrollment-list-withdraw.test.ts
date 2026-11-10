@@ -236,6 +236,23 @@ describe('inscriptions d’un projet (en.list, en.withdraw)', () => {
       );
     });
 
+    it('en attente de signature : retirée (pending_signature → withdrawn), sans échéance à annuler', async () => {
+      const id = crypto.randomUUID();
+      await f.h.superuser(
+        `INSERT INTO enrollments (id, association_id, project_id, user_id, status, starts_from, joined_at)
+         VALUES ($1, $2, $3, $4, 'pending_signature', '2026-03-01', now())`,
+        [id, A.id, PROJECTS.a, USERS.moussa],
+      );
+      const res = await withdraw(id);
+      expect(res.status).toBe(200);
+      const [row] = (
+        await f.h.superuser(`SELECT status, withdrawn_at IS NOT NULL AS dated FROM enrollments WHERE id = $1`, [id])
+      ).rows as [{ status: string; dated: boolean }];
+      expect(row).toEqual({ status: 'withdrawn', dated: true });
+      expect(await installmentsOf(id)).toEqual([]);
+      expect((await withdraw(id)).status).toBe(409);
+    });
+
     it('déjà retirée : 409 invalid_state, rien ne change', async () => {
       const { late } = await scenario();
       expect((await withdraw(late.id)).status).toBe(200);

@@ -95,7 +95,7 @@ ou un rejet rend la même date) ; sinon `null`.
 | Objet | Transitions autorisées |
 |---|---|
 | Projet | `draft → enrolling` (publish) · `enrolling → active` (date de début) · `enrolling/active → completed` (close) · `completed → archived` ; suppression : `draft` seulement |
-| Inscription | `pending_signature → active` (signature) · `active → withdrawn` · `active → completed` (fin de projet) |
+| Inscription | `pending_signature → active` (signature) · `active → withdrawn` · `pending_signature → withdrawn` (retrait avant signature, décision du 2026-11-10) · `active → completed` (fin de projet) |
 | Paiement | `pending → validated` · `pending → rejected` · `validated → pending` (annulation ≤ 10 min, auteur) · `pending → canceled` (retrait par le souscripteur, V2) |
 | Association | `onboarding → active` · `active ↔ suspended` · `active → past_due → suspended` (V2) · `* → closed` |
 | Demande de création | `pending → approved` · `pending → rejected` |
