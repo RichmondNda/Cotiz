@@ -220,7 +220,16 @@ export const FINAL_INSTALLMENT_STATUSES = ['paid', 'waived', 'canceled'] as cons
 export function toLedger(
   i: Pick<
     InstallmentRecord,
-    'id' | 'enrollmentId' | 'kind' | 'sequence' | 'dueDate' | 'amountDue' | 'amountPaid' | 'amountPending' | 'status'
+    | 'id'
+    | 'enrollmentId'
+    | 'kind'
+    | 'sequence'
+    | 'dueDate'
+    | 'lateFrom'
+    | 'amountDue'
+    | 'amountPaid'
+    | 'amountPending'
+    | 'status'
   >,
   currency: Currency,
 ): LedgerInstallment {
@@ -230,6 +239,7 @@ export function toLedger(
     kind: i.kind,
     sequence: i.sequence,
     dueDate: i.dueDate,
+    lateFrom: i.lateFrom,
     amountDue: Money.fromDb(i.amountDue, currency).amount,
     amountPaid: Money.fromDb(i.amountPaid, currency).amount,
     amountPending: Money.fromDb(i.amountPending, currency).amount,

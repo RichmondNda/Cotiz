@@ -176,6 +176,28 @@ describe('managers.digest', () => {
     expect(await bells()).toHaveLength(MANAGERS_A.length);
   });
 
+  it('nouveau retard : échéance passée à la signature (late_from) → signalé à partir de la signature, pas de l’échéance', async () => {
+    const m = await moussa();
+    const march = await f.installmentOf(m.id, '2026-03-05');
+    // Seule l'échéance du 5 mars reste ouverte : son retard part du 20 mars (jour de signature simulé).
+    await f.h.superuser(`UPDATE installments SET status = 'canceled' WHERE enrollment_id = $1 AND id <> $2`, [
+      m.id,
+      march,
+    ]);
+    await f.h.superuser(`UPDATE installments SET late_from = '2026-03-20' WHERE id = $1`, [march]);
+    const lateMorning = await lateMorningOfMarch();
+    const shifted = shiftDays(lateMorning, 15);
+
+    await run(lateMorning);
+    expect(await bells()).toEqual([]);
+    await run(shiftDays(shifted, -1));
+    expect(await bells()).toEqual([]);
+    await run(shifted);
+    expect((await bells()).map((b) => [b.user_id, b.body])).toEqual(
+      MANAGERS_A.map((u) => [u, '1 souscripteur passé en retard.']),
+    );
+  });
+
   it('nouveau retard : partiellement payée → comptée ; déclarée (en attente) → pas un retard, un paiement à valider', async () => {
     const m = await moussa();
     const march = await f.installmentOf(m.id, '2026-03-05');

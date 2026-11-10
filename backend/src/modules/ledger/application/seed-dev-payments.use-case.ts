@@ -307,6 +307,7 @@ export class SeedDevPaymentsUseCase {
       kind: r.kind,
       sequence: r.sequence,
       dueDate: r.dueDate,
+      lateFrom: r.lateFrom,
       amountDue: Money.fromDb(r.amountDue, currency).amount,
       amountPaid: Money.fromDb(r.amountPaid, currency).amount,
       amountPending: Money.fromDb(r.amountPending, currency).amount,

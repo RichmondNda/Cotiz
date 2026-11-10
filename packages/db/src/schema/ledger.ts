@@ -64,6 +64,7 @@ export const installments = pgTable(
     amountPending: bigint('amount_pending', { mode: 'bigint' }).notNull().default(0n),
     status: installmentsStatus('status').notNull().default('upcoming'),
     lateSince: date('late_since', { mode: 'string' }),
+    lateFrom: date('late_from', { mode: 'string' }),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     createdAt: createdAt(),
   },

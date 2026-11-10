@@ -1,6 +1,6 @@
 import { enrollments, installments } from '@cotiz/db';
 import { type Currency, dueDateTurningLateOn, type IsoDate, installmentStatus } from '@cotiz/domain';
-import { and, eq, notInArray } from 'drizzle-orm';
+import { and, eq, notInArray, sql } from 'drizzle-orm';
 import { associationProjectsOf } from '../../projects/projects.public.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import { FINAL_INSTALLMENT_STATUSES, toLedger } from './payment-review.js';
@@ -22,7 +22,8 @@ export async function newLateSubscribersOf(associationId: string, today: IsoDate
   }
   const late = new Set<string>();
   for (const project of await associationProjectsOf(associationId)) {
-    const dueDate = dueDateTurningLateOn(today, project.graceDays);
+    // Départ du retard (lateStart) : l'échéance, ou late_from s'il est postérieur (échéance passée à la signature).
+    const start = dueDateTurningLateOn(today, project.graceDays);
     const rows = await currentTx()
       .select({ installment: installments })
       .from(installments)
@@ -31,7 +32,7 @@ export async function newLateSubscribersOf(associationId: string, today: IsoDate
         and(
           eq(installments.associationId, associationId),
           eq(installments.projectId, project.id),
-          eq(installments.dueDate, dueDate),
+          sql`GREATEST(${installments.dueDate}, COALESCE(${installments.lateFrom}, ${installments.dueDate})) = ${start}`,
           notInArray(installments.status, [...FINAL_INSTALLMENT_STATUSES]),
           eq(enrollments.status, 'active'),
         ),

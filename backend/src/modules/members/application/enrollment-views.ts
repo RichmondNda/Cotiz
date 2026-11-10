@@ -30,6 +30,7 @@ const VIEW_COLUMNS = {
   kind: installments.kind,
   sequence: installments.sequence,
   dueDate: installments.dueDate,
+  lateFrom: installments.lateFrom,
   amountDue: installments.amountDue,
   amountPaid: installments.amountPaid,
   amountPending: installments.amountPending,
@@ -73,7 +74,7 @@ function computed(i: InstallmentRecord, project: ProjectRecord, today: IsoDate) 
   const amountPaid = Money.fromDb(i.amountPaid, currency).amount;
   const amountPending = Money.fromDb(i.amountPending, currency).amount;
   const status = installmentStatus(
-    { dueDate: i.dueDate, amountDue, amountPaid, amountPending, status: i.status },
+    { dueDate: i.dueDate, lateFrom: i.lateFrom, amountDue, amountPaid, amountPending, status: i.status },
     today,
     project.graceDays,
   );
@@ -167,6 +168,7 @@ export function installmentView(i: InstallmentRecord, project: ProjectRecord, to
         kind: i.kind,
         sequence: i.sequence,
         dueDate: i.dueDate,
+        lateFrom: i.lateFrom,
         ...state,
       }),
       currency,

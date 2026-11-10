@@ -68,6 +68,9 @@ export class ContractScheduleConsumer implements OnModuleInit, OnModuleDestroy {
       const timezone = (await associationTimezonesOf([associationId])).get(associationId);
       if (!timezone) throw new Error(`contract-schedule : association ${associationId} illisible`);
       const today = todayIn(timezone);
+      // Jour de la signature (activated_at, posé par me.sign) : le retard d'une échéance déjà passée en part (lateFrom),
+      // pas de son échéance (domain-rules § 6) ; me.declare refusait tout paiement avant la signature.
+      const signedOn = todayIn(timezone, enrollment.activatedAt ?? new Date());
       // Cycle roulant signé tard : l'horizon (12 échéances à venir) est rétabli dès la signature, à la suite.
       const lastPeriodic = Math.max(0, ...base.filter((l) => l.kind === 'periodic').map((l) => l.sequence));
       const lines =
@@ -78,11 +81,16 @@ export class ContractScheduleConsumer implements OnModuleInit, OnModuleDestroy {
         .insert(installments)
         .values(
           lines.map((line) => {
-            const status = installmentStatus(
-              { dueDate: line.dueDate, amountDue: line.amountDue, amountPaid: 0, amountPending: 0, status: 'upcoming' },
-              today,
-              project.graceDays,
-            );
+            const lateFrom = line.dueDate < signedOn ? signedOn : null;
+            const state = {
+              dueDate: line.dueDate,
+              lateFrom,
+              amountDue: line.amountDue,
+              amountPaid: 0,
+              amountPending: 0,
+              status: 'upcoming' as const,
+            };
+            const status = installmentStatus(state, today, project.graceDays);
             return {
               id: newId(),
               associationId,
@@ -92,9 +100,10 @@ export class ContractScheduleConsumer implements OnModuleInit, OnModuleDestroy {
               kind: line.kind,
               sequence: line.sequence,
               dueDate: line.dueDate,
+              lateFrom,
               amountDue: BigInt(line.amountDue),
               status,
-              lateSince: status === 'late' ? lateSince(line, project.graceDays) : null,
+              lateSince: status === 'late' ? lateSince(state, project.graceDays) : null,
             };
           }),
         )

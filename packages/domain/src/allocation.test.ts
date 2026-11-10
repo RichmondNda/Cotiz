@@ -58,7 +58,13 @@ describe('openRemainingOf — reste dû ouvert (plafond de proposeAllocation, ap
     }
   });
   it('payée, dispensée, annulée et montant en attente exclus', () => {
-    const base = { enrollmentId: 'e1', kind: 'periodic' as const, dueDate: '2026-08-05', amountDue: 25000 };
+    const base = {
+      enrollmentId: 'e1',
+      kind: 'periodic' as const,
+      dueDate: '2026-08-05',
+      lateFrom: null,
+      amountDue: 25000,
+    };
     expect(
       openRemainingOf([
         { ...base, id: 'a', sequence: 1, amountPaid: 25000, amountPending: 0, status: 'paid' },
@@ -78,6 +84,7 @@ describe('openRemainingOf — reste dû ouvert (plafond de proposeAllocation, ap
           kind: 'periodic',
           sequence: 1,
           dueDate: '2026-08-05',
+          lateFrom: null,
           amountDue: 25000,
           amountPaid: -1,
           amountPending: 0,
@@ -100,6 +107,7 @@ describe('validateAllocation — vecteurs validation.json', () => {
 const inst = (id: string, patch: Partial<LedgerInstallment> = {}): LedgerInstallment => ({
   id,
   enrollmentId: 'e1',
+  lateFrom: null,
   kind: 'periodic',
   sequence: 1,
   dueDate: '2026-08-05',
@@ -308,6 +316,7 @@ describe('répartition — propriétés', () => {
       ): LedgerInstallment => ({
         id: `i${String(i)}`,
         enrollmentId,
+        lateFrom: null,
         kind,
         sequence,
         dueDate,

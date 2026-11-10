@@ -56,6 +56,7 @@ describe('soldes des échéances sous 300 opérations (lg.pay.validate)', () => 
       kind: r.kind,
       sequence: r.sequence,
       dueDate: r.due_date,
+      lateFrom: null,
       amountDue: r.amount_due,
       amountPaid: r.amount_paid,
       amountPending: r.amount_pending,

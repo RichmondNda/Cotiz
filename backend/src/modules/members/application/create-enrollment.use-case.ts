@@ -137,7 +137,14 @@ export class CreateEnrollmentUseCase {
       await tx.insert(installments).values(
         lines.map((line) => {
           const status = installmentStatus(
-            { dueDate: line.dueDate, amountDue: line.amountDue, amountPaid: 0, amountPending: 0, status: 'upcoming' },
+            {
+              dueDate: line.dueDate,
+              lateFrom: null,
+              amountDue: line.amountDue,
+              amountPaid: 0,
+              amountPending: 0,
+              status: 'upcoming',
+            },
             today,
             project.graceDays,
           );

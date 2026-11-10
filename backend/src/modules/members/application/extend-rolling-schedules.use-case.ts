@@ -86,7 +86,14 @@ export class ExtendRollingSchedulesUseCase {
     const rows = running.flatMap((enrollment) =>
       rollingExtensionOf(project, enrollment.startsFrom, lastOf.get(enrollment.id) ?? 0, today).map((line) => {
         const status = installmentStatus(
-          { dueDate: line.dueDate, amountDue: line.amountDue, amountPaid: 0, amountPending: 0, status: 'upcoming' },
+          {
+            dueDate: line.dueDate,
+            lateFrom: null,
+            amountDue: line.amountDue,
+            amountPaid: 0,
+            amountPending: 0,
+            status: 'upcoming',
+          },
           today,
           project.graceDays,
         );
