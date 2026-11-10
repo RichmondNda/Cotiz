@@ -497,6 +497,38 @@ describe('signature du contrat (me.contract, me.sign)', () => {
       expect(await projectContract(PROJECTS.a)).toEqual({ required: false, signedAt: signedAt.toISOString() });
       expect((await dashboard()).contractsToSign).toEqual([]);
     });
+
+    it('RLS des contrats et signatures élargie : ni la signature d’un autre, ni le contrat d’un projet hors des siens', async () => {
+      const contractA = await insertContract(PROJECTS.a);
+      await insertContract(PROJECTS.b, { aid: B.id });
+      await enrollment(PROJECTS.a);
+      // Fatou : inscrite et signataire du même projet ; inscrite au projet de B, où Moussa n'est pas.
+      const fatouA = await enrollment(PROJECTS.a, { userId: USERS.fatou, status: 'active' });
+      await enrollment(PROJECTS.b, { aid: B.id, userId: USERS.fatou, status: 'active' });
+      const fileId = crypto.randomUUID();
+      await f.h.superuser(
+        `INSERT INTO files (id, association_id, owner_user_id, purpose, bucket, object_key, original_name, mime_type,
+                            size_bytes, scan_status)
+         VALUES ($1::uuid, $2::uuid, $3, 'contract_pdf', 'cotiz-legal',
+                 $2::uuid::text || '/contract_pdf/' || $1::uuid::text || '.pdf', 'contrat.pdf', 'application/pdf', 0,
+                 'pending')`,
+        [fileId, A.id, USERS.fatou],
+      );
+      await f.h.superuser(
+        `INSERT INTO contract_signatures (id, association_id, contract_id, enrollment_id, user_id, rendered_sha256,
+                                          rendered_body, consent_text, signed_at, pdf_file_id)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, repeat('c', 64), 'Contrat', 'J’ai lu et j’accepte', now(), $5)`,
+        [A.id, contractA, fatouA, USERS.fatou, fileId],
+      );
+      const anyRow = { using: 'true', withCheck: null };
+      await f.h.withPolicy('contracts', 'subscriber_enrolled_read', anyRow, () =>
+        f.h.withPolicy('contract_signatures', 'subscriber_self_read', anyRow, async () => {
+          expect((await dashboard()).contractsToSign.map((c) => c.project.id)).toEqual([PROJECTS.a]);
+          expect(await projectContract(PROJECTS.a)).toEqual({ required: true, signedAt: null });
+          expect((await f.call(`/me/projects/${PROJECTS.b}`, { token: f.tokens.moussa })).status).toBe(404);
+        }),
+      );
+    });
   });
 
   describe('échéancier généré à la signature (consommateur de contract.signed)', () => {
