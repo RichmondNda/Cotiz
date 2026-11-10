@@ -214,3 +214,7 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   non faite sans accord. *Relecture money-reviewer du 2026-11-10.*
 - Lot 4.3 (relances `after_due`, `offsetDays`) : compter les jours de retard depuis `lateStart`/`lateSince`, pas
   `due_date` (le mock `frontend/app/composables/api/relances.ts` part de `dueDate`).
+- Défense en profondeur (relecture isolation, 2026-11-10), changement de spec à proposer : figer `installments.late_from`
+  en espace association (déclencheur, nouvelle migration) ; n'autoriser `enrollments.activated_at` en espace
+  souscripteur que pendant `pending_signature → active` (`guard_enrollment_update`, 0012). Aucun code ne les écrit hors
+  du consommateur et de `me.sign` aujourd'hui.

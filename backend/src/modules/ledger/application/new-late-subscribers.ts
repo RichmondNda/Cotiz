@@ -11,7 +11,8 @@ import { FINAL_INSTALLMENT_STATUSES, toLedger } from './payment-review.js';
  * grâce du projet) et reste en retard (installmentStatus : ni soldée, ni déclarée ; partiellement payée, elle compte).
  * Contexte de l'association (RLS).
  *
- * « Nouveau » = le jour où la grâce expire, d'après la date d'échéance et le délai de grâce actuel : une échéance
+ * « Nouveau » = le jour où la grâce expire, d'après le départ du retard (late_from, sinon l'échéance) et le délai
+ * de grâce actuel : une échéance
  * déclarée ce jour-là puis rejetée plus tard, ou décalée par un changement du délai de grâce, n'est pas signalée comme
  * nouveau retard (elle reste comptée dans les retards du tableau de bord). Voulu pour un récapitulatif quotidien.
  */
