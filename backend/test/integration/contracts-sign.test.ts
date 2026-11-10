@@ -202,7 +202,7 @@ describe('signature du contrat (me.contract, me.sign)', () => {
         `5, à partir du 1 mars 2026.`;
       expect(contract).toEqual({
         project: { id: PROJECTS.a, name: 'Centre communautaire' },
-        association: { id: A.id, name: associationAName, logoFileId: null },
+        association: { id: A.id, name: associationAName, logoFileId: null, suspended: false },
         commitment: {
           entryFee: null,
           installmentAmount: { amount: 25000, currency: 'XOF' },
