@@ -64,7 +64,7 @@ const commitments = (entries: readonly SubscriberEnrollment[]) =>
 
 /**
  * me.history (mb-historique, lot 3.4), personne du jeton, inscriptions des associations où elle est souscriptrice
- * active, **retirées comprises** (paiements en lecture seule, `enrollmentWithdrawn`, décision du 2026-11-10), filtrées
+ * active, **retirées comprises** (paiements en lecture seule, `enrollmentWithdrawn`, décision utilisateur du 2026-11-10), filtrées
  * par association, projet et date de virement (`paidOn`) ; reste et objectif : inscriptions qui engagent seulement :
  * - liste : tous statuts, les plus récents d'abord (date de déclaration), paginée ;
  * - synthèse : versé et nombre des validés de la sélection (subscriberHistoryFigures : l'encaissé du gestionnaire pour
@@ -108,7 +108,7 @@ export class GetSubscriberHistoryUseCase {
   async series(query: SeriesQuery): Promise<Series> {
     const s = await selected(query);
     // Courbe cumulée depuis le début des projets : versements antérieurs à `from` lus aussi, en point de départ du
-    // cumul seulement (subscriberHistoryFigures, décision du 2026-11-10).
+    // cumul seulement (subscriberHistoryFigures, recommandation appliquée le 2026-11-10, à confirmer).
     const validated = await validatedOf(s, query.to === undefined ? {} : { to: query.to });
     const figures = subscriberHistoryFigures(
       validated,

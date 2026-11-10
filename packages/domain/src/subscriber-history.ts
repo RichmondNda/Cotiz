@@ -48,8 +48,8 @@ const engages = (status: EnrollmentStatus) => status === 'active' || status === 
  * Chiffres de l'historique : `payments` = paiements **validés** de la sélection (le versé est l'encaissé du
  * gestionnaire pour cette personne : à la validation, Σ répartitions = montant reçu), `enrollments` = inscriptions de
  * la sélection, pour l'objectif. `from` (période filtrée) : les versements antérieurs ne comptent ni dans le versé, ni
- * dans le nombre, ni dans les mois, mais le cumul part de leur somme (courbe cumulée depuis le début du projet,
- * décision du 2026-11-10).
+ * dans le nombre, ni dans les mois, mais le cumul part de leur somme (courbe cumulée depuis le début du projet :
+ * recommandation appliquée le 2026-11-10, à confirmer). Un versement du jour `from` est dans la période (comme la liste).
  * Écart futur à surveiller : `enrollmentTotals` ne compte pas le versé d'une échéance dispensée ou annulée, ce total-ci
  * le compte. Sans effet tant qu'un retrait n'annule que des échéances sans versé et que la dispense n'existe pas
  * (décision n° 7, lot 4.3) ; à reprendre avec elle.

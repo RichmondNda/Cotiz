@@ -26,6 +26,14 @@ describe('subscriberHistoryFigures : historique du souscripteur (me.history)', (
     expect(() => subscriberHistoryFigures(payments, [], { from: '2026-13-01' })).toThrow(DomainError);
   });
 
+  it('période : un versement du jour `from` est dans la période ; la veille, dans le cumul de départ seulement', () => {
+    const payments = [pay('2026-07-04', 5_000), pay('2026-07-05', 50_000, P2)];
+    const f = subscriberHistoryFigures(payments, [], { from: '2026-07-05' });
+    expect(f).toMatchObject({ totalPaid: 50_000, paymentsCount: 1 });
+    expect(f.cumulative).toEqual([{ month: '2026-07-01', paid: 55_000 }]);
+    expect(f.byMonth).toEqual([{ month: '2026-07-01', projects: [{ projectId: P2, paid: 50_000 }] }]);
+  });
+
   it('total versé et nombre de paiements validés ; cumul et versé par mois de la date de virement', () => {
     const f = subscriberHistoryFigures(
       // Août : P2 reçu avant P1, rendu trié par projet.

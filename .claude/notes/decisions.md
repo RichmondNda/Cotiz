@@ -628,3 +628,10 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   - Redis partagé : écarté par l’utilisateur le 2026-11-08 (« Ne pas le faire »). Gain estimé ≈ 9 s sur 420 s (≈ 1 s × ≈ 35 fichiers / 4) ; 31 appels
     `redis-cli` dans le conteneur dont 17 FLUSHALL (effaceraient les autres fichiers), sorties texte relues (TTL,
     EXISTS) ; health et redis-client arrêtent Redis exprès.
+
+## 2026-11-10 · PR C (règles produit), étapes 3 et 5
+- Historique d'un projet quitté : paiements et contrat signé gardés en lecture seule (`enrollmentWithdrawn`), sur
+  demande de l'utilisateur (« que recommande tu ? fais le »). Association quittée : hors périmètre (politique RLS, question posée).
+- Courbe de l'historique filtrée par période : cumul depuis le début des projets. Recommandation appliquée **sans
+  réponse de l'utilisateur** (point « courbe filtrée » laissé sans réponse) ; à confirmer. Source :
+  `packages/domain/src/subscriber-history.ts`.
