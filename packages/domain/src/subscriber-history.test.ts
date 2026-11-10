@@ -7,6 +7,25 @@ const P2 = 'p2';
 const pay = (paidOn: string, amount: number, projectId = P1): HistoryPayment => ({ paidOn, amount, projectId });
 
 describe('subscriberHistoryFigures : historique du souscripteur (me.history)', () => {
+  it('période (`from`) : le cumul part des versements antérieurs ; versé, nombre et mois : la période seule', () => {
+    const payments = [pay('2026-06-02', 5_000), pay('2026-07-30', 50_000, P2), pay('2026-08-05', 25_000)];
+    const f = subscriberHistoryFigures(payments, [], { from: '2026-07-15' });
+    expect(f.totalPaid).toBe(75_000);
+    expect(f.paymentsCount).toBe(2);
+    // Juin (avant la période) n'est pas un mois de la courbe, mais son versé est dans le cumul.
+    expect(f.cumulative).toEqual([
+      { month: '2026-07-01', paid: 55_000 },
+      { month: '2026-08-01', paid: 80_000 },
+    ]);
+    expect(f.byMonth).toEqual([
+      { month: '2026-07-01', projects: [{ projectId: P2, paid: 50_000 }] },
+      { month: '2026-08-01', projects: [{ projectId: P1, paid: 25_000 }] },
+    ]);
+    // Sans `from` : tout compte.
+    expect(subscriberHistoryFigures(payments, []).cumulative.at(-1)?.paid).toBe(80_000);
+    expect(() => subscriberHistoryFigures(payments, [], { from: '2026-13-01' })).toThrow(DomainError);
+  });
+
   it('total versé et nombre de paiements validés ; cumul et versé par mois de la date de virement', () => {
     const f = subscriberHistoryFigures(
       // Août : P2 reçu avant P1, rendu trié par projet.

@@ -69,7 +69,8 @@ const commitments = (entries: readonly SubscriberEnrollment[]) =>
  * - liste : tous statuts, les plus récents d'abord (date de déclaration), paginée ;
  * - synthèse : versé et nombre des validés de la sélection (subscriberHistoryFigures : l'encaissé du gestionnaire pour
  *   cette personne), reste des inscriptions qui engagent (subscriberSummary, sans la période : un reste n'a pas de date) ;
- * - série : versé par mois de virement, cumul, et objectif (engagements des inscriptions qui engagent).
+ * - série : versé par mois de virement de la période, cumul depuis le début (versements antérieurs à `from`
+ *   compris), et objectif (engagements des inscriptions qui engagent).
  */
 @Injectable()
 export class GetSubscriberHistoryUseCase {
@@ -106,8 +107,14 @@ export class GetSubscriberHistoryUseCase {
 
   async series(query: SeriesQuery): Promise<Series> {
     const s = await selected(query);
-    const validated = await validatedOf(s, query);
-    const figures = subscriberHistoryFigures(validated, commitments(s.entries));
+    // Courbe cumulée depuis le début des projets : versements antérieurs à `from` lus aussi, en point de départ du
+    // cumul seulement (subscriberHistoryFigures, décision du 2026-11-10).
+    const validated = await validatedOf(s, query.to === undefined ? {} : { to: query.to });
+    const figures = subscriberHistoryFigures(
+      validated,
+      commitments(s.entries),
+      query.from === undefined ? {} : { from: query.from },
+    );
     return {
       cumulative: figures.cumulative.map((c) => ({ month: c.month, paid: s.money(c.paid) })),
       target: figures.target === null ? null : s.money(figures.target),

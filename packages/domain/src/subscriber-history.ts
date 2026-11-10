@@ -47,7 +47,9 @@ const engages = (status: EnrollmentStatus) => status === 'active' || status === 
 /**
  * Chiffres de l'historique : `payments` = paiements **validés** de la sélection (le versé est l'encaissé du
  * gestionnaire pour cette personne : à la validation, Σ répartitions = montant reçu), `enrollments` = inscriptions de
- * la sélection, pour l'objectif.
+ * la sélection, pour l'objectif. `from` (période filtrée) : les versements antérieurs ne comptent ni dans le versé, ni
+ * dans le nombre, ni dans les mois, mais le cumul part de leur somme (courbe cumulée depuis le début du projet,
+ * décision du 2026-11-10).
  * Écart futur à surveiller : `enrollmentTotals` ne compte pas le versé d'une échéance dispensée ou annulée, ce total-ci
  * le compte. Sans effet tant qu'un retrait n'annule que des échéances sans versé et que la dispense n'existe pas
  * (décision n° 7, lot 4.3) ; à reprendre avec elle.
@@ -55,19 +57,29 @@ const engages = (status: EnrollmentStatus) => status === 'active' || status === 
 export function subscriberHistoryFigures(
   payments: readonly HistoryPayment[],
   enrollments: readonly HistoryCommitment[],
+  options: { from?: IsoDate } = {},
 ): HistoryFigures {
+  if (options.from !== undefined) parseIsoDate(options.from);
   const months = new Map<IsoDate, Map<string, number>>();
   let totalPaid = 0;
+  let paymentsCount = 0;
+  let before = 0;
   for (const p of payments) {
     checkAmount(p.amount);
+    parseIsoDate(p.paidOn);
+    if (options.from !== undefined && p.paidOn < options.from) {
+      before = add(before, p.amount);
+      continue;
+    }
     totalPaid = add(totalPaid, p.amount);
+    paymentsCount += 1;
     const month = monthOf(p.paidOn);
     const projects = months.get(month) ?? new Map<string, number>();
     projects.set(p.projectId, add(projects.get(p.projectId) ?? 0, p.amount));
     months.set(month, projects);
   }
   const ordered = [...months.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  let running = 0;
+  let running = before;
   const cumulative = ordered.map(([month, projects]) => {
     for (const paid of projects.values()) running = add(running, paid);
     return { month, paid: running };
@@ -83,8 +95,8 @@ export function subscriberHistoryFigures(
   for (const e of enrollments) {
     if (e.commitment !== null) checkAmount(e.commitment);
     if (!engages(e.status)) continue;
-    if (e.commitment === null) return { totalPaid, paymentsCount: payments.length, cumulative, byMonth, target: null };
+    if (e.commitment === null) return { totalPaid, paymentsCount, cumulative, byMonth, target: null };
     target = add(target ?? 0, e.commitment);
   }
-  return { totalPaid, paymentsCount: payments.length, cumulative, byMonth, target };
+  return { totalPaid, paymentsCount, cumulative, byMonth, target };
 }
