@@ -40,7 +40,7 @@ export const personRef = (u: UserRow): In<typeof PersonRef> => ({ id: u.id, firs
 export const personContact = (u: UserRow): In<typeof PersonContact> => ({ ...personRef(u), phone: u.phone, email: u.email })
 export const personRefById = (id: string | null) => (id ? personRef(userRow(id)) : null)
 export const projectRef = (p: ProjectRow) => ({ id: p.id, name: p.name })
-export const associationRef = (a: AssociationRow) => ({ id: a.id, name: a.name, logoFileId: a.logoFileId })
+export const associationRef = (a: AssociationRow) => ({ id: a.id, name: a.name, logoFileId: a.logoFileId, suspended: a.status === 'suspended' })
 export const planRef = (p: PlanRow) => ({ id: p.id, code: p.code, name: p.name })
 export const fullName = (u: UserRow) => [u.firstName, u.lastName].filter(Boolean).join(' ')
 

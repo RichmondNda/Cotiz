@@ -170,6 +170,8 @@ export class DeclarePaymentUseCase {
   }
 
   private checkState(entry: SubscriberEnrollment): void {
+    // Association suspendue : historique visible, marqué, aucune déclaration (décision utilisateur du 2026-11-10).
+    if (entry.association.suspended) throw new DomainProblem('association_suspended');
     if (entry.row.status === 'pending_signature') throw new DomainProblem('signature_required');
     if (entry.row.status !== 'active' || CLOSED_PROJECTS.has(entry.project.status)) {
       throw new DomainProblem('invalid_state');
@@ -284,7 +286,15 @@ export class DeclarePaymentUseCase {
     const views = await subscriberPaymentsOf([entry.row.id], {
       projects: new Map([[entry.project.id, { id: entry.project.id, name: entry.project.name }]]),
       associations: new Map([
-        [association.id, { id: association.id, name: association.name, logoFileId: association.logoFileId }],
+        [
+          association.id,
+          {
+            id: association.id,
+            name: association.name,
+            logoFileId: association.logoFileId,
+            suspended: association.suspended,
+          },
+        ],
       ]),
     });
     const view = views.find((p) => p.id === paymentId);

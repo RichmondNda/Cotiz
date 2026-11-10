@@ -8748,6 +8748,9 @@
                                   }
                                 ]
                               },
+                              "suspended": {
+                                "type": "boolean"
+                              },
                               "slug": {
                                 "type": "string"
                               },
@@ -8756,7 +8759,7 @@
                                 "enum": ["onboarding", "active", "past_due", "suspended", "closed"]
                               }
                             },
-                            "required": ["id", "name", "logoFileId", "slug", "status"],
+                            "required": ["id", "name", "logoFileId", "suspended", "slug", "status"],
                             "additionalProperties": false
                           },
                           "role": {
@@ -10036,7 +10039,8 @@
           "file_scan_pending",
           "proof_already_used",
           "signature_required",
-          "invalid_state"
+          "invalid_state",
+          "association_suspended"
         ],
         "x-rate-limited": true,
         "x-audited": true,
@@ -11103,11 +11107,14 @@
                                   }
                                 ]
                               },
+                              "suspended": {
+                                "type": "boolean"
+                              },
                               "city": {
                                 "type": "string"
                               }
                             },
-                            "required": ["id", "name", "logoFileId", "city"],
+                            "required": ["id", "name", "logoFileId", "suspended", "city"],
                             "additionalProperties": false
                           },
                           "memberSince": {
@@ -11205,6 +11212,9 @@
                             }
                           ]
                         },
+                        "suspended": {
+                          "type": "boolean"
+                        },
                         "city": {
                           "type": "string"
                         },
@@ -11228,6 +11238,7 @@
                         "id",
                         "name",
                         "logoFileId",
+                        "suspended",
                         "city",
                         "country",
                         "description",
@@ -20705,9 +20716,12 @@
                 "type": "null"
               }
             ]
+          },
+          "suspended": {
+            "type": "boolean"
           }
         },
-        "required": ["id", "name", "logoFileId"],
+        "required": ["id", "name", "logoFileId", "suspended"],
         "additionalProperties": false
       },
       "SubscriberProjectCard": {

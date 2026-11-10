@@ -29,7 +29,13 @@ const self = 'subscriber.self';
 // ---------------------------------------------------------------- Identité, droits, fonctionnalités
 
 export const AssociationRef = z
-  .object({ id: Uuid, name: z.string(), logoFileId: Uuid.nullable() })
+  .object({
+    id: Uuid,
+    name: z.string(),
+    logoFileId: Uuid.nullable(),
+    /** Association suspendue par la plateforme : visible, marquée, aucune déclaration (2026-11-10). */
+    suspended: z.boolean(),
+  })
   .meta({ id: 'AssociationRef' });
 export type AssociationRef = z.infer<typeof AssociationRef>;
 
@@ -325,6 +331,7 @@ export const meDeclare = defineEndpoint({
     'proof_already_used',
     'signature_required',
     'invalid_state',
+    'association_suspended',
   ],
   flags: { idempotencyKey: true, ifMatch: false, rateLimited: true, audited: true },
   operations: {

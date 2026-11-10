@@ -112,6 +112,8 @@ export interface SubscriberAssociation {
   name: string;
   logoFileId: string | null;
   timezone: string;
+  /** Suspendue par la plateforme : présentée marquée, aucune déclaration (décision utilisateur du 2026-11-10). */
+  suspended: boolean;
 }
 
 /**
@@ -130,8 +132,9 @@ export async function subscriberAssociationsOf(ids: readonly string[]): Promise<
       name: associations.name,
       logoFileId: associations.logoFileId,
       timezone: associations.timezone,
+      status: associations.status,
     })
     .from(associations)
     .where(inArray(associations.id, [...new Set(ids)]));
-  return new Map(rows.map((r) => [r.id, r]));
+  return new Map(rows.map(({ status, ...r }) => [r.id, { ...r, suspended: status === 'suspended' }]));
 }

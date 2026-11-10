@@ -17,6 +17,7 @@ import { maintenant } from '~/utils/date-reference'
 import { libelleCouverture, libelleEcheance } from '~/utils/echeances'
 import { formatFCFA, lireDate } from '~/utils/format'
 import { MOYENS_PAIEMENT } from '~/utils/statuts'
+import { associationsSuspendues, estSuspendue } from '~/utils/souscriptions'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur', fab: false, navBasse: false })
 useHead({ title: 'Déclarer un paiement · Cotiz' })
@@ -30,7 +31,8 @@ if (projetDemande && etat.value.projetId !== projetDemande) commencer(projetDema
 const { data: souscriptions, pending, error, refresh } = useMesSouscriptions()
 const { data: echeances } = useEcheances()
 
-const declarables = computed(() => (souscriptions.value ?? []).filter(s => s.projet.statut !== 'termine' && s.reste > 0))
+const declarables = computed(() => (souscriptions.value ?? []).filter(s => s.projet.statut !== 'termine' && s.reste > 0 && !estSuspendue(s)))
+const suspendues = computed(() => associationsSuspendues((souscriptions.value ?? []).filter(s => s.projet.statut !== 'termine')))
 const souscription = computed(() => declarables.value.find(s => s.projetId === etat.value.projetId && s.statut !== 'signature_attendue'))
 
 // Projet demandé inconnu ou contrat non signé : retour au choix du projet.
@@ -201,6 +203,7 @@ async function envoyer() {
     />
 
     <div class="declarer__colonne">
+      <BandeauSuspension :noms="suspendues" />
       <div class="declarer__etapes">
         <CzSteps
           :etapes="[...ETAPES_DECLARATION]"

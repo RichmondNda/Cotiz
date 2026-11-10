@@ -32,3 +32,11 @@ export function trierSouscriptions(liste: SouscriptionMembre[]): SouscriptionMem
 export function progression(s: Pick<SouscriptionMembre, 'verse' | 'engagement'>): number {
   return s.engagement ? Math.round((s.verse / s.engagement) * 100) : 0
 }
+
+/** L'association du projet est-elle suspendue par Cotiz ? (projet visible, aucune déclaration, 2026-11-10). */
+export const estSuspendue = (s: Pick<SouscriptionMembre, 'association'>) => s.association.statut === 'suspendue'
+
+/** Noms des associations suspendues parmi ces projets, sans doublon (bandeau de suspension). */
+export function associationsSuspendues(liste: Pick<SouscriptionMembre, 'association'>[]): string[] {
+  return [...new Set(liste.filter(estSuspendue).map(s => s.association.nom))]
+}

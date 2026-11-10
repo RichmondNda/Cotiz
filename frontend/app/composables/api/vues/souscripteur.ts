@@ -55,11 +55,11 @@ export function vueProjetRetire(p: { id: string, name: string }, associationId: 
 }
 
 /** Association vue par le souscripteur (cartes, « Comment payer »). */
-export function vueAssociationMembre(a: { id: string, name: string, city?: string, country?: string, description?: string | null, contactEmail?: string, contactPhone?: string }, moyens: PaymentMethod[] = []): Association {
+export function vueAssociationMembre(a: { id: string, name: string, suspended?: boolean, city?: string, country?: string, description?: string | null, contactEmail?: string, contactPhone?: string }, moyens: PaymentMethod[] = []): Association {
   return {
     id: a.id, nom: a.name, sigle: initiales(a.name), ville: a.city ?? '', pays: a.country ?? 'Côte d’Ivoire', description: a.description ?? undefined,
     ...(a.contactPhone ? { telephoneContact: tel(a.contactPhone) } : {}), ...(a.contactEmail ? { emailContact: email(a.contactEmail) } : {}),
-    statut: 'active', planId: '', modalitesPaiement: vueModalites(moyens), nbProjets: 0, nbSouscripteurs: 0, nbGestionnaires: 0, creeeLe: '[DATE]',
+    statut: a.suspended ? 'suspendue' : 'active', planId: '', modalitesPaiement: vueModalites(moyens), nbProjets: 0, nbSouscripteurs: 0, nbGestionnaires: 0, creeeLe: '[DATE]',
   }
 }
 

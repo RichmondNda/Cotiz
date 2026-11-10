@@ -6,7 +6,7 @@ import {
 } from '../../src/modules/reporting/events/subscriber-dashboard-cache.consumer.js';
 import { EventConsumers } from '../../src/shared/outbox/index.js';
 import { TenantDatabase } from '../../src/shared/tenant-context/index.js';
-import { A, USERS } from '../isolation/harness.js';
+import { A, B, USERS } from '../isolation/harness.js';
 import { type LedgerFixture, startLedgerFixture } from './ledger.fixture.js';
 import { PROJECTS } from './members.fixture.js';
 
@@ -29,13 +29,13 @@ describe('me.dash : invalidation du cache par événement', () => {
     expect(res.status).toBe(200);
     return Dashboard.parse(await res.json());
   };
-  const deliver = async (type: EventType, payload: Record<string, unknown>) => {
+  const deliver = async (type: EventType, payload: Record<string, unknown>, associationId = A.id) => {
     const event: EventEnvelope = {
       id: '1',
       type,
       version: 1,
       occurredAt: new Date().toISOString(),
-      associationId: A.id,
+      associationId,
       actorUserId: USERS.awa,
       aggregate: { type: 'payment', id: crypto.randomUUID() },
       payload,
@@ -117,6 +117,38 @@ describe('me.dash : invalidation du cache par événement', () => {
     expect((await dashboardOf()).projectsCount).toBe(0);
   });
 
+  it('association.suspended puis reactivated (sans personne) : ses souscripteurs sont recalculés, marqués', async () => {
+    await moussaOnA();
+    expect((await dashboardOf()).projects.map((c) => c.association.suspended)).toEqual([false]);
+    try {
+      await f.h.superuser(`UPDATE associations SET status = 'suspended' WHERE id = $1`, [A.id]);
+      expect((await dashboardOf()).projects.map((c) => c.association.suspended)).toEqual([false]);
+      await deliver('association.suspended', { associationId: A.id, reason: 'test' });
+      expect((await dashboardOf()).projects.map((c) => c.association.suspended)).toEqual([true]);
+      await f.h.superuser(`UPDATE associations SET status = 'active' WHERE id = $1`, [A.id]);
+      await deliver('association.reactivated', { associationId: A.id });
+      expect((await dashboardOf()).projects.map((c) => c.association.suspended)).toEqual([false]);
+    } finally {
+      await f.h.superuser(`UPDATE associations SET status = 'active' WHERE id = $1`, [A.id]);
+    }
+  });
+
+  it('association.suspended d’une autre association : rien n’est invalidé chez ses non-souscripteurs', async () => {
+    const moussa = await moussaOnA();
+    const { rows } = await f.h.superuser(
+      `SELECT count(*)::int AS n FROM memberships WHERE association_id = $1 AND user_id = $2 AND status = 'active'`,
+      [B.id, USERS.moussa],
+    );
+    expect(rows[0]).toEqual({ n: 0 });
+    const before = await dashboardOf();
+    await validatedDirectly(moussa.id);
+    // Politique élargie : seul le filtre du code garde l'invalidation dans l'association de l'événement.
+    await f.h.withPolicy('memberships', 'tenant_isolation', { using: 'true', withCheck: null }, () =>
+      deliver('association.suspended', { associationId: B.id, reason: 'test' }, B.id),
+    );
+    expect(await dashboardOf()).toEqual(before);
+  });
+
   it('événements écoutés : exactement ceux qui changent les chiffres de la personne', () => {
     expect([...SUBSCRIBER_DASHBOARD_EVENTS].sort()).toEqual(
       [
@@ -129,6 +161,8 @@ describe('me.dash : invalidation du cache par événement', () => {
         'installment.late',
         'user.activated',
         'team.changed',
+        'association.suspended',
+        'association.reactivated',
       ].sort(),
     );
     for (const type of SUBSCRIBER_DASHBOARD_EVENTS) expect(consumers.for(type)).toHaveLength(1);

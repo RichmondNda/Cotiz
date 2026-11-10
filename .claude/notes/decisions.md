@@ -635,3 +635,15 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
 - Courbe de l'historique filtrée par période : cumul depuis le début des projets. Recommandation appliquée **sans
   réponse de l'utilisateur** (point « courbe filtrée » laissé sans réponse) ; à confirmer. Source :
   `packages/domain/src/subscriber-history.ts`.
+
+## 2026-11-11 · PR C (règles produit), étape 4 — association suspendue
+- Choix de l'utilisateur : « Visible, marquée » (« un indicatif de suspension à la fois côté front et côté back »).
+- Back : `AssociationRef.suspended` (toutes les réponses `/me`, et `GET /me`), lu sur `associations.status` par
+  `subscriberAssociationsOf`. `me.declare` → 403 `association_suspended` avant tout autre contrôle (ajouté aux erreurs
+  de me.declare dans endpoints.yaml). Cache me.dash invalidé pour tous les souscripteurs actifs sur
+  `association.suspended` et `association.reactivated` (events.yaml listait déjà « cache » pour les deux).
+- Front : `BandeauSuspension` (CzAlert danger) sur accueil, fiche projet, fiche association et déclaration ; boutons
+  « Déclarer » masqués, projets retirés du choix de la déclaration. Le bouton flottant reste (la page filtre). Écart dans
+  ui-deviations.md. Pas de scénario de mock : toutes les lectures `/me` concernées sont réelles.
+- Signature d'un contrat (`me.sign`) d'une association suspendue : non bloquée (hors de la consigne « aucune déclaration ») ;
+  question notée dans a-verifier.md.

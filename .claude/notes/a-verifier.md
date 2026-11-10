@@ -45,6 +45,10 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   `payments (proof_file_id) WHERE status IN ('pending','validated')` la garantirait en base → `schema.sql` + nouvelle
   migration, sur accord seulement.
 
+- **2026-11-11** · PR C étape 4 — association suspendue : la consigne ne parle que des déclarations. `me.sign` (signer
+  le contrat) et le dépôt d'une preuve (`fl.upload`) restent possibles pendant la suspension. · Les bloquer aussi
+  (`association_suspended`) ou non : à trancher.
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché

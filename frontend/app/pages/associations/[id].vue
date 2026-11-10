@@ -15,6 +15,7 @@ const association = computed(() => groupe.value?.association)
 useHead({ title: () => `${association.value?.nom ?? 'Association'} · Cotiz` })
 
 const membreDepuis = computed(() => (groupe.value ? formatMois(groupe.value.membreDepuis).toLowerCase() : ''))
+const suspendue = computed(() => association.value?.statut === 'suspendue')
 const projetDeclarable = computed(() => groupe.value?.souscriptions.find(s => s.statut !== 'signature_attendue')?.projetId)
 
 function carte(s: SouscriptionMembre) {
@@ -70,6 +71,7 @@ function pied(s: SouscriptionMembre): [string, string] {
     />
 
     <template v-else>
+      <BandeauSuspension :noms="suspendue ? [association.nom] : []" />
       <CzCard
         variante="lg"
         tag="section"
@@ -139,6 +141,7 @@ function pied(s: SouscriptionMembre): [string, string] {
         </h2>
         <CommentPayer :modalites="association.modalitesPaiement">
           <CzButton
+            v-if="!suspendue"
             bloc
             :to="lienDeclarer(projetDeclarable)"
           >

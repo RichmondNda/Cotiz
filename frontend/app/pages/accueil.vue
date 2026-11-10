@@ -8,7 +8,7 @@
 import type { ActionCarte } from '~/components/metier/CarteProjet.vue'
 import type { SouscriptionMembre } from '~~/types'
 import { formatDate, formatFCFA, nomCourtAssociation, pluriel } from '~/utils/format'
-import { estTermine, lienDeclarer, lienProjet, progression, statutCarte, trierSouscriptions } from '~/utils/souscriptions'
+import { associationsSuspendues, estSuspendue, estTermine, lienDeclarer, lienProjet, progression, statutCarte, trierSouscriptions } from '~/utils/souscriptions'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
 useHead({ title: 'Accueil · Cotiz' })
@@ -26,7 +26,7 @@ const synthese = computed(() => {
   const liste = projets.value
   const associations = new Set(liste.map(s => s.association.id)).size
   const retard = engages.value.reduce((t, s) => t + s.montantEnRetard, 0)
-  const enRetard = engages.value.find(s => s.montantEnRetard > 0)
+  const enRetard = engages.value.find(s => s.montantEnRetard > 0 && !estSuspendue(s))
   return {
     total: engages.value.reduce((t, s) => t + s.reste, 0),
     detail: `sur ${pluriel(liste.length, 'projet')} · ${pluriel(associations, 'association')}`,
@@ -37,10 +37,12 @@ const synthese = computed(() => {
 })
 
 const prochaine = computed(() => {
-  const candidates = engages.value.filter(s => s.prochaine && !estTermine(s))
+  const candidates = engages.value.filter(s => s.prochaine && !estTermine(s) && !estSuspendue(s))
   const s = [...candidates].sort((a, b) => a.prochaine!.date.localeCompare(b.prochaine!.date))[0]
   return s ? { ...s.prochaine!, projet: s.projet.nom, projetId: s.projetId } : undefined
 })
+
+const suspendues = computed(() => associationsSuspendues(projets.value))
 
 const mouvements = computed(() => (paiements.value ?? []).slice(0, 3).map(p => ({
   id: p.id, montant: p.montant, date: p.declareLe, projet: p.projet.nom, statut: p.statut,
@@ -48,7 +50,7 @@ const mouvements = computed(() => (paiements.value ?? []).slice(0, 3).map(p => (
 
 /** Propriétés de la carte projet, selon la situation de la souscription. */
 function carte(s: SouscriptionMembre) {
-  const declarer: ActionCarte = { label: 'Déclarer', to: lienDeclarer(s.projetId) }
+  const declarer: ActionCarte | undefined = estSuspendue(s) ? undefined : { label: 'Déclarer', to: lienDeclarer(s.projetId) }
   const base = { nom: s.projet.nom, sousTitre: nomCourtAssociation(s.association.nom), statut: statutCarte(s), to: lienProjet(s) }
   if (s.statut === 'signature_attendue') {
     return {
@@ -136,6 +138,7 @@ function carte(s: SouscriptionMembre) {
     />
 
     <template v-else>
+      <BandeauSuspension :noms="suspendues" />
       <div class="accueil__haut">
         <CarteSynthese
           :total="synthese.total"

@@ -61,6 +61,26 @@ export async function admitSubscriber(associationId: string, userId: string, inv
   });
 }
 
+/**
+ * Personnes souscriptrices actives de l'association du contexte (invalidation de leurs tableaux de bord quand
+ * l'association change de statut) ; triées, sans doublon.
+ */
+export async function activeSubscriberIdsOf(associationId: string): Promise<string[]> {
+  assertAssociation(associationId, 'activeSubscriberIdsOf');
+  const rows = await currentTx()
+    .selectDistinct({ userId: memberships.userId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.associationId, associationId),
+        eq(memberships.role, 'subscriber'),
+        eq(memberships.status, 'active'),
+      ),
+    )
+    .orderBy(memberships.userId);
+  return rows.map((r) => r.userId);
+}
+
 function assertAssociation(associationId: string, what: string): void {
   const context = currentContext();
   if (context?.space !== 'association' || context.associationId !== associationId) {

@@ -24,7 +24,12 @@ export {
   suspensionTeamOf,
   teamsOf,
 } from './application/owner-membership.js';
-export { admitSubscriber, isSubscriberOf, subscriberMembershipOf } from './application/subscriber-membership.js';
+export {
+  activeSubscriberIdsOf,
+  admitSubscriber,
+  isSubscriberOf,
+  subscriberMembershipOf,
+} from './application/subscriber-membership.js';
 export { platformSubscribersCount, platformTeamSizes, type TeamSize } from './application/platform-team-stats.js';
 export { SeedDevMembershipsUseCase } from './application/seed-dev-memberships.use-case.js';
 export { SelfRoles } from './application/self-roles.js';

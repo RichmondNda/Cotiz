@@ -30,6 +30,7 @@ export class ListSubscriberContractsUseCase {
           id: entry.association.id,
           name: entry.association.name,
           logoFileId: entry.association.logoFileId,
+          suspended: entry.association.suspended,
         },
       };
       if (signature) {
