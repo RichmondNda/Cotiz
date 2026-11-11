@@ -28,3 +28,5 @@ WEB_PUSH_HOSTS=fcm.googleapis.com,updates.push.services.mozilla.com,push.apple.c
 
 Les deux processus (api et worker) doivent recevoir les mêmes valeurs. Pour changer les clés VAPID, voir
 `rotate-secrets.md` (lot 7.1) : chaque appareil doit alors se réabonner.
+
+Essai complet sur un PC avec Docker (pile de développement, surcouche `infra/compose/push.yml`) : `tester-push-docker.md`.
