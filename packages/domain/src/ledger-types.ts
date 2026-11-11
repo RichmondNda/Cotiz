@@ -16,6 +16,11 @@ export interface InstallmentState {
   amountPending: number;
   /** Statut persisté (seuls `waived` et `canceled` sont conservés tels quels). */
   status: InstallmentStatus;
+  /**
+   * Départ du retard s'il est postérieur à l'échéance (`installments.late_from`) : échéances déjà passées quand le
+   * contrat est signé, datées de la signature (domain-rules § 6). `null` : le retard part de l'échéance.
+   */
+  lateFrom: IsoDate | null;
 }
 
 /** Échéance vue par la répartition. */

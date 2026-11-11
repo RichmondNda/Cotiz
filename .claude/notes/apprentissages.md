@@ -104,3 +104,6 @@ Format : **date** · contexte — apprentissage. *Source.*
   (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`) : tout paquet du workspace importé à l'exécution doit exposer `dist/`
   en condition `default` (`development` → `src/`). Pile Docker : `docker compose -f infra/compose/local.yml -f
   infra/compose/app.yml up -d --build`, puis `--profile seed run --rm seed`. *`docker run cotiz-api:local`, essai du 2026-11-05.*
+- **2026-11-10** · `frontend/tests/unit/bascule-production.test.ts` (« build avec mocks… ») dépasse parfois son délai
+  de 5 s pendant un `pnpm verify` complet (5 070 ms) ; isolé : 1,6 s. Charge machine, pas un défaut : relancer.
+  *verify du 2026-11-10, chore/retard-signature.*

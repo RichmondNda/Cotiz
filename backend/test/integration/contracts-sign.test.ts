@@ -478,22 +478,32 @@ describe('signature du contrat (me.contract, me.sign)', () => {
         user_id: USERS.moussa,
       });
       expect(lines.at(-1)).toMatchObject({ sequence: 18, dueDate: '2027-08-05' });
-      // Rattrapage : les échéances passées sont dues ou en retard, comme à l'inscription (Q3).
-      expect(lines[0]?.status).toBe('late');
+      // Rattrapage : les échéances passées sont dues, mais leur retard part de la signature (late_from, domain-rules
+      // § 6), pas de leur échéance : aucune n'est en retard le jour de la signature.
+      expect(lines[0]?.status).toBe('due');
+      expect(lines.filter((l) => l.status === 'late')).toEqual([]);
       await consumer.handle(event);
       expect(await installments(enrollmentId)).toHaveLength(18);
     });
 
-    it('même échéancier qu’en.create pour la même date d’entrée (montants, statuts, dates de retard)', async () => {
+    it('même échéancier qu’en.create pour la même date d’entrée ; retard des échéances passées daté de la signature', async () => {
       const lines = async (enrollmentId: string) =>
         (
           await f.h.superuser(
             `SELECT kind, sequence, due_date::text AS "dueDate", amount_due::text AS "amountDue", status,
-                    late_since::text AS "lateSince"
+                    late_since::text AS "lateSince", late_from::text AS "lateFrom"
                FROM installments WHERE enrollment_id = $1 ORDER BY kind, sequence`,
             [enrollmentId],
           )
-        ).rows as { lateSince: string | null }[];
+        ).rows as {
+          kind: string;
+          sequence: number;
+          dueDate: string;
+          amountDue: string;
+          status: string;
+          lateSince: string | null;
+          lateFrom: string | null;
+        }[];
       const created = await f.call(`/associations/${A.id}/projects/${PROJECTS.a2}/enrollments`, {
         token: f.tokens.awa,
         method: 'POST',
@@ -517,7 +527,74 @@ describe('signature du contrat (me.contract, me.sign)', () => {
       const expected = await lines(withoutContract);
       expect(expected.length).toBeGreaterThan(0);
       expect(expected.some((l) => l.lateSince !== null)).toBe(true);
-      expect(await lines(signed)).toEqual(expected);
+      const signedLines = await lines(signed);
+      const [{ signedOn }] = (
+        await f.h.superuser(
+          `SELECT (e.activated_at AT TIME ZONE a.timezone)::date::text AS "signedOn"
+             FROM enrollments e JOIN associations a ON a.id = e.association_id WHERE e.id = $1`,
+          [signed],
+        )
+      ).rows as [{ signedOn: string }];
+      // Mêmes échéances et montants ; à venir : identiques. Passées : dues, retard compté de la signature.
+      expect(signedLines.map(({ kind, sequence, dueDate, amountDue }) => [kind, sequence, dueDate, amountDue])).toEqual(
+        expected.map(({ kind, sequence, dueDate, amountDue }) => [kind, sequence, dueDate, amountDue]),
+      );
+      signedLines.forEach((line, i) => {
+        if (line.dueDate < signedOn) {
+          expect(line).toMatchObject({ lateFrom: signedOn, lateSince: null, status: 'due' });
+        } else {
+          expect(line).toEqual({ ...expected[i], lateFrom: null });
+        }
+      });
+      expect(signedLines.some((l) => l.lateFrom !== null)).toBe(true);
+    });
+
+    it('événement traité après le délai de grâce : retard daté de la signature + grâce, pas du jour du traitement', async () => {
+      await insertContract(PROJECTS.a);
+      const enrollmentId = await enrollment(PROJECTS.a, { startsFrom: '2026-03-01' });
+      const { renderedSha256 } = await contractOf(PROJECTS.a);
+      expect((await sign(PROJECTS.a, renderedSha256)).status).toBe(201);
+      // Signée il y a 10 jours (worker en retard, rejeu) ; délai de grâce de PROJECTS.a : 5 jours.
+      await f.h.superuser(`UPDATE enrollments SET activated_at = activated_at - interval '10 days' WHERE id = $1`, [
+        enrollmentId,
+      ]);
+      await worker.get(ContractScheduleConsumer).handle(await envelopeOf('contract.signed'));
+      const [{ signedOn, lateOn }] = (
+        await f.h.superuser(
+          `SELECT d::text AS "signedOn", (d + 6)::text AS "lateOn"
+             FROM (SELECT (e.activated_at AT TIME ZONE a.timezone)::date AS d
+                     FROM enrollments e JOIN associations a ON a.id = e.association_id WHERE e.id = $1) s`,
+          [enrollmentId],
+        )
+      ).rows as [{ signedOn: string; lateOn: string }];
+      const passed = (
+        await f.h.superuser(
+          `SELECT status, late_since::text AS "lateSince", late_from::text AS "lateFrom" FROM installments
+            WHERE enrollment_id = $1 AND due_date < $2::date`,
+          [enrollmentId, signedOn],
+        )
+      ).rows as { status: string; lateSince: string | null; lateFrom: string | null }[];
+      expect(passed.length).toBeGreaterThan(0);
+      for (const line of passed) expect(line).toEqual({ status: 'late', lateSince: lateOn, lateFrom: signedOn });
+      // Espace souscripteur : « en retard depuis » le jour de la signature, comme la vue gestionnaire (pas l'échéance).
+      const detail = await f.call(`/me/projects/${PROJECTS.a}`, { token: f.tokens.moussa });
+      expect(detail.status).toBe(200);
+      const body = (await detail.json()) as { late: { count: number; since: string } | null };
+      // Échéances d'après la signature déjà en retard selon le jour réel (5 novembre vu le 11) : comptées en plus.
+      expect(body.late?.since).toBe(signedOn);
+      expect(body.late?.count).toBeGreaterThanOrEqual(passed.length);
+    });
+
+    it('inscription active sans date d’activation : erreur (l’outbox réessaie), aucune échéance', async () => {
+      await insertContract(PROJECTS.a);
+      const enrollmentId = await enrollment(PROJECTS.a);
+      const { renderedSha256 } = await contractOf(PROJECTS.a);
+      expect((await sign(PROJECTS.a, renderedSha256)).status).toBe(201);
+      await f.h.superuser(`UPDATE enrollments SET activated_at = NULL WHERE id = $1`, [enrollmentId]);
+      await expect(worker.get(ContractScheduleConsumer).handle(await envelopeOf('contract.signed'))).rejects.toThrow(
+        /date d'activation/,
+      );
+      expect(await installments(enrollmentId)).toEqual([]);
     });
 
     it('cycle roulant signé tard : horizon de 12 échéances à venir rétabli dès la signature', async () => {

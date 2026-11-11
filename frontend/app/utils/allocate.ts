@@ -40,7 +40,7 @@ export interface Repartition {
  */
 function versRegistre(echeances: EcheanceARepartir[]): LedgerInstallment[] {
   return echeances.map((e, i) => ({
-    id: e.id, enrollmentId: '', kind: 'periodic', sequence: i, dueDate: '2000-01-01', status: e.fermee ? 'canceled' : 'upcoming',
+    id: e.id, enrollmentId: '', kind: 'periodic', sequence: i, dueDate: '2000-01-01', lateFrom: null, status: e.fermee ? 'canceled' : 'upcoming',
     amountDue: e.montant, amountPaid: Math.min(e.montant, Math.max(0, e.montantPaye ?? 0)), amountPending: 0,
   }))
 }

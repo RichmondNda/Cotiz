@@ -81,6 +81,23 @@ describe('enrollmentLate : retard d’une inscription', () => {
   it('aucun retard → null', () => {
     expect(enrollmentLate([line('2026-10-05', 25_000, 'upcoming')])).toBeNull();
   });
+
+  it('échéance passée à la signature : « depuis » le départ de son retard (lateFrom), pas son échéance', () => {
+    const signed = (dueDate: string, lateFrom: string | null, sequence: number): SubscriberInstallment => ({
+      ...line(dueDate, 25_000, 'late', 0, 0, 'periodic', sequence),
+      lateFrom,
+    });
+    // Signées le 20 novembre : août et septembre ne sont en retard que depuis la signature.
+    expect(enrollmentLate([signed('2026-08-05', '2026-11-20', 1), signed('2026-09-05', '2026-11-20', 2)])).toEqual({
+      count: 2,
+      amount: 50_000,
+      since: '2026-11-20',
+    });
+    // Le plus ancien départ l'emporte, même si son échéance est plus récente.
+    expect(enrollmentLate([signed('2026-08-05', '2026-11-20', 1), signed('2026-10-05', null, 3)])?.since).toBe(
+      '2026-10-05',
+    );
+  });
 });
 
 describe('subscriberSummary : synthèse toutes associations', () => {

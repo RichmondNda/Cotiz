@@ -22,7 +22,7 @@ function installmentsOf(e: SubscriberEnrollment): SubscriberInstallment[] {
   return e.lines.map((line, i) => {
     const state = e.states[i];
     if (!state) throw new Error(`inscription ${e.row.id} : état d’échéance manquant`);
-    return { kind: line.kind, sequence: line.sequence, dueDate: line.dueDate, ...state };
+    return { kind: line.kind, sequence: line.sequence, dueDate: line.dueDate, lateFrom: line.lateFrom, ...state };
   });
 }
 

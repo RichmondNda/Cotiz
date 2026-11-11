@@ -486,6 +486,7 @@ CREATE TABLE installments (
   amount_pending bigint NOT NULL DEFAULT 0,
   status installments_status NOT NULL DEFAULT 'upcoming',
   late_since date,
+  late_from date,
   paid_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK (amount_paid <= amount_due),
@@ -493,6 +494,7 @@ CREATE TABLE installments (
   UNIQUE (id, association_id, enrollment_id)
 );
 COMMENT ON TABLE installments IS 'Échéance attendue (fonds d''entrée ou cotisation périodique). Une ligne = une case de la grille.';
+COMMENT ON COLUMN installments.late_from IS 'départ du retard s''il est postérieur à l''échéance (jour de la signature du contrat) ; null : échéance';
 COMMENT ON COLUMN installments.association_id IS 'RLS';
 COMMENT ON COLUMN installments.user_id IS 'user_id dénormalisé pour l''espace souscripteur';
 COMMENT ON COLUMN installments.kind IS 'entry_fee · periodic';
@@ -1190,6 +1192,7 @@ ALTER TABLE installments ADD CONSTRAINT installments_non_negative CHECK (amount_
 -- Fonds d'entrée au rang 0, cotisations à partir de 1 (domain-rules § 2, règles 2 et 4).
 ALTER TABLE installments ADD CONSTRAINT installments_kind_sequence CHECK ((kind = 'entry_fee' AND sequence = 0) OR (kind = 'periodic' AND sequence >= 1));
 ALTER TABLE payments ADD CONSTRAINT payments_positive CHECK (amount_declared > 0 AND (amount_received IS NULL OR amount_received > 0));
+ALTER TABLE installments ADD CONSTRAINT installments_late_from_after_due CHECK (late_from IS NULL OR late_from > due_date);
 ALTER TABLE payments ADD CONSTRAINT payments_proof_or_reference CHECK (proof_file_id IS NOT NULL OR transaction_reference IS NOT NULL);
 -- Un paiement validé ou rejeté a son relecteur et sa date ; un rejet a son motif (architecture/04 § 4.5).
 ALTER TABLE payments ADD CONSTRAINT payments_reviewed CHECK (status NOT IN ('validated', 'rejected') OR (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL));

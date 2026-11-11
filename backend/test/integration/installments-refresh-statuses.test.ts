@@ -125,6 +125,39 @@ describe('installments.refresh-statuses', () => {
     expect(await lateEvents()).toHaveLength(1);
   });
 
+  it('échéances passées à la signature (late_from) : retard compté depuis la signature, pas depuis l’échéance', async () => {
+    const k = await kofi();
+    // Signature le 20 avril (contract-schedule) : mars et avril, déjà passés, partent du 20 avril (domain-rules § 6).
+    await f.h.superuser(
+      `UPDATE installments SET late_from = '2026-04-20' WHERE enrollment_id = $1 AND due_date < '2026-04-20'`,
+      [k.id],
+    );
+    // Sans late_from, mars serait en retard depuis le 11 mars et avril depuis le 11 avril.
+    await run('2026-04-25T01:00:00Z');
+    expect((await statuses(k.id, '2026-05-31')).map((s) => [s.status, s.lateSince])).toEqual([
+      ['due', null],
+      ['due', null],
+      ['upcoming', null],
+    ]);
+    expect(await lateEvents()).toEqual([]);
+
+    await run('2026-04-26T01:00:00Z');
+    expect((await statuses(k.id, '2026-05-31')).map((s) => [s.status, s.lateSince])).toEqual([
+      ['late', '2026-04-26'],
+      ['late', '2026-04-26'],
+      ['upcoming', null],
+    ]);
+    const ids = await Promise.all(['2026-03-05', '2026-04-05'].map((d) => f.installmentOf(k.id, d)));
+    const events = await lateEvents();
+    expect(events).toHaveLength(1);
+    expect(events[0]?.payload).toEqual({
+      userId: k.userId,
+      projectId: PROJECTS.a,
+      installmentIds: ids,
+      lateSince: '2026-04-26',
+    });
+  });
+
   it('plusieurs passages en retard le même jour : un seul événement par souscripteur et par projet', async () => {
     const k = await kofi();
     const moussa = await f.enrollByApi({ userId: USERS.moussa, startsFrom: '2026-03-01' });

@@ -13,6 +13,7 @@ import {
 const inst = (id: string, over: Partial<LedgerInstallment> = {}): LedgerInstallment => ({
   id,
   enrollmentId: 'e1',
+  lateFrom: null,
   kind: 'periodic',
   sequence: Number(id.replace(/\D/g, '')) || 1,
   dueDate: '2026-03-05',

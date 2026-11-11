@@ -1,5 +1,6 @@
 import type { IsoDate } from './dates.js';
 import { DomainError } from './errors.js';
+import { lateStart } from './status.js';
 import type { EnrollmentStatus, InstallmentStatus, MemberStanding } from './ledger-types.js';
 import type { InstallmentKind, ScheduleLine, ScheduleType } from './schedule.js';
 
@@ -11,6 +12,8 @@ export interface SubscriberInstallment {
   kind: InstallmentKind;
   sequence: number;
   dueDate: IsoDate;
+  /** Départ du retard d'une échéance déjà passée à la signature (domain-rules § 6) ; absent ou `null` : l'échéance. */
+  lateFrom?: IsoDate | null;
   amountDue: number;
   amountPaid: number;
   amountPending: number;
@@ -60,7 +63,8 @@ export function enrollmentNextDue(
 
 /**
  * Retard d'une inscription : nombre d'échéances en retard, leur reste dû (`amountDue − amountPaid`, comme
- * `enrollmentTotals`) et la date d'échéance de la plus ancienne (« en retard depuis le 5 août ») ; `null` sans retard.
+ * `enrollmentTotals`) et le plus ancien départ de retard (`lateStart` : l'échéance, ou le jour de la signature pour une
+ * échéance déjà passée à la signature ; « en retard depuis le 5 août ») ; `null` sans retard.
  */
 export function enrollmentLate(
   installments: readonly SubscriberInstallment[],
@@ -72,7 +76,7 @@ export function enrollmentLate(
   return {
     count: late.length,
     amount: late.reduce((total, i) => add(total, i.amountDue - i.amountPaid), 0),
-    since: first.dueDate,
+    since: late.map(lateStart).reduce((a, b) => (b < a ? b : a)),
   };
 }
 

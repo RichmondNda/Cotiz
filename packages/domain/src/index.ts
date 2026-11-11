@@ -52,6 +52,7 @@ export {
   installmentStatus,
   lateSince,
   lateSinceOf,
+  lateStart,
   memberStanding,
   overallStanding,
   todayIn,

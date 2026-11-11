@@ -72,12 +72,17 @@ Ordre d'évaluation (le premier qui s'applique gagne) :
 1. `waived` ou `canceled` persistés → inchangés.
 2. `amountPaid ≥ amountDue` → `paid`.
 3. `amountPending > 0` → `declared` (le souscripteur a fait sa part ; l'action est côté gestionnaire).
-4. `today > dueDate + graceDays` → `late` ; `lateSince = dueDate + graceDays + 1 jour`.
+4. `today > lateStart + graceDays` → `late` ; `lateSince = lateStart + graceDays + 1 jour`, où `lateStart = max(dueDate, lateFrom)`
+   (`lateFrom` absent ou `null` : `lateStart = dueDate`).
 5. `amountPaid > 0` → `partial`.
 6. `today ≥ dueDate` → `due`.
 7. sinon → `upcoming`.
 
-`late_since` persisté (`lateSinceOf`) : `dueDate + graceDays + 1 jour` dès que cette date est atteinte, tant que l'échéance
+`late_from` (`lateFrom`, décision de l'utilisateur du 2026-11-10) : posé à la signature du contrat pour les échéances déjà
+passées, au jour de la signature dans le fuseau de l'association (le souscripteur ne pouvait pas déclarer avant) ; le
+retard de ces échéances part de la signature, délai de grâce compris. `null` pour toutes les autres.
+
+`late_since` persisté (`lateSinceOf`) : `lateStart + graceDays + 1 jour` dès que cette date est atteinte, tant que l'échéance
 n'est ni soldée, ni dispensée, ni annulée, **y compris sous `declared`** (fait daté, pas un statut : une validation annulée
 ou un rejet rend la même date) ; sinon `null`.
 

@@ -103,6 +103,7 @@ export class RefreshInstallmentStatusesUseCase {
         kind: i.kind,
         sequence: i.sequence,
         dueDate: i.dueDate,
+        lateFrom: i.lateFrom,
         amountDue: Money.fromDb(i.amountDue, currency).amount,
         amountPaid: Money.fromDb(i.amountPaid, currency).amount,
         amountPending: Money.fromDb(i.amountPending, currency).amount,

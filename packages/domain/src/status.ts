@@ -54,13 +54,31 @@ export function dueSoonDate(today: IsoDate): IsoDate {
   return addDays(today, DUE_SOON_DAYS);
 }
 
-/** Premier jour de retard : échéance + délai de grâce + 1 jour. */
-export function lateSince(installment: Pick<InstallmentState, 'dueDate'>, graceDays: number): IsoDate {
-  assertGraceDays(graceDays);
-  return addDays(installment.dueDate, graceDays + 1);
+/**
+ * Départ du retard : l'échéance, ou `lateFrom` s'il est postérieur (échéance déjà passée à la signature du contrat,
+ * domain-rules § 6). Les vecteurs status.json, sans `lateFrom`, valent `null`.
+ */
+export function lateStart(installment: Pick<InstallmentState, 'dueDate'> & { lateFrom?: IsoDate | null }): IsoDate {
+  parseIsoDate(installment.dueDate);
+  const from = installment.lateFrom ?? null;
+  if (from === null) return installment.dueDate;
+  parseIsoDate(from);
+  return from > installment.dueDate ? from : installment.dueDate;
 }
 
-/** Échéance dont le premier jour de retard est `today` (inverse de lateSince) : `today` − (délai de grâce + 1). */
+/** Premier jour de retard : départ du retard (lateStart) + délai de grâce + 1 jour. */
+export function lateSince(
+  installment: Pick<InstallmentState, 'dueDate'> & { lateFrom?: IsoDate | null },
+  graceDays: number,
+): IsoDate {
+  assertGraceDays(graceDays);
+  return addDays(lateStart(installment), graceDays + 1);
+}
+
+/**
+ * Départ du retard (lateStart : échéance, ou `late_from` s'il est postérieur) dont le premier jour de retard est `today`
+ * (inverse de lateSince) : `today` − (délai de grâce + 1).
+ */
 export function dueDateTurningLateOn(today: IsoDate, graceDays: number): IsoDate {
   assertGraceDays(graceDays);
   return addDays(today, -(graceDays + 1));

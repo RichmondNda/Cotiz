@@ -10,6 +10,7 @@ import {
   isManagersDigestTime,
   lateSince,
   lateSinceOf,
+  lateStart,
   memberStanding,
   minutesIn,
   overallStanding,
@@ -40,6 +41,7 @@ const base: InstallmentState = {
   amountPaid: 0,
   amountPending: 0,
   status: 'upcoming',
+  lateFrom: null,
 };
 
 describe('installmentStatus — ordre d’évaluation', () => {
@@ -89,6 +91,59 @@ describe('lateSince', () => {
         expect(installmentStatus(x, since, grace)).toBe('late');
         expect(installmentStatus(x, before.toISOString().slice(0, 10), grace)).toBe('due');
       }),
+    );
+  });
+});
+
+describe('lateFrom — retard daté de la signature (domain-rules § 6)', () => {
+  // Échéance du 5 octobre, signée le 20 novembre : en retard au plus tôt après la signature + le délai de grâce.
+  const signedLate = { ...base, lateFrom: '2026-11-20' };
+
+  it('le retard part de max(échéance, lateFrom) + délai de grâce + 1 jour', () => {
+    expect(lateSince(signedLate, 5)).toBe('2026-11-26');
+    expect(lateSince(signedLate, 0)).toBe('2026-11-21');
+    // lateFrom avant l'échéance : sans effet.
+    expect(lateSince({ ...base, lateFrom: '2026-09-01' }, 5)).toBe('2026-10-11');
+  });
+
+  it('installmentStatus : échue mais pas en retard avant la fin de la grâce comptée de la signature', () => {
+    expect(installmentStatus(signedLate, '2026-11-20', 5)).toBe('due');
+    expect(installmentStatus(signedLate, '2026-11-25', 5)).toBe('due');
+    expect(installmentStatus(signedLate, '2026-11-26', 5)).toBe('late');
+    expect(installmentStatus({ ...signedLate, amountPaid: 1000 }, '2026-11-25', 5)).toBe('partial');
+  });
+
+  it('lateSinceOf : date de retard persistée comptée de la signature', () => {
+    expect(lateSinceOf(signedLate, '2026-11-25', 5)).toBeNull();
+    expect(lateSinceOf(signedLate, '2026-12-01', 5)).toBe('2026-11-26');
+  });
+
+  it('lateStart = max(échéance, lateFrom) ; dueDateTurningLateOn en est l’inverse', () => {
+    expect(lateStart(signedLate)).toBe('2026-11-20');
+    expect(lateStart(base)).toBe('2026-10-05');
+    expect(dueDateTurningLateOn(lateSince(signedLate, 5), 5)).toBe(lateStart(signedLate));
+  });
+
+  it('lateFrom invalide → DomainError', () => {
+    expect(() => lateSince({ ...base, lateFrom: '2026-02-30' }, 5)).toThrow(
+      expect.objectContaining({ code: 'invalid_date' }),
+    );
+  });
+
+  it('propriété : jamais en retard plus tôt que sans lateFrom, et jamais avant lateFrom + grâce + 1', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 60 }),
+        fc.integer({ min: 0, max: 1000 }),
+        fc.integer({ min: 0, max: 1000 }),
+        (grace, dueOffset, signOffset) => {
+          const dueDate = new Date(Date.UTC(2025, 0, 1 + dueOffset)).toISOString().slice(0, 10);
+          const lateFrom = new Date(Date.UTC(2025, 0, 1 + signOffset)).toISOString().slice(0, 10);
+          const withFrom = lateSince({ ...base, dueDate, lateFrom }, grace);
+          expect(withFrom >= lateSince({ ...base, dueDate }, grace)).toBe(true);
+          expect(withFrom >= lateSince({ ...base, dueDate: lateFrom }, grace)).toBe(true);
+        },
+      ),
     );
   });
 });
