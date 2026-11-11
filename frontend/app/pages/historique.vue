@@ -254,7 +254,7 @@ function couverture(p: PaiementListe) {
               />
               <span class="historique__texte">
                 <b>{{ p.projet.nom }}</b>
-                <span>{{ formatDate(p.declareLe, 'numerique') }}<template v-if="couverture(p)"> · {{ couverture(p) }}</template></span>
+                <span>{{ formatDate(p.declareLe, 'numerique') }}<template v-if="couverture(p)"> · {{ couverture(p) }}</template><template v-if="p.inscriptionRetiree"> · inscription retirée</template></span>
               </span>
               <span class="historique__montant">
                 <b>{{ formatFCFA(p.montant) }}</b>

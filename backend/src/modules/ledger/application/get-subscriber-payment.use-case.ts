@@ -11,8 +11,8 @@ import { subscriberPaymentsOf } from './subscriber-payments.js';
 
 /**
  * me.payment (lot 3.3, espace subscriber) : une déclaration de la personne connectée, avec son moyen et son
- * commentaire. Mêmes limites que les lectures du lot 3.2 : inscription non retirée, appartenance souscripteur active ;
- * sinon, comme un paiement d'autrui ou inconnu, 404.
+ * commentaire. Appartenance souscripteur active ; inscription retirée comprise, en lecture seule (`enrollmentWithdrawn`,
+ * décision du 2026-11-10) ; sinon, comme un paiement d'autrui ou inconnu, 404.
  */
 @Injectable()
 export class GetSubscriberPaymentUseCase {
@@ -29,7 +29,7 @@ export class GetSubscriberPaymentUseCase {
       .from(t)
       .where(and(eq(t.id, paymentId), eq(t.userId, requireActor().userId)));
     if (!row) throw new DomainProblem('not_found');
-    const entry = (await subscriberEnrollmentsOf({ projectId: row.projectId })).find(
+    const entry = (await subscriberEnrollmentsOf({ projectId: row.projectId, includeWithdrawn: true })).find(
       (e) => e.row.id === row.enrollmentId && e.association.id === row.associationId,
     );
     if (!entry) throw new DomainProblem('not_found');
@@ -41,6 +41,7 @@ export class GetSubscriberPaymentUseCase {
         associations: new Map([
           [association.id, { id: association.id, name: association.name, logoFileId: association.logoFileId }],
         ]),
+        withdrawnEnrollments: new Set(entry.row.status === 'withdrawn' ? [entry.row.id] : []),
       },
       { ids: [paymentId] },
     );

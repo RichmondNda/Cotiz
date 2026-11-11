@@ -2,6 +2,7 @@
 import type { Installment, PaymentDetail, PaymentSummary, SubscriberPayment } from '@cotiz/contracts'
 import type { Association, Echeance, Paiement, PaiementDetail, PaiementListe, Preuve, Projet, Souscripteur, Souscription } from '~~/types'
 import { ECHEANCE_FERMEE, jour, m, MOTIF_REJET, MOYEN, STATUT_ECHEANCE, STATUT_PAIEMENT } from './communs'
+import { vueProjetRetire } from './souscripteur'
 
 /** Échéance du contrat → échéance de l'interface (grilles, échéanciers, couvertures). */
 export function vueEcheance(i: Installment, souscripteurId: string): Echeance {
@@ -88,8 +89,10 @@ export function vuePaiementDetail(p: PaymentDetail, c: Contexte & { association:
 export function vuePaiementSouscripteur(p: SubscriberPayment, c: { echeances: Map<string, Echeance>, projets: Map<string, Projet>, moi: Souscripteur }): PaiementListe {
   return {
     ...vuePaiement(p, { souscripteurId: c.moi.id, projetId: p.project.id, associationId: p.association.id, rejet: p.rejection }),
+    ...(p.enrollmentWithdrawn ? { inscriptionRetiree: true } : {}),
     souscripteur: c.moi,
-    projet: c.projets.get(p.project.id)!,
+    // Inscription retirée : le projet n'est plus dans ses projets (me.projects) ; son nom suffit à l'historique.
+    projet: c.projets.get(p.project.id) ?? vueProjetRetire(p.project, p.association.id),
     echeancesCouvertes: couvertes(p, c.echeances, c.moi.id, p.project.id),
   }
 }

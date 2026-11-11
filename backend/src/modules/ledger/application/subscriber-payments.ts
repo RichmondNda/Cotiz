@@ -11,6 +11,8 @@ import { coveredOf, paymentLinesOf } from './payment-views.js';
 export interface SubscriberPaymentRefs {
   projects: ReadonlyMap<string, { id: string; name: string }>;
   associations: ReadonlyMap<string, { id: string; name: string; logoFileId: string | null }>;
+  /** Inscriptions retirées parmi celles présentées (me.history, me.payment) : paiements en lecture seule. */
+  withdrawnEnrollments?: ReadonlySet<string>;
 }
 
 type RejectionReason = NonNullable<SubscriberPayment['rejection']>['reasonCode'];
@@ -186,6 +188,7 @@ async function viewsOf(
           ? { reasonCode: row.rejectionReasonCode as RejectionReason, message: row.rejectionMessage }
           : null,
       reviewedAt: row.reviewedAt?.toISOString() ?? null,
+      enrollmentWithdrawn: refs.withdrawnEnrollments?.has(row.enrollmentId) ?? false,
     };
   });
 }

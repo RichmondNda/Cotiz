@@ -37,4 +37,6 @@ export interface Paiement {
   traitePar?: Identifiant // gestionnaire (« validé par Aminata K. »)
   motifRejet?: MotifRejet
   messageRejet?: string
+  /** Souscripteur : l'inscription au projet a été retirée ; paiement consultable seulement (« Inscription retirée »). */
+  inscriptionRetiree?: boolean
 }

@@ -5,7 +5,7 @@ import type { ContratDetaille, SyntheseContratProjet } from '~~/types'
 import { formatFCFA } from '~/utils/format'
 import { associationCourante } from './session'
 import { jour } from './vues/communs'
-import { contexteSouscripteur } from './vues/souscripteur'
+import { contexteSouscripteur, vueProjetRetire } from './vues/souscripteur'
 import { monContrat } from './souscripteurs'
 
 /** Contrats du souscripteur connecté, à signer en tête. */
@@ -16,7 +16,13 @@ async function mesContrats(client: ApiClient, f: { projetId?: string, statut?: s
     .map(async (x) => {
       const s = c.souscriptions.find(y => y.projetId === x.project.id)
       const contrat = await monContrat(client, x.project.id, c.moi.id, s?.id ?? x.project.id)
-      return contrat && s ? { ...contrat, projet: s.projet, souscripteur: c.moi, association: s.association } : null
+      if (!contrat) return null
+      if (s) return { ...contrat, projet: s.projet, souscripteur: c.moi, association: s.association }
+      // Inscription retirée (plus dans ses projets) : contrat signé gardé, avec le nom du projet et son association.
+      const association = c.associations.get(x.association.id)
+      return x.enrollmentWithdrawn && association
+        ? { ...contrat, inscriptionRetiree: true, projet: vueProjetRetire(x.project, x.association.id), souscripteur: c.moi, association }
+        : null
     }))
   return contrats.filter((x): x is ContratDetaille => x !== null && (!f.statut || x.statut === f.statut))
 }

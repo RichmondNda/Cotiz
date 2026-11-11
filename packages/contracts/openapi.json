@@ -10247,6 +10247,9 @@
                         }
                       ]
                     },
+                    "enrollmentWithdrawn": {
+                      "type": "boolean"
+                    },
                     "paymentMethod": {
                       "anyOf": [
                         {
@@ -10275,6 +10278,7 @@
                     "proof",
                     "rejection",
                     "reviewedAt",
+                    "enrollmentWithdrawn",
                     "paymentMethod",
                     "comment"
                   ],
@@ -11016,9 +11020,19 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "enrollmentWithdrawn": {
+                            "type": "boolean"
                           }
                         },
-                        "required": ["project", "association", "status", "signedAt", "pdfFileId"],
+                        "required": [
+                          "project",
+                          "association",
+                          "status",
+                          "signedAt",
+                          "pdfFileId",
+                          "enrollmentWithdrawn"
+                        ],
                         "additionalProperties": false
                       }
                     }
@@ -20904,6 +20918,9 @@
                 "type": "null"
               }
             ]
+          },
+          "enrollmentWithdrawn": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -20919,7 +20936,8 @@
           "covered",
           "proof",
           "rejection",
-          "reviewedAt"
+          "reviewedAt",
+          "enrollmentWithdrawn"
         ],
         "additionalProperties": false
       },

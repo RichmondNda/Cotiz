@@ -20,4 +20,6 @@ export interface Contrat {
   signataireAssociation?: string
   /** PDF signé (fl.get), une fois produit par le serveur (lot 4.1). */
   pdfFichierId?: Identifiant
+  /** Inscription retirée depuis la signature : contrat consultable, PDF téléchargeable (« adhésion terminée »). */
+  inscriptionRetiree?: boolean
 }
