@@ -5,12 +5,15 @@ import {
   ListNotificationsUseCase,
 } from './application/list-notifications.use-case.js';
 import { ReadAllNotificationsUseCase, ReadNotificationUseCase } from './application/read-notifications.use-case.js';
+import { StreamNotificationsUseCase } from './application/stream-notifications.use-case.js';
 import { NotificationsController } from './http/notifications.controller.js';
+import { NotificationStreamHub } from './infra/notification-bus.js';
+import { IdentityModule } from '../identity/identity.public.js';
 import { UnreadCounter } from './infra/unread-counter.js';
 
-/** Partie api du module notifications (lot 2.5) : nt.list (+ compteur en cache Redis) et nt.read. */
+/** Partie api du module notifications : nt.list (+ compteur en cache Redis) et nt.read (lot 2.5), nt.stream (4.2). */
 @Module({
-  imports: [RedisModule],
+  imports: [RedisModule, IdentityModule],
   controllers: [NotificationsController],
   providers: [
     UnreadCounter,
@@ -18,6 +21,8 @@ import { UnreadCounter } from './infra/unread-counter.js';
     CountUnreadNotificationsUseCase,
     ReadNotificationUseCase,
     ReadAllNotificationsUseCase,
+    NotificationStreamHub,
+    StreamNotificationsUseCase,
   ],
 })
 export class NotificationsModule {}

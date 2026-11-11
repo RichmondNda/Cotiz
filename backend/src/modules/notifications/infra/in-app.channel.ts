@@ -37,6 +37,9 @@ export class InAppChannel implements NotificationChannel {
       })
       .onConflictDoNothing({ target: notifications.dedupeKey })
       .returning({ id: notifications.id });
-    return { channel: this.kind, status: created.length > 0 ? 'created' : 'duplicate' };
+    const [row] = created;
+    return row
+      ? { channel: this.kind, status: 'created', notificationId: row.id }
+      : { channel: this.kind, status: 'duplicate' };
   }
 }

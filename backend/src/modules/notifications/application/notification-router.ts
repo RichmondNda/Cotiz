@@ -58,3 +58,12 @@ export class NotificationRouter {
     return results;
   }
 }
+
+/** Lignes de la cloche créées par un envoi : compteurs à invalider et annonces au flux nt.stream, après le COMMIT. */
+export function createdInApp(deliveries: readonly RoutedDelivery[]): { userId: string; notificationId: string }[] {
+  return deliveries.flatMap((d) =>
+    d.channel === 'in_app' && d.status === 'created' && d.notificationId
+      ? [{ userId: d.recipient.userId, notificationId: d.notificationId }]
+      : [],
+  );
+}

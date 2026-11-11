@@ -33,6 +33,10 @@ const AccessClaims = z.object({
 });
 export type AccessClaims = z.infer<typeof AccessClaims>;
 
+/** Jeton d'accès vérifié : claims et échéance (`exp`, secondes) — durée de vie du flux nt.stream (lot 4.2). */
+const VerifiedAccess = AccessClaims.extend({ exp: z.int().positive() });
+export type VerifiedAccess = z.infer<typeof VerifiedAccess>;
+
 /**
  * Jetons d'accès JWT EdDSA (Ed25519), 15 min. Clés JWT_PRIVATE_KEY / JWT_PUBLIC_KEY (exigées en production) ; sans
  * elles, une paire éphémère : les jetons émis ne survivent pas au redémarrage de l'api.
@@ -101,12 +105,12 @@ export class AccessTokenSigner {
   }
 
   /** Vérifie signature, algorithme, émetteur, audience, expiration et forme des claims ; lève une erreur sinon. */
-  async verify(token: string): Promise<AccessClaims> {
+  async verify(token: string): Promise<VerifiedAccess> {
     const { payload } = await jwtVerify(token, this.verifyKey, {
       algorithms: [ALG],
       issuer: ISSUER,
       audience: AUDIENCE,
     });
-    return AccessClaims.parse(payload);
+    return VerifiedAccess.parse(payload);
   }
 }

@@ -706,3 +706,13 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
    syntaxe Handlebars, échappé). Front : MbProfil (interrupteurs par type), MgProfil (bloc appareil), bascules
    `nt.stream`, `me.push`, `me.prefs`, handlers simulés supprimés. Vérif : désactiver un type coupe le push, pas l'in-app
    obligatoire ; `/verifier-ecran` des profils et notifications.
+- **2026-11-11** · lot 4.2, rythme — Accord de l'utilisateur (« oui fais ainsi ») : `pnpm verify` une seule fois, avant
+  la PR, au lieu d'après chaque étape ; tests ciblés à chaque étape, relectures en parallèle. · « c'est long » (deux
+  verify de 10 min pour l'étape 1).
+- **2026-11-11** · lot 4.2 étape 2 (nt.stream) — Flux lu par `fetch` (EventSource n'envoie pas `Authorization`) ;
+  réponse `@Res()` + `afterCommit` : aucune transaction tenue, une transaction courte par lecture. Annonce Redis = id
+  seul, ligne relue avec `notificationScopeOf` (recalculé à chaque lecture). Reprise par `Last-Event-ID` (UUID v7,
+  100 au plus). Durée = min(15 min, échéance du jeton : `exp` exposé par `AccessTokenSigner.verify` → `VerifiedAccess`).
+  5 flux au plus par personne et par processus (le plus ancien fermé, pas de 429 : `errors: []` au contrat).
+  Pas d'interrogation de repli côté front (la V1 n'interrogeait pas : relecture à la navigation). Proxy Nitro : l'appel
+  à NestJS est interrompu quand le navigateur part (sinon flux orphelin 15 min). Relecture isolation : 6 points traités.

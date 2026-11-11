@@ -53,11 +53,13 @@ describe('AccessTokenSigner', () => {
     await expect(signer.verify(await forge({ space: 'association' }))).rejects.toThrow();
     await expect(signer.verify(await forge({ space: 'association', sid: 'pas-un-uuid' }))).rejects.toThrow();
     const withAid = await signer.verify(await forge({ space: 'association', sid: SID, aid: AID }));
-    expect(withAid).toEqual({ sub: USER, space: 'association', sid: SID });
+    // `exp` est rendu (lot 4.2, durée du flux nt.stream) ; `aid` ne l'est jamais.
+    expect(withAid).toEqual({ sub: USER, space: 'association', sid: SID, exp: expect.any(Number) as number });
     expect(await signer.verify(await forge({ space: 'association', sid: SID }))).toEqual({
       sub: USER,
       space: 'association',
       sid: SID,
+      exp: expect.any(Number) as number,
     });
   });
 });

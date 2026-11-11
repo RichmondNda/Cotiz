@@ -6,6 +6,7 @@ import { SendManagersDigestUseCase } from './application/send-managers-digest.us
 import { NOTIFICATION_CHANNELS, type NotificationChannel } from './domain/channel.js';
 import { NotificationsConsumer } from './events/notifications.consumer.js';
 import { InAppChannel } from './infra/in-app.channel.js';
+import { NotificationAnnouncer } from './infra/notification-bus.js';
 import { ManualChannel } from './infra/manual.channel.js';
 import { UnreadCounter } from './infra/unread-counter.js';
 
@@ -19,6 +20,7 @@ import { UnreadCounter } from './infra/unread-counter.js';
   imports: [RedisModule],
   providers: [
     UnreadCounter,
+    NotificationAnnouncer,
     InAppChannel,
     ManualChannel,
     {

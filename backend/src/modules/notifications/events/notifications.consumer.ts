@@ -12,8 +12,9 @@ import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
 import { currentTx, TenantDatabase } from '../../../shared/tenant-context/index.js';
-import { NotificationRouter, type RoutedDelivery } from '../application/notification-router.js';
+import { createdInApp, NotificationRouter, type RoutedDelivery } from '../application/notification-router.js';
 import type { Recipient, RenderedMessage } from '../domain/channel.js';
+import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
 import {
   associationRequestSubmittedMessage,
@@ -89,6 +90,7 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly db: TenantDatabase,
     private readonly router: NotificationRouter,
     private readonly counter: UnreadCounter,
+    private readonly announcer: NotificationAnnouncer,
   ) {}
 
   onModuleInit(): void {
@@ -122,10 +124,11 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
       }
       return all;
     });
-    // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche.
-    await this.counter.invalidate(
-      deliveries.filter((d) => d.channel === 'in_app' && d.status === 'created').map((d) => d.recipient.userId),
-    );
+    // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche, puis annonce
+    // au flux temps réel (nt.stream, lot 4.2).
+    const created = createdInApp(deliveries);
+    await this.counter.invalidate(created.map((c) => c.userId));
+    await this.announcer.announce(created);
   }
 
   private inAssociation<T>(associationId: string, fn: () => Promise<T>): Promise<T> {

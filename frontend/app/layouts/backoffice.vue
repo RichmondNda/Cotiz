@@ -12,6 +12,8 @@ const route = useRoute()
 const espace = computed(() => route.meta.espace ?? (route.path.startsWith('/plateforme') ? 'superadmin' : 'gestionnaire'))
 const theme = computed(() => (espace.value === 'superadmin' ? 'superadmin' : 'manager'))
 useHead({ bodyAttrs: { 'data-theme': theme } })
+// Cloche en temps réel (nt.stream, lot 4.2).
+useFluxNotifications()
 
 const tiroir = ref(false)
 watch(() => route.fullPath, () => (tiroir.value = false))

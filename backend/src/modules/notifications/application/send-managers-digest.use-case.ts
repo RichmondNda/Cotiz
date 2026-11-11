@@ -8,8 +8,9 @@ import { REDIS_PREFIX } from '../../../shared/queues/index.js';
 import { RedisClient } from '../../../shared/redis/redis.module.js';
 import { TenantDatabase } from '../../../shared/tenant-context/index.js';
 import { managersDigestMessage } from '../domain/messages.js';
+import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
-import { NotificationRouter } from './notification-router.js';
+import { createdInApp, NotificationRouter } from './notification-router.js';
 
 /** Durée d'une marque « journée faite » : couvre la journée locale de tout fuseau, puis disparaît seule. */
 const DONE_TTL_SECONDS = 48 * 3600;
@@ -39,6 +40,7 @@ export class SendManagersDigestUseCase {
     private readonly router: NotificationRouter,
     private readonly counter: UnreadCounter,
     private readonly redis: RedisClient,
+    private readonly announcer: NotificationAnnouncer,
   ) {}
 
   async execute(now: Date): Promise<void> {
@@ -92,11 +94,10 @@ export class SendManagersDigestUseCase {
         dedupeBase: managersDigestDedupeBaseOf(associationId, today),
       });
     });
-    const created = deliveries
-      .filter((d) => d.channel === 'in_app' && d.status === 'created')
-      .map((d) => d.recipient.userId);
-    // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche.
-    await this.counter.invalidate(created);
+    const created = createdInApp(deliveries);
+    // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche, annonce au flux.
+    await this.counter.invalidate(created.map((c) => c.userId));
+    await this.announcer.announce(created);
     return created.length;
   }
 

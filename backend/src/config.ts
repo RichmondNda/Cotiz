@@ -85,6 +85,8 @@ export const ConfigSchema = z.object({
   GOTENBERG_URL: z.url({ protocol: /^https?$/ }).optional(),
   /** fl.upload › complete : attente du résultat de l'analyse avant de répondre `pending` (lot 0.5). */
   FILE_SCAN_WAIT_MS: z.coerce.number().int().min(0).max(30_000).default(5_000),
+  /** nt.stream : battement de cœur du flux SSE (lot 4.2, 25 s) ; la session y est aussi revérifiée. */
+  NT_STREAM_HEARTBEAT_MS: z.coerce.number().int().min(100).max(60_000).default(25_000),
   /**
    * Nombre de proxys de confiance devant l'api (répartiteur, Traefik…) : l'IP du client est lue dans X-Forwarded-For
    * à cette profondeur. 0 : X-Forwarded-For ignoré. Jamais « tous » : le client choisirait son IP.

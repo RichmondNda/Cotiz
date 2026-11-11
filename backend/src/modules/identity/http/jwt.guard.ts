@@ -2,13 +2,13 @@ import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/com
 import { Reflector } from '@nestjs/core';
 import { DomainProblem, routeAccess } from '../../../shared/http/index.js';
 import { setRequestContext } from '../../../shared/tenant-context/index.js';
-import { type AccessClaims, AccessTokenSigner } from '../infra/access-token-signer.js';
+import { type VerifiedAccess, AccessTokenSigner } from '../infra/access-token-signer.js';
 import { RevokedSessions } from '../infra/revoked-sessions.js';
 
-const sessions = new WeakMap<object, AccessClaims>();
+const sessions = new WeakMap<object, VerifiedAccess>();
 
 /** Claims du jeton d'accès vérifié par JwtGuard pour cette requête. */
-export function authenticatedSession(request: object): AccessClaims {
+export function authenticatedSession(request: object): VerifiedAccess {
   const claims = sessions.get(request);
   if (!claims) throw new Error('authenticatedSession() sur une route sans jeton vérifié par JwtGuard');
   return claims;
@@ -40,7 +40,7 @@ export class JwtGuard implements CanActivate {
     const token = typeof header === 'string' ? /^Bearer ([^\s]+)$/i.exec(header)?.[1] : undefined;
     if (!token) throw new DomainProblem('session_expired');
 
-    let claims: AccessClaims;
+    let claims: VerifiedAccess;
     try {
       claims = await this.signer.verify(token);
     } catch {

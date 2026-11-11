@@ -29,6 +29,8 @@ export interface DeliveryResult {
   channel: ChannelKind;
   /** `created` : écrit ; `duplicate` : déjà fait (clé de déduplication) ; `prepared` : message prêt, aucun envoi. */
   status: 'created' | 'duplicate' | 'prepared';
+  /** Ligne de la cloche créée (`in_app`, `created`) : annoncée au flux nt.stream après le COMMIT. */
+  notificationId?: string;
 }
 
 export interface SendOptions {

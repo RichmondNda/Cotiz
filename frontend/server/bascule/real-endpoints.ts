@@ -94,6 +94,8 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   // Lot 2.5 : notifications dans l'application (cloche, compteur, pages de notifications des trois espaces).
   ['nt.list', 'all'],
   ['nt.read', 'all'],
+  // Lot 4.2 : flux temps réel de la cloche (SSE, aucun handler simulé).
+  ['nt.stream', 'all'],
   // Lot 2.6 : rapport de projet (onglet Rapports), tableau de bord gestionnaire.
   ['rp.report', 'all'],
   ['as.dashboard', 'all'],

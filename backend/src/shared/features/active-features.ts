@@ -9,6 +9,7 @@ export const DELIVERED_FEATURES: readonly Feature[] = [
   'activation_codes',
   'password_reset_manual',
   'contracts',
+  'realtime',
 ];
 
 /**
