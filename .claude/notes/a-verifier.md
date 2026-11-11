@@ -208,7 +208,7 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 ## 2026-11-10 · PR C étape 1 (late_from) — **à trancher par l'utilisateur**
 - Reprise des données existantes : la migration 0020 pose `late_from = NULL` partout. Les inscriptions signées **avant**
   la migration avec des échéances déjà passées gardent un retard compté depuis l'échéance (`status = 'late'`,
-  `late_since` ancien). Options : (1, recommandée) migration de reprise 0021 : `late_from` = jour local de
+  `late_since` ancien). Options : (1, recommandée) migration de reprise (prochain numéro, 0021 et 0022 étant pris par la devise) : `late_from` = jour local de
   `contract_signatures.signed_at` quand `due_date` < ce jour, puis recalcul par `installments.refresh-statuses`
   (statut et `late_since`) ; (2) règle « signatures futures seulement », consignée. Touche des données d'argent :
   non faite sans accord. *Relecture money-reviewer du 2026-11-10.*
@@ -218,3 +218,8 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   en espace association (déclencheur, nouvelle migration) ; n'autoriser `enrollments.activated_at` en espace
   souscripteur que pendant `pending_signature → active` (`guard_enrollment_update`, 0012). Aucun code ne les écrit hors
   du consommateur et de `me.sign` aujourd'hui.
+
+## 2026-11-10 · Branches distantes fusionnées supprimées (fait, sur demande)
+- Demande : « supprime les branches distantes fusionnées », confirmée « Les 50 fusionnées ». Les 50 branches de
+  `git branch -r --merged origin/backend` ont été supprimées (lot/0.1 à lot/4.1, lot-01 à lot-09, chore/*, docs/*).
+  Restent : `main`, `backend`, `chore/projets-indicateurs` (non fusionnée). Commits accessibles par les fusions.

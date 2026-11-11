@@ -1,4 +1,5 @@
 import { Writable } from 'node:stream';
+import pg from 'pg';
 import type { INestApplication, INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { LoginResponse, ResetToken } from '@cotiz/contracts';
@@ -152,6 +153,27 @@ describe('mot de passe oublié', () => {
       const { id, email } = await staff();
       await Promise.all(Array.from({ length: 8 }, () => forgot(email)));
       expect(await requestsOf(id)).toHaveLength(3);
+    });
+
+    it('demande en attente du verrou : datée après le verrou, pas au début de sa transaction', async () => {
+      // Deux demandes commencées à la même microseconde avaient le même created_at (heure de début de transaction) et
+      // comptaient pour une : une 4e passait. L'heure de la demande doit être lue une fois le verrou obtenu.
+      const { id, email } = await staff();
+      const holder = new pg.Client({ connectionString: h.db.superuserUrl });
+      await holder.connect();
+      try {
+        await holder.query(`SELECT pg_advisory_lock(hashtextextended($1, 0))`, [`password_reset_requests:${id}`]);
+        const pending = forgot(email);
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        const [lock] = (await holder.query<{ t: Date }>('SELECT clock_timestamp() AS t')).rows;
+        await holder.query(`SELECT pg_advisory_unlock(hashtextextended($1, 0))`, [`password_reset_requests:${id}`]);
+        expect((await pending).status).toBe(202);
+        const [row] = (await h.superuser('SELECT created_at FROM password_reset_requests WHERE user_id = $1', [id]))
+          .rows as { created_at: Date }[];
+        expect(row?.created_at.getTime()).toBeGreaterThanOrEqual(lock?.t.getTime() ?? Infinity);
+      } finally {
+        await holder.end();
+      }
     });
 
     it('temps de réponse plancher, compte connu ou non', async () => {
