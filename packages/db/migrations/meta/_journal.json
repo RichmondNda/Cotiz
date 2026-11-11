@@ -148,6 +148,20 @@
       "when": 1794500002000,
       "tag": "0020_installments_late_from",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794500003000,
+      "tag": "0021_currency_xof",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794500004000,
+      "tag": "0022_payments_currency_xof",
+      "breakpoints": true
     }
   ]
 }

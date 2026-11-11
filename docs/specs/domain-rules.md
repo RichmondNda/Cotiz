@@ -6,6 +6,7 @@ Ces règles sont implémentées **une seule fois** dans `packages/domain` (TypeS
 - Montant = entier dans la plus petite unité de la devise (le franc CFA n'a pas de subdivision : 25 000 F = `25000`). Jamais de flottant, jamais de `numeric` pour l'argent.
 - Base : `bigint`. JSON : nombre entier (sûr jusqu'à 2^53).
 - `formatMoney(amount, currency)` : séparateur de milliers U+202F (espace fine insécable), espace insécable U+00A0 avant le symbole ; `XOF` et `XAF` → `F`, `GNF` → `FG`. Vecteurs : `money.json`.
+- **Une seule devise pour l'instant : XOF** (décision du 2026-11-11). Associations, projets et paiements en XOF seulement (contraintes `*_currency_xof`, migrations 0021 et 0022 ; factures, relevés et intentions de paiement dans schema.sql), comme les plans : une personne ne cumule jamais deux devises. `formatMoney` garde XAF et GNF pour plus tard.
 
 ## 2. Échéancier — `generateSchedule(input)`
 Entrée :

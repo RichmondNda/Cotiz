@@ -285,7 +285,7 @@ CREATE TABLE associations (
   status associations_status NOT NULL DEFAULT 'onboarding',
   suspended_at timestamptz,
   suspension_reason text,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT associations_currency_xof CHECK (currency = 'XOF'),
   timezone text NOT NULL DEFAULT 'Africa/Abidjan',
   default_grace_days int NOT NULL DEFAULT 5,
   onboarding_completed_at timestamptz,
@@ -296,7 +296,7 @@ CREATE TABLE associations (
 COMMENT ON TABLE associations IS 'Le client de Cotiz. Racine de l''isolation multi-tenant.';
 COMMENT ON COLUMN associations.registration_number IS 'facultatif, repris de la demande';
 COMMENT ON COLUMN associations.status IS 'onboarding · active · past_due · suspended · closed';
-COMMENT ON COLUMN associations.currency IS 'XOF';
+COMMENT ON COLUMN associations.currency IS 'XOF seulement pour l''instant (associations_currency_xof)';
 COMMENT ON COLUMN associations.timezone IS 'Africa/Abidjan';
 COMMENT ON COLUMN associations.default_grace_days IS 'délai avant « en retard »';
 COMMENT ON COLUMN associations.version IS 'verrouillage optimiste';
@@ -381,7 +381,7 @@ CREATE TABLE invoices (
   period_start date NOT NULL,
   period_end date NOT NULL,
   amount bigint NOT NULL,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT invoices_currency_xof CHECK (currency = 'XOF'),
   status invoices_status NOT NULL DEFAULT 'draft',
   issued_at timestamptz,
   due_at timestamptz,
@@ -413,7 +413,7 @@ CREATE TABLE projects (
   start_date date NOT NULL,
   end_date date,
   grace_days int NOT NULL DEFAULT 5,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT projects_currency_xof CHECK (currency = 'XOF'),
   financial_terms_locked_at timestamptz,
   created_by uuid NOT NULL,
   closed_at timestamptz,
@@ -422,6 +422,7 @@ CREATE TABLE projects (
   UNIQUE (id, association_id)
 );
 COMMENT ON TABLE projects IS 'Un projet de cotisation.';
+COMMENT ON COLUMN projects.currency IS 'XOF seulement pour l''instant (projects_currency_xof)';
 COMMENT ON COLUMN projects.association_id IS 'RLS';
 COMMENT ON COLUMN projects.description IS 'Markdown restreint';
 COMMENT ON COLUMN projects.status IS 'draft · enrolling · active · completed · archived';
@@ -514,7 +515,7 @@ CREATE TABLE payments (
   user_id uuid NOT NULL,
   amount_declared bigint NOT NULL,
   amount_received bigint,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT payments_currency_xof CHECK (currency = 'XOF'),
   paid_on date NOT NULL,
   payment_method_id uuid,
   transaction_reference text,
@@ -947,7 +948,7 @@ CREATE TABLE statement_lines (
   line_no int NOT NULL,
   booked_on date NOT NULL,
   amount bigint NOT NULL,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT statement_lines_currency_xof CHECK (currency = 'XOF'),
   reference text,
   counterparty text,
   raw jsonb NOT NULL,
@@ -1025,7 +1026,7 @@ CREATE TABLE payment_intents (
   provider text NOT NULL,
   provider_ref text,
   amount bigint NOT NULL,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT payment_intents_currency_xof CHECK (currency = 'XOF'),
   allocations jsonb NOT NULL,
   status payment_intents_status NOT NULL DEFAULT 'created',
   payment_id uuid,

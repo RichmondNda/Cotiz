@@ -163,21 +163,10 @@ describe('aperçu d’échéancier (pr.preview)', () => {
     expect(await xaf.json()).toMatchObject({ fields: { installmentAmount: 'currency_mismatch' } });
   });
 
-  it('total au-delà des entiers sûrs : 200, total null (comme le front) ; association en XAF : montants en XAF', async () => {
+  it('total au-delà des entiers sûrs : 200, total null (comme le front)', async () => {
     const huge = await preview({ ...FIXED, installmentAmount: xof(1_000_000_000_000_000) });
     expect(huge.status).toBe(200);
     expect(SchedulePreview.parse(await huge.json())).toMatchObject({ periodicCount: 18, totalPerSubscriber: null });
-    await f.h.superuser(`UPDATE associations SET currency = 'XAF' WHERE id = $1`, [A.id]);
-    try {
-      const xaf = (amount: number) => ({ amount, currency: 'XAF' });
-      const res = await preview({ ...FIXED, entryFee: xaf(50000), installmentAmount: xaf(25000) });
-      expect(res.status).toBe(200);
-      const back = SchedulePreview.parse(await res.json());
-      expect(new Set(back.installments.map((l) => l.amountDue.currency))).toEqual(new Set(['XAF']));
-      expect(back.totalPerSubscriber).toEqual(xaf(500000));
-    } finally {
-      await f.h.superuser(`UPDATE associations SET currency = 'XOF' WHERE id = $1`, [A.id]);
-    }
   });
 
   it('aucune écriture : ni projet ni événement', async () => {

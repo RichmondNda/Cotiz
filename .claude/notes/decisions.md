@@ -648,6 +648,17 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
 - Signature d'un contrat (`me.sign`) d'une association suspendue : non bloquée (hors de la consigne « aucune déclaration ») ;
   question notée dans a-verifier.md.
 
+## 2026-11-11 · PR C (règles produit), étape 6 — une seule devise
+- Choix de l'utilisateur : « XOF partout » (parmi : XOF partout, une devise par personne, ne rien imposer).
+- Migration 0021 : `associations_currency_xof` et `projects_currency_xof` (CHECK currency = 'XOF'), comme
+  `plans_currency_xof` (0010) ; schema.sql et domain-rules.md mis à jour. Aucune route ne choisissait la devise.
+- Tests qui passaient une association en XAF (projects, project-preview, project-overview) : retirés ou remplacés par
+  le refus de la base. Les refus `currency_mismatch` d'un montant en XAF restent testés. me.dash garde son erreur
+  explicite sur deux devises (défense en profondeur).
+- Après money-reviewer : migration 0022 `payments_currency_xof` (+ commentaire de `projects.currency`) ; schema.sql
+  contraint aussi `invoices`, `statement_lines` et `payment_intents` (tables pas encore migrées), dans le prolongement de
+  « XOF partout ». Conformité : échoue si la contrainte de payments manque (contre-épreuve faite).
+
 ## 2026-11-10 · Points ouverts tranchés par l'utilisateur (PR A à D, accord « A, B, C, D »)
 - A `chore/prod-proxy-reset` : TRUST_PROXY_HOPS de production 2 → 1. Vérifié dans h3 (`getProxyRequestHeaders`) : le
   proxy Nitro recopie X-Forwarded-For sans y ajouter d'adresse, donc un seul proxy compte (Traefik) ; à 2, une adresse
