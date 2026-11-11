@@ -65,7 +65,11 @@ export class RequestPasswordResetUseCase {
     // Demandes simultanées de la même personne : comptées une à une (jamais plus de 3).
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`password_reset_requests:${user.id}`}, 0))`);
 
-    // Une demande = les lignes écrites ensemble (même created_at, heure de la transaction).
+    // Une demande = les lignes écrites ensemble (même created_at). L'heure est lue après le verrou (clock_timestamp) et
+    // non au début de la transaction (now()) : deux demandes commencées à la même microseconde compteraient pour une.
+    const [{ requestedAt } = { requestedAt: now }] = await tx
+      .execute<{ requestedAt: Date }>(sql`SELECT clock_timestamp() AS "requestedAt"`)
+      .then((r) => r.rows);
     const [recent] = await tx
       .select({ n: countDistinct(passwordResetRequests.createdAt) })
       .from(passwordResetRequests)
@@ -96,6 +100,7 @@ export class RequestPasswordResetUseCase {
         userId: user.id,
         associationId,
         space,
+        createdAt: new Date(requestedAt),
         ip: request?.ip ? canonicalIp(request.ip) : null,
         userAgent: request?.userAgent?.slice(0, USER_AGENT_MAX) ?? null,
       });
