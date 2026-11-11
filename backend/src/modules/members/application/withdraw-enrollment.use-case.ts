@@ -13,7 +13,8 @@ import { toEnrollment } from './enrollment-views.js';
 import { associationToday, contextAssociationId } from './member-context.js';
 
 /**
- * en.withdraw (domain-rules § 8 : `active → withdrawn`, sinon `invalid_state`) : échéances futures (après aujourd'hui
+ * en.withdraw (domain-rules § 8 : `active → withdrawn` ou `pending_signature → withdrawn`, sinon `invalid_state` ;
+ * en attente de signature : aucune échéance, la signature n'est plus possible) : échéances futures (après aujourd'hui
  * dans le fuseau de l'association) sans aucun montant versé ni déclaré annulées (`canceled`) ; échues toujours dues ;
  * appartenance conservée (défaut du lot). Verrous dans l'ordre de la clôture (Q2) : projet, inscription, échéances par
  * identifiant. member.withdrawn, audit.
@@ -38,7 +39,7 @@ export class WithdrawEnrollmentUseCase {
     const project = await projectOf(associationId, found.projectId, { lock: 'share' });
     const [current] = await tx.select().from(enrollments).where(eq(enrollments.id, eid)).for('update');
     if (!project || !current) throw new DomainProblem('not_found');
-    if (current.status !== 'active') throw new DomainProblem('invalid_state');
+    if (current.status !== 'active' && current.status !== 'pending_signature') throw new DomainProblem('invalid_state');
 
     const today = await associationToday(aid);
     const future = await tx
