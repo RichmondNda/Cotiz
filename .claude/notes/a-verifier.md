@@ -257,3 +257,9 @@ Corrigés dans la branche : appareil d'une autre personne retiré du navigateur 
 - **Débit sur `me.push › subscribe`** (`rateLimited: true` dans endpoints.yaml) : le plafond de 10 appareils limite déjà les appels du worker.
 - **Texte sur l'écran verrouillé** : une déclaration montre « Nom a déclaré 25 000 F pour Projet ». Choix produit à confirmer (texte réduit pour le push ?).
 - `screens.yaml` : `uiDeviations` de mg-profil (0) et mb-profil (1) ne comptent pas la ligne ajoutée à ui-deviations.md pour le bloc appareil.
+- **Session expirée sans déconnexion (relecture étape 4)** : la garde du front ne retire l'abonnement d'une autre personne qu'à l'ouverture d'une page d'espace ; d'ici là, l'appareil partagé affiche ses push (nom, montant). Options : lier l'abonnement à la famille de sessions (changement de schema.sql) ou push au texte générique (« Nouvelle notification Cotiz », détail dans la cloche). À trancher avec le point « texte sur l'écran verrouillé ».
+- **Modèles d'association non appliqués** à `user.activated` (événement sans association) ni au récapitulatif des déclarations groupées : ils reçoivent les modèles de la plateforme ou le texte du code. Lecture par entrée planifiée à prévoir si des modèles d'association sont saisis (lot 4.3 ?).
+
+### Lot 4.2 — Web Push en déploiement (2026-11-11, en attente d'accord)
+- `WEB_PUSH_HOSTS` n'a plus de valeur par défaut (choix de l'utilisateur : « Liste dans la config ») ; valeurs dans `docs/runbooks/web-push.md`.
+- `infra/compose/production.yml` ne transmet ni `VAPID_*` ni `WEB_PUSH_HOSTS` à l'api et au worker : le push reste désactivé en production tant que ce n'est pas ajouté. Changement de configuration de déploiement → à demander avant de le faire.

@@ -5,9 +5,10 @@
 // absente de `GET /me` : rien n'est ouvert.
 import { espaceDuJeton, fetchAvecRenouvellement } from '~/utils/jeton-acces'
 import { endpointDisponible, espaceBascule, type Espace } from '~/utils/bascule'
+import { ENDPOINTS } from '@cotiz/contracts'
 import { lireFluxSse } from '~/utils/flux-sse'
 
-const CHEMIN = '/api/v1/me/notifications/stream'
+const CHEMIN = ENDPOINTS['nt.stream'].operations.stream.path
 const DELAI_MIN_MS = 3_000
 const DELAI_MAX_MS = 60_000
 /** Clés de `useLecture` relues à chaque notification (préfixes : la clé porte aussi le scénario). */

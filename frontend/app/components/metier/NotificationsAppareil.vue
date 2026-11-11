@@ -6,6 +6,7 @@
 -->
 <script setup lang="ts">
 import type { Espace } from '~/utils/bascule'
+import { codeErreur, champsErreur, messageRefus } from '~/composables/api/client'
 
 const props = withDefaults(defineProps<{ espace: Espace, carte?: boolean }>(), { carte: false })
 const toast = useToast()
@@ -26,8 +27,11 @@ async function basculer(valeur: boolean) {
     if (!valeur) await desactiver()
     else if (!(await activer())) toast.info('Notifications non autorisées', { message: 'Vous pourrez les autoriser plus tard dans les réglages du navigateur.' })
   }
-  catch {
-    toast.erreur('Réglage non enregistré', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    // 404 de me.push › vapidKey : push non configuré ; 422 : service push du navigateur non accepté par Cotiz.
+    if (codeErreur(e) === 'not_found') toast.erreur('Notifications push indisponibles', { message: 'Elles ne sont pas encore proposées. Réessayez plus tard.' })
+    else if (champsErreur(e).endpoint === 'unsupported_push_service') toast.erreur('Navigateur non pris en charge', { message: 'Les notifications push de ce navigateur ne sont pas acceptées. Essayez avec Chrome, Firefox, Edge ou Safari.' })
+    else toast.erreur('Réglage non enregistré', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
 }
 </script>

@@ -723,3 +723,10 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
 - Appareil partagé : URL déjà enregistrée par une autre personne → 422 `fields.endpoint = already_registered` ; le front se réabonne (nouvelle URL). La déconnexion désabonne l'appareil.
 - Envoi : un appareil servi suffit (`sent`, pas de reprise qui renverrait aux autres) ; tous en échec passager → reprise BullMQ, `failed` à la 3e ; 404/410 → révoqué ; 5 échecs consécutifs → révoqué. `push.cleanup` : lundi 04:00, purge des abonnements révoqués depuis plus de 30 jours.
 - Front : bloc « Notifications sur cet appareil » affiché seulement en session réelle (me.push sans handler simulé) ; `uiDeviations` de screens.yaml non modifié (compteur informatif, à revoir avec l'utilisateur).
+
+### Lot 4.2 — corrections après relecture (2026-11-11)
+- `deliveryId` du push = UUID v5 de `push:<dedupeKey>` (`pushDeliveryIdOf`, infra/push.channel.ts) au lieu de `newId()` : un même envoi garde le même id même après la purge du job (24 h). Test : « événement rejoué après la purge du job ».
+- `web_push` n'est annoncé dans `GET /me` que si les deux clés VAPID sont là (`deliveredFeatures(config)`, shared/features).
+- Front : erreurs push traduites dans NotificationsAppareil (404 vapidKey → indisponible, 422 `unsupported_push_service` → navigateur non pris en charge) ; chemin SSE pris dans `ENDPOINTS['nt.stream']` ; mock `prefsReplace` aligné sur le back (fusion, canal non proposé → 422).
+- `tests/unit/bascule-production.test.ts` : délai porté à 20 s (import à froid après resetModules > 5 s sous pnpm verify ; seul, il passe en < 1 s).
+- `WEB_PUSH_HOSTS` vide par défaut, push actif seulement avec clés VAPID **et** liste non vide (`webPushConfigured`, shared/features) : le test « sans fournisseur » interdit `fcm.googleapis.com` dans le code. Choix de l'utilisateur (« Liste dans la config »), valeurs dans `docs/runbooks/web-push.md`.

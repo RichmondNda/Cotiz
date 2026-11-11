@@ -13,6 +13,27 @@ export const DELIVERED_FEATURES: readonly Feature[] = [
   'web_push',
 ];
 
+export interface WebPushConfig {
+  VAPID_PUBLIC_KEY?: string | undefined;
+  VAPID_PRIVATE_KEY?: string | undefined;
+  WEB_PUSH_HOSTS?: string | undefined;
+}
+
+/**
+ * Web Push utilisable (lot 4.2) : paire VAPID et au moins un service de push accepté (`WEB_PUSH_HOSTS`). La liste
+ * n'est jamais écrite dans le code (aucun hôte de fournisseur, lot 3.5) : fournie par la configuration du déploiement.
+ */
+export function webPushConfigured(config: WebPushConfig): boolean {
+  const hosts = (config.WEB_PUSH_HOSTS ?? '').split(',').some((h) => h.trim().length > 0);
+  return Boolean(config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY) && hosts;
+}
+
+/** Livrées et utilisables dans ce déploiement : le push standard (`web_push`) seulement s'il est configuré. */
+export function deliveredFeatures(config: WebPushConfig): Feature[] {
+  const push = webPushConfigured(config);
+  return DELIVERED_FEATURES.filter((f) => f !== 'web_push' || push);
+}
+
 /**
  * Fonctionnalités actives (docs/specs/features.yaml) : livrées ; si `planGated`, contenues dans le plan de
  * l'association (`planFeatures`, `null` hors association ou avant les plans du lot 1.2) ; jamais celles d'un

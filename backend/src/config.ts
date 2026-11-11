@@ -149,12 +149,10 @@ export const ConfigSchema = z.object({
     .default('mailto:exploitation@cotiz.app'),
   /**
    * Services de push acceptés pour un abonnement (le worker appelle l'URL fournie par le navigateur : jamais une adresse
-   * interne). Suffixes d'hôte séparés par des virgules ; par défaut ceux de Chrome/Edge (FCM), Firefox, Safari, Windows.
+   * interne). Suffixes d'hôte séparés par des virgules (ceux des navigateurs : docs/runbooks/web-push.md). Vide : push
+   * désactivé. Jamais de valeur par défaut dans le code (aucun hôte de fournisseur, test « sans fournisseur »).
    */
-  WEB_PUSH_HOSTS: z
-    .string()
-    .min(1)
-    .default('fcm.googleapis.com,updates.push.services.mozilla.com,push.apple.com,notify.windows.com'),
+  WEB_PUSH_HOSTS: z.string().default(''),
   /** GlitchTip (SDK Sentry, auto-hébergé) : absent, aucun SDK initialisé, aucun envoi. Raccordé au lot 7.1. */
   GLITCHTIP_DSN: z.url({ protocol: /^https?$/ }).optional(),
   /** Version déployée (étiquette de l'image) : traces et rapports d'erreur. */

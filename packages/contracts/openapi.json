@@ -2211,6 +2211,7 @@
                 "properties": {
                   "endpoint": {
                     "type": "string",
+                    "maxLength": 2048,
                     "format": "uri"
                   },
                   "keys": {
@@ -2218,11 +2219,11 @@
                     "properties": {
                       "p256dh": {
                         "type": "string",
-                        "minLength": 1
+                        "pattern": "^[A-Za-z0-9_-]{87}=?$"
                       },
                       "auth": {
                         "type": "string",
-                        "minLength": 1
+                        "pattern": "^[A-Za-z0-9_-]{22}(==)?$"
                       }
                     },
                     "required": ["p256dh", "auth"]

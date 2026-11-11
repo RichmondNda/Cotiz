@@ -18,6 +18,9 @@ ecdh.generateKeys();
 const keys = { p256dh: ecdh.getPublicKey().toString('base64url'), auth: randomBytes(16).toString('base64url') };
 const endpoint = (name: string) => `https://fcm.googleapis.com/fcm/send/${name}`;
 
+/** Services de push acceptés dans ce test (en déploiement : WEB_PUSH_HOSTS, docs/runbooks/web-push.md). */
+const TEST_PUSH_HOSTS = 'fcm.googleapis.com,updates.push.services.mozilla.com';
+
 describe('isolation : abonnements Web Push (me.push)', () => {
   let f: MembersFixture;
   let fatou: string;
@@ -46,7 +49,11 @@ describe('isolation : abonnements Web Push (me.push)', () => {
     }[];
 
   beforeAll(async () => {
-    f = await startMembersFixture({ VAPID_PUBLIC_KEY: vapid.publicKey, VAPID_PRIVATE_KEY: vapid.privateKey });
+    f = await startMembersFixture({
+      VAPID_PUBLIC_KEY: vapid.publicKey,
+      VAPID_PRIVATE_KEY: vapid.privateKey,
+      WEB_PUSH_HOSTS: TEST_PUSH_HOSTS,
+    });
     fatou = await f.login('subscriber', 'fatou@test.cotiz.app');
   });
 

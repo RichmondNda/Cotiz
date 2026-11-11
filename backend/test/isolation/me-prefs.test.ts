@@ -13,6 +13,9 @@ import { USERS } from './harness.js';
 const Prefs = ENDPOINTS['me.prefs'].operations.get.response.body;
 const everyone = { using: 'true', withCheck: 'true' };
 
+/** Services de push acceptés dans ce test (en déploiement : WEB_PUSH_HOSTS, docs/runbooks/web-push.md). */
+const TEST_PUSH_HOSTS = 'fcm.googleapis.com,updates.push.services.mozilla.com';
+
 describe('isolation : préférences de notification (me.prefs)', () => {
   let f: MembersFixture;
   let fatou: string;
@@ -39,7 +42,11 @@ describe('isolation : préférences de notification (me.prefs)', () => {
       .rows as { user_id: string; type: string; channel: string; enabled: boolean }[];
 
   beforeAll(async () => {
-    f = await startMembersFixture({ VAPID_PUBLIC_KEY: vapid.publicKey, VAPID_PRIVATE_KEY: vapid.privateKey });
+    f = await startMembersFixture({
+      VAPID_PUBLIC_KEY: vapid.publicKey,
+      VAPID_PRIVATE_KEY: vapid.privateKey,
+      WEB_PUSH_HOSTS: TEST_PUSH_HOSTS,
+    });
     fatou = await f.login('subscriber', 'fatou@test.cotiz.app');
   });
 
@@ -88,6 +95,11 @@ describe('isolation : préférences de notification (me.prefs)', () => {
       [{ type: 'inconnu', channel: 'in_app', enabled: false }],
       [{ type: 'payment.reverted', channel: 'push', enabled: false }],
       [{ type: 'payment.validated', channel: 'sms', enabled: false }],
+      // Un réglage valide suivi d'un invalide : tout ou rien.
+      [
+        { type: 'payment.validated', channel: 'push', enabled: false },
+        { type: 'inconnu', channel: 'push', enabled: false },
+      ],
     ]) {
       expect((await put(f.tokens.moussa, items)).status).toBe(422);
     }

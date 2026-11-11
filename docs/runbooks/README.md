@@ -6,3 +6,4 @@
 - `suspected-leak.md` — fuite de données suspectée : gel, investigation par l'audit, notification
 - `rotate-secrets.md` — clés JWT, clé de chiffrement des codes (re-chiffrement), VAPID, accès base
 - `reset-platform-password.md` — CLI `reset-password`
+- `web-push.md` — activer le Web Push : clés VAPID et liste `WEB_PUSH_HOSTS` (lot 4.2, rédigé)

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import webpush from 'web-push';
 import { CONFIG, type Config } from '../../../config.js';
+import { webPushConfigured } from '../../../shared/features/index.js';
 import { isAllowedPushEndpoint, type PushEndpointPolicy, pushEndpointPolicy } from '../domain/push-endpoint.js';
 
 /** Abonnement d'un appareil (protocole Web Push, RFC 8030). */
@@ -50,7 +51,7 @@ export class WebPushSender implements PushSender {
   constructor(@Inject(CONFIG) private readonly config: Config) {
     this.policy = pushEndpointPolicy(config);
     this.publicKey = config.VAPID_PUBLIC_KEY ?? null;
-    this.configured = config.VAPID_PUBLIC_KEY !== undefined && config.VAPID_PRIVATE_KEY !== undefined;
+    this.configured = webPushConfigured(config);
   }
 
   async send(target: PushTarget, payload: PushPayload, options: { urgent: boolean }): Promise<PushOutcome> {

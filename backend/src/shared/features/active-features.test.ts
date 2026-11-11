@@ -1,6 +1,6 @@
 import { FEATURE_SPECS, FEATURES } from '@cotiz/contracts';
 import { describe, expect, it } from 'vitest';
-import { activeFeatures, DELIVERED_FEATURES } from './active-features.js';
+import { activeFeatures, deliveredFeatures, DELIVERED_FEATURES } from './active-features.js';
 
 describe('activeFeatures (docs/specs/features.yaml)', () => {
   const ungated = DELIVERED_FEATURES.filter((f) => !FEATURE_SPECS[f].planGated);
@@ -28,5 +28,19 @@ describe('activeFeatures (docs/specs/features.yaml)', () => {
       'payments',
       'realtime',
     ]);
+  });
+
+  it('push standard (lot 4.2) : livré seulement avec la paire de clés VAPID', () => {
+    expect(deliveredFeatures({})).not.toContain('web_push');
+    expect(deliveredFeatures({ VAPID_PUBLIC_KEY: 'p' })).not.toContain('web_push');
+    // Clés sans liste de services de push (vide par défaut) : toujours pas de push.
+    expect(deliveredFeatures({ VAPID_PUBLIC_KEY: 'p', VAPID_PRIVATE_KEY: 'k' })).not.toContain('web_push');
+    expect(deliveredFeatures({ VAPID_PUBLIC_KEY: 'p', VAPID_PRIVATE_KEY: 'k', WEB_PUSH_HOSTS: ' , ' })).not.toContain(
+      'web_push',
+    );
+    expect(
+      deliveredFeatures({ VAPID_PUBLIC_KEY: 'p', VAPID_PRIVATE_KEY: 'k', WEB_PUSH_HOSTS: 'push.exemple' }),
+    ).toContain('web_push');
+    expect(deliveredFeatures({})).toContain('realtime');
   });
 });

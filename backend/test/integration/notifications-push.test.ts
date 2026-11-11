@@ -274,6 +274,19 @@ describe('canal push (Web Push)', () => {
     expect(await deliveryRows()).toHaveLength(1);
   });
 
+  it('événement rejoué après la purge du job (24 h) : une seule ligne deliveries (id UUID v5), rien ne repart', async () => {
+    await device(USERS.moussa, 'moussa-1');
+    await dispatch(urgentMsg, [moussa], 'evt-purge');
+    expect(await until(async () => (await deliveryRows())[0]?.status === 'sent')).toBe(true);
+    await queue.obliterate({ force: true });
+    await dispatch(urgentMsg, [moussa], 'evt-purge');
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(received).toHaveLength(1);
+    const rows = (await f.h.superuser(`SELECT id FROM deliveries`)).rows as { id: string }[];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
   it('heures calmes : à 22 h à Abidjan, un push non urgent est différé à 8 h ; un urgent part tout de suite', async () => {
     await device(USERS.moussa, 'moussa-1');
     vi.useFakeTimers({ toFake: ['Date'] });

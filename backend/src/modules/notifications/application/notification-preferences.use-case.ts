@@ -4,6 +4,7 @@ import { notificationPreferences as t } from '@cotiz/db';
 import { eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { CONFIG, type Config } from '../../../config.js';
+import { webPushConfigured } from '../../../shared/features/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { adjustableChannelsOf, MANDATORY_IN_APP_TYPES, NOTIFICATION_TYPES } from '../domain/matrix.js';
@@ -13,7 +14,7 @@ type Channel = 'in_app' | 'push';
 
 /** Canaux proposés : la cloche, et le push quand les clés VAPID sont là (sms et email : groupe 6, non livrés). */
 function availableChannels(config: Config): Channel[] {
-  return config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY ? ['in_app', 'push'] : ['in_app'];
+  return webPushConfigured(config) ? ['in_app', 'push'] : ['in_app'];
 }
 
 /** Réglages offerts : chaque type notifié × ses canaux de la matrice parmi les canaux proposés. */

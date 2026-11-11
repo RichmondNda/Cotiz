@@ -4,6 +4,7 @@ import type { PushSubscriptionInput } from '@cotiz/contracts';
 import { pushSubscriptions as t } from '@cotiz/db';
 import { and, desc, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import { CONFIG, type Config } from '../../../config.js';
+import { webPushConfigured } from '../../../shared/features/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { isAllowedPushEndpoint, type PushEndpointPolicy, pushEndpointPolicy } from '../domain/push-endpoint.js';
@@ -18,7 +19,7 @@ export class VapidPublicKeyUseCase {
 
   execute(): { publicKey: string } {
     const publicKey = this.config.VAPID_PUBLIC_KEY;
-    if (!publicKey || !this.config.VAPID_PRIVATE_KEY) throw new DomainProblem('not_found');
+    if (!publicKey || !webPushConfigured(this.config)) throw new DomainProblem('not_found');
     return { publicKey };
   }
 }
