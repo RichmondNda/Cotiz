@@ -241,3 +241,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - Demande : « supprime les branches distantes fusionnées », confirmée « Les 50 fusionnées ». Les 50 branches de
   `git branch -r --merged origin/backend` ont été supprimées (lot/0.1 à lot/4.1, lot-01 à lot-09, chore/*, docs/*).
   Restent : `main`, `backend`, `chore/projets-indicateurs` (non fusionnée). Commits accessibles par les fusions.
+
+## 2026-11-11 · Lot 4.2, étape 1 (relecture isolation, remarques reportées)
+- Étape 3 : `push_subscriptions.endpoint` est unique pour toute la base. Un appareil déjà abonné par une autre personne
+  (téléphone partagé) → 23505 à l'INSERT, et `ON CONFLICT DO UPDATE` lèverait une violation RLS. À gérer sans révéler
+  l'abonnement d'autrui (même réponse 201 ; reprise de la ligne en espace system).
+- `message_templates` : DELETE permis à cotiz_app (pas une donnée financière). `reminder_rules.template_id`
+  (lot 4.3) les référencera : préférer une nouvelle version à une suppression. Écriture des modèles de la plateforme :
+  cotiz_platform (BYPASSRLS), à réserver aux cas d'usage `/platform`.
