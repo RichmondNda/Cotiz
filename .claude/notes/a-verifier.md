@@ -263,3 +263,8 @@ Corrigés dans la branche : appareil d'une autre personne retiré du navigateur 
 ### Lot 4.2 — Web Push en déploiement (2026-11-11, en attente d'accord)
 - `WEB_PUSH_HOSTS` n'a plus de valeur par défaut (choix de l'utilisateur : « Liste dans la config ») ; valeurs dans `docs/runbooks/web-push.md`.
 - `infra/compose/production.yml` ne transmet ni `VAPID_*` ni `WEB_PUSH_HOSTS` : renvoyé au lot 7.1, comme les autres variables optionnelles (le fichier les interdit vides, une clé VAPID vide ferait échouer le démarrage). Push désactivé en production d'ici là.
+
+### Recette Dokploy (2026-11-11)
+- Après la fusion de la PR #64 : repasser la source sur `backend` (`node tools/recette-dokploy.mjs --deployer`) ; aujourd'hui elle suit `chore/recette-dokploy`.
+- Pas de redéploiement automatique (source Git publique, sans webhook) : redéployer à la main après chaque fusion. Webhook GitHub → Dokploy : étape 2 du lot 7.1.
+- Mémoire du serveur : la recette s'ajoute à la pile de dev (`cotiz-*`) et à la répétition de production (`cotiz-prod-*`, lot 3.5), toujours lancées ; les arrêter si besoin (demander).

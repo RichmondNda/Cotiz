@@ -730,3 +730,8 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
 - Front : erreurs push traduites dans NotificationsAppareil (404 vapidKey → indisponible, 422 `unsupported_push_service` → navigateur non pris en charge) ; chemin SSE pris dans `ENDPOINTS['nt.stream']` ; mock `prefsReplace` aligné sur le back (fusion, canal non proposé → 422).
 - `tests/unit/bascule-production.test.ts` : délai porté à 20 s (import à froid après resetModules > 5 s sous pnpm verify ; seul, il passe en < 1 s).
 - `WEB_PUSH_HOSTS` vide par défaut, push actif seulement avec clés VAPID **et** liste non vide (`webPushConfigured`, shared/features) : le test « sans fournisseur » interdit `fcm.googleapis.com` dans le code. Choix de l'utilisateur (« Liste dans la config »), valeurs dans `docs/runbooks/web-push.md`.
+
+### Recette Dokploy (2026-11-11, demande de l'utilisateur, étape 2 du lot 7.1 anticipée)
+- Choix de l'utilisateur : recette de type production (pas la pile de dev : dépôt public, mots de passe de démo connus), pilotée par l'API Dokploy, domaines `cotiz.regisnda.com` et `cotiz-fichiers.regisnda.com` (DNS générique `*.regisnda.com` vers le serveur).
+- `infra/compose/staging.yml` (images construites par Dokploy, push obligatoire, `web` et `minio` sur `dokploy-network`) ; `tools/recette-dokploy.mjs` (secrets générés une fois, gardés ensuite, jamais affichés) ; service compose existant `cotiz-recette` (créé vide par l'utilisateur) réutilisé.
+- Premier déploiement depuis `chore/recette-dokploy` (PR #64) : `/health/ready` 200, certificats Let's Encrypt.
