@@ -29,8 +29,9 @@ x-backend-env: &backend-env
   LOG_PSEUDONYM_KEY: ${COTIZ_LOG_PSEUDONYM_KEY:?}
   CLAMAV_URL: tcp://clamav:3310
   GOTENBERG_URL: http://gotenberg:3000
-  # Traefik puis le front (proxy Nitro) devant l'api.
-  TRUST_PROXY_HOPS: ${COTIZ_TRUST_PROXY_HOPS:-2}
+  # Traefik puis le front (proxy Nitro) devant l'api : un seul saut compte. Nitro (h3 proxyRequest) recopie
+  # X-Forwarded-For sans y ajouter d'adresse ; à 2, une adresse falsifiée par le client serait retenue.
+  TRUST_PROXY_HOPS: ${COTIZ_TRUST_PROXY_HOPS:-1}
   APP_VERSION: ${COTIZ_VERSION:-dev}
   # Observabilité (GLITCHTIP_DSN, OTEL_*, ports de métriques) et PLATFORM_ALLOWED_IPS : ajoutés au lot 7.1. Une variable
   # optionnelle n'est jamais posée vide (le schéma de configuration refuse une chaîne vide).
