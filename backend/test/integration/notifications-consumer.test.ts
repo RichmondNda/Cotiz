@@ -2,11 +2,13 @@ import type { INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { EventEnvelope, EventType } from '@cotiz/contracts';
 import { Money } from '@cotiz/domain';
+import { Redis } from 'ioredis';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { loadConfig } from '../../src/config.js';
 import { NotificationRouter } from '../../src/modules/notifications/application/notification-router.js';
 import { paymentValidatedMessage } from '../../src/modules/notifications/domain/messages.js';
 import { NotificationsConsumer } from '../../src/modules/notifications/events/notifications.consumer.js';
+import { notificationChannelOf } from '../../src/modules/notifications/infra/notification-bus.js';
 import { EventsProcessor } from '../../src/shared/outbox/events.processor.js';
 import { TenantDatabase } from '../../src/shared/tenant-context/index.js';
 import { WorkerModule } from '../../src/worker.module.js';
@@ -152,6 +154,26 @@ describe('consommateur notifications', () => {
           data: { actionLabel: 'Voir le projet', paymentId, projectId: PROJECTS.a, audience: 'subscriber' },
         },
       ]);
+    });
+
+    it('temps réel (lot 4.2) : la notification créée est annoncée une fois sur le canal du destinataire', async () => {
+      const listener = new Redis(f.redis.getConnectionUrl());
+      const heard: { channel: string; message: string }[] = [];
+      listener.on('message', (channel: string, message: string) => heard.push({ channel, message }));
+      await listener.subscribe(notificationChannelOf(USERS.moussa), notificationChannelOf(USERS.fatou));
+      try {
+        const paymentId = await payment('validated');
+        const event = envelope('payment.validated', A.id, { paymentId, userId: USERS.moussa, amountReceived: 25_000 });
+        await consumer.handle(event);
+        // Rejoué : rien de créé, donc rien d'annoncé.
+        await consumer.handle(event);
+        const [{ id }] = (await f.h.superuser('SELECT id FROM notifications')).rows as [{ id: string }];
+        await expect.poll(() => heard.length).toBe(1);
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        expect(heard).toEqual([{ channel: notificationChannelOf(USERS.moussa), message: id }]);
+      } finally {
+        listener.disconnect();
+      }
     });
 
     it('rejet et annulation : une notification au souscripteur, avec le lien du projet', async () => {

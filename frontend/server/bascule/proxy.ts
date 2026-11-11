@@ -104,7 +104,11 @@ export async function bascule(event: H3Event, config: BasculeConfig) {
   }
   // Une redirection (fl.get, as.file : URL signée du stockage) va au navigateur : l'URL vise l'adresse publique du
   // stockage, que le serveur Nitro ne sait pas toujours joindre (conteneur web : `localhost` n'est pas MinIO).
+  // Navigateur parti (onglet fermé, flux nt.stream interrompu) : l'appel à NestJS s'arrête aussi, sinon un flux SSE
+  // resterait ouvert côté api jusqu'à sa fin (15 min) à chaque rechargement.
+  const abandon = new AbortController()
+  event.node.res.once('close', () => abandon.abort())
   return proxyRequest(event, `${config.apiOrigin.replace(/\/$/, '')}${url.pathname}${url.search}`, {
-    fetchOptions: { redirect: 'manual' },
+    fetchOptions: { redirect: 'manual', signal: abandon.signal },
   })
 }

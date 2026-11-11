@@ -1,6 +1,6 @@
 /**
- * Canaux de notification (architecture/07). En V1, seuls `in_app` (cloche) et `manual` (message prêt remis par une
- * personne) existent : aucun fournisseur externe. Un canal absent ou désactivé est ignoré par le routeur, sans erreur.
+ * Canaux de notification (architecture/07) : `in_app` (cloche), `manual` (message prêt remis par une personne), `push`
+ * (Web Push standard, lot 4.2, sans fournisseur). Un canal absent ou désactivé est ignoré par le routeur, sans erreur.
  */
 export const CHANNEL_KINDS = ['in_app', 'push', 'manual', 'email', 'sms'] as const;
 export type ChannelKind = (typeof CHANNEL_KINDS)[number];
@@ -16,6 +16,13 @@ export interface RenderedMessage {
   /** Route front exacte de l'écran d'action. */
   actionUrl: string | null;
   data?: Record<string, unknown>;
+  /**
+   * Variables offertes aux modèles de messages (`{{projet}}`, `{{montant}}`…), déjà mises en forme. Jamais
+   * enregistrées : seuls le titre et le texte rendus le sont.
+   */
+  vars?: Record<string, string>;
+  /** Titre et texte d'un modèle (message_templates) par canal ; absent : textes du code. */
+  variants?: Partial<Record<'in_app' | 'push', { title: string; body: string }>>;
 }
 
 export interface Recipient {
@@ -27,13 +34,22 @@ export interface Recipient {
 
 export interface DeliveryResult {
   channel: ChannelKind;
-  /** `created` : écrit ; `duplicate` : déjà fait (clé de déduplication) ; `prepared` : message prêt, aucun envoi. */
-  status: 'created' | 'duplicate' | 'prepared';
+  /**
+   * `created` : écrit ; `duplicate` : déjà fait (clé de déduplication) ; `prepared` : message prêt, aucun envoi ;
+   * `queued` : envoi externe mis en file (push) ; `skipped` : rien à envoyer (aucun appareil abonné).
+   */
+  status: 'created' | 'duplicate' | 'prepared' | 'queued' | 'skipped';
+  /** Ligne de la cloche créée (`in_app`, `created`) : annoncée au flux nt.stream après le COMMIT. */
+  notificationId?: string;
+  /** Suite à exécuter APRÈS le COMMIT (mise en file d'un envoi externe, qui relit la ligne `deliveries`). */
+  afterCommit?: () => Promise<void>;
 }
 
 export interface SendOptions {
   /** Unique par destinataire et par événement : rend l'envoi rejouable. */
   dedupeKey: string;
+  /** Ligne de la cloche créée pour ce destinataire (canal in_app passé avant) : reliée à l'envoi externe. */
+  notificationId?: string;
 }
 
 export interface NotificationChannel {

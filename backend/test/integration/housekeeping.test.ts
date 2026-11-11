@@ -162,7 +162,7 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
     try {
       // Enregistrement en arrière-plan au démarrage des workers.
       let schedulers = await queue.getJobSchedulers();
-      for (let i = 0; i < 50 && schedulers.length < 6; i++) {
+      for (let i = 0; i < 50 && schedulers.length < 9; i++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         schedulers = await queue.getJobSchedulers();
       }
@@ -177,6 +177,7 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
         { id: 'installments.refresh-statuses', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'managers.digest', pattern: '30 * * * *', tz: 'Africa/Abidjan' },
         { id: 'projects.activate', pattern: '30 0 * * *', tz: 'Africa/Abidjan' },
+        { id: 'push.cleanup', pattern: '0 4 * * 1', tz: 'Africa/Abidjan' },
         { id: 'schedule.extend-rolling', pattern: '0 1 1 * *', tz: 'Africa/Abidjan' },
         { id: 'stats.refresh', pattern: '*/15 * * * *', tz: 'Africa/Abidjan' },
       ]);

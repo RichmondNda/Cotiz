@@ -51,10 +51,16 @@ const codeOf = (promise: Promise<unknown>) =>
 
 describe('JwtGuard', () => {
   it('jeton valide sur un endpoint auth : espace auth et utilisateur du jeton', async () => {
-    const { token } = await signer.sign({ sub: USER, space: 'association', sid: SID });
+    const { token, expiresAt } = await signer.sign({ sub: USER, space: 'association', sid: SID });
     const request = await run('logout', `Bearer ${token}`);
     expect(getRequestContext(request)).toEqual({ space: 'auth', userId: USER });
-    expect(authenticatedSession(request)).toEqual({ sub: USER, space: 'association', sid: SID });
+    // Échéance du jeton (lot 4.2 : durée de vie du flux nt.stream).
+    expect(authenticatedSession(request)).toEqual({
+      sub: USER,
+      space: 'association',
+      sid: SID,
+      exp: expiresAt.getTime() / 1000,
+    });
   });
 
   it('un claim aid (ancien jeton, jeton forgé) est ignoré : jamais d’association venue du jeton', async () => {

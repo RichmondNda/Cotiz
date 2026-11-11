@@ -241,3 +241,25 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - Demande : « supprime les branches distantes fusionnées », confirmée « Les 50 fusionnées ». Les 50 branches de
   `git branch -r --merged origin/backend` ont été supprimées (lot/0.1 à lot/4.1, lot-01 à lot-09, chore/*, docs/*).
   Restent : `main`, `backend`, `chore/projets-indicateurs` (non fusionnée). Commits accessibles par les fusions.
+
+## 2026-11-11 · Lot 4.2, étape 1 (relecture isolation, remarques reportées)
+- Étape 3 : `push_subscriptions.endpoint` est unique pour toute la base. Un appareil déjà abonné par une autre personne
+  (téléphone partagé) → 23505 à l'INSERT, et `ON CONFLICT DO UPDATE` lèverait une violation RLS. À gérer sans révéler
+  l'abonnement d'autrui (même réponse 201 ; reprise de la ligne en espace system).
+- `message_templates` : DELETE permis à cotiz_app (pas une donnée financière). `reminder_rules.template_id`
+  (lot 4.3) les référencera : préférer une nouvelle version à une suppression. Écriture des modèles de la plateforme :
+  cotiz_platform (BYPASSRLS), à réserver aux cas d'usage `/platform`.
+
+## Lot 4.2 · étape 3 — relecture d'isolation (2026-11-11), points en attente d'accord
+Corrigés dans la branche : appareil d'une autre personne retiré du navigateur (garde des gabarits), 10 appareils actifs au plus, bornes des clés et de l'URL (contrat), port 443 seul, ouverture d'URL du service worker, rétention des jobs `notify-push` réduite à 24 h, tests ajoutés.
+À décider (changement de `docs/specs`) :
+- **Mot de passe changé ou réinitialisé → couper le push** : aujourd'hui les abonnements restent actifs (téléphone volé : la victime réinitialise, l'appareil continue de recevoir). Proposition : consommateur `notifications` de `user.password_changed` (events.yaml, consumers) qui désactive tous les abonnements de la personne.
+- **Débit sur `me.push › subscribe`** (`rateLimited: true` dans endpoints.yaml) : le plafond de 10 appareils limite déjà les appels du worker.
+- **Texte sur l'écran verrouillé** : une déclaration montre « Nom a déclaré 25 000 F pour Projet ». Choix produit à confirmer (texte réduit pour le push ?).
+- `screens.yaml` : `uiDeviations` de mg-profil (0) et mb-profil (1) ne comptent pas la ligne ajoutée à ui-deviations.md pour le bloc appareil.
+- **Session expirée sans déconnexion (relecture étape 4)** : la garde du front ne retire l'abonnement d'une autre personne qu'à l'ouverture d'une page d'espace ; d'ici là, l'appareil partagé affiche ses push (nom, montant). Options : lier l'abonnement à la famille de sessions (changement de schema.sql) ou push au texte générique (« Nouvelle notification Cotiz », détail dans la cloche). À trancher avec le point « texte sur l'écran verrouillé ».
+- **Modèles d'association non appliqués** à `user.activated` (événement sans association) ni au récapitulatif des déclarations groupées : ils reçoivent les modèles de la plateforme ou le texte du code. Lecture par entrée planifiée à prévoir si des modèles d'association sont saisis (lot 4.3 ?).
+
+### Lot 4.2 — Web Push en déploiement (2026-11-11, en attente d'accord)
+- `WEB_PUSH_HOSTS` n'a plus de valeur par défaut (choix de l'utilisateur : « Liste dans la config ») ; valeurs dans `docs/runbooks/web-push.md`.
+- `infra/compose/production.yml` ne transmet ni `VAPID_*` ni `WEB_PUSH_HOSTS` : renvoyé au lot 7.1, comme les autres variables optionnelles (le fichier les interdit vides, une clé VAPID vide ferait échouer le démarrage). Push désactivé en production d'ici là.

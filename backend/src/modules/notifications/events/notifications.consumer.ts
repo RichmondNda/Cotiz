@@ -12,8 +12,15 @@ import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
 import { currentTx, TenantDatabase } from '../../../shared/tenant-context/index.js';
-import { NotificationRouter, type RoutedDelivery } from '../application/notification-router.js';
+import {
+  createdInApp,
+  NotificationRouter,
+  type RoutedDelivery,
+  runAfterCommit,
+} from '../application/notification-router.js';
 import type { Recipient, RenderedMessage } from '../domain/channel.js';
+import { applyMessageTemplates } from '../infra/message-templates.js';
+import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
 import {
   associationRequestSubmittedMessage,
@@ -89,6 +96,7 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     private readonly db: TenantDatabase,
     private readonly router: NotificationRouter,
     private readonly counter: UnreadCounter,
+    private readonly announcer: NotificationAnnouncer,
   ) {}
 
   onModuleInit(): void {
@@ -105,7 +113,7 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   async handle(event: EventEnvelope): Promise<void> {
-    const planned = await this.plan(event);
+    const planned = await this.withTemplates(await this.plan(event), event.associationId);
     if (planned.length === 0) return;
     const deliveries = await this.db.withTenantContext({ space: 'system' }, async () => {
       // Compte désactivé ou anonymisé : plus de notification, même s'il reste membre (lot 2.5, suivi).
@@ -122,10 +130,29 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
       }
       return all;
     });
-    // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche.
-    await this.counter.invalidate(
-      deliveries.filter((d) => d.channel === 'in_app' && d.status === 'created').map((d) => d.recipient.userId),
-    );
+    // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche, puis annonce
+    // au flux temps réel (nt.stream, lot 4.2).
+    const created = createdInApp(deliveries);
+    await this.counter.invalidate(created.map((c) => c.userId));
+    await this.announcer.announce(created);
+    await runAfterCommit(deliveries);
+  }
+
+  /**
+   * Modèles de messages (lot 4.2) lus dans le contexte de l'association de l'événement (RLS : les siens et ceux de la
+   * plateforme), ou en espace system pour un événement de plateforme (ceux de la plateforme seulement).
+   */
+  private async withTemplates(planned: Planned[], associationId: string | null): Promise<Planned[]> {
+    if (planned.length === 0) return planned;
+    const apply = () =>
+      applyMessageTemplates(
+        planned.map((p) => p.msg),
+        associationId,
+      );
+    const messages = associationId
+      ? await this.inAssociation(associationId, apply)
+      : await this.db.withTenantContext({ space: 'system' }, apply);
+    return planned.map((p, i) => ({ ...p, msg: messages[i] ?? p.msg }));
   }
 
   private inAssociation<T>(associationId: string, fn: () => Promise<T>): Promise<T> {

@@ -4,7 +4,8 @@ import type { RenderedMessage } from './channel.js';
 /**
  * Textes des notifications V1 (lot 2.5), rendus à la création. Liens d'action : architecture/07 (route front exacte).
  * `data` : liste blanche par type (libellé du bouton, identifiants utiles au front) ; jamais de code, de téléphone,
- * de preuve ni de commentaire. Vocabulaire de l'interface : « déclarer », « valider », jamais « payer », « approuver ».
+ * de preuve ni de commentaire. `vars` : valeurs offertes aux modèles de messages (`{{projet}}`…), jamais enregistrées.
+ * Vocabulaire de l'interface : « déclarer », « valider », jamais « payer », « approuver ».
  */
 
 /** `amount` : montant reçu pour une validation (événement), montant déclaré sinon. */
@@ -24,6 +25,7 @@ export function paymentValidatedMessage(p: PaymentFacts): RenderedMessage {
     body: `Vos ${formatMoney(p.amount)} pour ${p.projectName} ont été validés.`,
     actionUrl: projectLink(p.projectId),
     data: { actionLabel: 'Voir le projet', paymentId: p.paymentId, projectId: p.projectId },
+    vars: { montant: formatMoney(p.amount), projet: p.projectName },
   };
 }
 
@@ -34,6 +36,7 @@ export function paymentRejectedMessage(p: PaymentFacts): RenderedMessage {
     body: `Votre déclaration de ${formatMoney(p.amount)} pour ${p.projectName} a été rejetée. Le motif est indiqué sur le projet.`,
     actionUrl: projectLink(p.projectId),
     data: { actionLabel: 'Voir le motif', paymentId: p.paymentId, projectId: p.projectId },
+    vars: { montant: formatMoney(p.amount), projet: p.projectName },
   };
 }
 
@@ -44,6 +47,7 @@ export function paymentRevertedMessage(p: PaymentFacts): RenderedMessage {
     body: `Votre déclaration de ${formatMoney(p.amount)} pour ${p.projectName} est de nouveau en attente : sa validation a été annulée.`,
     actionUrl: projectLink(p.projectId),
     data: { actionLabel: 'Voir le projet', paymentId: p.paymentId, projectId: p.projectId },
+    vars: { montant: formatMoney(p.amount), projet: p.projectName },
   };
 }
 
@@ -54,6 +58,7 @@ export function paymentDeclaredMessage(p: PaymentFacts & { subscriberName: strin
     body: `${p.subscriberName} a déclaré ${formatMoney(p.amount)} pour ${p.projectName}.`,
     actionUrl: `/asso/paiements/${p.paymentId}`,
     data: { actionLabel: 'Vérifier et valider', paymentId: p.paymentId, projectId: p.projectId },
+    vars: { montant: formatMoney(p.amount), projet: p.projectName, souscripteur: p.subscriberName },
   };
 }
 
@@ -66,6 +71,7 @@ export function paymentsDigestMessage(p: { pendingCount: number }): RenderedMess
     body: 'De nombreuses déclarations sont arrivées en peu de temps : elles vous attendent dans la file de validation.',
     actionUrl: '/asso/paiements',
     data: { actionLabel: 'Ouvrir la file de validation', digest: true },
+    vars: { nombre: String(n) },
   };
 }
 
@@ -80,6 +86,7 @@ export function memberEnrolledMessage(p: {
     body: `${p.associationName} vous a inscrit au projet ${p.projectName}.`,
     actionUrl: projectLink(p.projectId),
     data: { actionLabel: 'Voir le projet', projectId: p.projectId },
+    vars: { association: p.associationName, projet: p.projectName },
   };
 }
 
@@ -90,6 +97,7 @@ export function userActivatedMessage(p: { userId: string; name: string }): Rende
     body: `${p.name} a activé son compte.`,
     actionUrl: `/asso/souscripteurs/${p.userId}`,
     data: { actionLabel: 'Voir le souscripteur', userId: p.userId },
+    vars: { souscripteur: p.name },
   };
 }
 
@@ -104,6 +112,7 @@ export function passwordResetRequestedMessage(
       body: `${p.name} demande un code pour réinitialiser son mot de passe.`,
       actionUrl: '/asso/souscripteurs/reinitialisations',
       data: { actionLabel: 'Traiter la demande' },
+      vars: { personne: p.name },
     };
   }
   return {
@@ -126,6 +135,7 @@ export function associationRequestSubmittedMessage(p: {
     body: `${p.associationName} demande l’ouverture d’un espace (réf. ${p.reference}).`,
     actionUrl: `/plateforme/demandes/${p.requestId}`,
     data: { actionLabel: 'Examiner la demande', requestId: p.requestId },
+    vars: { association: p.associationName, reference: p.reference },
   };
 }
 
@@ -164,6 +174,7 @@ export function installmentDueSoonMessage(p: {
     body: `Prochaine échéance le ${dayAndMonth(p.dueDate)} : ${formatMoney(p.remaining)} pour ${p.projectName}.`,
     actionUrl: `/paiements/declarer?projet=${p.projectId}`,
     data: { actionLabel: 'Déclarer un paiement', projectId: p.projectId },
+    vars: { date: dayAndMonth(p.dueDate), montant: formatMoney(p.remaining), projet: p.projectName },
   };
 }
 
@@ -192,6 +203,7 @@ export function managersDigestMessage(p: {
     actionUrl: '/asso',
     // Les chiffres sont dans le texte : `data` reste dans la liste blanche (aucune donnée en plus).
     data: { actionLabel: 'Ouvrir le tableau de bord', digest: true },
+    vars: { resume: parts.join(' · ') },
   };
 }
 
@@ -209,6 +221,7 @@ export function contractSignatureRequiredMessage(p: {
     body: `${p.associationName} vous invite à signer le contrat du projet ${p.projectName}.`,
     actionUrl: contractLink(p.projectId),
     data: { actionLabel: 'Lire et signer', projectId: p.projectId },
+    vars: { association: p.associationName, projet: p.projectName },
   };
 }
 
@@ -225,5 +238,6 @@ export function contractSignedMessage(p: { name: string; projectId: string; proj
     body: `${p.name} a signé le contrat du projet ${p.projectName}.`,
     actionUrl: `/asso/projets/${p.projectId}/contrat`,
     data: { actionLabel: 'Voir le contrat', projectId: p.projectId },
+    vars: { souscripteur: p.name, projet: p.projectName },
   };
 }

@@ -110,6 +110,7 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
 - Build sans mocks (`NUXT_MOCKS=0` au build, production) : `AVEC_MOCKS` faux (`vite.define`), seuls les endpoints du registre existent ; un appel à un endpoint d'un lot non livré passe par `endpointDisponible(id, espace)` (`utils/bascule.ts`) ou une fonctionnalité de `GET /me`, sinon 404 de NestJS. Recette : `tools/repetition-production.sh` (parcours `jalon` en `COTIZ_STRICT=1`).
 - Rendu serveur dans un conteneur : le client SSR appelle `/api/v1` par `useRequestEvent().fetch` (Nitro local), jamais par l'origine publique (injoignable depuis le conteneur).
 - Capture de `/plateforme` sur le vrai back : `pnpm db:migrate` puis rafraîchir les statistiques (`BEGIN; SET LOCAL app.space = 'system'; SELECT refresh_platform_stats(); COMMIT;` en psql) ; sinon les vues matérialisées sont vides jusqu'au prochain `stats.refresh` (15 min).
+- Flux SSE `nt.stream` (lot 4.2) : le réseau n'est jamais au repos ; `ouvrirSession` (`scripts/session-test.mjs`) répond 204 à ce flux pour les captures et e2e en `networkidle`.
 
 ## Session et routes
 

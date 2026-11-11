@@ -30,6 +30,7 @@ describe('textes des notifications', () => {
       body: `Vos 25${THIN}000${NBSP}F pour Centre communautaire ont été validés.`,
       actionUrl: `/projets/${P}`,
       data: { actionLabel: 'Voir le projet', paymentId: PAY, projectId: P },
+      vars: { montant: `25${THIN}000${NBSP}F`, projet: 'Centre communautaire' },
     });
   });
 
@@ -93,6 +94,7 @@ describe('textes des notifications', () => {
       body: `Prochaine échéance le 5 octobre : 25${THIN}000${NBSP}F pour Centre communautaire.`,
       actionUrl: `/paiements/declarer?projet=${P}`,
       data: { actionLabel: 'Déclarer un paiement', projectId: P },
+      vars: { date: '5 octobre', montant: `25${THIN}000${NBSP}F`, projet: 'Centre communautaire' },
     });
     expect(
       installmentDueSoonMessage({
@@ -111,6 +113,7 @@ describe('textes des notifications', () => {
       body: '6 paiements à valider · 2 souscripteurs passés en retard · 1 code d’activation à remettre.',
       actionUrl: '/asso',
       data: { actionLabel: 'Ouvrir le tableau de bord', digest: true },
+      vars: { resume: '6 paiements à valider · 2 souscripteurs passés en retard · 1 code d’activation à remettre' },
     });
     expect(managersDigestMessage({ pendingPayments: 1, newLateSubscribers: 0, codesToHand: 3 })?.body).toBe(
       '1 paiement à valider · 3 codes d’activation à remettre.',

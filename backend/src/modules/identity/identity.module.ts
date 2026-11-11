@@ -66,7 +66,8 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     ListAssociationResetRequestsUseCase,
     IssueAssociationResetCodeUseCase,
   ],
-  // Garde d'authentification, enregistrée globalement par AppModule ; comptes des gestionnaires (onboarding).
-  exports: [JwtGuard, ManagerAccounts, SubscriberAccounts, SubscriberActivationCodes, UserProfiles],
+  // Garde d'authentification, enregistrée globalement par AppModule ; comptes des gestionnaires (onboarding) ;
+  // sessions révoquées (flux nt.stream, lot 4.2).
+  exports: [JwtGuard, ManagerAccounts, RevokedSessions, SubscriberAccounts, SubscriberActivationCodes, UserProfiles],
 })
 export class IdentityModule {}

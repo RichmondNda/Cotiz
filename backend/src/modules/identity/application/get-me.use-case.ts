@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { type Me, SessionSpace } from '@cotiz/contracts';
 import { users } from '@cotiz/db';
 import { eq } from 'drizzle-orm';
@@ -11,7 +11,8 @@ import {
   platformRoleOf,
 } from '../../access/access.public.js';
 import { planFeaturesOf } from '../../billing/billing.public.js';
-import { activeFeatures } from '../../../shared/features/index.js';
+import { CONFIG, type Config } from '../../../config.js';
+import { activeFeatures, deliveredFeatures } from '../../../shared/features/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
@@ -27,6 +28,8 @@ const isManagement = (role: string): role is ManagementRole => (MANAGEMENT_ROLES
  */
 @Injectable()
 export class GetMeUseCase {
+  constructor(@Inject(CONFIG) private readonly config: Config) {}
+
   async execute(): Promise<Me> {
     const actor = requireActor();
     const [user] = await currentTx()
@@ -71,7 +74,10 @@ export class GetMeUseCase {
       })),
       platformRole,
       permissions: permissionsOf(role),
-      features: activeFeatures({ planFeatures: await this.planFeatures(current?.association.id ?? null) }),
+      features: activeFeatures(
+        { planFeatures: await this.planFeatures(current?.association.id ?? null) },
+        deliveredFeatures(this.config),
+      ),
     };
   }
 

@@ -1,0 +1,9 @@
+{
+  "name": "Cotiz",
+  "short_name": "Cotiz",
+  "lang": "fr",
+  "start_url": "/accueil",
+  "scope": "/",
+  "display": "standalone",
+  "icons": [{ "src": "/cotiz-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

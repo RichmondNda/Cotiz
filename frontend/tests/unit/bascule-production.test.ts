@@ -12,7 +12,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('endpointDisponible', () => {
+// Import à froid du module après resetModules : plus de 5 s quand pnpm verify charge la machine.
+describe('endpointDisponible', { timeout: 20_000 }, () => {
   it('build avec mocks : tout endpoint est appelable, livré ou non', async () => {
     const b = await bascule(true)
     expect(b.AVEC_MOCKS).toBe(true)

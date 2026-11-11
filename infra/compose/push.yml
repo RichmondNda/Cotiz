@@ -1,0 +1,16 @@
+# Web Push (lot 4.2) pour la pile Docker de développement : à ajouter après local.yml et app.yml.
+#   docker compose -f infra/compose/local.yml -f infra/compose/app.yml -f infra/compose/push.yml up -d --build
+# Variables obligatoires ici (jamais posées vides : le schéma de configuration refuse une chaîne vide).
+# Mode d'emploi complet : docs/runbooks/tester-push-docker.md.
+
+x-push-env: &push-env
+  VAPID_PUBLIC_KEY: ${COTIZ_VAPID_PUBLIC_KEY:?clé publique VAPID (docs/runbooks/tester-push-docker.md)}
+  VAPID_PRIVATE_KEY: ${COTIZ_VAPID_PRIVATE_KEY:?clé privée VAPID (docs/runbooks/tester-push-docker.md)}
+  VAPID_SUBJECT: ${COTIZ_VAPID_SUBJECT:-mailto:exploitation@cotiz.app}
+  WEB_PUSH_HOSTS: ${COTIZ_WEB_PUSH_HOSTS:?services de push acceptés (docs/runbooks/web-push.md)}
+
+services:
+  api:
+    environment: *push-env
+  worker:
+    environment: *push-env
