@@ -342,6 +342,23 @@ describe('conventions HTTP (AppModule, Redis réel)', () => {
       }
     });
 
+    it('un proxy de confiance (Traefik ; Nitro recopie l’en-tête) : une adresse falsifiée par le client est ignorée', async () => {
+      // Traefik ajoute l'adresse du client à la fin de X-Forwarded-For ; le proxy Nitro du front recopie l'en-tête sans
+      // rien ajouter (h3 proxyRequest). Avec TRUST_PROXY_HOPS=1, seule l'adresse ajoutée par Traefik compte.
+      await redis.executeCliCmd('FLUSHALL');
+      const { small, url } = await smallApp(1);
+      try {
+        const call = (forwarded: string) => fetch(`${url}/inexistante`, { headers: { 'x-forwarded-for': forwarded } });
+        const statuses = [];
+        for (const spoofed of ['203.0.113.1', '203.0.113.2', '203.0.113.3']) {
+          statuses.push((await call(`${spoofed}, 198.51.100.7`)).status);
+        }
+        expect(statuses).toEqual([404, 404, 429]);
+      } finally {
+        await small.close();
+      }
+    });
+
     it('requête refusée par une garde ou une route : comptée quand même ; sondes de santé jamais limitées', async () => {
       await redis.executeCliCmd('FLUSHALL');
       const { small, url } = await smallApp(0);
