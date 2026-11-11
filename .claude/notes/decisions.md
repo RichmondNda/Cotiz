@@ -655,3 +655,6 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
 - Tests qui passaient une association en XAF (projects, project-preview, project-overview) : retirés ou remplacés par
   le refus de la base. Les refus `currency_mismatch` d'un montant en XAF restent testés. me.dash garde son erreur
   explicite sur deux devises (défense en profondeur).
+- Après money-reviewer : migration 0022 `payments_currency_xof` (+ commentaire de `projects.currency`) ; schema.sql
+  contraint aussi `invoices`, `statement_lines` et `payment_intents` (tables pas encore migrées), dans le prolongement de
+  « XOF partout ». Conformité : échoue si la contrainte de payments manque (contre-épreuve faite).

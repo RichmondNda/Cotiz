@@ -44,6 +44,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   le contrat) et le dépôt d'une preuve (`fl.upload`) restent possibles pendant la suspension. · Les bloquer aussi
   (`association_suspended`) ou non : à trancher.
 
+- **2026-11-11** · Devise unique (0021, 0022) : le jour où la contrainte XOF sera levée, rétablir les tests retirés
+  (projet qui hérite de la devise de son association, `create-project.use-case.ts` ; aperçu et vue d'ensemble dans la
+  devise du projet). 0021 échoue sur une base qui aurait déjà une association ou un projet hors XOF : à contrôler
+  avant toute base partagée (production : seeds en XOF). Relevé par money-reviewer.
+
 ## Demandes d'accord (actions sensibles)
 
 ## Tranché

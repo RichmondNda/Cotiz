@@ -381,7 +381,7 @@ CREATE TABLE invoices (
   period_start date NOT NULL,
   period_end date NOT NULL,
   amount bigint NOT NULL,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT invoices_currency_xof CHECK (currency = 'XOF'),
   status invoices_status NOT NULL DEFAULT 'draft',
   issued_at timestamptz,
   due_at timestamptz,
@@ -422,6 +422,7 @@ CREATE TABLE projects (
   UNIQUE (id, association_id)
 );
 COMMENT ON TABLE projects IS 'Un projet de cotisation.';
+COMMENT ON COLUMN projects.currency IS 'XOF seulement pour l''instant (projects_currency_xof)';
 COMMENT ON COLUMN projects.association_id IS 'RLS';
 COMMENT ON COLUMN projects.description IS 'Markdown restreint';
 COMMENT ON COLUMN projects.status IS 'draft · enrolling · active · completed · archived';
@@ -514,7 +515,7 @@ CREATE TABLE payments (
   user_id uuid NOT NULL,
   amount_declared bigint NOT NULL,
   amount_received bigint,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT payments_currency_xof CHECK (currency = 'XOF'),
   paid_on date NOT NULL,
   payment_method_id uuid,
   transaction_reference text,
@@ -947,7 +948,7 @@ CREATE TABLE statement_lines (
   line_no int NOT NULL,
   booked_on date NOT NULL,
   amount bigint NOT NULL,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT statement_lines_currency_xof CHECK (currency = 'XOF'),
   reference text,
   counterparty text,
   raw jsonb NOT NULL,
@@ -1025,7 +1026,7 @@ CREATE TABLE payment_intents (
   provider text NOT NULL,
   provider_ref text,
   amount bigint NOT NULL,
-  currency char(3) NOT NULL DEFAULT 'XOF',
+  currency char(3) NOT NULL DEFAULT 'XOF' CONSTRAINT payment_intents_currency_xof CHECK (currency = 'XOF'),
   allocations jsonb NOT NULL,
   status payment_intents_status NOT NULL DEFAULT 'created',
   payment_id uuid,
