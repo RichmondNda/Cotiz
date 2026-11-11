@@ -1,0 +1,234 @@
+# Environnement de développement sur Dokploy : local.yml + app.yml en un seul fichier (Dokploy n'en lit qu'un et y injecte
+# les étiquettes de ses domaines), servi sur https://cotiz.dev.regisnda.com. Fiche : docs/runbooks/dev-dokploy.md.
+#
+# - Comme la pile Docker locale : NODE_ENV=development, front avec ses mocks Nitro pour les endpoints pas encore réels,
+#   comptes de démonstration (`seed`, relancé à chaque déploiement, idempotent) ; ClamAV et Gotenberg toujours actifs.
+# - Dépôt public, donc mots de passe de démonstration connus de tous : tout le site est derrière un mot de passe d'accès
+#   (basic auth Traefik, middleware `cotiz-dev-acces` déclaré ici ; hash dans COTIZ_DEV_BASIC_AUTH, onglet Environment).
+#   Le stockage public n'en a pas besoin : seuls des liens signés y donnent accès.
+# - Identifiants internes (base, MinIO) : ceux du développement local, jamais publiés (aucun port exposé).
+# - Garder aligné sur local.yml et app.yml.
+
+x-backend-env: &backend-env
+  NODE_ENV: development
+  LOG_PRETTY: 'false'
+  DATABASE_URL: postgres://cotiz_app:cotiz-app-local@pgbouncer:5432/cotiz
+  PLATFORM_DATABASE_URL: postgres://cotiz_platform:cotiz-platform-local@postgres:5432/cotiz
+  REDIS_URL: redis://redis:6379
+  S3_ENDPOINT: http://minio:9000
+  S3_PUBLIC_ENDPOINT: ${COTIZ_STORAGE_PUBLIC_URL:?}
+  S3_ACCESS_KEY_ID: cotiz
+  S3_SECRET_ACCESS_KEY: cotiz-local-minio
+  APP_PUBLIC_URL: ${COTIZ_PUBLIC_URL:?}
+  # Traefik puis le front (proxy Nitro) devant l'api : un seul saut compte (voir production.yml).
+  TRUST_PROXY_HOPS: '1'
+  # Plusieurs testeurs derrière une même box : plus large que la valeur de production (300/min).
+  RATE_LIMIT_IP_PER_MIN: ${COTIZ_RATE_LIMIT_IP_PER_MIN:-1000}
+  CLAMAV_URL: tcp://clamav:3310
+  GOTENBERG_URL: http://gotenberg:3000
+  VAPID_PUBLIC_KEY: ${COTIZ_VAPID_PUBLIC_KEY:?}
+  VAPID_PRIVATE_KEY: ${COTIZ_VAPID_PRIVATE_KEY:?}
+  VAPID_SUBJECT: ${COTIZ_VAPID_SUBJECT:-mailto:exploitation@cotiz.app}
+  WEB_PUSH_HOSTS: ${COTIZ_WEB_PUSH_HOSTS:?}
+
+x-api-build: &api-build
+  context: ../..
+  dockerfile: infra/docker/api.Dockerfile
+
+# Même image pour migrate, api, worker et seed (une seule construction, le cache sert les autres).
+x-backend: &backend
+  image: cotiz-api:dev-dokploy
+  build: *api-build
+  environment: *backend-env
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    pgbouncer:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio-init:
+      condition: service_completed_successfully
+  restart: unless-stopped
+
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 3s
+  retries: 20
+  start_period: 30s
+  start_interval: 1s
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    command:
+      - postgres
+      - -c
+      - max_connections=50
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - work_mem=2MB
+    environment:
+      POSTGRES_USER: cotiz
+      POSTGRES_PASSWORD: cotiz
+      POSTGRES_DB: cotiz
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      # Rôles cotiz_migrator, cotiz_app, cotiz_platform, cotiz_readonly (premier démarrage seulement).
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    shm_size: 64mb
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD-SHELL', 'pg_isready -U cotiz -d cotiz']
+    restart: unless-stopped
+
+  # Mode transaction : le contexte tenant passe par SET LOCAL (architecture/02).
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.24.1-p1
+    environment:
+      DB_HOST: postgres
+      DB_USER: cotiz_app
+      DB_PASSWORD: cotiz-app-local
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_PREPARED_STATEMENTS: '100'
+      MAX_CLIENT_CONN: '100'
+      DEFAULT_POOL_SIZE: '10'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U cotiz_app']
+    restart: unless-stopped
+
+  # noeviction : BullMQ exige que Redis n'évince jamais une clé.
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '128mb', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis:/data
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'redis-cli', 'ping']
+    restart: unless-stopped
+
+  # Stockage public (liens signés des preuves et des PDF) : domaine Dokploy sur le port 9000.
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    command: ['server', '/data']
+    environment:
+      MINIO_ROOT_USER: cotiz
+      MINIO_ROOT_PASSWORD: cotiz-local-minio
+      GOMEMLIMIT: 200MiB
+    volumes:
+      - minio:/data
+    networks:
+      - default
+      - dokploy-network
+    restart: unless-stopped
+
+  # Compartiments (architecture/08), idempotent.
+  minio-init:
+    build: ./minio-init
+    environment:
+      MINIO_ROOT_USER: cotiz
+      MINIO_ROOT_PASSWORD: cotiz-local-minio
+    depends_on:
+      - minio
+    restart: 'no'
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    command:
+      [
+        'gotenberg',
+        '--chromium-max-queue-size=1',
+        '--chromium-restart-after=10',
+        '--libreoffice-restart-after=10',
+        '--chromium-allow-list=^file:///tmp/.*',
+      ]
+    mem_limit: 768m
+    restart: unless-stopped
+
+  # Premier démarrage long : téléchargement des signatures (plusieurs minutes).
+  clamav:
+    image: clamav/clamav:stable
+    environment:
+      CLAMAV_NO_MILTERD: 'true'
+    volumes:
+      - clamav:/var/lib/clamav
+    restart: unless-stopped
+
+  migrate:
+    image: cotiz-api:dev-dokploy
+    build: *api-build
+    command: ['node', 'node_modules/@cotiz/db/dist/migrate.js']
+    environment:
+      MIGRATION_DATABASE_URL: postgres://cotiz_migrator:cotiz-migrator-local@postgres:5432/cotiz
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    <<: *backend
+    healthcheck:
+      <<: *healthcheck
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+
+  worker:
+    <<: *backend
+    command: ['node', '--import', './dist/telemetry.js', 'dist/worker.js']
+
+  # Comptes, associations, projets et paiements de référence (frontend/server/mocks/IDENTIFIANTS.md), à chaque
+  # déploiement. Idempotent : ne modifie rien d'existant (code d'activation de Fatou renouvelé, lisible dans ses journaux).
+  seed:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      COTIZ_DEV_SEED: 'true'
+    command: ['node', 'dist/cli.js', 'seed-dev']
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: 'no'
+
+  # Application : domaine Dokploy sur le port 3000, derrière le mot de passe d'accès.
+  web:
+    image: cotiz-web:dev-dokploy
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      NUXT_API_ORIGIN: http://api:4000
+      NUXT_STORAGE_ORIGIN: ${COTIZ_STORAGE_PUBLIC_URL:?}
+    labels:
+      # Utilisateur:hash (apr1), généré par tools/recette-dokploy.mjs --cible dev ; le domaine Dokploy y renvoie
+      # (`cotiz-dev-acces@docker`).
+      - traefik.http.middlewares.cotiz-dev-acces.basicauth.users=${COTIZ_DEV_BASIC_AUTH:?}
+      - traefik.http.middlewares.cotiz-dev-acces.basicauth.realm=Cotiz dev
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - default
+      - dokploy-network
+    restart: unless-stopped
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  postgres:
+  redis:
+  minio:
+  clamav:
