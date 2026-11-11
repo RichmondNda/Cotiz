@@ -243,12 +243,19 @@ describe('me.history : historique du souscripteur au 2026-09-25 (jeu de référe
       { month: M('08'), projects: [mutuelle(10_000)] },
       { month: M('09'), projects: [mutuelle(10_000)] },
     ]);
-    // Période : cumul depuis son début, objectif inchangé.
+    // Période : mois de la période seuls, mais cumul depuis le début des projets (versé jusqu'au 31 août : Centre
+    // 175 000 F, Mutuelle 40 000 F), objectif inchangé.
     const aug = await seriesOf('?from=2026-08-01&to=2026-08-31');
     expect(aug).toEqual({
-      cumulative: [{ month: M('08'), paid: XOF(10_000) }],
+      cumulative: [{ month: M('08'), paid: XOF(215_000) }],
       target: XOF(620_000),
       byMonth: [{ month: M('08'), projects: [mutuelle(10_000)] }],
+    });
+    // Borne : les versements du jour `from` (5 juillet) sont dans la période, comptés une seule fois dans le cumul.
+    expect(await seriesOf('?from=2026-07-05&to=2026-07-31')).toEqual({
+      cumulative: [{ month: M('07'), paid: XOF(205_000) }],
+      target: XOF(620_000),
+      byMonth: [{ month: M('07'), projects: july }],
     });
     // Projet : son versé et son engagement seuls.
     const c = await seriesOf(`?projectId=${CENTRE}`);

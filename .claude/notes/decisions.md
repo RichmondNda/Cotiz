@@ -629,6 +629,13 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
     `redis-cli` dans le conteneur dont 17 FLUSHALL (effaceraient les autres fichiers), sorties texte relues (TTL,
     EXISTS) ; health et redis-client arrêtent Redis exprès.
 
+## 2026-11-10 · PR C (règles produit), étapes 3 et 5
+- Historique d'un projet quitté : paiements et contrat signé gardés en lecture seule (`enrollmentWithdrawn`), sur
+  demande de l'utilisateur (« que recommande tu ? fais le »). Association quittée : hors périmètre (politique RLS, question posée).
+- Courbe de l'historique filtrée par période : cumul depuis le début des projets. Recommandation appliquée **sans
+  réponse de l'utilisateur** (point « courbe filtrée » laissé sans réponse) ; à confirmer. Source :
+  `packages/domain/src/subscriber-history.ts`.
+
 ## 2026-11-10 · Points ouverts tranchés par l'utilisateur (PR A à D, accord « A, B, C, D »)
 - A `chore/prod-proxy-reset` : TRUST_PROXY_HOPS de production 2 → 1. Vérifié dans h3 (`getProxyRequestHeaders`) : le
   proxy Nitro recopie X-Forwarded-For sans y ajouter d'adresse, donc un seul proxy compte (Traefik) ; à 2, une adresse

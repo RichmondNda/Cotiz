@@ -107,3 +107,7 @@ Format : **date** · contexte — apprentissage. *Source.*
 - **2026-11-10** · `frontend/tests/unit/bascule-production.test.ts` (« build avec mocks… ») dépasse parfois son délai
   de 5 s pendant un `pnpm verify` complet (5 070 ms) ; isolé : 1,6 s. Charge machine, pas un défaut : relancer.
   *verify du 2026-11-10, chore/retard-signature.*
+- **2026-11-10** · `packages/db/src/conformance.test.ts` : sous charge (`pnpm verify` complet), `afterAll`
+  (`container.stop()`) échoue parfois en « (HTTP code 409) cannot remove container … container is running » alors que
+  les 8 tests passent ; isolé : vert. Comme `pnpm test` s'arrête au premier échec, le backend ne tourne alors pas :
+  relancer `sg docker -c "pnpm turbo run test --continue"` et vérifier les comptes. Deux fois sur chore/cumul-historique.

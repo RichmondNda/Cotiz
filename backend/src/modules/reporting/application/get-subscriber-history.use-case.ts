@@ -64,12 +64,13 @@ const commitments = (entries: readonly SubscriberEnrollment[]) =>
 
 /**
  * me.history (mb-historique, lot 3.4), personne du jeton, inscriptions des associations où elle est souscriptrice
- * active, **retirées comprises** (paiements en lecture seule, `enrollmentWithdrawn`, décision du 2026-11-10), filtrées
+ * active, **retirées comprises** (paiements en lecture seule, `enrollmentWithdrawn`, décision utilisateur du 2026-11-10), filtrées
  * par association, projet et date de virement (`paidOn`) ; reste et objectif : inscriptions qui engagent seulement :
  * - liste : tous statuts, les plus récents d'abord (date de déclaration), paginée ;
  * - synthèse : versé et nombre des validés de la sélection (subscriberHistoryFigures : l'encaissé du gestionnaire pour
  *   cette personne), reste des inscriptions qui engagent (subscriberSummary, sans la période : un reste n'a pas de date) ;
- * - série : versé par mois de virement, cumul, et objectif (engagements des inscriptions qui engagent).
+ * - série : versé par mois de virement de la période, cumul depuis le début (versements antérieurs à `from`
+ *   compris), et objectif (engagements des inscriptions qui engagent).
  */
 @Injectable()
 export class GetSubscriberHistoryUseCase {
@@ -106,8 +107,14 @@ export class GetSubscriberHistoryUseCase {
 
   async series(query: SeriesQuery): Promise<Series> {
     const s = await selected(query);
-    const validated = await validatedOf(s, query);
-    const figures = subscriberHistoryFigures(validated, commitments(s.entries));
+    // Courbe cumulée depuis le début des projets : versements antérieurs à `from` lus aussi, en point de départ du
+    // cumul seulement (subscriberHistoryFigures, recommandation appliquée le 2026-11-10, à confirmer).
+    const validated = await validatedOf(s, query.to === undefined ? {} : { to: query.to });
+    const figures = subscriberHistoryFigures(
+      validated,
+      commitments(s.entries),
+      query.from === undefined ? {} : { from: query.from },
+    );
     return {
       cumulative: figures.cumulative.map((c) => ({ month: c.month, paid: s.money(c.paid) })),
       target: figures.target === null ? null : s.money(figures.target),
