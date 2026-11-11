@@ -1,5 +1,16 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { createdAt, id } from '../columns.js';
 import { users } from './identity.js';
 import { associations } from './tenancy.js';
@@ -53,4 +64,52 @@ export const deliveries = pgTable('deliveries', {
   createdAt: createdAt(),
   sentAt: timestamp('sent_at', { withTimezone: true }),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+});
+
+// Lot 4.2 (migration 0023) : préférences, modèles de messages, abonnements Web Push.
+export const notificationChannel = pgEnum('notification_channel', ['in_app', 'push', 'email', 'sms']);
+export const templateChannel = pgEnum('template_channel', ['in_app', 'push', 'email', 'sms', 'manual']);
+
+/** Choix de canal par type et par personne. RLS : owner_access (la personne) et system_access (worker). */
+export const notificationPreferences = pgTable(
+  'notification_preferences',
+  {
+    userId: uuid('user_id').notNull(),
+    type: text('type').notNull(),
+    channel: notificationChannel('channel').notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.type, t.channel] })],
+);
+
+/**
+ * Modèles de messages versionnés. `associationId` NULL : modèle de la plateforme, lisible par tous (écrit par
+ * cotiz_platform) ; sinon lu et écrit dans le seul contexte de l'association (tenant_templates).
+ */
+export const messageTemplates = pgTable('message_templates', {
+  id: id(),
+  associationId: uuid('association_id').references(() => associations.id),
+  key: text('key').notNull(),
+  channel: templateChannel('channel').notNull(),
+  locale: text('locale').notNull().default('fr-CI'),
+  subject: text('subject').notNull(),
+  body: text('body').notNull(),
+  version: integer('version').notNull().default(1),
+  createdAt: createdAt(),
+});
+
+/** Abonnements Web Push d'une personne (un par appareil). Désactivé après 5 échecs ou une réponse 404/410. */
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: id(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  userAgent: text('user_agent'),
+  lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+  failedCount: integer('failed_count').notNull().default(0),
+  createdAt: createdAt(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
 });

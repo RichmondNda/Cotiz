@@ -220,20 +220,28 @@ describe('garde-fou RLS et droits (auditTenantSecurity)', () => {
     expect(problems).toEqual(expected.map((problem) => ({ table: 'widgets', problem })));
   });
 
-  it.each([
-    ['conforme', `USING ${TENANT} WITH CHECK ${TENANT}`, []],
-    [
-      'élargie',
-      `USING (${TENANT.slice(1, -1)} OR app_space() <> 'none') WITH CHECK ${TENANT}`,
-      ['tenant_manage_altered'],
-    ],
-    ['sans WITH CHECK identique', `USING ${TENANT} WITH CHECK (app_user_id() IS NOT NULL)`, ['tenant_manage_altered']],
-  ])('tenant_manage %s', async (_name, clause, expected) => {
+  it.each(
+    ['tenant_manage', 'tenant_templates'].flatMap((policy) => [
+      [policy, 'conforme', `USING ${TENANT} WITH CHECK ${TENANT}`, []],
+      [
+        policy,
+        'élargie',
+        `USING (${TENANT.slice(1, -1)} OR app_space() <> 'none') WITH CHECK ${TENANT}`,
+        ['tenant_manage_altered'],
+      ],
+      [
+        policy,
+        'sans WITH CHECK identique',
+        `USING ${TENANT} WITH CHECK (app_user_id() IS NOT NULL)`,
+        ['tenant_manage_altered'],
+      ],
+    ]),
+  )('%s %s', async (policy, _name, clause, expected) => {
     const problems = await auditWith(
       `CREATE TABLE widgets (id uuid PRIMARY KEY, association_id uuid);
        ALTER TABLE widgets ENABLE ROW LEVEL SECURITY;
        ALTER TABLE widgets FORCE ROW LEVEL SECURITY;
-       CREATE POLICY tenant_manage ON widgets ${clause};`,
+       CREATE POLICY ${policy} ON widgets ${clause};`,
     );
     expect(problems).toEqual(expected.map((problem) => ({ table: 'widgets', problem })));
   });

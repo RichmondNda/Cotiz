@@ -673,3 +673,36 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   projet ; une seule devise par personne (refus à l'inscription).
 - D `chore/migrations-0018-0019` : index unique partiel `payments (proof_file_id)` (pending, validated) ; politique
   `contracts.subscriber_enrolled_read` resserrée (contrat signé par la personne, quel que soit le statut).
+
+## 2026-11-11 · Plan du lot 4.2 (branche `lot/4.2-temps-reel-push`, une seule PR vers `backend`, un commit par étape)
+Lu : `docs/lots/4.2`, `architecture/07`, `schema.sql` (« lot 4.2 » + politiques), `data-model.md`, `endpoints.yaml`
+(`nt.stream`, `me.push`, `me.prefs`), `features.yaml` (`realtime`, `web_push`), `jobs.yaml` (`notify-push`, `push.cleanup`),
+`ui-deviations.md` (mb-profil), fiches `mg-profil`, `mb-profil`, `mb-notifs`. Contrats Zod déjà présents (lot 0.3).
+Dépendance 3.5 `terminé` ; aucune décision listée par le lot.
+**Choix de l'utilisateur (2026-11-11)** : (1) in-app et push réglables par type, sauf types « action requise »
+(paiement rejeté, paiement annulé, contrat à signer, échéance en retard, association suspendue, demande de
+réinitialisation) dont l'in-app reste toujours livré (interrupteur grisé) ; (2) MgProfil : bloc « Notifications sur cet
+appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne ajoutée à `ui-deviations.md` (accord).
+1. **Tables** — migration `0023_notifications_v2.sql` : enums `notification_channel`, `template_channel`, tables
+   `notification_preferences`, `message_templates`, `push_subscriptions`, FK et RLS à l'identique de `schema.sql`
+   (`owner_access`/`system_access` ; `platform_templates_read`/`tenant_templates`). Drizzle dans
+   `packages/db/src/schema/notifications.ts`. Tests : conformité du schéma, `test/isolation/notifications-v2.test.ts`
+   (autre personne, autre association, politiques affaiblies). Vérif : `pnpm db:migrate` + `pnpm verify`.
+2. **SSE** — `nt.stream` (api) : flux `text/event-stream`, jeton Bearer (le front lit le flux par `fetch`, EventSource
+   n'envoie pas d'en-tête), canal Redis Pub/Sub `notifications:user:<id>` publié par le worker après le COMMIT (id de la
+   notification seulement), notification relue en base avec `notificationScopeOf` (jamais de fuite d'espace), reprise
+   `Last-Event-ID` (id UUIDv7 ordonné), commentaire de battement toutes les 25 s ; fonctionnalité `realtime` livrée.
+   Front : composable de flux (reconnexion, repli sur interrogation 30 s), compteurs et listes rafraîchis.
+   Tests : intégration (notification reçue < 2 s, reprise, autre personne/autre espace rien), isolation.
+3. **Web Push** — CLI `push-vapid-keys` ; config `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` facultative
+   (canal absent sans clés : ignoré par le routeur) ; `me.push` ; `PushChannel` → `deliveries` (`webpush`) + file
+   `notify-push` (concurrence 10, 3 tentatives) ; 404/410 → révoqué, 5 échecs → révoqué ; heures calmes 21 h – 8 h de
+   l'association (job différé, pas perdu) ; tâche `push.cleanup` hebdomadaire. Front : manifeste + service worker
+   `public/sw.js`, invitation à activer. Tests : canal (faux expéditeur), intégration avec un faux service de push HTTP
+   local (vrai chiffrement `web-push`), isolation de `me.push`.
+4. **Préférences et modèles** — `me.prefs` (types par audience, `availableChannels` = in_app + push si disponible),
+   routeur qui lit les préférences (absence de ligne = activé), in-app obligatoire pour les types « action requise » ;
+   rendu par `message_templates` (association → plateforme → texte du code), variables `{{nom}}` (sous-ensemble de la
+   syntaxe Handlebars, échappé). Front : MbProfil (interrupteurs par type), MgProfil (bloc appareil), bascules
+   `nt.stream`, `me.push`, `me.prefs`, handlers simulés supprimés. Vérif : désactiver un type coupe le push, pas l'in-app
+   obligatoire ; `/verifier-ecran` des profils et notifications.
