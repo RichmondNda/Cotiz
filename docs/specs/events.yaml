@@ -341,7 +341,7 @@ events:
   consumers:
   - 'documents: PDF signé'
   - 'notifications: gestionnaires'
-  - 'ledger: génération de l''échéancier'
+  - 'members: génération de l''échéancier'
 - type: import.created
   emitter: imports
   lot: '4.4'

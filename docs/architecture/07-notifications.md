@@ -1,7 +1,7 @@
 # 07 · Notifications et canaux
 
 ## Chaîne
-Événement métier → consommateur `notifications` → **routeur** (qui reçoit, par quels canaux, selon `notification-matrix` de [../specs/events.yaml](../specs/events.yaml) et les préférences) → `notifications` (cloche) + `deliveries` (un envoi par canal externe) → canal.
+Événement métier → consommateur `notifications` → **routeur** (qui reçoit, par quels canaux, selon la matrice ci-dessous, cohérente avec les consommateurs de [../specs/events.yaml](../specs/events.yaml), et les préférences) → `notifications` (cloche) + `deliveries` (un envoi par canal externe) → canal.
 
 ## Interface `NotificationChannel`
 ```ts

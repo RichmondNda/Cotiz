@@ -1524,7 +1524,6 @@ endpoints:
   errors:
   - invalid_credentials
   - weak_password
-  - version_conflict
   emits:
   - user.password_changed
   idempotencyKey: false
