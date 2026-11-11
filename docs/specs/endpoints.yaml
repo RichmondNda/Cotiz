@@ -1618,6 +1618,7 @@ endpoints:
   - proof_already_used
   - signature_required
   - invalid_state
+  - association_suspended
   emits:
   - payment.declared
   idempotencyKey: true

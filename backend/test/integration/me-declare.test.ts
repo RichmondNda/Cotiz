@@ -138,7 +138,7 @@ describe('me.declare', () => {
       paidOn: '2026-11-07',
       paymentMethodKind: 'mobile_money',
       project: { id: PROJECTS.a },
-      association: { id: A.id },
+      association: { id: A.id, suspended: false },
       proof: { fileId: null, transactionReference: 'OM-2611-4471' },
       rejection: null,
       reviewedAt: null,
@@ -489,6 +489,38 @@ describe('me.declare', () => {
     await f.h.superuser(`UPDATE enrollments SET status = 'completed' WHERE id = $1`, [enrollmentId]);
     expect((await problemOf(await declare(body()), 409)).code).toBe('invalid_state');
     expect(await count('SELECT count(*)::int AS n FROM payments')).toBe(0);
+  });
+
+  it('association suspendue → 403 association_suspended (prime sur la signature ; 404 hors inscription) ; paiement lisible, marqué', async () => {
+    const res = await declare(body());
+    expect(res.status).toBe(201);
+    const { id } = (await res.json()) as { id: string };
+    try {
+      await f.h.superuser(`UPDATE associations SET status = 'suspended', suspended_at = now() WHERE id = $1`, [A.id]);
+      expect((await problemOf(await declare(body()), 403)).code).toBe('association_suspended');
+      // Projet d'une autre association suspendue, sans inscription : 404 d'abord (aucune fuite d'existence).
+      await f.h.superuser(`UPDATE associations SET status = 'suspended', suspended_at = now() WHERE id = $1`, [B.id]);
+      expect((await problemOf(await declare(body({ projectId: PROJECTS.b })), 404)).code).toBe('not_found');
+      // Même une déclaration qui serait refusée pour une autre raison (signature) : la suspension prime.
+      await f.h.superuser(`UPDATE enrollments SET status = 'pending_signature' WHERE id = $1`, [enrollmentId]);
+      expect((await problemOf(await declare(body()), 403)).code).toBe('association_suspended');
+      await f.h.superuser(`UPDATE enrollments SET status = 'active' WHERE id = $1`, [enrollmentId]);
+      expect(await count('SELECT count(*)::int AS n FROM payments')).toBe(1);
+      const payment = await f.call(`/me/payments/${id}`, { token: f.tokens.moussa });
+      expect(payment.status).toBe(200);
+      expect(((await payment.json()) as { association: unknown }).association).toMatchObject({
+        id: A.id,
+        suspended: true,
+      });
+    } finally {
+      await f.h.superuser(`UPDATE associations SET status = 'active', suspended_at = NULL WHERE id = ANY($1)`, [
+        [A.id, B.id],
+      ]);
+    }
+    expect(
+      (await declare(body({ allocations: [{ installmentId: nth(3), amount: XOF(25000) }], amount: XOF(25000) })))
+        .status,
+    ).toBe(201);
   });
 
   it('devise, date future, moyen d’une autre association ou inactif → 422 validation_failed', async () => {

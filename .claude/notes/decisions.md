@@ -636,6 +636,18 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
   réponse de l'utilisateur** (point « courbe filtrée » laissé sans réponse) ; à confirmer. Source :
   `packages/domain/src/subscriber-history.ts`.
 
+## 2026-11-11 · PR C (règles produit), étape 4 — association suspendue
+- Choix de l'utilisateur : « Visible, marquée » (« un indicatif de suspension à la fois côté front et côté back »).
+- Back : `AssociationRef.suspended` (toutes les réponses `/me`, et `GET /me`), lu sur `associations.status` par
+  `subscriberAssociationsOf`. `me.declare` → 403 `association_suspended` avant tout autre contrôle (ajouté aux erreurs
+  de me.declare dans endpoints.yaml). Cache me.dash invalidé pour tous les souscripteurs actifs sur
+  `association.suspended` et `association.reactivated` (events.yaml listait déjà « cache » pour les deux).
+- Front : `BandeauSuspension` (CzAlert danger) sur accueil, fiche projet, fiche association et déclaration ; boutons
+  « Déclarer » masqués, projets retirés du choix de la déclaration. Le bouton flottant reste (la page filtre). Écart dans
+  ui-deviations.md. Pas de scénario de mock : toutes les lectures `/me` concernées sont réelles.
+- Signature d'un contrat (`me.sign`) d'une association suspendue : non bloquée (hors de la consigne « aucune déclaration ») ;
+  question notée dans a-verifier.md.
+
 ## 2026-11-10 · Points ouverts tranchés par l'utilisateur (PR A à D, accord « A, B, C, D »)
 - A `chore/prod-proxy-reset` : TRUST_PROXY_HOPS de production 2 → 1. Vérifié dans h3 (`getProxyRequestHeaders`) : le
   proxy Nitro recopie X-Forwarded-For sans y ajouter d'adresse, donc un seul proxy compte (Traefik) ; à 2, une adresse

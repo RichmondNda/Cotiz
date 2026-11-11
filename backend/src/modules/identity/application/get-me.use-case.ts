@@ -62,6 +62,7 @@ export class GetMeUseCase {
           id: association.id,
           name: association.name,
           logoFileId: association.logoFileId,
+          suspended: association.status === 'suspended',
           slug: association.slug,
           status: association.status as Me['memberships'][number]['association']['status'],
         },

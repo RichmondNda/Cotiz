@@ -62,7 +62,12 @@ export class SubscriberContracts {
     });
     return {
       project: { id: project.id, name: project.name },
-      association: { id: association.id, name: association.name, logoFileId: association.logoFileId },
+      association: {
+        id: association.id,
+        name: association.name,
+        logoFileId: association.logoFileId,
+        suspended: association.suspended,
+      },
       commitment: {
         entryFee: terms.entryFee,
         installmentAmount: terms.installmentAmount,

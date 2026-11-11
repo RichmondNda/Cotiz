@@ -10,7 +10,7 @@ import { coveredOf, paymentLinesOf } from './payment-views.js';
 /** Références que l'appelant a déjà lues (inscriptions du souscripteur) : projet et association de chaque paiement. */
 export interface SubscriberPaymentRefs {
   projects: ReadonlyMap<string, { id: string; name: string }>;
-  associations: ReadonlyMap<string, { id: string; name: string; logoFileId: string | null }>;
+  associations: ReadonlyMap<string, { id: string; name: string; logoFileId: string | null; suspended: boolean }>;
   /** Inscriptions retirées parmi celles présentées (me.history, me.payment) : paiements en lecture seule. */
   withdrawnEnrollments?: ReadonlySet<string>;
 }
@@ -175,7 +175,12 @@ async function viewsOf(
       declaredAt: row.declaredAt.toISOString(),
       paymentMethodKind: (row.paymentMethodId ? methods.get(row.paymentMethodId) : null) ?? null,
       project: { id: project.id, name: project.name },
-      association: { id: association.id, name: association.name, logoFileId: association.logoFileId },
+      association: {
+        id: association.id,
+        name: association.name,
+        logoFileId: association.logoFileId,
+        suspended: association.suspended,
+      },
       covered: coveredOf(row, lines.get(row.id) ?? [], currency),
       proof: {
         fileId: row.proofFileId,

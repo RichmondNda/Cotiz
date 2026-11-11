@@ -5,7 +5,7 @@ import { DeclarePaymentInput, Me, PaymentsQuery, SubscriberDashboard, UploadRequ
 
 const xof = (amount: number) => ({ amount, currency: 'XOF' });
 const uuid = (n: number) => `01928f3e-6a7b-7c3d-9e4f-${String(n).padStart(12, '0')}`;
-const entraide = { id: uuid(10), name: 'Entraide Yopougon', logoFileId: null };
+const entraide = { id: uuid(10), name: 'Entraide Yopougon', logoFileId: null, suspended: false };
 const centre = { id: uuid(20), name: 'Centre communautaire' };
 
 describe('espace souscripteur', () => {

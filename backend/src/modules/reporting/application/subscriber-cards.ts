@@ -14,7 +14,8 @@ import type { SubscriberEnrollment } from '../../members/members.public.js';
 
 /** Référence d'association présentée au souscripteur. */
 export function associationRefOf(e: SubscriberEnrollment): AssociationRef {
-  return { id: e.association.id, name: e.association.name, logoFileId: e.association.logoFileId };
+  const { id, name, logoFileId, suspended } = e.association;
+  return { id, name, logoFileId, suspended };
 }
 
 /** Échéances générées avec leurs montants et statut calculés (même ordre que `lines`). */

@@ -39,7 +39,15 @@ export class GetSubscriberPaymentUseCase {
       {
         projects: new Map([[entry.project.id, { id: entry.project.id, name: entry.project.name }]]),
         associations: new Map([
-          [association.id, { id: association.id, name: association.name, logoFileId: association.logoFileId }],
+          [
+            association.id,
+            {
+              id: association.id,
+              name: association.name,
+              logoFileId: association.logoFileId,
+              suspended: association.suspended,
+            },
+          ],
         ]),
         withdrawnEnrollments: new Set(entry.row.status === 'withdrawn' ? [entry.row.id] : []),
       },
