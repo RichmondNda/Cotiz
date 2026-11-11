@@ -204,3 +204,8 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   (heure de début de transaction) ; deux transactions commencées à la même microseconde comptent pour une, d'où une
   4e demande sous forte charge. Piste : compter un identifiant de demande (colonne ou regroupement) plutôt que l'heure.
   À trancher par l'utilisateur (correctif dans un lot ou une PR `chore/`).
+
+## 2026-11-10 · Branches distantes fusionnées supprimées (fait, sur demande)
+- Demande : « supprime les branches distantes fusionnées », confirmée « Les 50 fusionnées ». Les 50 branches de
+  `git branch -r --merged origin/backend` ont été supprimées (lot/0.1 à lot/4.1, lot-01 à lot-09, chore/*, docs/*).
+  Restent : `main`, `backend`, `chore/projets-indicateurs` (non fusionnée). Commits accessibles par les fusions.
