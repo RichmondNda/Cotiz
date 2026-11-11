@@ -658,3 +658,18 @@ Format : **date** · sujet — décision (option retenue) · raison. Les décisi
 - Après money-reviewer : migration 0022 `payments_currency_xof` (+ commentaire de `projects.currency`) ; schema.sql
   contraint aussi `invoices`, `statement_lines` et `payment_intents` (tables pas encore migrées), dans le prolongement de
   « XOF partout ». Conformité : échoue si la contrainte de payments manque (contre-épreuve faite).
+
+## 2026-11-10 · Points ouverts tranchés par l'utilisateur (PR A à D, accord « A, B, C, D »)
+- A `chore/prod-proxy-reset` : TRUST_PROXY_HOPS de production 2 → 1. Vérifié dans h3 (`getProxyRequestHeaders`) : le
+  proxy Nitro recopie X-Forwarded-For sans y ajouter d'adresse, donc un seul proxy compte (Traefik) ; à 2, une adresse
+  falsifiée par le client serait retenue si Traefik ne nettoie pas l'en-tête. Limite de 3 demandes de réinitialisation :
+  `created_at` = heure lue après le verrou (clock_timestamp), au lieu de l'heure de début de transaction.
+- B `chore/docs-specs` : events.yaml (contract.signed → members ; renvoi notification-matrix), me.profile sans
+  version_conflict, architecture/03 (réinitialisation par la plateforme), domain-rules (pending_signature → withdrawn),
+  décision 20 adoptée.
+- C `chore/regles-produit` : retard des échéances antérieures à la signature daté du jour de la signature ; me.contract
+  404 avant verrouillage ; historique et contrats d'une inscription retirée gardés (lecture seule, mention) ;
+  association suspendue visible avec bandeau, sans déclaration, cache invalidé ; cumul de la courbe depuis le début du
+  projet ; une seule devise par personne (refus à l'inscription).
+- D `chore/migrations-0018-0019` : index unique partiel `payments (proof_file_id)` (pending, validated) ; politique
+  `contracts.subscriber_enrolled_read` resserrée (contrat signé par la personne, quel que soit le statut).

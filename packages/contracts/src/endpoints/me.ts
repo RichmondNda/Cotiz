@@ -97,7 +97,7 @@ export const meProfile = defineEndpoint({
   id: 'me.profile',
   space: 'me',
   permission: 'authenticated',
-  errors: ['invalid_credentials', 'weak_password', 'version_conflict'],
+  errors: ['invalid_credentials', 'weak_password'],
   flags: { ...noFlags, audited: true },
   operations: {
     get: { method: 'GET', path: '/api/v1/me/profile', request: {}, response: { status: 200, body: Profile } },
