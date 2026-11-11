@@ -31,6 +31,9 @@ export async function ouvrirSession(ctx, role, base) {
   if (!role || role === 'null') return
   const compte = COMPTES[role]
   if (!compte) throw new Error(`Rôle inconnu : ${role}`)
+  // Flux temps réel (nt.stream, lot 4.2) : connexion SSE toujours ouverte, le réseau n'est jamais au repos
+  // (`networkidle` des captures et des e2e). Coupé dans ces outils ; la cloche se lit comme avant.
+  await ctx.route('**/api/v1/me/notifications/stream', route => route.fulfill({ status: 204 }))
   const page = await ctx.newPage()
   try {
     await page.goto(new URL(compte.page, base).toString(), { waitUntil: 'networkidle' })

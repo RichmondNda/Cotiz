@@ -395,8 +395,9 @@ const chargement = computed(() => pending.value && !profil.value)
               >
                 V2
               </CzSoon>
+              <!-- V2 (email non livré) : toujours éteint, quel que soit le réglage de la cloche du même type. -->
               <CzToggle
-                :model-value="profil.preferences[p.cle]"
+                :model-value="p.v2 ? false : profil.preferences[p.cle]"
                 :disabled="p.v2"
                 :label="p.v2 ? `${p.titre} (disponible en V2)` : p.titre"
                 @update:model-value="basculer(p.cle, $event)"
