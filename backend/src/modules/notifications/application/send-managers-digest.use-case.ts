@@ -10,7 +10,7 @@ import { TenantDatabase } from '../../../shared/tenant-context/index.js';
 import { managersDigestMessage } from '../domain/messages.js';
 import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
-import { createdInApp, NotificationRouter } from './notification-router.js';
+import { createdInApp, NotificationRouter, runAfterCommit } from './notification-router.js';
 
 /** Durée d'une marque « journée faite » : couvre la journée locale de tout fuseau, puis disparaît seule. */
 const DONE_TTL_SECONDS = 48 * 3600;
@@ -98,6 +98,7 @@ export class SendManagersDigestUseCase {
     // Après le COMMIT : compteurs de non-lus des personnes qui ont une nouvelle ligne dans la cloche, annonce au flux.
     await this.counter.invalidate(created.map((c) => c.userId));
     await this.announcer.announce(created);
+    await runAfterCommit(deliveries);
     return created.length;
   }
 

@@ -41,7 +41,11 @@ export class NotificationRouter {
     const results: RoutedDelivery[] = [];
     const enabled = new Map<string, boolean>();
     for (const recipient of recipients) {
+      let replayed = false;
+      let notificationId: string | undefined;
       for (const kind of entry.channels) {
+        // Cloche déjà écrite pour cette occurrence (événement rejoué) : les canaux externes ont déjà été servis.
+        if (replayed) break;
         const channel = this.channels.get(kind);
         if (!channel) continue;
         const key = `${kind}:${recipient.associationId ?? ''}`;
@@ -51,8 +55,13 @@ export class NotificationRouter {
           enabled.set(key, on);
         }
         if (!on) continue;
-        const result = await channel.send(msg, recipient, { dedupeKey: `${options.dedupeBase}:${recipient.userId}` });
+        const result = await channel.send(msg, recipient, {
+          dedupeKey: `${options.dedupeBase}:${recipient.userId}`,
+          ...(notificationId ? { notificationId } : {}),
+        });
         results.push({ ...result, recipient });
+        if (kind === 'in_app' && result.status === 'duplicate') replayed = true;
+        if (kind === 'in_app') notificationId = result.notificationId;
       }
     }
     return results;
@@ -66,4 +75,9 @@ export function createdInApp(deliveries: readonly RoutedDelivery[]): { userId: s
       ? [{ userId: d.recipient.userId, notificationId: d.notificationId }]
       : [],
   );
+}
+
+/** Suites des envois (mise en file des push), à exécuter après le COMMIT de la transaction qui les a écrits. */
+export async function runAfterCommit(deliveries: readonly RoutedDelivery[]): Promise<void> {
+  for (const d of deliveries) await d.afterCommit?.();
 }

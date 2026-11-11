@@ -96,6 +96,8 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['nt.read', 'all'],
   // Lot 4.2 : flux temps réel de la cloche (SSE, aucun handler simulé).
   ['nt.stream', 'all'],
+  // Lot 4.2 : abonnement Web Push de l'appareil (aucun handler simulé : bloc masqué sans le vrai back).
+  ['me.push', 'all'],
   // Lot 2.6 : rapport de projet (onglet Rapports), tableau de bord gestionnaire.
   ['rp.report', 'all'],
   ['as.dashboard', 'all'],

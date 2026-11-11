@@ -716,3 +716,10 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
   5 flux au plus par personne et par processus (le plus ancien fermé, pas de 429 : `errors: []` au contrat).
   Pas d'interrogation de repli côté front (la V1 n'interrogeait pas : relecture à la navigation). Proxy Nitro : l'appel
   à NestJS est interrompu quand le navigateur part (sinon flux orphelin 15 min). Relecture isolation : 6 points traités.
+
+### Lot 4.2 · étape 3 (Web Push) — choix faits en autonome (2026-11-11)
+- Push urgent (envoyé pendant les heures calmes) : `password_reset.requested` seul (`URGENT_PUSH_TYPES`, matrix.ts) ; le reste est différé à 8 h locale (délai BullMQ calculé à la mise en file, `quietHoursDelayMs` de @cotiz/domain).
+- SSRF : l'URL d'abonnement est appelée par le worker → seuls les hôtes de `WEB_PUSH_HOSTS` en https (FCM, Mozilla, Apple, Windows par défaut), refus 422 `unsupported_push_service` à l'abonnement et révocation à l'envoi. Tests : faux service https local (certificat autosigné, `NODE_TLS_REJECT_UNAUTHORIZED=0` dans ce seul fichier).
+- Appareil partagé : URL déjà enregistrée par une autre personne → 422 `fields.endpoint = already_registered` ; le front se réabonne (nouvelle URL). La déconnexion désabonne l'appareil.
+- Envoi : un appareil servi suffit (`sent`, pas de reprise qui renverrait aux autres) ; tous en échec passager → reprise BullMQ, `failed` à la 3e ; 404/410 → révoqué ; 5 échecs consécutifs → révoqué. `push.cleanup` : lundi 04:00, purge des abonnements révoqués depuis plus de 30 jours.
+- Front : bloc « Notifications sur cet appareil » affiché seulement en session réelle (me.push sans handler simulé) ; `uiDeviations` de screens.yaml non modifié (compteur informatif, à revoir avec l'utilisateur).

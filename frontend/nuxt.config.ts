@@ -17,7 +17,10 @@ export default defineNuxtConfig({
       title: 'Cotiz',
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/cotiz-mark.svg' },
+        // Lot 4.2 : application installable (Web Push sur iOS 16.4+ : seulement depuis l'écran d'accueil).
+        { rel: 'manifest', href: '/manifest.webmanifest' },
       ],
+      meta: [{ name: 'apple-mobile-web-app-capable', content: 'yes' }],
     },
   },
 

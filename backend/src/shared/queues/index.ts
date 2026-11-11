@@ -37,6 +37,21 @@ export const QUEUES = {
       removeOnFail: { age: 30 * 24 * 3600 },
     },
   },
+  /**
+   * Envois Web Push (jobs.yaml : concurrence 10, 3 tentatives, heures calmes 21 h – 8 h pour le non urgent : job
+   * différé). Service de push injoignable : repris ; abonnement expiré (404/410) : révoqué, pas d'erreur.
+   */
+  'notify-push': {
+    name: 'notify-push',
+    concurrency: 10,
+    jobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 30_000 },
+      // Assez longtemps pour qu'un même envoi rejoué soit écarté par son jobId.
+      removeOnComplete: { age: 7 * 24 * 3600, count: 10_000 },
+      removeOnFail: { age: 7 * 24 * 3600 },
+    },
+  },
   /** Tâches planifiées (jobs.yaml, section scheduled) : une purge en échec (MinIO absent…) est reprise. */
   scheduled: {
     name: 'scheduled',

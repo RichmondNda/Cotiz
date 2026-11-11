@@ -130,6 +130,31 @@ export const ConfigSchema = z.object({
    * un échantillonnage en fin de trace, fait par le Collector (lot 7.1) : il faut lui envoyer toutes les traces.
    */
   OTEL_TRACES_SAMPLER_RATIO: z.coerce.number().min(0).max(1).default(1),
+  /**
+   * Web Push (lot 4.2) : paire VAPID propre à Cotiz (`pnpm --filter backend cli push-vapid-keys`), aucun compte chez un
+   * tiers. Absente : canal push absent, ignoré par le routeur (la cloche suffit). Clés en base64url (web-push).
+   */
+  VAPID_PUBLIC_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{80,100}$/)
+    .optional(),
+  VAPID_PRIVATE_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{40,50}$/)
+    .optional(),
+  /** Contact transmis aux services de push des navigateurs (RFC 8292) : `mailto:` ou URL https. */
+  VAPID_SUBJECT: z
+    .string()
+    .regex(/^(mailto:|https:\/\/)/)
+    .default('mailto:exploitation@cotiz.app'),
+  /**
+   * Services de push acceptés pour un abonnement (le worker appelle l'URL fournie par le navigateur : jamais une adresse
+   * interne). Suffixes d'hôte séparés par des virgules ; par défaut ceux de Chrome/Edge (FCM), Firefox, Safari, Windows.
+   */
+  WEB_PUSH_HOSTS: z
+    .string()
+    .min(1)
+    .default('fcm.googleapis.com,updates.push.services.mozilla.com,push.apple.com,notify.windows.com'),
   /** GlitchTip (SDK Sentry, auto-hébergé) : absent, aucun SDK initialisé, aucun envoi. Raccordé au lot 7.1. */
   GLITCHTIP_DSN: z.url({ protocol: /^https?$/ }).optional(),
   /** Version déployée (étiquette de l'image) : traces et rapports d'erreur. */
@@ -173,6 +198,10 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
     !isEd25519Pair(config.JWT_PRIVATE_KEY, config.JWT_PUBLIC_KEY)
   ) {
     ctx.addIssue({ code: 'custom', path: ['JWT_PRIVATE_KEY'], message: 'paire Ed25519 attendue' });
+  }
+  if ((config.VAPID_PUBLIC_KEY === undefined) !== (config.VAPID_PRIVATE_KEY === undefined)) {
+    const missing = config.VAPID_PUBLIC_KEY === undefined ? 'VAPID_PUBLIC_KEY' : 'VAPID_PRIVATE_KEY';
+    ctx.addIssue({ code: 'custom', path: [missing], message: 'exigée avec la seconde clé de la paire' });
   }
   if (config.PLATFORM_ALLOWED_IPS !== undefined && parseIpAllowList(config.PLATFORM_ALLOWED_IPS) === null) {
     ctx.addIssue({ code: 'custom', path: ['PLATFORM_ALLOWED_IPS'], message: 'adresse ou réseau invalide' });

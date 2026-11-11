@@ -37,6 +37,7 @@ export const ACCUEIL_PAR_ROLE: Record<Role, string> = {
 
 export function useSession() {
   const cookie = useCookie<Role | null>(COOKIE_ROLE, { default: () => null, sameSite: 'lax', path: '/' })
+  const nuxt = useNuxtApp()
 
   const role = computed<Role | null>(() => {
     const v = cookie.value
@@ -52,7 +53,9 @@ export function useSession() {
     const ancien = role.value
     if (ancien && espaceBascule(ESPACE_PAR_ROLE[ancien])) {
       // Vraie session : fermée côté serveur (connexion révoquée, cookie de renouvellement effacé), jeton expiré compris ;
-      // les autres onglets sont prévenus (plugin session-onglets).
+      // les autres onglets sont prévenus (plugin session-onglets). Avant, l'appareil cesse de recevoir les notifications
+      // push de la personne (téléphone partagé), tant que le jeton est valable.
+      await nuxt.runWithContext(() => oublierAppareil(useClient()))
       await fermerSession(globalThis.fetch.bind(globalThis), useJetonAcces())
       annoncerDeconnexion()
     }

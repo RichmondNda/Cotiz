@@ -377,6 +377,7 @@ const chargement = computed(() => pending.value && !profil.value)
           >
             M’avertir quand…
           </h2>
+          <NotificationsAppareil espace="association" />
           <ul class="profil__prefs-liste">
             <li
               v-for="p in PREFERENCES"

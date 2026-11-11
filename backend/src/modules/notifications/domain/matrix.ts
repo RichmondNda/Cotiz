@@ -49,3 +49,9 @@ export function matrixEntryOf(type: string): MatrixEntry | undefined {
   if (Object.hasOwn(JOB_NOTIFICATIONS, type)) return JOB_NOTIFICATIONS[type as keyof typeof JOB_NOTIFICATIONS];
   return undefined;
 }
+
+/**
+ * Push urgents, envoyés même pendant les heures calmes (architecture/07 : 21 h – 8 h pour le « non urgent ») : une
+ * personne bloquée qui attend la réponse (demande de réinitialisation). Le reste est différé à 8 h, jamais perdu.
+ */
+export const URGENT_PUSH_TYPES: ReadonlySet<string> = new Set(['password_reset.requested']);

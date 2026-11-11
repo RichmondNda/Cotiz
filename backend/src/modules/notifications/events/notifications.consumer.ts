@@ -12,7 +12,12 @@ import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
 import { currentTx, TenantDatabase } from '../../../shared/tenant-context/index.js';
-import { createdInApp, NotificationRouter, type RoutedDelivery } from '../application/notification-router.js';
+import {
+  createdInApp,
+  NotificationRouter,
+  type RoutedDelivery,
+  runAfterCommit,
+} from '../application/notification-router.js';
 import type { Recipient, RenderedMessage } from '../domain/channel.js';
 import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
@@ -129,6 +134,7 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     const created = createdInApp(deliveries);
     await this.counter.invalidate(created.map((c) => c.userId));
     await this.announcer.announce(created);
+    await runAfterCommit(deliveries);
   }
 
   private inAssociation<T>(associationId: string, fn: () => Promise<T>): Promise<T> {

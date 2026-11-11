@@ -162,6 +162,11 @@ const rappelEmail = ref(false)
           </NuxtLink>
         </nav>
 
+        <NotificationsAppareil
+          espace="subscriber"
+          carte
+        />
+
         <CzCard
           variante="lg"
           tag="section"

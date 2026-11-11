@@ -10,6 +10,7 @@ export const DELIVERED_FEATURES: readonly Feature[] = [
   'password_reset_manual',
   'contracts',
   'realtime',
+  'web_push',
 ];
 
 /**

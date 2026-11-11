@@ -1,4 +1,5 @@
 import { userInfo } from 'node:os';
+import webpush from 'web-push';
 import { type INestApplicationContext, Logger } from '@nestjs/common';
 import { Email } from '@cotiz/contracts';
 import { isUniqueViolation, pgErrorOf } from '@cotiz/db';
@@ -40,6 +41,7 @@ const USAGE = [
   'Commandes :',
   '  create-platform-owner <email> <prénom> <nom>',
   '  reset-password <email>',
+  '  push-vapid-keys         (paire VAPID du Web Push, à mettre dans VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY)',
   '  seed-dev                (développement : comptes, associations, plans, demandes, projets, inscriptions et paiements de référence)',
 ].join('\n');
 
@@ -56,6 +58,7 @@ export async function runCli(app: INestApplicationContext, argv: string[], io: C
     if (command === 'create-platform-owner') return await createPlatformOwner(app, args, io);
     if (command === 'reset-password') return await resetPassword(app, args, io);
     if (command === 'seed-dev') return await seedDev(app, io);
+    if (command === 'push-vapid-keys') return pushVapidKeys(io);
   } catch (error) {
     // Jamais le message brut : celui d'une erreur SQL contient requête, paramètres et valeurs (email…).
     const pg = pgErrorOf(error);
@@ -260,4 +263,15 @@ function operator(): string {
   } catch {
     return 'cli:inconnu';
   }
+}
+
+/**
+ * Web Push (lot 4.2) : génère une paire VAPID (P-256) propre à Cotiz, sans compte chez un tiers. Sortie sur le terminal
+ * seulement : la clé privée va dans le gestionnaire de secrets, jamais dans un dépôt ni dans les journaux. Changer de
+ * paire rend les abonnements existants inutilisables (les appareils se réabonnent).
+ */
+function pushVapidKeys(io: CliStreams): number {
+  const { publicKey, privateKey } = webpush.generateVAPIDKeys();
+  io.out.write(`VAPID_PUBLIC_KEY=${publicKey}\nVAPID_PRIVATE_KEY=${privateKey}\n`);
+  return 0;
 }
