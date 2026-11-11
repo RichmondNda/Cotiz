@@ -56,7 +56,7 @@ Entrée : identifiant (téléphone du souscripteur ou email du gestionnaire), co
 
 ## Mot de passe oublié sans fournisseur
 1. `POST /auth/password/forgot` avec l'identifiant et l'espace. Réponse **toujours identique** (202), que le compte existe ou non.
-2. Si le compte existe : `password_reset_requests` (pending) + événement → notification in-app aux gestionnaires de ses associations (souscripteur) ou au personnel plateforme (gestionnaire). Limite : 3 demandes par 24 h.
+2. Si le compte existe : `password_reset_requests` (pending) + événement → notification in-app aux gestionnaires de ses associations (simple souscripteur) ou au personnel plateforme. Le mot de passe vaut pour tous les espaces : une personne qui gère une association (invitée comprise) ou fait partie du personnel est toujours traitée par la plateforme (ou le script), même si elle fait la demande depuis l'espace souscripteur (« rôle le plus élevé », 2026-11-06). Limite : 3 demandes par 24 h.
 3. Le gestionnaire ouvre « Demandes de réinitialisation », vérifie l'identité **hors ligne** (appel, en personne), clique « Générer un code » : code 6 chiffres affiché une fois avec message prêt.
 4. La personne saisit le code (`/auth/password/verify-code` → jeton de réinitialisation 10 min), puis le nouveau mot de passe (`/auth/password/reset`) : toutes ses sessions sont révoquées.
 5. Super-admin : `pnpm --filter backend cli reset-password <email>` (script d'exploitation, audité).
