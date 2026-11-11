@@ -4,6 +4,7 @@ import type { z } from 'zod';
 import { subscriberPaymentsOf } from '../../ledger/ledger.public.js';
 import { installmentView, type SubscriberEnrollment, subscriberEnrollmentsOf } from '../../members/members.public.js';
 import { subscriberProjectLinksOf, termsOf } from '../../projects/projects.public.js';
+import { subscriberContractStatesOf } from '../../contracts/contracts.public.js';
 import { subscriberPaymentMethodsOf, toPaymentMethod } from '../../tenancy/tenancy.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { associationRefOf, subscriberCard } from './subscriber-cards.js';
@@ -22,6 +23,16 @@ export class GetSubscriberProjectUseCase {
     const [entry] = await subscriberEnrollmentsOf({ projectId: projectId.toLowerCase() });
     if (!entry) throw new DomainProblem('not_found');
     const association = associationRefOf(entry);
+    const contract = (
+      await subscriberContractStatesOf([
+        {
+          enrollmentId: entry.row.id,
+          projectId: entry.project.id,
+          associationId: association.id,
+          userId: entry.row.userId,
+        },
+      ])
+    ).get(entry.row.id);
     return {
       ...subscriberCard(entry),
       terms: termsOf(entry.project),
@@ -31,8 +42,11 @@ export class GetSubscriberProjectUseCase {
         associations: new Map([[association.id, association]]),
       }),
       paymentMethods: await paymentMethodsOf(entry),
-      // Contrats : lot 4.1. D'ici là, seule une inscription en attente de signature en demande un.
-      contract: { required: entry.row.status === 'pending_signature', signedAt: null },
+      // À signer : en attente de signature et contrat verrouillé (un brouillon n'est jamais annoncé, 2026-11-10).
+      contract: {
+        required: entry.row.status === 'pending_signature' && contract?.locked === true,
+        signedAt: contract?.signedAt?.toISOString() ?? null,
+      },
     };
   }
 }

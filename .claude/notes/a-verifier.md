@@ -218,6 +218,9 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
   en espace association (déclencheur, nouvelle migration) ; n'autoriser `enrollments.activated_at` en espace
   souscripteur que pendant `pending_signature → active` (`guard_enrollment_update`, 0012). Aucun code ne les écrit hors
   du consommateur et de `me.sign` aujourd'hui.
+- Proposition de spec (relecture isolation, PR C étape 2) : `contract.locked` et `contract.signed` n'invalident pas le
+  cache de me.dash (`SUBSCRIBER_DASHBOARD_EVENTS`) ; « à signer » apparaît ou disparaît avec 30 s de retard au plus.
+  Ajouter `contract.signed` (nomme `userId`) demande d'ajouter le consommateur à `docs/specs/events.yaml`.
 
 ## 2026-11-10 · Branches distantes fusionnées supprimées (fait, sur demande)
 - Demande : « supprime les branches distantes fusionnées », confirmée « Les 50 fusionnées ». Les 50 branches de

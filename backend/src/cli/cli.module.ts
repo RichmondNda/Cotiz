@@ -3,6 +3,7 @@ import type { Config } from '../config.js';
 import { ConfigModule } from '../config.module.js';
 import { AccessCliModule } from '../modules/access/access-cli.module.js';
 import { BillingCliModule } from '../modules/billing/billing-cli.module.js';
+import { ContractsCliModule } from '../modules/contracts/contracts-cli.module.js';
 import { IdentityCliModule } from '../modules/identity/identity-cli.module.js';
 import { LedgerCliModule } from '../modules/ledger/ledger.public.js';
 import { MembersCliModule } from '../modules/members/members.public.js';
@@ -32,6 +33,7 @@ export class CliModule {
         BillingCliModule,
         OnboardingCliModule,
         ProjectsCliModule,
+        ContractsCliModule,
         MembersCliModule,
         LedgerCliModule,
       ],
