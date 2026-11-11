@@ -2,11 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { z } from 'zod';
 import type { PushSubscriptionInput } from '@cotiz/contracts';
 import { pushSubscriptions as t } from '@cotiz/db';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, notInArray, sql } from 'drizzle-orm';
 import { CONFIG, type Config } from '../../../config.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { isAllowedPushEndpoint, type PushEndpointPolicy, pushEndpointPolicy } from '../domain/push-endpoint.js';
+
+/** Appareils actifs par personne : au-delà, le plus ancien est désactivé (un compte ne fait pas appeler N services). */
+export const MAX_PUSH_DEVICES = 10;
 
 /** me.push › vapidKey : clé publique VAPID, à passer à `pushManager.subscribe`. Clés absentes : push indisponible (404). */
 @Injectable()
@@ -24,7 +27,7 @@ export class VapidPublicKeyUseCase {
  * me.push › subscribe : enregistre l'appareil de la personne (un abonnement par URL de push). Déjà à elle : clés mises à
  * jour et réactivé. Enregistré par une autre personne (appareil partagé) : 422 `fields.endpoint = already_registered`,
  * rien n'est lu ni modifié chez l'autre ; le navigateur se réabonne et obtient une nouvelle URL. URL hors des services
- * de push connus : 422 `unsupported_push_service` (le worker ne l'appellera jamais).
+ * de push connus : 422 `unsupported_push_service` (le worker ne l'appellera jamais). Au plus 10 appareils actifs.
  */
 @Injectable()
 export class SubscribePushUseCase {
@@ -64,6 +67,17 @@ export class SubscribePushUseCase {
           .returning({ id: t.id, createdAt: t.createdAt })
       )[0];
     if (!row) throw new DomainProblem('validation_failed', { fields: { endpoint: 'already_registered' } });
+    // Plafond : celui qu'on vient d'enregistrer (même réactivé) et les plus récents restent actifs.
+    const keep = tx
+      .select({ id: t.id })
+      .from(t)
+      .where(and(eq(t.userId, userId), isNull(t.revokedAt)))
+      .orderBy(sql`${t.id} = ${row.id} DESC`, desc(t.createdAt), desc(t.id))
+      .limit(MAX_PUSH_DEVICES);
+    await tx
+      .update(t)
+      .set({ revokedAt: sql`now()` })
+      .where(and(eq(t.userId, userId), isNull(t.revokedAt), notInArray(t.id, keep)));
     return { id: row.id, createdAt: row.createdAt.toISOString() };
   }
 }

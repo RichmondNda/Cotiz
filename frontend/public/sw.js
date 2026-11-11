@@ -19,8 +19,15 @@ self.addEventListener('push', (event) => {
     message = {}
   }
   const titre = typeof message.title === 'string' && message.title ? message.title : 'Cotiz'
-  // Seule une route de Cotiz est ouverte au clic (même origine).
-  const url = typeof message.url === 'string' && message.url.startsWith('/') && !message.url.startsWith('//') ? message.url : '/'
+  // Seule une route de Cotiz est ouverte au clic (même origine, URL résolue : `/\\autre.site` n'en est pas une).
+  let url = '/'
+  try {
+    const cible = new URL(typeof message.url === 'string' ? message.url : '/', self.location.origin)
+    if (cible.origin === self.location.origin) url = cible.pathname + cible.search + cible.hash
+  }
+  catch {
+    url = '/'
+  }
   event.waitUntil(
     self.registration.showNotification(titre, {
       body: typeof message.body === 'string' ? message.body : '',

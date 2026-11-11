@@ -16,6 +16,13 @@ export interface RenderedMessage {
   /** Route front exacte de l'écran d'action. */
   actionUrl: string | null;
   data?: Record<string, unknown>;
+  /**
+   * Variables offertes aux modèles de messages (`{{projet}}`, `{{montant}}`…), déjà mises en forme. Jamais
+   * enregistrées : seuls le titre et le texte rendus le sont.
+   */
+  vars?: Record<string, string>;
+  /** Titre et texte d'un modèle (message_templates) par canal ; absent : textes du code. */
+  variants?: Partial<Record<'in_app' | 'push', { title: string; body: string }>>;
 }
 
 export interface Recipient {

@@ -6,12 +6,14 @@ import { QUEUES, REDIS_PREFIX, redisConnection } from '../../../shared/queues/in
 import { withTraceContext } from '../../../shared/telemetry/index.js';
 
 /**
- * Job `send` de la file `notify-push` : une ligne `deliveries` (créée par le canal push) et le message à chiffrer.
+ * Job `send` de la file `notify-push` : l'id de la ligne `deliveries` à créer, la personne, et le message à chiffrer.
  * Les appareils sont relus au moment de l'envoi (un appareil retiré entre-temps ne reçoit rien).
  */
 export const PushJob = z.object({
   deliveryId: z.uuid(),
   userId: z.uuid(),
+  associationId: z.uuid().nullable(),
+  notificationId: z.uuid().nullable(),
   urgent: z.boolean(),
   payload: z.object({ title: z.string(), body: z.string(), url: z.string().nullable(), tag: z.string() }),
 });

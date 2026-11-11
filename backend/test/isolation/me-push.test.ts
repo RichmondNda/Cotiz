@@ -1,3 +1,4 @@
+import { createECDH, randomBytes } from 'node:crypto';
 import webpush from 'web-push';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { type MembersFixture, startMembersFixture } from '../integration/members.fixture.js';
@@ -11,10 +12,10 @@ import { USERS } from './harness.js';
  */
 
 const everyone = { using: 'true', withCheck: 'true' };
-const keys = {
-  p256dh: 'BOr4nd0mP256dhKeyForTestsOnly_abcdefghijklmnopqrstuvwxyz0123456789',
-  auth: 'YXV0aHNlY3JldDE2Ynl0',
-};
+/** Clés d'un appareil, au format du navigateur (P-256 non compressée, secret de 16 octets, base64url). */
+const ecdh = createECDH('prime256v1');
+ecdh.generateKeys();
+const keys = { p256dh: ecdh.getPublicKey().toString('base64url'), auth: randomBytes(16).toString('base64url') };
 const endpoint = (name: string) => `https://fcm.googleapis.com/fcm/send/${name}`;
 
 describe('isolation : abonnements Web Push (me.push)', () => {
@@ -120,6 +121,46 @@ describe('isolation : abonnements Web Push (me.push)', () => {
     });
   }
 
+  it('au plus 10 appareils actifs : le plus ancien est désactivé, celui qu’on enregistre reste actif', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 11; i++) {
+      const res = await subscribe(f.tokens.moussa, endpoint(`appareil-${String(i).padStart(2, '0')}`));
+      expect(res.status).toBe(201);
+      ids.push(((await res.json()) as { id: string }).id);
+      // Ordre de création distinct pour chaque appareil.
+      await f.h.superuser(
+        `UPDATE push_subscriptions SET created_at = now() - make_interval(mins => $2) WHERE id = $1`,
+        [ids[i], 100 - i],
+      );
+    }
+    const active = (await rows()).filter((r) => r.revoked_at === null).map((r) => r.id);
+    expect(active).toHaveLength(10);
+    expect(active).not.toContain(ids[0]);
+    expect(active).toContain(ids[10]);
+    // Réactiver le plus ancien : il reste actif, c'est le suivant qui part.
+    expect((await subscribe(f.tokens.moussa, endpoint('appareil-00'))).status).toBe(201);
+    const after = (await rows()).filter((r) => r.revoked_at === null).map((r) => r.id);
+    expect(after).toHaveLength(10);
+    expect(after).toContain(ids[0]);
+    expect(after).not.toContain(ids[1]);
+  });
+
+  it('clés hors format du navigateur ou URL trop longue : 422, rien d’enregistré', async () => {
+    for (const body of [
+      { endpoint: endpoint('x'), keys: { p256dh: 'court', auth: keys.auth } },
+      { endpoint: endpoint('x'), keys: { p256dh: keys.p256dh, auth: 'a'.repeat(200) } },
+      { endpoint: endpoint('x'.repeat(2100)), keys },
+    ]) {
+      const res = await fetch(`${f.base}/me/push-subscriptions`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${f.tokens.moussa}`, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      expect(res.status).toBe(422);
+    }
+    expect(await rows()).toEqual([]);
+  });
+
   it('URL hors des services de push connus (adresse interne, http, identifiants) : 422, rien d’enregistré', async () => {
     for (const url of [
       'http://169.254.169.254/latest/meta-data',
@@ -127,6 +168,7 @@ describe('isolation : abonnements Web Push (me.push)', () => {
       'http://fcm.googleapis.com/fcm/send/x',
       'https://user:pw@fcm.googleapis.com/fcm/send/x',
       'https://fcm.googleapis.com.attaquant.example/x',
+      'https://fcm.googleapis.com:8443/x',
     ]) {
       const res = await subscribe(f.tokens.moussa, url);
       expect(res.status, url).toBe(422);

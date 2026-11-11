@@ -16,6 +16,7 @@ import { NotificationRouter, runAfterCommit } from '../../src/modules/notificati
 import { PurgePushSubscriptionsUseCase } from '../../src/modules/notifications/application/purge-push-subscriptions.use-case.js';
 import { PushRetryableError, SendPushUseCase } from '../../src/modules/notifications/application/send-push.use-case.js';
 import type { Recipient, RenderedMessage } from '../../src/modules/notifications/domain/channel.js';
+import { applyMessageTemplates } from '../../src/modules/notifications/infra/message-templates.js';
 import type { PushJob } from '../../src/modules/notifications/infra/push-queue.js';
 import { QUEUES, REDIS_PREFIX, redisConnection } from '../../src/shared/queues/index.js';
 import { TenantDatabase } from '../../src/shared/tenant-context/index.js';
@@ -176,7 +177,8 @@ describe('canal push (Web Push)', () => {
           OUTBOX_RELAY_INTERVAL_MS: '0',
           VAPID_PUBLIC_KEY: vapid.publicKey,
           VAPID_PRIVATE_KEY: vapid.privateKey,
-          WEB_PUSH_HOSTS: '127.0.0.1',
+          // Hôte et port du faux service : ce port seulement (sinon 443).
+          WEB_PUSH_HOSTS: new URL(pushBase).host,
         }),
       ),
       { logger: false },
@@ -205,7 +207,9 @@ describe('canal push (Web Push)', () => {
     received.splice(0);
     statusOf.clear();
     await queue.obliterate({ force: true });
-    await f.h.superuser('DELETE FROM deliveries; DELETE FROM notifications; DELETE FROM push_subscriptions');
+    await f.h.superuser(
+      'DELETE FROM deliveries; DELETE FROM notifications; DELETE FROM push_subscriptions; DELETE FROM notification_preferences; DELETE FROM message_templates',
+    );
   });
 
   it('appareil abonné : une ligne deliveries reliée à la cloche, le message chiffré arrive, envoi « sent »', async () => {
@@ -301,6 +305,8 @@ describe('canal push (Web Push)', () => {
     const job = (deliveryId: string): PushJob => ({
       deliveryId,
       userId: USERS.moussa,
+      associationId: A.id,
+      notificationId: null,
       urgent: true,
       payload: { title: 't', body: 'b', url: null, tag: 'payment.validated' },
     });
@@ -360,6 +366,130 @@ describe('canal push (Web Push)', () => {
       await sendPush.execute({ ...job(id), userId: USERS.fatou }, { final: true });
       expect(received).toEqual([]);
       expect((await deliveryRows())[0]?.status).toBe('queued');
+    });
+  });
+
+  it('appareil retiré avant l’envoi : ligne « failed » (no_device), rien n’est envoyé', async () => {
+    const sendPush = worker.get(SendPushUseCase);
+    const deliveryId = crypto.randomUUID();
+    await sendPush.execute(
+      {
+        deliveryId,
+        userId: USERS.moussa,
+        associationId: A.id,
+        notificationId: null,
+        urgent: true,
+        payload: { title: 't', body: 'b', url: null, tag: 'payment.validated' },
+      },
+      { final: false },
+    );
+    expect(await deliveryRows()).toMatchObject([
+      { status: 'failed', last_error: 'no_device', recipient_masked: '0 appareil' },
+    ]);
+    expect(received).toEqual([]);
+  });
+
+  it('service de push sorti de la liste après l’abonnement : jamais appelé, appareil désabonné', async () => {
+    const sub = await device(USERS.moussa, 'moussa-1');
+    // Même hôte, autre port : hors de WEB_PUSH_HOSTS.
+    const elsewhere = new URL(pushBase);
+    elsewhere.port = String(Number(elsewhere.port) + 1);
+    await f.h.superuser(`UPDATE push_subscriptions SET endpoint = $2 WHERE id = $1`, [sub, `${elsewhere.origin}/x`]);
+    await dispatch(urgentMsg, [moussa]);
+    expect(await until(async () => (await deliveryRows())[0]?.status === 'failed')).toBe(true);
+    expect((await subscription(sub))?.revoked_at).toBeInstanceOf(Date);
+    expect(received).toEqual([]);
+  });
+
+  describe('préférences (étape 4) : désactiver un type coupe le push, pas la cloche obligatoire', () => {
+    const pref = (userId: string, type: string, channel: string) =>
+      f.h.superuser(
+        `INSERT INTO notification_preferences (user_id, type, channel, enabled) VALUES ($1, $2, $3, false)`,
+        [userId, type, channel],
+      );
+
+    it('paiement validé, push coupé : la cloche est écrite, rien ne part', async () => {
+      await device(USERS.moussa, 'moussa-1');
+      await pref(USERS.moussa, 'payment.validated', 'push');
+      const results = await dispatch(normalMsg, [moussa]);
+      expect(results.map((r) => [r.channel, r.status])).toEqual([['in_app', 'created']]);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(received).toEqual([]);
+      expect(await deliveryRows()).toEqual([]);
+    });
+
+    it('type « action requise », cloche et push coupés : la cloche est écrite quand même, le push non', async () => {
+      await device(USERS.moussa, 'moussa-1');
+      await pref(USERS.moussa, 'password_reset.requested', 'in_app');
+      await pref(USERS.moussa, 'password_reset.requested', 'push');
+      const results = await dispatch(urgentMsg, [moussa]);
+      expect(results.map((r) => [r.channel, r.status])).toEqual([['in_app', 'created']]);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(received).toEqual([]);
+    });
+
+    it('cloche coupée, push actif : envoyé une seule fois même si l’événement est rejoué', async () => {
+      await device(USERS.moussa, 'moussa-1');
+      await pref(USERS.moussa, 'payment.validated', 'in_app');
+      const urgentValidated = { ...normalMsg };
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-11T10:00:00Z'));
+      await dispatch(urgentValidated, [moussa], 'evt-sans-cloche');
+      await dispatch(urgentValidated, [moussa], 'evt-sans-cloche');
+      vi.useRealTimers();
+      expect(await until(() => received.length >= 1)).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(received).toHaveLength(1);
+      expect(await deliveryRows()).toHaveLength(1);
+      expect((await f.h.superuser('SELECT count(*)::int AS n FROM notifications')).rows).toEqual([{ n: 0 }]);
+    });
+  });
+
+  describe('modèles de messages (étape 4)', () => {
+    const template = (associationId: string | null, channel: string, subject: string, body: string, version = 1) =>
+      f.h.superuser(
+        `INSERT INTO message_templates (id, association_id, key, channel, subject, body, version)
+         VALUES (gen_random_uuid(), $1, 'payment.validated', $2, $3, $4, $5)`,
+        [associationId, channel, subject, body, version],
+      );
+    const msg = { ...normalMsg, vars: { montant: '25 000 F', projet: 'Centre communautaire' } };
+    const inContext = (associationId: string | null) =>
+      db.withTenantContext(associationId ? { space: 'association', associationId } : { space: 'system' }, () =>
+        applyMessageTemplates([msg], associationId),
+      );
+
+    it('association : son modèle prime sur celui de la plateforme ; une autre association : celui de la plateforme', async () => {
+      await template(null, 'push', 'Validé', 'Plateforme : {{montant}}');
+      await template(A.id, 'push', 'Validé chez A', 'A : {{montant}} pour {{projet}}');
+      await template(A.id, 'push', 'Ancien', 'Ancien', 0);
+      const [forA] = await inContext(A.id);
+      expect(forA?.variants).toEqual({
+        push: { title: 'Validé chez A', body: 'A : 25 000 F pour Centre communautaire' },
+      });
+      const [forB] = await inContext(B.id);
+      expect(forB?.variants).toEqual({ push: { title: 'Validé', body: 'Plateforme : 25 000 F' } });
+      // Hors association (plateforme) : jamais le modèle d'une association.
+      const [platform] = await inContext(null);
+      expect(platform?.variants?.push?.title).toBe('Validé');
+    });
+
+    it('modèle qui cite une variable absente : texte du code (pas de message à trous)', async () => {
+      await template(null, 'in_app', 'Bonjour {{prenom}}', 'Texte');
+      const [m] = await inContext(A.id);
+      expect(m?.variants).toBeUndefined();
+    });
+
+    it('bout en bout : le push part avec le texte du modèle, la cloche avec celui du code', async () => {
+      await device(USERS.moussa, 'moussa-1');
+      await template(A.id, 'push', 'Validé chez A', 'A : {{montant}}');
+      const [templated] = await inContext(A.id);
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-11T10:00:00Z'));
+      await dispatch(templated ?? msg, [moussa]);
+      vi.useRealTimers();
+      expect(await until(() => received.length === 1)).toBe(true);
+      const bell = (await f.h.superuser('SELECT title FROM notifications')).rows as { title: string }[];
+      expect(bell).toEqual([{ title: normalMsg.title }]);
     });
   });
 

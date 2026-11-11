@@ -1,6 +1,6 @@
 /**
  * URL d'abonnement Web Push acceptable : fournie par le navigateur, puis appelée par le worker. Seuls les services de
- * push connus (suffixe d'hôte de `WEB_PUSH_HOSTS`), en https, sans identifiants dans l'URL. Écarte toute adresse
+ * push connus (suffixe d'hôte de `WEB_PUSH_HOSTS`, port 443), en https, sans identifiants dans l'URL. Écarte toute adresse
  * interne (base, Redis, MinIO, métadonnées du serveur).
  */
 export interface PushEndpointPolicy {
@@ -25,5 +25,10 @@ export function isAllowedPushEndpoint(endpoint: string, policy: PushEndpointPoli
   if (url.protocol !== 'https:') return false;
   if (url.username !== '' || url.password !== '') return false;
   const host = url.hostname.toLowerCase();
-  return policy.hosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+  return policy.hosts.some((allowed) =>
+    // `hôte:port` : ce port seulement (faux service des tests) ; sinon le port 443 par défaut, jamais un autre.
+    allowed.includes(':')
+      ? url.host.toLowerCase() === allowed
+      : url.port === '' && (host === allowed || host.endsWith(`.${allowed}`)),
+  );
 }

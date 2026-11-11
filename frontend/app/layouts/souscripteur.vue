@@ -11,6 +11,7 @@ import { NAV_SOUSCRIPTEUR } from '~/config/navigation'
 useHead({ bodyAttrs: { 'data-theme': 'member' } })
 // Cloche en temps réel (nt.stream, lot 4.2).
 useFluxNotifications()
+useGardeAppareil()
 const route = useRoute()
 const { navMasquee } = useGabaritSouscripteur()
 const avecNav = computed(() => route.meta.navBasse !== false && !navMasquee.value)

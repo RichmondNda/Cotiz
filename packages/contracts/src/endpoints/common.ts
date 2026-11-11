@@ -89,9 +89,13 @@ export const ntStream = defineEndpoint({
 
 // ---------------------------------------------------------------- Web Push
 
+/** Abonnement du navigateur (PushSubscription.toJSON) : clé ECDH P-256 (65 octets) et secret (16 octets), base64url. */
 export const PushSubscriptionInput = z.object({
-  endpoint: z.url(),
-  keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
+  endpoint: z.url().max(2048),
+  keys: z.object({
+    p256dh: z.string().regex(/^[A-Za-z0-9_-]{87}=?$/),
+    auth: z.string().regex(/^[A-Za-z0-9_-]{22}(==)?$/),
+  }),
 });
 
 export const mePush = defineEndpoint({

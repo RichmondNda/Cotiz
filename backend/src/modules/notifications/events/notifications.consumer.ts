@@ -19,6 +19,7 @@ import {
   runAfterCommit,
 } from '../application/notification-router.js';
 import type { Recipient, RenderedMessage } from '../domain/channel.js';
+import { applyMessageTemplates } from '../infra/message-templates.js';
 import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
 import {
@@ -112,7 +113,7 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   async handle(event: EventEnvelope): Promise<void> {
-    const planned = await this.plan(event);
+    const planned = await this.withTemplates(await this.plan(event), event.associationId);
     if (planned.length === 0) return;
     const deliveries = await this.db.withTenantContext({ space: 'system' }, async () => {
       // Compte désactivé ou anonymisé : plus de notification, même s'il reste membre (lot 2.5, suivi).
@@ -135,6 +136,23 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     await this.counter.invalidate(created.map((c) => c.userId));
     await this.announcer.announce(created);
     await runAfterCommit(deliveries);
+  }
+
+  /**
+   * Modèles de messages (lot 4.2) lus dans le contexte de l'association de l'événement (RLS : les siens et ceux de la
+   * plateforme), ou en espace system pour un événement de plateforme (ceux de la plateforme seulement).
+   */
+  private async withTemplates(planned: Planned[], associationId: string | null): Promise<Planned[]> {
+    if (planned.length === 0) return planned;
+    const apply = () =>
+      applyMessageTemplates(
+        planned.map((p) => p.msg),
+        associationId,
+      );
+    const messages = associationId
+      ? await this.inAssociation(associationId, apply)
+      : await this.db.withTenantContext({ space: 'system' }, apply);
+    return planned.map((p, i) => ({ ...p, msg: messages[i] ?? p.msg }));
   }
 
   private inAssociation<T>(associationId: string, fn: () => Promise<T>): Promise<T> {

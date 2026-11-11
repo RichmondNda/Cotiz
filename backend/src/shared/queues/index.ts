@@ -47,9 +47,9 @@ export const QUEUES = {
     jobOptions: {
       attempts: 3,
       backoff: { type: 'exponential', delay: 30_000 },
-      // Assez longtemps pour qu'un même envoi rejoué soit écarté par son jobId.
-      removeOnComplete: { age: 7 * 24 * 3600, count: 10_000 },
-      removeOnFail: { age: 7 * 24 * 3600 },
+      // Le job porte le texte du message (nom, montant) : gardé 24 h, le temps d'écarter un envoi rejoué par son jobId.
+      removeOnComplete: { age: 24 * 3600, count: 10_000 },
+      removeOnFail: { age: 24 * 3600 },
     },
   },
   /** Tâches planifiées (jobs.yaml, section scheduled) : une purge en échec (MinIO absent…) est reprise. */

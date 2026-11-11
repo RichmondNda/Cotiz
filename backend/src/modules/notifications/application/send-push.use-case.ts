@@ -17,8 +17,8 @@ export class PushRetryableError extends Error {
 }
 
 /**
- * Envoi d'un job `notify-push` (worker, espace system). Transaction 1 : la ligne `deliveries` encore `queued` et les
- * appareils actifs de la personne. Envoi hors transaction (réseau). Transaction 2 : bilan par appareil (succès :
+ * Envoi d'un job `notify-push` (worker, espace system). Transaction 1 : appareils actifs de la personne, ligne
+ * `deliveries` créée sous l'id du job (aucun appareil : `failed`, `no_device`) puis relue, à traiter si `queued`. Envoi hors transaction (réseau). Transaction 2 : bilan par appareil (succès :
  * compteur remis à zéro ; 404/410 : désabonné ; autre échec : compté, désabonné au 5e) et statut de l'envoi. Un appareil
  * au moins servi : `sent`, pas de reprise (elle renverrait aux autres). Aucun : reprise, `failed` à la dernière.
  */
@@ -32,14 +32,7 @@ export class SendPushUseCase {
   async execute(job: PushJob, attempt: { final: boolean }): Promise<void> {
     const loaded = await this.db.withTenantContext({ space: 'system' }, async () => {
       const tx = currentTx();
-      const [delivery] = await tx
-        .select({ status: deliveries.status })
-        .from(deliveries)
-        .where(
-          and(eq(deliveries.id, job.deliveryId), eq(deliveries.userId, job.userId), eq(deliveries.channel, 'push')),
-        );
-      if (delivery?.status !== 'queued') return null;
-      return tx
+      const devices = await tx
         .select({
           id: pushSubscriptions.id,
           endpoint: pushSubscriptions.endpoint,
@@ -48,6 +41,29 @@ export class SendPushUseCase {
         })
         .from(pushSubscriptions)
         .where(and(eq(pushSubscriptions.userId, job.userId), isNull(pushSubscriptions.revokedAt)));
+      const n = devices.length;
+      // Créée au premier passage (id du job) ; une reprise ou un job rejoué la retrouve.
+      await tx
+        .insert(deliveries)
+        .values({
+          id: job.deliveryId,
+          userId: job.userId,
+          associationId: job.associationId,
+          notificationId: job.notificationId,
+          channel: 'push',
+          provider: 'webpush',
+          // Jamais l'URL d'un appareil (elle vaut accès à l'appareil) : le nombre seulement.
+          recipientMasked: `${String(n)} appareil${n > 1 ? 's' : ''}`,
+          ...(n === 0 ? { status: 'failed' as const, lastError: 'no_device' } : {}),
+        })
+        .onConflictDoNothing({ target: deliveries.id });
+      const [delivery] = await tx
+        .select({ status: deliveries.status })
+        .from(deliveries)
+        .where(
+          and(eq(deliveries.id, job.deliveryId), eq(deliveries.userId, job.userId), eq(deliveries.channel, 'push')),
+        );
+      return delivery?.status === 'queued' ? devices : null;
     });
     // Déjà traité (job rejoué) ou envoi inconnu : rien à faire.
     if (loaded === null) return;
@@ -74,7 +90,7 @@ export class SendPushUseCase {
             ? { status: 'sent' as const, sentAt: now, lastError: null }
             : {
                 ...(retry ? {} : { status: 'failed' as const }),
-                lastError: transient[0] ?? (loaded.length === 0 ? 'no_device' : 'gone'),
+                lastError: transient[0] ?? 'gone',
               }),
         })
         .where(and(eq(deliveries.id, job.deliveryId), eq(deliveries.status, 'queued')));

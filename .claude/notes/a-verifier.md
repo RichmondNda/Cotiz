@@ -249,3 +249,11 @@ Format : **date** · point — constat, source · ce qui est attendu. Une fois t
 - `message_templates` : DELETE permis à cotiz_app (pas une donnée financière). `reminder_rules.template_id`
   (lot 4.3) les référencera : préférer une nouvelle version à une suppression. Écriture des modèles de la plateforme :
   cotiz_platform (BYPASSRLS), à réserver aux cas d'usage `/platform`.
+
+## Lot 4.2 · étape 3 — relecture d'isolation (2026-11-11), points en attente d'accord
+Corrigés dans la branche : appareil d'une autre personne retiré du navigateur (garde des gabarits), 10 appareils actifs au plus, bornes des clés et de l'URL (contrat), port 443 seul, ouverture d'URL du service worker, rétention des jobs `notify-push` réduite à 24 h, tests ajoutés.
+À décider (changement de `docs/specs`) :
+- **Mot de passe changé ou réinitialisé → couper le push** : aujourd'hui les abonnements restent actifs (téléphone volé : la victime réinitialise, l'appareil continue de recevoir). Proposition : consommateur `notifications` de `user.password_changed` (events.yaml, consumers) qui désactive tous les abonnements de la personne.
+- **Débit sur `me.push › subscribe`** (`rateLimited: true` dans endpoints.yaml) : le plafond de 10 appareils limite déjà les appels du worker.
+- **Texte sur l'écran verrouillé** : une déclaration montre « Nom a déclaré 25 000 F pour Projet ». Choix produit à confirmer (texte réduit pour le push ?).
+- `screens.yaml` : `uiDeviations` de mg-profil (0) et mb-profil (1) ne comptent pas la ligne ajoutée à ui-deviations.md pour le bloc appareil.

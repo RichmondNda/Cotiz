@@ -1,33 +1,35 @@
 // Notifications push sur cet appareil (me.push, lot 4.2) : Web Push standard, sans fournisseur. Le navigateur fournit
 // l'abonnement (URL du service de push et clés de chiffrement), Cotiz l'enregistre ; le service worker `/sw.js` affiche
-// les messages. L'identifiant de l'abonnement est gardé dans l'appareil pour pouvoir le retirer (désactivation,
-// déconnexion : sur un téléphone partagé, la personne suivante ne reçoit pas les notifications de la précédente).
+// les messages. L'identifiant de l'abonnement et sa personne sont gardés dans l'appareil pour pouvoir le retirer
+// (désactivation, déconnexion) ; la garde `useGardeAppareil` (gabarits d'espace) retire celui d'une autre personne :
+// sur un téléphone partagé, la suivante ne reçoit jamais les notifications de la précédente.
 // États : `indisponible` (navigateur sans push, endpoint ou fonctionnalité `web_push` absents), `a-installer` (iPhone :
 // le push ne marche que depuis l'écran d'accueil), `refuse` (permission refusée dans le navigateur), `inactif`, `actif`.
 import { ApiError } from '@cotiz/api-client'
 import { espaceBascule, type Espace } from '~/utils/bascule'
 import { REAL_ENDPOINTS } from '~~/server/bascule/real-endpoints'
+import { type AbonnementMemorise, decisionAbonnement, lireAbonnementMemorise } from '~/utils/push-appareil'
 
 export type EtatPushAppareil = 'chargement' | 'indisponible' | 'a-installer' | 'refuse' | 'inactif' | 'actif'
 
 const CLE_ABONNEMENT = 'cotiz_push_abonnement'
 const SERVICE_WORKER = '/sw.js'
 
-const lireId = () => {
+const lireMemorise = (): AbonnementMemorise | null => {
   try {
-    return localStorage.getItem(CLE_ABONNEMENT)
+    return lireAbonnementMemorise(localStorage.getItem(CLE_ABONNEMENT))
   }
   catch {
     return null
   }
 }
-const ecrireId = (id: string | null) => {
+const memoriser = (abonnement: AbonnementMemorise | null) => {
   try {
-    if (id) localStorage.setItem(CLE_ABONNEMENT, id)
+    if (abonnement) localStorage.setItem(CLE_ABONNEMENT, JSON.stringify(abonnement))
     else localStorage.removeItem(CLE_ABONNEMENT)
   }
   catch {
-    // stockage indisponible (navigation privée) : l'abonnement reste retirable par le navigateur
+    // stockage indisponible (navigation privée) : l'abonnement sera retiré par la garde (propriétaire inconnu)
   }
 }
 
@@ -55,6 +57,7 @@ const dejaEnregistre = (e: unknown) =>
 export function usePushAppareil(espace: Espace) {
   const client = useClient()
   const { active, pret } = usePermissions()
+  const { data: moi } = useMoi()
   const etat = ref<EtatPushAppareil>('chargement')
   const envoi = ref(false)
 
@@ -80,16 +83,24 @@ export function usePushAppareil(espace: Espace) {
       etat.value = 'refuse'
       return
     }
+    const userId = moi.value?.id
     const abonnement = await abonnementActuel().catch(() => null)
-    etat.value = abonnement && lireId() ? 'actif' : 'inactif'
+    const decision = userId ? decisionAbonnement(Boolean(abonnement), lireMemorise(), userId) : 'rien'
+    if (decision === 'retirer') {
+      await abonnement?.unsubscribe().catch(() => false)
+      memoriser(null)
+    }
+    etat.value = decision === 'garder' ? 'actif' : 'inactif'
   }
 
   async function enregistrer(abonnement: PushSubscription) {
     const json = abonnement.toJSON()
+    const userId = moi.value?.id
+    if (!userId) throw new Error('session non chargée')
     const { id } = await client.call('me.push', 'subscribe', {
       body: { endpoint: abonnement.endpoint, keys: { p256dh: json.keys?.p256dh ?? '', auth: json.keys?.auth ?? '' } },
     })
-    ecrireId(id)
+    memoriser({ id, userId })
   }
 
   /** Demande la permission, abonne l'appareil et l'enregistre. Renvoie `false` si la personne refuse. */
@@ -147,10 +158,30 @@ export function usePushAppareil(espace: Espace) {
  */
 export async function oublierAppareil(client: ReturnType<typeof useClient>): Promise<void> {
   if (!pushPossible()) return
-  const id = lireId()
-  ecrireId(null)
-  if (id) await client.call('me.push', 'unsubscribe', { params: { id } }).catch(() => undefined)
+  const memorise = lireMemorise()
+  memoriser(null)
+  if (memorise) await client.call('me.push', 'unsubscribe', { params: { id: memorise.id } }).catch(() => undefined)
   const enregistrement = await navigator.serviceWorker.getRegistration('/').catch(() => undefined)
   const abonnement = await enregistrement?.pushManager.getSubscription().catch(() => null)
   await abonnement?.unsubscribe().catch(() => false)
+}
+
+/**
+ * Garde des gabarits d'espace : dès que la personne connectée est connue, un abonnement du navigateur qui n'est pas le
+ * sien (session d'une autre personne expirée sans déconnexion) est retiré. Sans abonnement : rien.
+ */
+export function useGardeAppareil() {
+  if (import.meta.server) return
+  const { data: moi } = useMoi()
+  const verifier = async () => {
+    const userId = moi.value?.id
+    if (!userId || !pushPossible()) return
+    const enregistrement = await navigator.serviceWorker.getRegistration('/').catch(() => undefined)
+    const abonnement = await enregistrement?.pushManager.getSubscription().catch(() => null)
+    if (decisionAbonnement(Boolean(abonnement), lireMemorise(), userId) !== 'retirer') return
+    await abonnement?.unsubscribe().catch(() => false)
+    memoriser(null)
+  }
+  onMounted(() => void verifier())
+  watch(() => moi.value?.id, () => void verifier())
 }

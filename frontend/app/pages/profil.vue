@@ -2,9 +2,11 @@
   MbProfil — gérer ses informations et ses préférences.
   Identité ; téléphone et email non modifiables (« Contactez votre association », email figé en V1 : ui-deviations) ;
   menu (Mes contrats avec le nombre à signer, Mes associations, Notifications avec les non lues) ;
-  rappels d'échéance SMS / email (V2) ; mot de passe, aide (revoir la présentation), déconnexion.
+  notifications sur cet appareil (push) et « Me prévenir quand… » par type, application / push (lot 4.2, ui-deviations) ;
+  mot de passe, aide (revoir la présentation), déconnexion.
 -->
 <script setup lang="ts">
+import type { ReglageNotification } from '~/composables/api/reglages-notifications'
 import { formatTelephone, pluriel } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
@@ -19,9 +21,25 @@ const nom = computed(() => (profil.value ? `${profil.value.prenom} ${profil.valu
 const aSigner = computed(() => contrats.value?.length ?? 0)
 const nonLues = computed(() => compteurs.value?.notificationsNonLues ?? 0)
 
-// ---------------------------------------------------------------- Rappels (V2 : réglages locaux en attendant l'API)
-const rappelSms = ref(true)
-const rappelEmail = ref(false)
+// ---------------------------------------------------------------- Réglages de notification (me.prefs, lot 4.2)
+const { data: reglages, refresh: relireReglages } = useReglagesNotifications()
+const enregistrerReglage = useActionReglageNotification()
+const toast = useToast()
+
+async function regler(r: ReglageNotification, canal: 'in_app' | 'push', valeur: boolean) {
+  const avant = canal === 'in_app' ? r.inApp : r.push
+  if (canal === 'in_app') r.inApp = valeur
+  else r.push = valeur
+  try {
+    await enregistrerReglage(r.type, canal, valeur)
+  }
+  catch {
+    if (canal === 'in_app') r.inApp = Boolean(avant)
+    else r.push = avant
+    toast.erreur('Préférence non enregistrée', { message: 'Vérifiez votre connexion, puis réessayez.' })
+    await relireReglages()
+  }
+}
 </script>
 
 <template>
@@ -168,45 +186,54 @@ const rappelEmail = ref(false)
         />
 
         <CzCard
+          v-if="reglages"
           variante="lg"
           tag="section"
           class="profil__carte"
-          aria-labelledby="titre-rappels"
+          aria-labelledby="titre-reglages"
         >
-          <h2 id="titre-rappels">
-            Rappels d’échéance
+          <h2 id="titre-reglages">
+            Me prévenir quand…
           </h2>
-          <div class="profil__rappel">
-            <div>
-              <b>Par SMS</b>
-              <span>3 jours avant chaque échéance</span>
-            </div>
-            <CzBadge
-              ton="brand"
-              petit
-            >
-              V2
-            </CzBadge>
-            <CzToggle
-              v-model="rappelSms"
-              label="Rappels par SMS"
-            />
+          <div
+            class="profil__rappel profil__rappel--entete"
+            aria-hidden="true"
+          >
+            <div />
+            <span class="profil__canal">Application</span>
+            <span
+              v-if="reglages.pushPropose"
+              class="profil__canal"
+            >Push</span>
           </div>
-          <div class="profil__rappel">
+          <div
+            v-for="r in reglages.reglages"
+            :key="r.type"
+            class="profil__rappel"
+          >
             <div>
-              <b>Par email</b>
-              <span>Récapitulatif et validations</span>
+              <b>{{ r.titre }}</b>
+              <span v-if="r.obligatoire">Toujours affiché dans l’application</span>
             </div>
-            <CzBadge
-              ton="brand"
-              petit
+            <span class="profil__canal">
+              <CzToggle
+                :model-value="r.inApp"
+                :disabled="r.obligatoire"
+                :label="`${r.titre} : dans l’application`"
+                @update:model-value="regler(r, 'in_app', $event)"
+              />
+            </span>
+            <span
+              v-if="reglages.pushPropose"
+              class="profil__canal"
             >
-              V2
-            </CzBadge>
-            <CzToggle
-              v-model="rappelEmail"
-              label="Rappels par email"
-            />
+              <CzToggle
+                v-if="r.push !== null"
+                :model-value="r.push"
+                :label="`${r.titre} : notification push`"
+                @update:model-value="regler(r, 'push', $event)"
+              />
+            </span>
           </div>
         </CzCard>
 
@@ -402,6 +429,17 @@ const rappelEmail = ref(false)
   gap: var(--space-1);
   font-size: 12.5px;
   color: var(--text-muted);
+}
+
+.profil__rappel--entete {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.profil__canal {
+  display: flex;
+  justify-content: center;
+  width: 72px;
 }
 
 .profil__rappel b {

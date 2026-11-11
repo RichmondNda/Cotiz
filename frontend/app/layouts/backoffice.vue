@@ -14,6 +14,7 @@ const theme = computed(() => (espace.value === 'superadmin' ? 'superadmin' : 'ma
 useHead({ bodyAttrs: { 'data-theme': theme } })
 // Cloche en temps réel (nt.stream, lot 4.2).
 useFluxNotifications()
+useGardeAppareil()
 
 const tiroir = ref(false)
 watch(() => route.fullPath, () => (tiroir.value = false))

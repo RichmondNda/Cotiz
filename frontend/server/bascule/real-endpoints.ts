@@ -98,6 +98,8 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['nt.stream', 'all'],
   // Lot 4.2 : abonnement Web Push de l'appareil (aucun handler simulé : bloc masqué sans le vrai back).
   ['me.push', 'all'],
+  // Lot 4.2 : préférences de notification. Plateforme encore simulée : SaProfil règle des types sans événement (lot 6).
+  ['me.prefs', ['association', 'subscriber']],
   // Lot 2.6 : rapport de projet (onglet Rapports), tableau de bord gestionnaire.
   ['rp.report', 'all'],
   ['as.dashboard', 'all'],

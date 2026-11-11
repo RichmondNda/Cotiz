@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { deliveries, pushSubscriptions } from '@cotiz/db';
-import { quietHoursDelayMs } from '@cotiz/domain';
+import { pushSubscriptions } from '@cotiz/db';
+import { newId, quietHoursDelayMs } from '@cotiz/domain';
 import { and, count, eq, isNull } from 'drizzle-orm';
 import { associationTimezonesOf } from '../../tenancy/tenancy.public.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
@@ -19,10 +19,10 @@ import { PushQueue } from './push-queue.js';
 const DEFAULT_TIMEZONE = 'Africa/Abidjan';
 
 /**
- * Canal `push` (lot 4.2, architecture/07) : Web Push standard, actif dès que les clés VAPID sont configurées. Dans la
- * transaction du consommateur (espace system) : une ligne `deliveries` par destinataire qui a au moins un appareil
- * abonné ; la mise en file `notify-push` vient après le COMMIT (`afterCommit`), différée hors 8 h – 21 h locale pour un
- * type non urgent. Aucun appareil : rien n'est écrit (`skipped`).
+ * Canal `push` (lot 4.2, architecture/07) : Web Push standard, actif dès que les clés VAPID sont configurées. Un
+ * destinataire qui a au moins un appareil abonné : mise en file `notify-push` après le COMMIT (`afterCommit`), différée
+ * hors 8 h – 21 h locale pour un type non urgent ; `jobId` tiré de la clé de déduplication (événement rejoué : un seul
+ * envoi, que la cloche soit écrite ou non). La ligne `deliveries` est créée par le worker. Aucun appareil : `skipped`.
  */
 @Injectable()
 export class PushChannel implements NotificationChannel {
@@ -45,29 +45,17 @@ export class PushChannel implements NotificationChannel {
       .where(and(eq(pushSubscriptions.userId, recipient.userId), isNull(pushSubscriptions.revokedAt)));
     const n = devices?.n ?? 0;
     if (n === 0) return { channel: this.kind, status: 'skipped' };
-
-    const [row] = await tx
-      .insert(deliveries)
-      .values({
-        userId: recipient.userId,
-        associationId: recipient.associationId,
-        notificationId: options.notificationId ?? null,
-        channel: 'push',
-        provider: 'webpush',
-        // Jamais l'URL d'un appareil (elle vaut accès à l'appareil) : le nombre seulement.
-        recipientMasked: `${String(n)} appareil${n > 1 ? 's' : ''}`,
-        status: 'queued',
-      })
-      .returning({ id: deliveries.id });
-    if (!row) throw new Error('canal push : envoi non enregistré');
-
     const urgent = URGENT_PUSH_TYPES.has(msg.type);
     const delay = urgent ? 0 : quietHoursDelayMs(new Date(), await this.timezoneOf(recipient.associationId));
+    const text = msg.variants?.push ?? { title: msg.title, body: msg.body };
     const job = {
-      deliveryId: row.id,
+      // Ligne `deliveries` créée par le worker sous cet id : un job rejoué (même jobId) n'en crée pas d'autre.
+      deliveryId: newId(),
       userId: recipient.userId,
+      associationId: recipient.associationId,
+      notificationId: options.notificationId ?? null,
       urgent,
-      payload: { title: msg.title, body: msg.body, url: msg.actionUrl, tag: msg.type },
+      payload: { title: text.title, body: text.body, url: msg.actionUrl, tag: msg.type },
     };
     // BullMQ refuse « : » dans un jobId personnalisé.
     const jobId = `push-${options.dedupeKey.replaceAll(':', '_')}`;
