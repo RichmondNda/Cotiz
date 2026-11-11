@@ -7,7 +7,8 @@ import { SubscriberContracts } from './subscriber-contracts.js';
 
 /**
  * me.contract (espace subscriber) : contrat personnalisé de l'inscription de la personne au projet, et son empreinte à
- * renvoyer à la signature. Pas inscrite (ou inscription retirée), projet sans contrat : 404.
+ * renvoyer à la signature. Pas inscrite (ou inscription retirée), projet sans contrat, contrat encore en brouillon
+ * (non verrouillé, RLS de la migration 0019) : 404.
  */
 @Injectable()
 export class GetSubscriberContractUseCase {

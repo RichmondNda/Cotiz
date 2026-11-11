@@ -184,6 +184,23 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
     }
   }
 
+  /** Appartenance souscripteur de `user` dans `association` retirée le temps de `fn` (préparation hors RLS). */
+  async function withMembershipRemoved<T>(association: string, user: string, fn: () => Promise<T>): Promise<T> {
+    const where = `association_id = $1 AND user_id = $2 AND role = 'subscriber'`;
+    await h.superuser(`UPDATE memberships SET status = 'removed', removed_at = now() WHERE ${where}`, [
+      association,
+      user,
+    ]);
+    try {
+      return await fn();
+    } finally {
+      await h.superuser(`UPDATE memberships SET status = 'active', removed_at = NULL WHERE ${where}`, [
+        association,
+        user,
+      ]);
+    }
+  }
+
   beforeAll(async () => {
     h = await startIsolationHarness('migrated');
     await seedAssociations(h);
@@ -203,6 +220,18 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
         `INSERT INTO enrollments (id, association_id, project_id, user_id, status, starts_from, joined_at)
          VALUES ($1, $2, $3, $4, 'pending_signature', '2026-03-01', now())`,
         [enrollment, association, project, user],
+      );
+    }
+    for (const [association, user] of [
+      [A.id, USERS.moussa],
+      [A.id, USERS.aminata],
+      [B.id, USERS.fatou],
+      [B.id, USERS.moussa],
+    ] as const) {
+      await h.superuser(
+        `INSERT INTO memberships (id, association_id, user_id, role, status, joined_at)
+         VALUES (gen_random_uuid(), $1, $2, 'subscriber', 'active', now())`,
+        [association, user],
       );
     }
     for (const [file, association, owner] of [
@@ -351,16 +380,29 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
       await h.as(asSubscriber(USERS.fatou), async (tx) => {
         expect(await contractIds(tx)).toEqual([CONTRACTS.b]);
       });
+      // Aminata est aussi inscrite au projet a2, dont le contrat est en brouillon : invisible (migration 0019).
       await h.as(asSubscriber(USERS.aminata), async (tx) => {
-        expect(await contractIds(tx)).toEqual([CONTRACTS.a, CONTRACTS.a2]);
+        expect(await contractIds(tx)).toEqual([CONTRACTS.a]);
       });
     });
 
-    it('inscription retirée : le contrat reste lisible', async () => {
+    it('inscription retirée sans signature : le contrat n’est plus lisible', async () => {
       const seen = await withEnrollmentStatus(ENROLLMENTS.moussaB, 'withdrawn', () =>
         h.as(asSubscriber(USERS.moussa), contractIds),
       );
+      expect(seen).toEqual([CONTRACTS.a]);
+    });
+
+    it('contrat signé : lisible même inscription retirée et appartenance retirée (historique)', async () => {
+      const seen = await withEnrollmentStatus(ENROLLMENTS.moussa, 'withdrawn', () =>
+        withMembershipRemoved(A.id, USERS.moussa, () => h.as(asSubscriber(USERS.moussa), contractIds)),
+      );
       expect(seen).toEqual([CONTRACTS.a, CONTRACTS.b]);
+    });
+
+    it('appartenance retirée sans signature : le contrat n’est plus lisible', async () => {
+      const seen = await withMembershipRemoved(B.id, USERS.moussa, () => h.as(asSubscriber(USERS.moussa), contractIds));
+      expect(seen).toEqual([CONTRACTS.a]);
     });
 
     it('le souscripteur ne lit que ses propres signatures', async () => {
@@ -678,6 +720,51 @@ describe('isolation : contracts et contract_signatures (base migrée)', () => {
         () => h.as(asSubscriber(USERS.moussa), contractIds),
       );
       expect(leaked).toEqual([CONTRACTS.a, CONTRACTS.a2, CONTRACTS.b, CONTRACTS.a3]);
+    });
+
+    /** Politique 0019 avec une clause remplacée, pour prouver que chacune compte. */
+    const enrolledRead = (parts: { signed?: string; locked?: string; withdrawn?: string; membership?: string }) => ({
+      using: `app_space() = 'subscriber' AND (
+        EXISTS (SELECT 1 FROM contract_signatures s WHERE ${parts.signed ?? 's.contract_id = contracts.id'} AND s.user_id = app_user_id())
+        OR (${parts.locked ?? 'contracts.locked_at IS NOT NULL'} AND EXISTS (
+          SELECT 1 FROM enrollments e
+          JOIN memberships m ON m.association_id = e.association_id AND m.user_id = e.user_id
+          WHERE e.project_id = contracts.project_id AND e.association_id = contracts.association_id
+            AND e.user_id = app_user_id() AND ${parts.withdrawn ?? "e.status <> 'withdrawn'"}
+            AND ${parts.membership ?? "m.role = 'subscriber' AND m.status = 'active'"})))`,
+      withCheck: null,
+    });
+
+    it('subscriber_enrolled_read sans le lien signature → contrat : Moussa (une signature) lit tous les contrats', async () => {
+      const leaked = await h.withPolicy('contracts', 'subscriber_enrolled_read', enrolledRead({ signed: 'true' }), () =>
+        h.as(asSubscriber(USERS.moussa), contractIds),
+      );
+      expect(leaked).toEqual([CONTRACTS.a, CONTRACTS.a2, CONTRACTS.b, CONTRACTS.a3]);
+    });
+
+    it('subscriber_enrolled_read sans le verrouillage : Aminata lit le brouillon du projet a2', async () => {
+      const leaked = await h.withPolicy('contracts', 'subscriber_enrolled_read', enrolledRead({ locked: 'true' }), () =>
+        h.as(asSubscriber(USERS.aminata), contractIds),
+      );
+      expect(leaked).toEqual([CONTRACTS.a, CONTRACTS.a2]);
+    });
+
+    it('subscriber_enrolled_read sans le statut de l’inscription : Moussa lit le contrat d’une inscription retirée', async () => {
+      const leaked = await withEnrollmentStatus(ENROLLMENTS.moussaB, 'withdrawn', () =>
+        h.withPolicy('contracts', 'subscriber_enrolled_read', enrolledRead({ withdrawn: 'true' }), () =>
+          h.as(asSubscriber(USERS.moussa), contractIds),
+        ),
+      );
+      expect(leaked).toEqual([CONTRACTS.a, CONTRACTS.b]);
+    });
+
+    it('subscriber_enrolled_read sans l’appartenance active : Moussa lit le contrat d’une association quittée', async () => {
+      const leaked = await withMembershipRemoved(B.id, USERS.moussa, () =>
+        h.withPolicy('contracts', 'subscriber_enrolled_read', enrolledRead({ membership: 'true' }), () =>
+          h.as(asSubscriber(USERS.moussa), contractIds),
+        ),
+      );
+      expect(leaked).toEqual([CONTRACTS.a, CONTRACTS.b]);
     });
 
     it('subscriber_enrolled_read sans l’espace : une route /me de gestionnaire lit ses contrats', async () => {

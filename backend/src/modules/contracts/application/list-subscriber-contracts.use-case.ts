@@ -9,7 +9,8 @@ type Item = z.infer<(typeof ENDPOINTS)['me.contracts']['operations']['list']['re
 /**
  * me.contracts (espace subscriber) : contrats des inscriptions de la personne (non retirées, associations où elle est
  * souscriptrice active : subscriberEnrollmentsOf), à signer en tête. Signé : date et PDF une fois produit. Inscription
- * sans contrat, ou active sans signature (contrat ajouté après coup) : absente, rien à signer.
+ * sans contrat, contrat encore en brouillon (RLS de la migration 0019), ou active sans signature (contrat ajouté après
+ * coup) : absente, rien à signer.
  */
 @Injectable()
 export class ListSubscriberContractsUseCase {

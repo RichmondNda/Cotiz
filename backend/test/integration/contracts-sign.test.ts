@@ -225,10 +225,10 @@ describe('signature du contrat (me.contract, me.sign)', () => {
       expect(contract.body).toContain('{nb_echeances}');
     });
 
-    it('contrat pas encore verrouillé : texte visible, signature de l’association absente', async () => {
+    it('contrat pas encore verrouillé (texte encore modifiable) : 404, le souscripteur ne le voit pas', async () => {
       await insertContract(PROJECTS.a, { locked: false });
       await enrollment(PROJECTS.a);
-      expect((await contractOf(PROJECTS.a)).associationSigner.signedAt).toBeNull();
+      expect((await read(PROJECTS.a)).status).toBe(404);
     });
 
     it('projet sans contrat, non inscrit, inscription d’une autre personne, autre association : 404', async () => {
@@ -381,8 +381,7 @@ describe('signature du contrat (me.contract, me.sign)', () => {
     it('contrat pas encore signé par l’association : 404 (rien à signer)', async () => {
       await insertContract(PROJECTS.a, { locked: false });
       await enrollment(PROJECTS.a);
-      const { renderedSha256 } = await contractOf(PROJECTS.a);
-      expect((await sign(PROJECTS.a, renderedSha256)).status).toBe(404);
+      expect((await sign(PROJECTS.a, sha256('x'))).status).toBe(404);
     });
 
     it('inscription active sans contrat à signer, ou d’une autre personne : 404', async () => {
