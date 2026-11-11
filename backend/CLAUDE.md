@@ -52,3 +52,5 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Pile Docker et dépôt de fichiers : sans `--profile antivirus` (clamav), un fichier reste `pending` et toute déclaration avec preuve est refusée.
 - Document légal (PDF signé, lot 4.1) : rendu Gotenberg hors transaction, puis `putObjectOnce` (`If-None-Match: *`) dans `cotiz-legal` (WORM) ; un objet déjà présent fait foi, jamais réécrit. Texte signé stocké (`rendered_body`), jamais rendu à nouveau.
 - `GET /me` est la seule route `/me` qui porte une association (courante, pour les fonctionnalités du plan) ; le quota de débit par association ne compte que les routes d'espace association.
+- Web Push (lot 4.2) : aucun hôte de service de push dans le code (test « sans fournisseur ») ; `webPushConfigured(config)` = clés VAPID + `WEB_PUSH_HOSTS` (docs/runbooks/web-push.md). La bibliothèque `web-push` ne parle que https : faux service des tests en https auto-signé, `NODE_TLS_REJECT_UNAUTHORIZED=0` dans ce seul fichier.
+- Envoi rejouable par un job BullMQ purgé (24 h) : id de ligne dérivé de la clé de déduplication (UUID v5, `pushDeliveryIdOf`), jamais `newId()`.

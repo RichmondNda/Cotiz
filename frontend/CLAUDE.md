@@ -146,3 +146,4 @@ scripts/, tests/         capture d'écran, tests unitaires (dont conformité des
 - [ ] Uniquement des tokens et des classes du DS ; aucune couleur inventée.
 - [ ] Montants via `formatFCFA`, vocabulaire respecté, cibles tactiles ≥ 44 px.
 - [ ] Données issues de `composables/api`, identiques aux données de référence.
+- Flux SSE `nt.stream` (lot 4.2) : le réseau n'est jamais au repos ; `ouvrirSession` (`scripts/session-test.mjs`) répond 204 à ce flux pour les captures et e2e en `networkidle`.
