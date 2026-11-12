@@ -59,3 +59,5 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Dépôt de fichier par une association : route sous `/associations/{aid}/…` (`as.upload`, `pr.upload`, `im.upload`, décision 24) ; `fl.upload` refuse l'espace association.
 - Deux `*.public.ts` qui s'importent l'un l'autre (cycle ES, même indirect) cassent l'injection Nest au démarrage du worker (« circular dependency ») : déplacer l'utilitaire partagé dans `shared/` (ex. `shared/templates`, lot 4.3).
 - Texte figé à l'écriture et montant relu à l'affichage (file « À relancer ») : refaire le rendu depuis le modèle avec le reste dû du jour, sinon un paiement partiel laisse un message faux.
+- L'espace auth ne peut pas modifier `memberships` (`self_read` en lecture seule) : accepter une invitation passe par `asInvitedMember` (bascule vers le contexte de l'association, lot 4.5), jamais par une politique élargie.
+- `member_read` (`associations`, `association_payment_methods`) ouvre toute appartenance active, gestion comprise : une lecture souscripteur filtre `role = 'subscriber'` dans le code (association seulement gérée → 404, me.assos).
