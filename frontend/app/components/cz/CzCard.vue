@@ -28,6 +28,16 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ click: [MouseEvent | KeyboardEvent] }>()
 
+/**
+ * Entrée / Espace sur la carte cliquable elle-même seulement : une touche venue d'un champ ou d'un bouton de la carte
+ * (formulaire de création de projet…) garde son effet normal (taper un espace, valider).
+ */
+function touche(e: KeyboardEvent) {
+  if (!props.cliquable || props.desactivee || e.target !== e.currentTarget) return
+  e.preventDefault()
+  emit('click', e)
+}
+
 const estCliquable = computed(() => Boolean(props.to) || props.cliquable)
 const classes = computed(() => [
   'cz-card',
@@ -67,8 +77,8 @@ const classes = computed(() => [
     :aria-pressed="cliquable && selectionnee ? true : undefined"
     :aria-disabled="desactivee || undefined"
     @click="cliquable && !desactivee && emit('click', $event)"
-    @keydown.enter="cliquable && !desactivee && emit('click', $event)"
-    @keydown.space.prevent="cliquable && !desactivee && emit('click', $event)"
+    @keydown.enter="touche"
+    @keydown.space="touche"
   >
     <p
       v-if="titre"

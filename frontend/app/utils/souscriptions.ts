@@ -1,5 +1,5 @@
 // Règles d'affichage des projets du souscripteur, communes à l'accueil, aux associations et à la déclaration.
-import type { StatutSouscription, SouscriptionMembre } from '~~/types'
+import type { StatutProjet, StatutSouscription, SouscriptionMembre } from '~~/types'
 
 /** Déclaration d'un paiement avec le projet pré-sélectionné. */
 export function lienDeclarer(projetId?: string) {
@@ -39,4 +39,17 @@ export const estSuspendue = (s: Pick<SouscriptionMembre, 'association'>) => s.as
 /** Noms des associations suspendues parmi ces projets, sans doublon (bandeau de suspension). */
 export function associationsSuspendues(liste: Pick<SouscriptionMembre, 'association'>[]): string[] {
   return [...new Set(liste.filter(estSuspendue).map(s => s.association.nom))]
+}
+
+/**
+ * Peut-on déclarer un paiement sur ce projet ? Mêmes refus que le back (`me.declare`) : projet terminé ou archivé,
+ * contrat à signer, association suspendue ; et rien à régler. Sans projet déclarable, aucun bouton « Déclarer ».
+ */
+export function peutDeclarer(s: {
+  projet: { statut: StatutProjet }
+  statut: StatutSouscription
+  association: { statut: string }
+  reste: number
+}): boolean {
+  return s.projet.statut !== 'termine' && s.statut !== 'signature_attendue' && s.association.statut !== 'suspendue' && s.reste > 0
 }

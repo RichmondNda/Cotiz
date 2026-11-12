@@ -893,3 +893,16 @@ Choix autonomes de l'étape 2 (me.assos) :
   sélecteur dans la maquette (`design/INVENTAIRE.md`, MbAssociations, MbAssociation).
 - Front : `contexteSouscripteur` lit toujours `me.assos` (repli sur les cartes supprimé, l'endpoint est au registre) ;
   tests de bascule pris sur `bl.inv` (lot 4.6, encore simulé).
+
+## Retours d'interface de l'utilisateur (2026-11-12, branche chore/retours-interface)
+Premier lot de corrections (sans écart à la maquette) ; calendrier, déconnexion souscripteur et logo attendent son accord.
+- Espace impossible dans un champ : `CzCard` annulait Entrée/Espace venus de ses descendants (`@keydown.space.prevent`) ;
+  la carte ne réagit plus qu'à une touche qui la vise elle-même (`e.target === e.currentTarget`).
+- Preuve côté gestionnaire : l'url restait `[URL]` (jamais lue). `VisionneusePreuve` lit le fichier elle-même
+  (`useLectureFichier`, tout de suite en `grand`, au premier clic sinon) ; `useLectureFichier` passe par `as.file` en
+  espace gestionnaire (`fl.get` refuse les fichiers d'association hors espace souscripteur : `files/find-file.ts`).
+- Boutons « Déclarer un paiement » : règle `peutDeclarer` (utils/souscriptions.ts) = refus du back (`me.declare` :
+  projet terminé/archivé, contrat à signer, association suspendue) + reste > 0 ; bouton flottant et barre latérale par
+  `useDeclarationPossible` (lecture `me.projects` seule), fiche d'association, détail d'un projet, cartes de l'accueil.
+- Mes associations (choix de l'utilisateur : écran souscripteur) : une association n'est listée que si la personne y a
+  un projet en cours ou un reste à régler (`me.assos` list, back) ; sa fiche reste servie par l'API.

@@ -6,11 +6,12 @@ import type {
   SouscriptionMembre,
 } from '~~/types'
 import { associationCourante } from './session'
-import { email, jour, local, m, SITUATION, tel, vueAcces } from './vues/communs'
+import { email, jour, local, m, SITUATION, STATUT_PROJET, tel, vueAcces } from './vues/communs'
 import { traduireErreur } from './vues/erreurs'
 import { vueEcheance, vuePaiement } from './vues/paiements'
 import { vueProjet, vueSouscription } from './vues/projets'
 import { contexteSouscripteur } from './vues/souscripteur'
+import { peutDeclarer } from '~/utils/souscriptions'
 
 // ---------------------------------------------------------------- Espace gestionnaire
 
@@ -131,6 +132,18 @@ export const useMonProfil = () =>
 /** Projets du souscripteur connecté (accueil, déclaration), avec retards et prochaine échéance. */
 export const useMesSouscriptions = () =>
   useLecture<SouscriptionMembre[]>('mes-souscriptions', async client => (await contexteSouscripteur(client)).souscriptions)
+
+/**
+ * Le souscripteur connecté a-t-il au moins un projet où déclarer un paiement (`peutDeclarer`) ? Lecture légère
+ * (`me.projects` seul) pour les boutons « Déclarer un paiement » du gabarit, présents sur chaque page.
+ */
+export const useDeclarationPossible = () =>
+  useLecture<boolean>('declaration-possible', async client => (await client.call('me.projects', 'list')).items.some(c => peutDeclarer({
+    projet: { statut: STATUT_PROJET[c.project.status] ?? 'en_cours' },
+    statut: c.standing === 'signature_required' ? 'signature_attendue' : 'a_jour',
+    association: { statut: c.association.suspended ? 'suspendue' : 'active' },
+    reste: c.remaining.amount,
+  })))
 
 /** Contrat d'un projet vu par le souscripteur (texte personnalisé, signatures). */
 export async function monContrat(client: ApiClient, pid: string, souscripteurId: string, enrollmentId: string): Promise<Contrat | undefined> {

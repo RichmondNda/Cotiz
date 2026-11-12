@@ -28,8 +28,9 @@ const ENDED_PROJECTS: ReadonlySet<string> = new Set(['completed', 'archived']);
  * l'une d'elles (mb-association-detail). Chiffres tirés des mêmes cartes que me.dash et me.projects (`sortedCards`) :
  * - reste dû : inscriptions qui engagent (`subscriberSummary`) ; projets en cours : inscriptions non retirées d'un
  *   projet ni terminé ni archivé ;
- * - situation : la plus grave de ses inscriptions, retirées comprises (`overallStanding` : « retiré » s'il l'est de
- *   tout), à jour sans inscription ;
+ * - situation : la plus grave de ses inscriptions, retirées comprises (`overallStanding`) ;
+ * - liste : seulement les associations où la personne a un projet en cours ou un reste à régler (retours d'interface
+ *   du 2026-11-12) ; la fiche d'une autre association où elle est souscriptrice reste servie ;
  * - fiche : cartes des inscriptions non retirées (comme me.projects) et moyens de paiement actifs de l'association.
  * Association non rejointe comme souscriptrice (autre association, rôle de gestion seul, appartenance retirée) : 404.
  */
@@ -54,11 +55,14 @@ export class GetSubscriberAssociationsUseCase {
             nextDue: null,
           })),
         );
+        const activeProjects = current.filter((e) => !ENDED_PROJECTS.has(e.entry.project.status)).length;
+        // Rien en cours ni à régler (projets terminés et soldés, inscriptions retirées, aucune) : pas dans la liste.
+        if (activeProjects === 0 && summary.remainingTotal === 0) return [];
         return [
           {
             association: { ...refOf(association), city: association.city },
             memberSince: joinedAt.toISOString(),
-            activeProjects: current.filter((e) => !ENDED_PROJECTS.has(e.entry.project.status)).length,
+            activeProjects,
             remaining: Money.of(summary.remainingTotal, currencyOf(own)),
             standing: standingOf(own),
           },

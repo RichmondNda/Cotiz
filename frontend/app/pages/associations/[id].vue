@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import type { SouscriptionMembre } from '~~/types'
 import { formatDate, formatFCFA, formatMois, pluriel } from '~/utils/format'
-import { lienDeclarer, lienProjet, progression, statutCarte } from '~/utils/souscriptions'
+import { lienDeclarer, lienProjet, peutDeclarer, progression, statutCarte } from '~/utils/souscriptions'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
 
@@ -16,7 +16,8 @@ useHead({ title: () => `${association.value?.nom ?? 'Association'} · Cotiz` })
 
 const membreDepuis = computed(() => (groupe.value ? formatMois(groupe.value.membreDepuis).toLowerCase() : ''))
 const suspendue = computed(() => association.value?.statut === 'suspendue')
-const projetDeclarable = computed(() => groupe.value?.souscriptions.find(s => s.statut !== 'signature_attendue')?.projetId)
+// Aucun projet où déclarer dans cette association (terminés, contrats à signer, suspendue, rien à régler) : pas de bouton.
+const projetDeclarable = computed(() => groupe.value?.souscriptions.find(peutDeclarer)?.projetId)
 
 function carte(s: SouscriptionMembre) {
   const duree = s.projet.nbEcheances ? ` · ${s.projet.nbEcheances} mois` : ''
@@ -141,7 +142,7 @@ function pied(s: SouscriptionMembre): [string, string] {
         </h2>
         <CommentPayer :modalites="association.modalitesPaiement">
           <CzButton
-            v-if="!suspendue"
+            v-if="projetDeclarable"
             bloc
             :to="lienDeclarer(projetDeclarable)"
           >

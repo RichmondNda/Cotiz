@@ -1,7 +1,7 @@
 <!--
   Espace souscripteur (thème member, corail), mobile d'abord.
   Mobile : colonne unique, navigation basse 4 entrées, bouton flottant « Déclarer un paiement » au-dessus
-  (masqué avec `definePageMeta({ fab: false })`). La navigation basse se masque avec `navBasse: false`
+  (masqué avec `definePageMeta({ fab: false })`, ou sans projet où déclarer : `useDeclarationPossible`). La navigation basse se masque avec `navBasse: false`
   ou, selon l'état de la page, `useGabaritSouscripteur().masquerNavBasse()`.
   Desktop : barre latérale 240 px, contenu centré sur 960 px (les pages resserrent leur colonne si besoin).
 -->
@@ -15,7 +15,8 @@ useGardeAppareil()
 const route = useRoute()
 const { navMasquee } = useGabaritSouscripteur()
 const avecNav = computed(() => route.meta.navBasse !== false && !navMasquee.value)
-const avecFab = computed(() => avecNav.value && route.meta.fab !== false)
+const { data: declarationPossible } = useDeclarationPossible()
+const avecFab = computed(() => avecNav.value && route.meta.fab !== false && declarationPossible.value === true)
 // « Projets » (liste des associations) reste actif sur le détail d'un projet et ses sous-pages ;
 // « Mes contrats » s'ouvre depuis le profil.
 const ALIAS = { projets: ['/projets'], profil: ['/contrats'] }
