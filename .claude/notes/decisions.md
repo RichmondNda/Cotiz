@@ -741,3 +741,8 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
 - Basic auth Traefik abandonnée : elle prend l'en-tête `Authorization` du jeton du front (api en 401). Choix de l'utilisateur : mot de passe de démonstration secret `COTIZ_DEV_SEED_PASSWORD` posé par `seed-dev`, jamais affiché, dans `~/.config/cotiz-dev-acces` (ligne « comptes de démonstration (IDENTIFIANTS.md) : <mot de passe> »).
 - Vérifié le 2026-11-12 : connexion d'Awa avec le mot de passe secret → `authenticated`, `/me` 200 ; mot de passe public → 401.
 
+### Branche `dev` (2026-11-12, demande de l'utilisateur)
+- « je veux que tu crée un branche dev vers laquel sera dersomais poussé le code en mode dev et c'est elle qui sera linké dans le dockploy de dev une fois le dev terminé on passera en recette ».
+- `dev` créée depuis `origin/backend` (8d8ee49, PR #65 incluse) ; Dokploy dev (`cotiz-dev`) suit `dev`, recette suit `backend`.
+- Flux : `lot/*`, `chore/*` → PR `--base dev` → PR `dev` → `backend` (promotion en recette, sur demande) → `main`. Règles dans CLAUDE.md ; `tools/recette-dokploy.mjs` prend la branche de la cible par défaut.
+

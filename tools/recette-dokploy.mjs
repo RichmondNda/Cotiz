@@ -4,11 +4,11 @@
 //   - dev : pile de développement (mocks, comptes de démonstration au mot de passe secret),
 //     https://cotiz.dev.regisnda.com (docs/runbooks/dev-dokploy.md).
 //
-//   node tools/recette-dokploy.mjs [--cible recette|dev] [--branche backend] [--deployer]
+//   node tools/recette-dokploy.mjs [--cible recette|dev] [--branche <branche>] [--deployer]
 //
 // - Clé d'API : DOKPLOY_API_KEY, sinon ~/.config/cotiz-dokploy.key (droits 600). URL : DOKPLOY_URL (http://localhost:3000).
 // - Projet « Cotiz » ; environnement et service compose de la cible, créés s'ils manquent.
-// - Source : dépôt GitHub public, branche choisie, fichier compose de la cible.
+// - Source : dépôt GitHub public, branche de la cible (recette : `backend`, dev : `dev`) sauf --branche, fichier compose.
 // - Variables (onglet Environment) : les secrets ne sont générés qu'une fois ; ceux déjà présents sont gardés tels quels
 //   (en changer un casserait la base, les sessions ou les codes chiffrés). Rien n'est affiché : noms seulement.
 // - Dev : mot de passe des comptes de démonstration (COTIZ_DEV_SEED_PASSWORD, à la place du mot de passe public du dépôt)
@@ -38,6 +38,7 @@ const CIBLES = {
     compose: './infra/compose/staging.yml',
     domaineApp: 'cotiz.regisnda.com',
     domaineFichiers: 'cotiz-fichiers.regisnda.com',
+    branche: 'backend',
     secrets: () => ({ ...secretsProduction(), ...secretsVapid() }),
     motDePasseDemo: false,
   },
@@ -47,6 +48,7 @@ const CIBLES = {
     compose: './infra/compose/dev-dokploy.yml',
     domaineApp: 'cotiz.dev.regisnda.com',
     domaineFichiers: 'cotiz-fichiers.dev.regisnda.com',
+    branche: 'dev',
     secrets: () => secretsVapid(),
     motDePasseDemo: true,
   },
@@ -60,7 +62,7 @@ const opt = (nom, defaut) => {
 const nomCible = opt('cible', 'recette');
 const cible = CIBLES[nomCible];
 if (!cible) throw new Error(`cible inconnue : ${nomCible} (recette ou dev)`);
-const branche = opt('branche', 'backend');
+const branche = opt('branche', cible.branche);
 const deployer = args.includes('--deployer');
 
 const base = `${process.env.DOKPLOY_URL ?? 'http://localhost:3000'}/api`;
