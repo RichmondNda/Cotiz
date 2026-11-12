@@ -270,5 +270,5 @@ Corrigés dans la branche : appareil d'une autre personne retiré du navigateur 
 - Mémoire du serveur : la recette s'ajoute à la pile de dev (`cotiz-*`) et à la répétition de production (`cotiz-prod-*`, lot 3.5), toujours lancées ; les arrêter si besoin (demander).
 
 ### Dev Dokploy (2026-11-12)
-- Après la fusion de la PR #65 : repasser la source du dev sur `backend` (`node tools/recette-dokploy.mjs --cible dev --deployer`) ; aujourd'hui elle suit `chore/dev-dokploy`.
+- ~~Après la fusion de la PR #65 : repasser la source du dev sur `backend`~~ remplacé le 2026-11-12 : le dev suit la branche `dev`.
 - Projet compose du dev au nom aléatoire (`compose-index-bluetooth-application-d13iyl`, `appName` non passé à `compose.create`) : cosmétique, conteneurs à chercher sous ce nom.

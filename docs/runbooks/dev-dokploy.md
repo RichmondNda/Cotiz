@@ -8,7 +8,7 @@ tester sans rien installer : écrans encore simulés compris, comptes de démons
 | Application | <https://cotiz.dev.regisnda.com> (service `web`, port 3000) |
 | Stockage public | <https://cotiz-fichiers.dev.regisnda.com> (service `minio`, port 9000 : liens signés seulement) |
 | Dokploy | projet **Cotiz** › environnement *dev* › compose **cotiz-dev** |
-| Source | dépôt GitHub public, branche `backend`, fichier `./infra/compose/dev-dokploy.yml` |
+| Source | dépôt GitHub public, branche `dev`, fichier `./infra/compose/dev-dokploy.yml` |
 
 Différences avec la recette (`recette-dokploy.md`) : `NODE_ENV=development`, mocks Nitro pour les endpoints pas encore
 réels, données de démonstration (`seed-dev` relancé à chaque déploiement), clés JWT éphémères (un redéploiement de
@@ -30,6 +30,12 @@ variable dans l'onglet Environment, relancer l'outil avec `--deployer`.
 Pas d'authentification HTTP devant le site : le front envoie son jeton dans l'en-tête `Authorization`, que Traefik
 réserverait à son mot de passe (toute requête à l'api refusée en 401). Pages publiques (accueil, demande d'association)
 visibles de tous, comme en recette ; PWA et push utilisables, iPhone compris.
+
+## Branches
+
+`lot/*` et `chore/*` → PR vers `dev` (déployée ici) → PR `dev` → `backend` (recette, `recette-dokploy.md`) → `main`.
+Pas de redéploiement automatique : après une fusion sur `dev`, relancer l'outil avec `--deployer` (ou le bouton
+**Deploy** de Dokploy).
 
 ## Configurer ou mettre à jour
 
