@@ -318,3 +318,19 @@ export function assertAssociation(what: string): void {
     throw new Error(`${what} : contexte d’une association attendu`);
   }
 }
+
+/**
+ * Comptes de ces téléphones E.164 (import en masse, lot 4.4) : identifiant et statut par téléphone, rien d'autre.
+ * Contexte d'une association seulement, comme accountByPhone.
+ */
+export async function accountsByPhones(
+  phones: readonly string[],
+): Promise<Map<string, { id: string; status: PhoneAccount['status'] }>> {
+  assertAssociation('accountsByPhones');
+  if (phones.length === 0) return new Map();
+  const rows = await currentTx()
+    .select({ id: users.id, phone: users.phoneE164, status: users.status })
+    .from(users)
+    .where(inArray(users.phoneE164, [...new Set(phones)]));
+  return new Map(rows.flatMap((r) => (r.phone ? [[r.phone, { id: r.id, status: r.status }] as const] : [])));
+}

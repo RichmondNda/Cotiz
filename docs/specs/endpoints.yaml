@@ -1824,7 +1824,8 @@ endpoints:
   errors:
   - invalid_state
   - validation_failed
-  emits: []
+  emits:
+  - import.mapped
   idempotencyKey: false
   ifMatch: false
   rateLimited: false
@@ -1861,6 +1862,7 @@ endpoints:
   - invalid_state
   - quota_exceeded
   emits:
+  - import.commit_requested
   - import.completed
   - import.failed
   idempotencyKey: true

@@ -4369,13 +4369,73 @@
                       },
                       "required": ["ready", "existing", "error", "duplicate", "ignored"]
                     },
+                    "progress": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "processed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "enrolled": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "attached": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "failed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["total", "processed", "enrolled", "attached", "failed"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "failure": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                   },
-                  "required": ["id", "projectId", "sourceFileId", "status", "columns", "counts", "createdAt"],
+                  "required": [
+                    "id",
+                    "projectId",
+                    "sourceFileId",
+                    "status",
+                    "columns",
+                    "counts",
+                    "progress",
+                    "failure",
+                    "createdAt"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4527,13 +4587,73 @@
                       },
                       "required": ["ready", "existing", "error", "duplicate", "ignored"]
                     },
+                    "progress": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "processed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "enrolled": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "attached": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "failed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["total", "processed", "enrolled", "attached", "failed"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "failure": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                   },
-                  "required": ["id", "projectId", "sourceFileId", "status", "columns", "counts", "createdAt"],
+                  "required": [
+                    "id",
+                    "projectId",
+                    "sourceFileId",
+                    "status",
+                    "columns",
+                    "counts",
+                    "progress",
+                    "failure",
+                    "createdAt"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4657,8 +4777,15 @@
                         "type": "object",
                         "properties": {
                           "field": {
-                            "type": "string",
-                            "enum": ["firstName", "lastName", "phone", "email", "address"]
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": ["firstName", "lastName", "phone", "email", "address"]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           },
                           "code": {
                             "type": "string"
@@ -4815,13 +4942,73 @@
                       },
                       "required": ["ready", "existing", "error", "duplicate", "ignored"]
                     },
+                    "progress": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "processed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "enrolled": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "attached": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "failed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["total", "processed", "enrolled", "attached", "failed"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "failure": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                   },
-                  "required": ["id", "projectId", "sourceFileId", "status", "columns", "counts", "createdAt"],
+                  "required": [
+                    "id",
+                    "projectId",
+                    "sourceFileId",
+                    "status",
+                    "columns",
+                    "counts",
+                    "progress",
+                    "failure",
+                    "createdAt"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4949,8 +5136,15 @@
                               "type": "object",
                               "properties": {
                                 "field": {
-                                  "type": "string",
-                                  "enum": ["firstName", "lastName", "phone", "email", "address"]
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": ["firstName", "lastName", "phone", "email", "address"]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "code": {
                                   "type": "string"
@@ -5157,13 +5351,73 @@
                       },
                       "required": ["ready", "existing", "error", "duplicate", "ignored"]
                     },
+                    "progress": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "processed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "enrolled": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "attached": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "failed": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["total", "processed", "enrolled", "attached", "failed"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "failure": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string",
                       "format": "date-time",
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                   },
-                  "required": ["id", "projectId", "sourceFileId", "status", "columns", "counts", "createdAt"],
+                  "required": [
+                    "id",
+                    "projectId",
+                    "sourceFileId",
+                    "status",
+                    "columns",
+                    "counts",
+                    "progress",
+                    "failure",
+                    "createdAt"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -8010,6 +8264,8 @@
                                 "contract.signature_required",
                                 "contract.signed",
                                 "import.created",
+                                "import.mapped",
+                                "import.commit_requested",
                                 "import.completed",
                                 "import.failed",
                                 "reminder.sent",
@@ -8129,6 +8385,8 @@
                         "contract.signature_required",
                         "contract.signed",
                         "import.created",
+                        "import.mapped",
+                        "import.commit_requested",
                         "import.completed",
                         "import.failed",
                         "reminder.sent",
@@ -8210,6 +8468,8 @@
                               "contract.signature_required",
                               "contract.signed",
                               "import.created",
+                              "import.mapped",
+                              "import.commit_requested",
                               "import.completed",
                               "import.failed",
                               "reminder.sent",
@@ -8344,6 +8604,8 @@
                         "contract.signature_required",
                         "contract.signed",
                         "import.created",
+                        "import.mapped",
+                        "import.commit_requested",
                         "import.completed",
                         "import.failed",
                         "reminder.sent",
@@ -8424,6 +8686,8 @@
                           "contract.signature_required",
                           "contract.signed",
                           "import.created",
+                          "import.mapped",
+                          "import.commit_requested",
                           "import.completed",
                           "import.failed",
                           "reminder.sent",

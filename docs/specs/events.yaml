@@ -350,6 +350,23 @@ events:
   - importId
   consumers:
   - 'imports: analyse du fichier'
+- type: import.mapped
+  emitter: imports
+  lot: '4.4'
+  version: 1
+  payload:
+  - importId
+  consumers:
+  - 'imports: classement des lignes'
+- type: import.commit_requested
+  emitter: imports
+  lot: '4.4'
+  version: 1
+  payload:
+  - importId
+  - requestedBy
+  consumers:
+  - 'imports: exécution ligne par ligne'
 - type: import.completed
   emitter: imports
   lot: '4.4'

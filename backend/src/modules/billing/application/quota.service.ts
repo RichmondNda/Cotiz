@@ -38,11 +38,12 @@ export async function lockQuota(associationId: string, kind: QuotaKind): Promise
 @Injectable()
 export class QuotaService {
   /**
-   * Permet un ajout de plus, ou lève 409 `quota_exceeded` (`limit`, `usage`). Verrou de transaction par association et
+   * Permet `needed` ajouts de plus (un par défaut ; import en masse : toutes ses lignes), ou lève 409 `quota_exceeded`
+   * (`limit`, `usage`). Verrou de transaction par association et
    * quota d'abord, puis limite et comptage : deux ajouts concurrents sont comptés l'un après l'autre (le cas d'usage
    * insère avant son COMMIT), et un changement de plan les ordonne de même.
    */
-  async assert(associationId: string, kind: QuotaKind): Promise<void> {
+  async assert(associationId: string, kind: QuotaKind, needed = 1): Promise<void> {
     const context = currentContext();
     if (context?.space !== 'association' || context.associationId !== associationId) {
       throw new Error('QuotaService.assert : contexte de l’association attendu');
@@ -51,7 +52,7 @@ export class QuotaService {
     const limit = (await this.limits(associationId))[kind];
     if (limit === null) return;
     const usage = await quotaUsageOf(associationId, kind);
-    if (usage >= limit) throw new DomainProblem('quota_exceeded', { limit, usage });
+    if (usage + needed > limit) throw new DomainProblem('quota_exceeded', { limit, usage });
   }
 
   private async limits(associationId: string): Promise<QuotaLimits> {

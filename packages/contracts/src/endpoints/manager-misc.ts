@@ -110,14 +110,44 @@ export const ctList = defineEndpoint({
 
 export const ImportField = z.enum(['firstName', 'lastName', 'phone', 'email', 'address']);
 
+/** Champs sans lesquels une ligne ne peut pas être inscrite (NewMemberInput). */
+export const IMPORT_REQUIRED_FIELDS = ['firstName', 'lastName', 'phone'] as const;
+
+/** Lignes de données au plus dans un fichier (lot 4.4 : 5 000 lignes), en plus de la ligne d'en-tête. */
+export const IMPORT_MAX_ROWS = 5000;
+
+/**
+ * Motif d'un import `failed` : fichier refusé par l'analyse antivirus, illisible (ni CSV ni XLSX valide), sans ligne
+ * de données ou sans en-tête, au-delà de IMPORT_MAX_ROWS ; `internal` : exécution interrompue (erreur imprévue).
+ */
+export const ImportFailure = z.enum(['file_rejected', 'unreadable', 'empty', 'too_many_rows', 'internal']);
+
 export const ImportJob = z.object({
   id: Uuid,
   projectId: Uuid,
   sourceFileId: Uuid,
+  /**
+   * `uploaded` : fichier en cours d'analyse ; `mapped` : colonnes détectées, lignes en cours de classement ;
+   * `validated` : lignes classées, prêtes à l'envoi ; `importing` : inscriptions en cours ; `completed` ; `failed`.
+   */
   status: ImportJobStatus,
   /** Colonnes du fichier, 3 valeurs d'exemple, champ Cotiz retenu (`null` = ignorée). */
   columns: z.array(z.object({ name: z.string(), samples: z.array(z.string()).max(3), field: ImportField.nullable() })),
   counts: z.record(ImportRowCategory, z.int().nonnegative()),
+  /**
+   * Exécution (`importing`, `completed`) : lignes traitées sur le total à inscrire ; nouveaux comptes (codes à
+   * remettre), comptes existants rattachés, lignes refusées. `null` avant l'envoi.
+   */
+  progress: z
+    .object({
+      total: z.int().nonnegative(),
+      processed: z.int().nonnegative(),
+      enrolled: z.int().nonnegative(),
+      attached: z.int().nonnegative(),
+      failed: z.int().nonnegative(),
+    })
+    .nullable(),
+  failure: ImportFailure.nullable(),
   createdAt: Instant,
 });
 
@@ -126,7 +156,11 @@ export const ImportRow = z.object({
   rowNumber: z.int().min(1),
   category: ImportRowCategory,
   values: z.partialRecord(ImportField, z.string()),
-  errors: z.array(z.object({ field: ImportField, code: z.string() })),
+  /**
+   * Erreurs de la ligne : `required`, `invalid_phone`, `invalid_email`, `too_long` sur un champ ; après l'envoi, code
+   * d'erreur du cas d'usage d'inscription (`already_enrolled`, `quota_exceeded`, `invalid_state`…), sans champ.
+   */
+  errors: z.array(z.object({ field: ImportField.nullable(), code: z.string() })),
   /** Doublon : ligne d'origine. */
   duplicateOf: z.int().min(1).nullable(),
   /** Compte existant rattaché. */

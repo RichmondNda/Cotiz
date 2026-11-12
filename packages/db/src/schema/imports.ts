@@ -39,7 +39,7 @@ export const importJobs = pgTable('import_jobs', {
     .references(() => files.id),
   columnMapping: jsonb('column_mapping').$type<unknown>().notNull(),
   status: importJobsStatus('status').notNull().default('uploaded'),
-  counts: jsonb('counts').$type<Record<string, unknown>>().notNull().default({}),
+  counts: jsonb('counts').$type<unknown>().notNull().default({}),
   inviteChannels: text('invite_channels').array().notNull(),
   createdBy: uuid('created_by')
     .notNull()
@@ -58,7 +58,7 @@ export const importRows = pgTable('import_rows', {
     .references(() => associations.id),
   rowNumber: integer('row_number').notNull(),
   raw: jsonb('raw').$type<Record<string, string>>().notNull(),
-  normalized: jsonb('normalized').$type<Record<string, unknown>>(),
+  normalized: jsonb('normalized').$type<unknown>(),
   category: importRowsCategory('category').notNull(),
   errors: jsonb('errors').$type<unknown[]>().default([]),
   resolvedUserId: uuid('resolved_user_id'),

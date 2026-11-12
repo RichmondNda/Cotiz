@@ -70,7 +70,7 @@ function view(j: ImportState) {
   return {
     id: j.id, projectId: j.projectId, sourceFileId: j.sourceFileId, status: j.status,
     columns: COLUMNS.map(c => ({ name: c.name, samples: c.samples, field: j.mapping[c.name] ?? null })),
-    counts, createdAt: j.createdAt,
+    counts, progress: null, failure: null, createdAt: j.createdAt,
   }
 }
 

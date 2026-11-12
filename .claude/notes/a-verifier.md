@@ -272,3 +272,10 @@ Corrigés dans la branche : appareil d'une autre personne retiré du navigateur 
 ### Dev Dokploy (2026-11-12)
 - ~~Après la fusion de la PR #65 : repasser la source du dev sur `backend`~~ remplacé le 2026-11-12 : le dev suit la branche `dev`.
 - Projet compose du dev au nom aléatoire (`compose-index-bluetooth-application-d13iyl`, `appName` non passé à `compose.create`) : cosmétique, conteneurs à chercher sous ce nom.
+
+## 2026-11-12 · Lot 4.4 — déclencheur du worker pour le classement et l'exécution (**tranché** : option 1, événements ajoutés à events.yaml et emits d'endpoints.yaml)
+- `events.yaml` n'a que `import.created` (→ analyse) ; `im.steps` (mappage changé → reclassement) et `im.commit`
+  (→ exécution dans le worker, 5 000 lignes) n'ont aucun événement. Toutes les files BullMQ sont alimentées par le
+  worker (consommateurs d'outbox) ; l'API n'en alimente aucune. Règle 5 : effets de bord par l'outbox.
+- Options : (1, recommandée) ajouter `import.mapped` et `import.commit_requested` à `events.yaml` ; (2) l'API ajoute
+  le job directement à la file `imports` ; (3) reclassement synchrone dans l'API, exécution déclenchée autrement.
