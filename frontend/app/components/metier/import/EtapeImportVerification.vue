@@ -1,7 +1,8 @@
 <!--
   Import, étape 3 — Vérification. Desktop : 4 tuiles (prêtes, comptes existants rattachés, erreurs, doublon dans le
-  fichier) qui filtrent le tableau ; cellules en erreur surlignées et modifiables sur place ; « Corriger » (valide la
-  saisie), « Ignorer » (ligne non importée). Mobile : « Prêts » / « À corriger », lignes à traiter, comptes existants.
+  fichier) qui filtrent le tableau ; cellules en erreur surlignées et modifiables sur place ; « Corriger » (saisie
+  recontrôlée par le serveur, lot 4.4), « Ignorer » (ligne non importée). Autre erreur (nom manquant, email invalide,
+  déjà inscrit…) : motif affiché, ligne à ignorer. Mobile : « Prêts » / « À corriger », lignes à traiter, comptes existants.
 -->
 <script setup lang="ts">
 import type { LigneVerifiee } from '~/composables/useImportSouscripteurs'
@@ -10,7 +11,7 @@ import { pluriel } from '~/utils/format'
 
 type Filtre = 'tout' | 'pretes' | 'existants' | 'erreurs' | 'doublons'
 
-const { etat, compteurs, aExaminer, enErreur, correctionValide, corriger, ignorer } = useImportSouscripteurs()
+const { etat, compteurs, aExaminer, enErreur, corrigeable, correctionValide, corriger, ignorer } = useImportSouscripteurs()
 const toast = useToast()
 
 const filtre = ref<Filtre>('tout')
@@ -41,30 +42,43 @@ const STATUTS: Record<LigneVerifiee['statut'], { texte: string, ton: 'success' |
   telephone_incomplet: { texte: 'Téléphone incomplet', ton: 'danger' },
   prenom_manquant: { texte: 'Prénom manquant', ton: 'danger' },
   doublon: { texte: 'Doublon', ton: 'warning' },
+  erreur: { texte: 'Erreur', ton: 'danger' },
+  ignoree: { texte: 'Ignorée', ton: 'warning' },
 }
 function statut(l: LigneVerifiee) {
   if (l.decision === 'corrigee') return { texte: 'Corrigée', ton: 'success' as const }
   if (l.statut === 'doublon') return { texte: `Doublon de la ligne ${l.doublonDe}`, ton: 'warning' as const }
-  return STATUTS[l.statut]
+  return { ...STATUTS[l.statut], ...(l.motif ? { texte: l.motif } : {}) }
 }
 /** Mobile : « Téléphone incomplet », « Numéro en double (ligne 8) ». */
 function probleme(l: LigneVerifiee) {
-  return l.statut === 'doublon' ? `Numéro en double (ligne ${l.doublonDe})` : STATUTS[l.statut].texte
+  return l.statut === 'doublon' ? `Numéro en double (ligne ${l.doublonDe})` : l.motif ?? STATUTS[l.statut].texte
 }
 const aTraiter = (l: LigneVerifiee) => !l.decision && (enErreur(l) || l.statut === 'doublon')
 
 const tentees = ref<number[]>([])
-function surCorriger(l: LigneVerifiee) {
-  if (corriger(l)) {
-    toast.succes(`Ligne ${l.ligne} corrigée`, { message: 'Elle sera importée avec les autres.' })
+async function surCorriger(l: LigneVerifiee) {
+  try {
+    if (await corriger(l)) {
+      toast.succes(`Ligne ${l.ligne} corrigée`, { message: 'Elle sera importée avec les autres.' })
+      if (enCorrection.value === l.ligne) enCorrection.value = null
+    }
+    else {
+      tentees.value = [...tentees.value, l.ligne]
+    }
   }
-  else {
-    tentees.value = [...tentees.value, l.ligne]
+  catch (e) {
+    toast.erreur('Correction impossible', { message: messageRefus(e) })
   }
 }
-function surIgnorer(l: LigneVerifiee) {
-  ignorer(l)
-  toast.info(`Ligne ${l.ligne} ignorée`, { message: 'Elle ne sera pas importée.' })
+async function surIgnorer(l: LigneVerifiee) {
+  try {
+    await ignorer(l)
+    toast.info(`Ligne ${l.ligne} ignorée`, { message: 'Elle ne sera pas importée.' })
+  }
+  catch (e) {
+    toast.erreur('Action impossible', { message: messageRefus(e) })
+  }
 }
 /** Mobile : « Corriger » ouvre la saisie de la ligne. */
 const enCorrection = ref<number | null>(null)
@@ -149,7 +163,7 @@ const enCorrection = ref<number | null>(null)
           </td>
           <td class="num verif__actions">
             <CzButton
-              v-if="enErreur(l) && !l.decision"
+              v-if="corrigeable(l) && !l.decision"
               variante="secondaire"
               taille="sm"
               @click="surCorriger(l)"
@@ -209,7 +223,7 @@ const enCorrection = ref<number | null>(null)
               <span class="verif__probleme">{{ probleme(l) }}</span>
             </span>
             <CzButton
-              v-if="enErreur(l) && enCorrection !== l.ligne"
+              v-if="corrigeable(l) && enCorrection !== l.ligne"
               variante="secondaire"
               taille="sm"
               @click="enCorrection = l.ligne"
@@ -217,7 +231,7 @@ const enCorrection = ref<number | null>(null)
               Corriger
             </CzButton>
             <CzButton
-              v-else-if="l.statut === 'doublon'"
+              v-else-if="l.statut === 'doublon' || l.statut === 'erreur'"
               variante="secondaire"
               taille="sm"
               @click="surIgnorer(l)"

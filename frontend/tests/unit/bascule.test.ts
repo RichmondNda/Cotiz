@@ -52,7 +52,8 @@ describe('decide', () => {
     for (const id of ['auth.login', 'auth.refresh', 'auth.logout', 'auth.activate', 'auth.forgot', 'auth.verify', 'auth.reset', 'me'] as const) {
       expect(REAL_ENDPOINTS.get(id), id).toBe('all')
     }
-    expect(REAL_ENDPOINTS.get('fl.upload')).toEqual(['platform', 'subscriber'])
+    // Dépôt ouvert à l'espace association au lot 4.4 (fichier d'import).
+    expect(REAL_ENDPOINTS.get('fl.upload')).toBe('all')
     expect(REAL_ENDPOINTS.get('fl.get')).toEqual(['platform', 'subscriber'])
     for (const id of ['pub.plans', 'pf.plans', 'pf.plan.write', 'pf.plan.archive'] as const) expect(REAL_ENDPOINTS.get(id), id).toBe('all')
     // Second facteur du super-admin : simulé jusqu'au lot 4.7.

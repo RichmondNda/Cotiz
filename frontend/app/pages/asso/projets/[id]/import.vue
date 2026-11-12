@@ -30,16 +30,15 @@ const lienSouscripteurs = computed(() => `/asso/projets/${id.value}/souscripteur
 const etapes = [...ETAPES_IMPORT]
 const COMPOSANTS = [EtapeImportFichier, EtapeImportColonnes, EtapeImportVerification]
 
-function continuer() {
-  imp.continuer()
-  window.scrollTo({ top: 0 })
+async function continuer() {
+  if (await imp.continuer()) window.scrollTo({ top: 0 })
 }
 async function importer() {
   if (await imp.lancer()) {
     await refreshNuxtData()
   }
-  else {
-    toast.erreur('L’import n’a pas abouti', { message: 'Aucun souscripteur n’a été inscrit. Vérifiez votre connexion, puis réessayez.' })
+  else if (!etat.echecEnvoi) {
+    toast.erreur('L’import n’a pas abouti', { message: 'Vérifiez votre connexion, puis réessayez.' })
   }
 }
 </script>
@@ -114,7 +113,11 @@ async function importer() {
           Retour
         </CzButton>
         <span class="import__espace" />
-        <CzButton @click="continuer">
+        <CzButton
+          :chargement="etat.reclassement"
+          libelle-chargement="Vérification des lignes…"
+          @click="continuer"
+        >
           Continuer
         </CzButton>
       </div>
@@ -128,6 +131,8 @@ async function importer() {
       <CzButton
         v-if="etat.etape < 4"
         :disabled="etat.etape === 1 && (!etat.analyse || etat.analyseEnCours)"
+        :chargement="etat.reclassement"
+        libelle-chargement="Vérification des lignes…"
         @click="continuer"
       >
         Continuer

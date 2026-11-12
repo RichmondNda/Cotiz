@@ -1,11 +1,23 @@
-// Parcours de /asso/projets/centre-communautaire/import (MgImport). V0 : un clic sur la zone simule le dépôt.
+// Parcours de /asso/projets/centre-communautaire/import (MgImport). Lot 4.4 : un vrai fichier CSV est déposé, lu par le
+// worker ; l'écran relit l'import toutes les 2 s. Fichier proche de la maquette : lignes prêtes, deux erreurs (prénom
+// manquant, téléphone incomplet), un doublon de la ligne 2.
+const LIGNES = [
+  'Prénom;NOM;Tel;Mail;Quartier',
+  'Aïcha;Bamba;0712345678;aicha@exemple.ci;Yopougon',
+  ...Array.from({ length: 46 }, (_, i) => `Membre${i + 1};Entraide;070${String(9000000 + i)};;Abobo`),
+  ';Coulibaly;0102030405;;Cocody',
+  'Yao;Kouamé;07 12 34;;Abobo',
+  'Aïcha;Bamba;+225 07 12 34 56 78;;Yopougon',
+]
 const deposer = async (page) => {
-  await page.getByRole('button', { name: /Glissez votre fichier ici/ }).click()
-  await page.waitForTimeout(700)
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'membres_entraide.csv', mimeType: 'text/csv', buffer: Buffer.from(LIGNES.join('\n'), 'utf8'),
+  })
+  await page.getByText(/\d+ lignes/).locator('visible=true').first().waitFor({ timeout: 30_000 })
 }
 const continuer = async (page) => {
   await page.getByRole('button', { name: 'Continuer', exact: true }).locator('visible=true').click()
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(500)
 }
 const jusqua = async (page, etape) => {
   await deposer(page)
@@ -26,6 +38,6 @@ export default {
   'import-termine': async (page, { mobile }) => {
     await jusqua(page, 4)
     await page.getByRole('button', { name: mobile ? 'Lancer l’import' : /^Importer \d+ souscripteurs$/ }).locator('visible=true').click()
-    await page.waitForTimeout(1200)
+    await page.getByText('Import terminé').locator('visible=true').first().waitFor({ timeout: 60_000 })
   },
 }

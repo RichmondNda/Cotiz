@@ -1,11 +1,11 @@
 <!--
   Import, étape 1 — Fichier : zone de dépôt grand format (.xlsx, .csv), aide sur les colonnes attendues,
-  « Télécharger le modèle Excel ». V0 : un clic sur la zone simule le dépôt de « membres_entraide.xlsx » ;
-  un fichier glissé ou choisi (« Choisir un autre fichier ») est accepté sur son extension.
-  Fichier invalide : zone en erreur (desktop), bandeau « Fichier illisible » (mobile).
+  « Télécharger le modèle Excel ». Un clic sur la zone ouvre le choix du fichier ; un fichier glissé ou choisi est
+  déposé puis lu par le serveur (analyse dans le worker, lot 4.4). Fichier invalide (extension, illisible, vide, trop
+  long, refusé par l'antivirus) : zone en erreur avec le motif (desktop), bandeau « Fichier illisible » (mobile).
 -->
 <script setup lang="ts">
-import { FICHIER_SIMULE, useImportSouscripteurs } from '~/composables/useImportSouscripteurs'
+import { useImportSouscripteurs } from '~/composables/useImportSouscripteurs'
 import { telechargerCsv } from '~/utils/csv'
 
 const { etat, deposer } = useImportSouscripteurs()
@@ -15,16 +15,16 @@ const survol = ref(false)
 
 function surChoix(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
-  if (f) deposer({ nom: f.name, taille: f.size })
+  if (f) deposer(f)
   ;(e.target as HTMLInputElement).value = ''
 }
 function surDepot(e: DragEvent) {
   survol.value = false
   const f = e.dataTransfer?.files[0]
-  if (f) deposer({ nom: f.name, taille: f.size })
+  if (f) deposer(f)
 }
-function simuler() {
-  if (!etat.analyseEnCours) deposer(FICHIER_SIMULE)
+function parcourir() {
+  if (!etat.analyseEnCours) choix.value?.click()
 }
 function taille(octets?: number) {
   return octets === undefined ? '' : ` · ${Math.max(1, Math.round(octets / 1024))}\u00A0Ko`
@@ -50,7 +50,7 @@ function telechargerModele() {
       sans-icone
       class="cz-mobile"
     >
-      <b>Fichier illisible.</b> Utilisez un fichier .xlsx ou .csv avec une ligne par souscripteur.
+      <b>Fichier illisible.</b> {{ etat.motifInvalide ?? 'Utilisez un fichier .xlsx ou .csv avec une ligne par souscripteur.' }}
     </CzAlert>
     <CzAlert
       v-if="etat.erreurReseau"
@@ -98,7 +98,7 @@ function telechargerModele() {
       type="button"
       class="cz-drop etape-fichier__zone"
       :class="{ 'is-hover': survol, 'is-error': etat.fichierInvalide }"
-      @click="simuler"
+      @click="parcourir"
       @dragenter.prevent="survol = true"
       @dragover.prevent="survol = true"
       @dragleave.prevent="survol = false"
@@ -113,7 +113,7 @@ function telechargerModele() {
           class="etape-fichier__erreur"
           role="alert"
         >{{ etat.fichierInvalide }} n’est pas un fichier valide</b>
-        <span class="fmt">Formats acceptés : .xlsx ou .csv</span>
+        <span class="fmt">{{ etat.motifInvalide ?? 'Formats acceptés : .xlsx ou .csv' }}</span>
       </template>
       <template v-else>
         <CzIcon
@@ -121,7 +121,7 @@ function telechargerModele() {
           class="etape-fichier__icone"
         />
         <span class="etape-fichier__texte">Glissez votre fichier ici ou <strong>parcourez vos fichiers</strong></span>
-        <span class="fmt">.xlsx ou .csv · cliquez pour simuler le dépôt de « {{ FICHIER_SIMULE.nom }} »</span>
+        <span class="fmt">.xlsx ou .csv</span>
       </template>
     </button>
 

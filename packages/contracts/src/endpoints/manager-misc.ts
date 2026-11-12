@@ -118,9 +118,9 @@ export const IMPORT_MAX_ROWS = 5000;
 
 /**
  * Motif d'un import `failed` : fichier refusé par l'analyse antivirus, illisible (ni CSV ni XLSX valide), sans ligne
- * de données ou sans en-tête, au-delà de IMPORT_MAX_ROWS ; `internal` : exécution interrompue (erreur imprévue).
+ * de données ou sans en-tête, au-delà de IMPORT_MAX_ROWS ; `requester_removed` : la personne qui a lancé l'envoi ne gère
+ * plus l'association ; `internal` : exécution interrompue (erreur imprévue).
  */
-/** Motif d'échec ; `requester_removed` : la personne qui a lancé l'envoi ne gère plus l'association (lot 4.4). */
 export const ImportFailure = z.enum([
   'file_rejected',
   'unreadable',
