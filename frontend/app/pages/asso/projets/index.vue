@@ -126,6 +126,9 @@ const lignes = computed(() => filtres.value.map((p) => {
 function actions(p: Projet): ElementMenu[] {
   return [
     { label: 'Ouvrir', icone: 'voir', to: lienProjetGestionnaire(p) },
+    ...(p.statut === 'brouillon'
+      ? [{ label: 'Ouvrir les inscriptions', icone: 'valide' as const, to: { path: `${lienProjetGestionnaire(p)}/parametres`, query: { publication: '1' } } }]
+      : []),
     { label: 'Dupliquer', icone: 'copier', to: { path: '/asso/projets/nouveau', query: { modele: p.id } } },
     { label: 'Archiver', icone: 'supprimer', to: `${lienProjetGestionnaire(p)}/parametres`, danger: true, separe: true },
   ]

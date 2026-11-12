@@ -6,6 +6,8 @@
   Mobile : Général, Financement en lecture seule (« Verrouillé »), coordonnées de paiement, « Enregistrer »,
   Zone sensible. Clôture : confirmation (modale / feuille basse), aussi ouverte par `?cloture=1` (menu ⋯ de l'en-tête).
   États : nominal, enregistre (bandeau après enregistrement), confirmation-cloture.
+  Brouillon (écart ui-deviations, 2026-11-12) : bandeau « Ouvrir les inscriptions » (pr.lifecycle publish) avec
+  confirmation, aussi ouverte par `?publication=1` (en-tête du projet, menu ⋯ de la liste).
 -->
 <script setup lang="ts">
 import type { ModalitePaiement, ModificationProjet, MoyenPaiement } from '~~/types'
@@ -18,7 +20,7 @@ const route = useRoute()
 const router = useRouter()
 const id = computed(() => String(route.params.id))
 const { data: projet, refresh } = useProjet(id)
-const { modifierProjet, cloturerProjet, supprimerProjet } = useActionsProjet()
+const { modifierProjet, publierProjet, cloturerProjet, supprimerProjet } = useActionsProjet()
 const toast = useToast()
 
 const termine = computed(() => projet.value?.statut === 'termine')
@@ -171,11 +173,41 @@ const raisonVerrou = computed(() => (aDesPaiements.value
   ? 'Non modifiable : des paiements ont été enregistrés'
   : 'Non modifiable : fixé par le contrat'))
 
+// ---------------------------------------------------------------- Publication d'un brouillon
+const brouillon = computed(() => projet.value?.statut === 'brouillon')
+const confirmationPublication = ref(false)
+const publication = ref(false)
+function demanderPublication() {
+  if (brouillon.value) confirmationPublication.value = true
+}
+watch([() => route.query.publication, brouillon], ([v, b]) => {
+  if (v && b) {
+    demanderPublication()
+    router.replace({ query: { ...route.query, publication: undefined } })
+  }
+}, { immediate: true })
+
+async function publier() {
+  publication.value = true
+  try {
+    await publierProjet(id.value)
+    confirmationPublication.value = false
+    await refreshNuxtData()
+    toast.succes('Inscriptions ouvertes', { message: 'Vous pouvez maintenant ajouter des souscripteurs au projet.' })
+  }
+  catch (e) {
+    toast.erreur('Les inscriptions n’ont pas pu être ouvertes', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
+  }
+  finally {
+    publication.value = false
+  }
+}
+
 // ---------------------------------------------------------------- Clôture
 const confirmationCloture = ref(false)
 const cloture = ref(false)
 function demanderCloture() {
-  if (!termine.value) confirmationCloture.value = true
+  if (!termine.value && !brouillon.value) confirmationCloture.value = true
 }
 onMounted(() => {
   if (route.query.cloture) {
@@ -245,6 +277,20 @@ async function cloturer() {
       sans-icone
     >
       Modifications enregistrées.
+    </CzAlert>
+    <CzAlert
+      v-if="brouillon"
+      ton="info"
+    >
+      <b>Projet en brouillon.</b> Personne ne peut encore s’y inscrire. Vérifiez les paramètres, puis ouvrez les inscriptions.
+      <template #action>
+        <CzButton
+          taille="sm"
+          @click="demanderPublication"
+        >
+          Ouvrir les inscriptions
+        </CzButton>
+      </template>
     </CzAlert>
     <CzAlert
       v-if="termine"
@@ -522,6 +568,9 @@ async function cloturer() {
             <template v-if="termine">
               Ce projet est déjà clôturé.
             </template>
+            <template v-else-if="brouillon">
+              Un brouillon ne se clôture pas : supprimez-le s’il ne sert plus.
+            </template>
             <template v-else>
               <span class="cz-desktop">Plus aucune échéance ne sera générée. Les souscripteurs gardent leur historique.</span>
               <span class="cz-mobile">Clôturer le projet arrête les échéances à venir. Les paiements validés sont conservés.</span>
@@ -531,7 +580,7 @@ async function cloturer() {
         <CzButton
           variante="danger-contour"
           class="cz-desktop"
-          :disabled="termine"
+          :disabled="termine || brouillon"
           @click="demanderCloture"
         >
           Clôturer
@@ -540,7 +589,7 @@ async function cloturer() {
           variante="danger-contour"
           bloc
           class="cz-mobile"
-          :disabled="termine"
+          :disabled="termine || brouillon"
           @click="demanderCloture"
         >
           Clôturer le projet
@@ -566,6 +615,20 @@ async function cloturer() {
         </CzButton>
       </div>
     </section>
+
+    <CzConfirmation
+      v-model:ouvert="confirmationPublication"
+      :titre="`Ouvrir les inscriptions de ${projet.nom} ?`"
+      confirmer="Ouvrir les inscriptions"
+      variante="primaire"
+      :chargement="publication"
+      libelle-chargement="Ouverture…"
+      @confirmer="publier"
+    >
+      <p class="parametres__confirmation">
+        Le projet quitte les brouillons : vous pourrez y inscrire des souscripteurs et leur échéancier sera calculé.
+      </p>
+    </CzConfirmation>
 
     <CzConfirmation
       v-model:ouvert="confirmationCloture"
