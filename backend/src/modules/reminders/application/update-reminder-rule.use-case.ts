@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { assertPlanFeature } from '../../billing/billing.public.js';
 import { contextAssociationId } from '../../members/members.public.js';
-import { saveManualTemplate } from '../../notifications/notifications.public.js';
+import { saveRuleTemplate } from '../infra/rule-templates.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem } from '../../../shared/http/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
@@ -40,7 +40,7 @@ export class UpdateReminderRuleUseCase {
     const templateId =
       next.message === current.message && row.templateId
         ? row.templateId
-        : await saveManualTemplate({
+        : await saveRuleTemplate({
             associationId,
             key: RULE_TEMPLATE_KEY,
             body: next.message,

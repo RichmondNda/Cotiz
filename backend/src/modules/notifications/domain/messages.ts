@@ -276,3 +276,25 @@ export function importFailedMessage(p: { projectId: string; projectName: string 
     vars: { projet: p.projectName },
   };
 }
+
+/**
+ * Rappel d'une relance (lot 4.3) : le message rendu de la règle (ou du gestionnaire) ; titre selon le retard ; lien vers
+ * la déclaration pour ce projet.
+ */
+export function reminderSentMessage(p: {
+  projectId: string;
+  projectName: string;
+  dueDate: string;
+  late: boolean;
+  message: string;
+}): RenderedMessage {
+  const date = dayAndMonth(p.dueDate);
+  return {
+    type: 'reminder.sent',
+    title: p.late ? `Échéance du ${date} en retard` : `Rappel : échéance du ${date}`,
+    body: p.message,
+    actionUrl: `/paiements/declarer?projet=${p.projectId}`,
+    data: { actionLabel: 'Déclarer un paiement', projectId: p.projectId },
+    vars: { date, projet: p.projectName, message: p.message },
+  };
+}

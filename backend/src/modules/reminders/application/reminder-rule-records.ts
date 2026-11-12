@@ -2,7 +2,7 @@ import type { ReminderRule } from '@cotiz/contracts';
 import { reminderRules } from '@cotiz/db';
 import { and, asc, eq } from 'drizzle-orm';
 import type { z } from 'zod';
-import { templateBodiesOf } from '../../notifications/notifications.public.js';
+import { ruleTemplateBodiesOf } from '../infra/rule-templates.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 
 export type ReminderRuleRow = typeof reminderRules.$inferSelect;
@@ -30,7 +30,7 @@ export async function rulesWithMessagesOf(associationId: string): Promise<{ row:
     .from(reminderRules)
     .where(eq(reminderRules.associationId, associationId))
     .orderBy(asc(reminderRules.createdAt), asc(reminderRules.id));
-  const bodies = await templateBodiesOf(
+  const bodies = await ruleTemplateBodiesOf(
     associationId,
     rows.flatMap((r) => (r.templateId ? [r.templateId] : [])),
   );
@@ -50,5 +50,5 @@ export async function ruleOf(associationId: string, id: string): Promise<Reminde
 /** Message d'une règle (texte de son modèle) ; vide si elle n'en a pas. */
 export async function messageOf(associationId: string, row: ReminderRuleRow): Promise<string> {
   if (!row.templateId) return '';
-  return (await templateBodiesOf(associationId, [row.templateId])).get(row.templateId) ?? '';
+  return (await ruleTemplateBodiesOf(associationId, [row.templateId])).get(row.templateId) ?? '';
 }

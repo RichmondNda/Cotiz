@@ -10,6 +10,7 @@ import { enrollmentContractOf, pendingSignersOf } from '../../contracts/contract
 import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
 import { importNoticeOf } from '../../imports/imports.public.js';
 import { projectOf } from '../../projects/projects.public.js';
+import { reminderNoticesOf } from '../../reminders/reminders.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
 import { currentTx, TenantDatabase } from '../../../shared/tenant-context/index.js';
@@ -19,7 +20,7 @@ import {
   type RoutedDelivery,
   runAfterCommit,
 } from '../application/notification-router.js';
-import type { Recipient, RenderedMessage } from '../domain/channel.js';
+import type { ChannelKind, Recipient, RenderedMessage } from '../domain/channel.js';
 import { applyMessageTemplates } from '../infra/message-templates.js';
 import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
@@ -38,6 +39,7 @@ import {
   paymentRevertedMessage,
   paymentsDigestMessage,
   paymentValidatedMessage,
+  reminderSentMessage,
   userActivatedMessage,
 } from '../domain/messages.js';
 
@@ -57,6 +59,7 @@ export const NOTIFIED_TYPES = [
   'contract.signed',
   'import.completed',
   'import.failed',
+  'reminder.sent',
 ] as const satisfies readonly EventType[];
 
 /** Regroupement (architecture/07) : au-delà de 5 déclarations en 1 h, une notification récapitulative. */
@@ -83,6 +86,7 @@ const Payloads = {
     }),
   }),
   importFailed: z.object({ importId: Id }),
+  reminders: z.object({ runIds: z.array(Id) }),
 };
 
 /** Une notification à créer : message, destinataires, base de la clé de déduplication. */
@@ -92,6 +96,8 @@ interface Planned {
   dedupeBase: string;
   /** Déclarations : regroupées au-delà du seuil (association, titre du récapitulatif). */
   digest?: { associationId: string; pendingCount: number };
+  /** Canaux retenus parmi ceux de la matrice (relance : ceux de la règle). */
+  channels?: readonly ChannelKind[];
 }
 
 /**
@@ -139,7 +145,10 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         all.push(
           ...(p.digest
             ? await this.dispatchDeclared(p, p.digest, event)
-            : await this.router.dispatch(p.msg, p.recipients, { dedupeBase: p.dedupeBase })),
+            : await this.router.dispatch(p.msg, p.recipients, {
+                dedupeBase: p.dedupeBase,
+                ...(p.channels ? { channels: p.channels } : {}),
+              })),
         );
       }
       return all;
@@ -200,6 +209,8 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
       case 'import.completed':
       case 'import.failed':
         return aid ? this.inAssociation(aid, () => this.planImport(event, aid)) : [];
+      case 'reminder.sent':
+        return aid ? this.inAssociation(aid, () => this.planReminders(event, aid)) : [];
       default:
         return [];
     }
@@ -288,6 +299,25 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         dedupeBase: event.id,
       },
     ];
+  }
+
+  /**
+   * Relances (lot 4.3) : un rappel par relance encore utile (échéance toujours due, souscripteur encore actif), sur les
+   * canaux de la relance ; clé `reminder:{relance}` (le routeur y ajoute la personne) : un événement rejoué ne double rien.
+   */
+  private async planReminders(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { runIds } = Payloads.reminders.parse(event.payload);
+    const planned: Planned[] = [];
+    for (const notice of await reminderNoticesOf(aid, runIds)) {
+      if (!(await isActiveSubscriberIn(aid, notice.userId))) continue;
+      planned.push({
+        msg: reminderSentMessage(notice),
+        recipients: [{ userId: notice.userId, associationId: aid, audience: 'subscriber' }],
+        dedupeBase: `reminder:${notice.runId}`,
+        channels: notice.channels.filter((c): c is ChannelKind => c === 'in_app' || c === 'push'),
+      });
+    }
+    return planned;
   }
 
   /**

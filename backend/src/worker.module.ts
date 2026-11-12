@@ -4,6 +4,7 @@ import { ConfigModule } from './config.module.js';
 import { BillingWorkerModule } from './modules/billing/billing-worker.module.js';
 import { DocumentsWorkerModule } from './modules/documents/documents-worker.module.js';
 import { ImportsWorkerModule } from './modules/imports/imports.public.js';
+import { RemindersWorkerModule } from './modules/reminders/reminders.public.js';
 import { FilesWorkerModule } from './modules/files/files-worker.module.js';
 import { IdentityWorkerModule } from './modules/identity/identity-worker.module.js';
 import { LedgerWorkerModule } from './modules/ledger/ledger-worker.module.js';
@@ -51,6 +52,7 @@ export class WorkerModule {
         ReportingWorkerModule,
         DocumentsWorkerModule,
         ImportsWorkerModule,
+        RemindersWorkerModule,
       ],
     };
   }

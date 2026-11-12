@@ -4,7 +4,7 @@ import { reminderRules } from '@cotiz/db';
 import type { z } from 'zod';
 import { assertPlanFeature } from '../../billing/billing.public.js';
 import { contextAssociationId } from '../../members/members.public.js';
-import { saveManualTemplate } from '../../notifications/notifications.public.js';
+import { saveRuleTemplate } from '../infra/rule-templates.js';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import type { RuleInput } from '../domain/reminder-rule.js';
@@ -23,7 +23,7 @@ export class CreateReminderRuleUseCase {
     const associationId = contextAssociationId(aid);
     await assertPlanFeature(associationId, 'auto_reminders');
     await assertValidRule(associationId, input);
-    const templateId = await saveManualTemplate({ associationId, key: RULE_TEMPLATE_KEY, body: input.message });
+    const templateId = await saveRuleTemplate({ associationId, key: RULE_TEMPLATE_KEY, body: input.message });
     const [row] = await currentTx()
       .insert(reminderRules)
       .values({

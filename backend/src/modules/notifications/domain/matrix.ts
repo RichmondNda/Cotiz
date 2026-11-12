@@ -35,6 +35,8 @@ export const NOTIFICATION_MATRIX = {
   // Imports (lot 4.4) : consommateur « notifications: gestionnaire » d'events.yaml.
   'import.completed': { audience: 'manager', channels: ['in_app'] },
   'import.failed': { audience: 'manager', channels: ['in_app'] },
+  // Relances (lot 4.3) : rappel au souscripteur ; canaux restreints à ceux de la règle (in_app, push).
+  'reminder.sent': { audience: 'subscriber', channels: ['in_app', 'push'] },
 } as const satisfies Partial<Record<EventType, MatrixEntry>>;
 
 export type NotifiedEventType = keyof typeof NOTIFICATION_MATRIX;

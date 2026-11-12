@@ -19,3 +19,5 @@ export {
   subscriberPaymentsPage,
   subscriberValidatedPaymentsOf,
 } from './application/subscriber-payments.js';
+// Relances (lot 4.3) : échéances à relancer, reste dû relu.
+export { type RemindableInstallment, remindableInstallmentsOf } from './application/remindable-installments.js';
