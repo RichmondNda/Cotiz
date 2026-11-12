@@ -80,3 +80,5 @@ export type { HistoryCommitment, HistoryFigures, HistoryPayment } from './subscr
 export { CONTRACT_VARIABLES, contractValues, renderContract } from './contract.js';
 export type { ContractContext, ContractValues, ContractVariable } from './contract.js';
 export { QUIET_HOURS, quietHoursDelayMs } from './quiet-hours.js';
+export { reminderDueDate, reminderRunStatus } from './reminders.js';
+export type { ReminderTrigger } from './reminders.js';
