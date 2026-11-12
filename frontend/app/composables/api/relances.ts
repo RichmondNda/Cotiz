@@ -1,11 +1,23 @@
 // Relances de l'association (lot 4.3) : retardataires (file « À relancer », rm.queue), règles (rm.rules), historique des
 // envois (rm.hist), relance ponctuelle (rm.send). Aucun SMS ni email : le message prêt est transmis par une personne.
 import type { CallOutput } from '@cotiz/api-client'
-import type { EnvoiRelance, LigneRetard, RegleRelance, Relances } from '~~/types'
+import type { EntreeARelancer, EnvoiRelance, LigneRetard, RegleRelance, Relances } from '~~/types'
 import { associationCourante } from './session'
 import { jour, tel } from './vues/communs'
 
 type Regle = CallOutput<'rm.rules', 'list'>['items'][number]
+type Entree = CallOutput<'rm.queue', 'list'>['items'][number]
+
+const STATUTS = { to_handle: 'a_traiter', handled: 'relancee', dismissed: 'ignoree' } as const
+
+function vueEntree(e: Entree): EntreeARelancer {
+  return {
+    id: e.id, souscripteurId: e.member.id, nom: `${e.member.firstName} ${e.member.lastName}`.trim(), telephone: tel(e.member.phone),
+    nomProjet: e.project.name, echeance: e.dueDate, montant: e.amountDue.amount, retardDepuis: e.lateSince,
+    message: e.message, whatsapp: e.whatsappUrl, sms: e.smsUrl,
+    statut: e.status in STATUTS ? STATUTS[e.status as keyof typeof STATUTS] : 'a_traiter',
+  }
+}
 
 function vueRegle(r: Regle): RegleRelance {
   const titre = r.trigger === 'before_due' ? `${r.offsetDays} jours avant l’échéance` : r.trigger === 'on_due' ? 'Le jour de l’échéance' : `${r.offsetDays} jours de retard`
@@ -51,6 +63,7 @@ export const useRelances = () =>
     }
     const auto = [...envois.values()].find(e => e.type === 'automatique')
     return {
+      aRelancer: file.items.map(vueEntree),
       retardataires: [...lignes.values()].sort((a, b) => a.retardDepuis.localeCompare(b.retardDepuis) || b.montant - a.montant),
       nbEnRetard: tdb.lateSubscribers.count,
       nbActifs: tdb.lateSubscribers.activeCount,
@@ -78,4 +91,11 @@ export function useRegleRelance() {
   const client = useClient()
   return async (id: string, active: boolean) =>
     vueRegle(await client.call('rm.rules', 'patch', { params: { aid: await associationCourante(client), id }, body: { isActive: active } }))
+}
+
+/** Marque une entrée de la file « À relancer » : relancée (message transmis) ou ignorée, pour la journée. */
+export function useMarquageRelance() {
+  const client = useClient()
+  return async (id: string, issue: 'handled' | 'dismissed') =>
+    vueEntree(await client.call('rm.queue', 'handled', { params: { aid: await associationCourante(client), id }, body: { outcome: issue } }))
 }

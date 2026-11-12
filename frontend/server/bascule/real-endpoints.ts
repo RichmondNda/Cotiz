@@ -128,4 +128,9 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['im.steps', 'all'],
   ['im.read', 'all'],
   ['im.commit', 'all'],
+  // Lot 4.3 : relances (règles, tâche quotidienne, file « À relancer », relance ciblée, historique).
+  ['rm.rules', 'all'],
+  ['rm.send', 'all'],
+  ['rm.queue', 'all'],
+  ['rm.hist', 'all'],
 ])

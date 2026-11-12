@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto'
 
 export type IdKind
   = | 'association' | 'plan' | 'user' | 'project' | 'enrollment' | 'installment' | 'payment' | 'payment-method'
-    | 'request' | 'notification' | 'contract' | 'invoice' | 'subscription' | 'reminder-rule' | 'reminder-run'
+    | 'request' | 'notification' | 'contract' | 'invoice' | 'subscription'
     | 'activation-code' | 'file' | 'import' | 'import-row'
 
 export function uid(kind: IdKind, key: string): string {

@@ -91,7 +91,6 @@ const READS: Record<string, Call> = {
   'me.prefs get': {},
   'pf.invoices list': {}, 'pf.staff list': {},
   'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
-  'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
   'me.assos list': {}, 'me.assos get': { params: { aid } },
 }
 
@@ -102,10 +101,6 @@ const WRITES: Record<string, () => Call> = {
   'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
   'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
   'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
-  'rm.rules create': () => ({ params: { aid }, body: { projectId: null, trigger: 'after_due', offsetDays: 30, channels: ['in_app'], message: 'Rappel', isActive: true } }),
-  'rm.rules patch': () => ({ params: { aid, id: uid('reminder-rule', 'jour-j') }, body: { isActive: false } }),
-  'rm.queue handled': () => ({ params: { aid, id: uid('reminder-run', `queue-${uid('installment', 'centre-communautaire:moussa-diarra:6')}`) }, body: { outcome: 'handled' } }),
-  'rm.send send': () => ({ params: { aid }, body: { projectId: ID.centre, allLate: true } }),
 }
 
 beforeEach(() => resetDb())
@@ -204,18 +199,6 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 })
 
 describe('mutations : état en mémoire', () => {
-  it('Idempotency-Key : même clé et même corps → même réponse ; corps différent → idempotency_key_reused', async () => {
-    // Mécanisme commun des mocks (server/mocks/http.ts), essayé sur une écriture encore simulée.
-    const run = (body: unknown) => runImplementation('rm.send' as never, 'send', {
-      params: { aid }, query: undefined, body, session: sessionFromRole('gestionnaire'), scenario: undefined, ifMatch: null, idempotencyKey: 'cle-1',
-    } as MockContext<never, never>)
-    const send = ENDPOINTS['rm.send'].operations.send.request.body
-    const body = send.parse(WRITES['rm.send send']!().body)
-    expect(await run(body)).toEqual(await run(body))
-    const other = send.parse({ ...(body as object), message: 'Autre message' })
-    await expect(run(other)).rejects.toMatchObject({ code: 'idempotency_key_reused' })
-  })
-
   it('déclaration sans preuve ni référence → proof_required (règle du schéma)', async () => {
     const sansPreuve = { projectId: ID.centre, amount: money(50000), paidOn: '2026-09-25', paymentMethodId: null, allocations: moussaCentreLate() }
     const result = ENDPOINTS['me.declare'].operations.declare.request.body.safeParse(sansPreuve)

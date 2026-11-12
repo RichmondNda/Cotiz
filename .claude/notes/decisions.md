@@ -833,3 +833,16 @@ Choix (sans contradiction avec docs/specs/) :
    `rm.hist`. Front : onglet « À relancer » (HandoffCard : copier, WhatsApp, `sms:`, marquer), bascule `rm.*`, mocks
    supprimés, `/verifier-ecran /asso/relances`. Test : la file liste exactement les retards sans relance du jour.
 Vérification : tests ciblés par étape, `pnpm verify` complet avant la PR.
+Choix de l'étape 4 (2026-11-12) :
+- File « À relancer » (`rm.queue`) : chaque échéance en retard encore due d'un projet `enrolling`/`active` ; statut
+  `handled`/`dismissed` seulement si marquée aujourd'hui (le lendemain, elle revient `to_handle`). L'id de l'entrée est
+  celui de sa relance si elle est à traiter ou marquée du jour, sinon l'id de l'échéance (marquer crée alors une relance
+  manuelle déjà marquée). Message : celui de la relance, ou le message par défaut rendu pour la personne.
+- `rm.send` par `userIds` : échéances en retard de chaque personne ; sans retard, sa prochaine échéance due (une par
+  personne et projet). Personne ou projet d'une autre association : ignorée / 404.
+- `rm.queue` réservé à `reminders.send` (contrat) : le lecteur lit seulement `rm.hist`.
+- Front : toute la page Relances sous `<FeatureGate feature="auto_reminders">` (v0-mapping : « Écran V2
+  (`auto_reminders`) ») ; nouvel onglet « À relancer » (`?onglet=a-relancer`), une HandoffCard par entrée + « Ignorer » /
+  « Marquer relancée ». `auto_reminders` ajoutée à `DELIVERED_FEATURES`.
+- Mocks `rm.*` supprimés ; plus aucune écriture simulée n'a Idempotency-Key : le test du mécanisme de rejeu des mocks
+  (`mocks-conformite.test.ts`) est retiré, le mécanisme reste pour de futurs mocks.
