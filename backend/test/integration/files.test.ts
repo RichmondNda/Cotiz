@@ -343,6 +343,55 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
       expect((await getFile(ticket.fileId, koffiManagerOfB)).status).toBe(404);
     });
 
+    it('logo en cours de A : lu par ses souscripteurs actifs (subscriber_logo_read), ni autrui, ni un ancien logo', async () => {
+      const uploadLogo = async () => {
+        const ticket = await requestUpload(awaManagerOfA, {
+          purpose: 'logo',
+          fileName: 'logo.png',
+          mimeType: 'image/png',
+          sizeBytes: PNG.length,
+        });
+        await putFile(ticket, PNG);
+        expect((await post(`/uploads/${ticket.fileId}/complete`, awaManagerOfA)).status).toBe(202);
+        await markClean(ticket.fileId);
+        return ticket.fileId;
+      };
+      const [logo, next] = [await uploadLogo(), await uploadLogo()];
+      await h.superuser(
+        `INSERT INTO memberships (id, association_id, user_id, role, status, joined_at)
+         VALUES (gen_random_uuid(), $1, $2, 'subscriber', 'active', now())`,
+        [A.id, USERS.moussa],
+      );
+      try {
+        await h.superuser('UPDATE associations SET logo_file_id = $2 WHERE id = $1', [A.id, logo]);
+        const res = await getFile(logo, moussa);
+        expect(res.status).toBe(302);
+        expect((await fetch(res.headers.get('location') ?? '')).status).toBe(200);
+        // Lecture seulement : ni confirmation de dépôt, ni accès pour un souscripteur d'ailleurs.
+        expect((await post(`/uploads/${logo}/complete`, moussa)).status).toBe(404);
+        expect((await getFile(logo, fatou)).status).toBe(404);
+        // Logo déposé mais pas encore en place : illisible.
+        expect((await getFile(next, moussa)).status).toBe(404);
+        // Logo remplacé : l'ancien n'est plus lisible, le nouveau l'est.
+        await h.superuser('UPDATE associations SET logo_file_id = $2 WHERE id = $1', [A.id, next]);
+        expect((await getFile(logo, moussa)).status).toBe(404);
+        expect((await getFile(next, moussa)).status).toBe(302);
+        // Appartenance retirée : plus rien.
+        await h.superuser(
+          `UPDATE memberships SET status = 'removed', removed_at = now()
+            WHERE association_id = $1 AND user_id = $2 AND role = 'subscriber'`,
+          [A.id, USERS.moussa],
+        );
+        expect((await getFile(next, moussa)).status).toBe(404);
+      } finally {
+        await h.superuser('UPDATE associations SET logo_file_id = NULL WHERE id = $1', [A.id]);
+        await h.superuser(
+          `DELETE FROM memberships WHERE association_id = $1 AND user_id = $2 AND role = 'subscriber'`,
+          [A.id, USERS.moussa],
+        );
+      }
+    });
+
     it('un gestionnaire, hors du contexte de son association, ne lit ni ne confirme ce qu’il y a déposé', async () => {
       const ticket = await requestUpload(awaManagerOfA, {
         purpose: 'logo',

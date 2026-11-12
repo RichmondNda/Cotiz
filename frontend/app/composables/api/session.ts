@@ -33,7 +33,7 @@ export const useMoi = () => {
       fonction: role === 'souscripteur' ? 'Souscripteur' : courante?.title ? majuscule(courante.title) : undefined,
       associationId: courante?.association.id,
       association: courante && sub
-        ? { id: courante.association.id, nom: courante.association.name, sigle: initiales(courante.association.name), plan: sub.plan.name }
+        ? { id: courante.association.id, nom: courante.association.name, sigle: initiales(courante.association.name), plan: sub.plan.name, logoFichierId: courante.association.logoFileId ?? undefined }
         : undefined,
       associationsSouscrites: me.memberships
         .filter(x => x.role === 'subscriber')

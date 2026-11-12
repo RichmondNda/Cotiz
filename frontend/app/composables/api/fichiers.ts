@@ -23,3 +23,36 @@ export function useLectureFichier() {
     return URL.createObjectURL(await reponse.blob())
   }
 }
+
+/**
+ * Image d'un fichier déposé (logo de l'association…) affichable par `<img>` : URL `blob:` lue à chaque changement
+ * d'identifiant, libérée à la suivante et à la fin du composant ; `null` sans fichier, avant lecture ou en cas d'échec
+ * (l'appelant garde alors ses initiales).
+ */
+export function useImageFichier(fichierId: MaybeRefOrGetter<string | undefined>) {
+  const lire = useLectureFichier()
+  const url = ref<string | null>(null)
+  let tour = 0
+  const liberer = () => {
+    if (url.value) URL.revokeObjectURL(url.value)
+    url.value = null
+  }
+  watch(() => toValue(fichierId), async (id) => {
+    const moi = ++tour
+    liberer()
+    if (!id || !import.meta.client) return
+    try {
+      const lue = await lire(id)
+      if (moi === tour) url.value = lue
+      else URL.revokeObjectURL(lue)
+    }
+    catch {
+      // Fichier illisible (en analyse, retiré) : initiales.
+    }
+  }, { immediate: true })
+  onScopeDispose(() => {
+    tour++
+    liberer()
+  })
+  return url
+}

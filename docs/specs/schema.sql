@@ -1615,6 +1615,13 @@ CREATE POLICY subscriber_contract_pdf_create ON files FOR INSERT
               AND object_key = association_id::text || '/contract_pdf/' || id::text || '.pdf'
               AND EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = app_user_id() AND e.association_id = files.association_id
                             AND e.status = 'pending_signature'));
+-- Logo des associations dont il est membre actif (retours d'interface du 2026-11-12) : lecture seule, le logo en cours
+-- seulement (associations.logo_file_id), jamais un autre fichier de l'association.
+CREATE POLICY subscriber_logo_read ON files FOR SELECT
+  USING (app_space() = 'subscriber' AND purpose = 'logo'
+         AND EXISTS (SELECT 1 FROM associations a JOIN memberships m ON m.association_id = a.id
+                      WHERE a.id = files.association_id AND a.logo_file_id = files.id
+                        AND m.user_id = app_user_id() AND m.status = 'active'));
 
 -- outbox_events
 ALTER TABLE outbox_events ENABLE ROW LEVEL SECURITY;

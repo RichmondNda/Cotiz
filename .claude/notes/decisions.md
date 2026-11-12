@@ -906,3 +906,15 @@ Premier lot de corrections (sans écart à la maquette) ; calendrier, déconnexi
   `useDeclarationPossible` (lecture `me.projects` seule), fiche d'association, détail d'un projet, cartes de l'accueil.
 - Mes associations (choix de l'utilisateur : écran souscripteur) : une association n'est listée que si la personne y a
   un projet en cours ou un reste à régler (`me.assos` list, back) ; sa fiche reste servie par l'API.
+
+## Retours d'interface, second lot (2026-11-12, branche chore/retours-interface-2, accord « vas y »)
+Écarts consignés dans `docs/specs/ui-deviations.md` (5 lignes).
+- Calendrier : `CzChampDate` (cz/) = saisie masquée JJ/MM/AAAA + bouton qui ouvre le sélecteur natif
+  (`input type=date` caché ancré au bouton, `showPicker`, repli `focus`) ; création de projet et ajout d'un souscripteur.
+- Déconnexion souscripteur : bloc « moi » de `MemberSidebar` devenu un `CzMenu` (Mon profil, Se déconnecter),
+  ouvert vers le haut (prop `ouverture` de `CzMenu`) ; en mobile, icône de déconnexion dans l'en-tête de `/profil`.
+- Logo : affiché en espace gestionnaire seulement (`useImageFichier`, barre latérale et paramètres avec aperçu local) ;
+  plateforme : initiales.
+- Logo côté souscripteur (accord de l'utilisateur, 2026-11-12) : migration 0026, politique `subscriber_logo_read`
+  (lecture, logo en cours `associations.logo_file_id`, membre actif) ; `findFile` laisse passer `logo` en espace
+  souscripteur ; cartes « Mes associations » et fiche par `useImageFichier` (fl.get).

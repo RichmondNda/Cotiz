@@ -7,7 +7,7 @@
 import { useAjoutSouscripteur } from '~/composables/useAjoutSouscripteur'
 import { formatMois } from '~/utils/format'
 
-const { etat, erreurs, passes, courant, libellePasses, masqueDate, rechercher, projet } = useAjoutSouscripteur()
+const { etat, erreurs, passes, courant, libellePasses, rechercher, projet } = useAjoutSouscripteur()
 const r = computed(() => etat.resultat)
 const { data: association } = useAssociationGestionnaire()
 </script>
@@ -136,12 +136,7 @@ const { data: association } = useAssociationGestionnaire()
           label="Date d’entrée"
           :erreur="erreurs.dateEntree"
         >
-          <CzInput
-            :model-value="etat.dateEntree"
-            placeholder="JJ/MM/AAAA"
-            inputmode="numeric"
-            @update:model-value="masqueDate"
-          />
+          <CzChampDate v-model="etat.dateEntree" />
         </CzField>
       </div>
       <fieldset
