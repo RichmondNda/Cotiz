@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ReminderRule } from '@cotiz/contracts';
 import { reminderRules } from '@cotiz/db';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { assertPlanFeature } from '../../billing/billing.public.js';
 import { contextAssociationId } from '../../members/members.public.js';
@@ -56,7 +56,7 @@ export class UpdateReminderRuleUseCase {
         templateId,
         isActive: next.isActive,
       })
-      .where(eq(reminderRules.id, row.id))
+      .where(and(eq(reminderRules.associationId, associationId), eq(reminderRules.id, row.id)))
       .returning();
     if (!updated) throw new DomainProblem('not_found');
     const rule = toReminderRule(updated, next.message);

@@ -30,6 +30,7 @@ describe('file « À relancer », relance manuelle, historique (rm.queue, rm.sen
   let march: string;
   let april: string;
   let may: string;
+  let enrollment: string;
 
   const queue = async (query = '', token = f.tokens.awa) => {
     const res = await f.call(`/associations/${A.id}/reminders/queue${query}`, { token });
@@ -98,6 +99,7 @@ describe('file « À relancer », relance manuelle, historique (rm.queue, rm.sen
       ['auto_reminders'],
     ]);
     const m = await f.enrollByApi({ userId: USERS.moussa, startsFrom: '2026-03-01' });
+    enrollment = m.id;
     march = await f.installmentOf(m.id, '2026-03-05');
     april = await f.installmentOf(m.id, '2026-04-05');
     may = await f.installmentOf(m.id, '2026-05-05');
@@ -119,6 +121,44 @@ describe('file « À relancer », relance manuelle, historique (rm.queue, rm.sen
   };
 
   describe('rm.queue', () => {
+    it('message rendu avec le reste dû du jour : paiement partiel validé après la relance de la règle', async () => {
+      const templateId = crypto.randomUUID();
+      const ruleId = crypto.randomUUID();
+      await f.h.superuser(
+        `INSERT INTO message_templates (id, association_id, key, channel, subject, body)
+         VALUES ($1, $2, 'reminder.rule', 'manual', '', 'Reste {{montant}}, {{retard}} de retard.')`,
+        [templateId, A.id],
+      );
+      await f.h.superuser(
+        `INSERT INTO reminder_rules (id, association_id, trigger, offset_days, channels, template_id)
+         VALUES ($1, $2, 'after_due', 7, '{in_app}', $3)`,
+        [ruleId, A.id, templateId],
+      );
+      await f.h.superuser(
+        `INSERT INTO reminder_runs (id, association_id, rule_id, installment_id, user_id, kind, status, channels,
+                                    message, run_date)
+         VALUES ($6, $1, $2, $3, $4, 'automatic', 'to_handle', '{in_app}', $5, '2026-04-11')`,
+        [A.id, ruleId, march, USERS.moussa, `Reste ${F25}, 30 jours de retard.`, crypto.randomUUID()],
+      );
+      await f.record({
+        enrollmentId: enrollment,
+        userId: USERS.moussa,
+        associationId: A.id,
+        projectId: PROJECTS.a,
+        amount: 10_000,
+        status: 'validated',
+        declaredAt: '2026-04-11T12:00:00Z',
+        reviewedBy: USERS.awa,
+        reviewedAt: '2026-04-11T13:00:00Z',
+        amountReceived: 10_000,
+        lines: [{ installmentId: march, amount: 10_000, state: 'confirmed' }],
+      });
+      const entry = (await queue()).items.find((e) => e.installmentId === march);
+      expect(entry?.amountDue.amount).toBe(15_000);
+      expect(entry?.message).toBe(`Reste 15${THIN}000${NBSP}F, 38 jours de retard.`);
+      expect(entry?.smsUrl).toContain(encodeURIComponent(entry?.message ?? ''));
+    });
+
     it('liste exactement les retards encore dus, avec le message prêt et ses liens', async () => {
       const page = await queue();
       expect(page.total).toBe(2);

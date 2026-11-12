@@ -7,7 +7,7 @@ import { A, asManagerOf, B, USERS } from './harness.js';
 
 /**
  * Isolation HTTP des relances (lot 4.3) : par l'espace de B, son owner (Koffi) ne voit ni ne marque les entrées de A
- * (404, comme un identifiant inconnu), sa file et son historique ne montrent que B, et une relance ciblée sur une
+ * (404, comme un identifiant inconnu), ne lit ni ne modifie ses règles, sa file et son historique ne montrent que B, et une relance ciblée sur une
  * personne de A ne produit rien. Politiques élargies : la base laisse passer, le code filtre encore.
  *
  * Horloge simulée : Moussa (A, PROJECTS.a) et Fatou (B, PROJECTS.b) inscrits le 2026-03-01 ; aujourd'hui le 2026-04-12,
@@ -26,9 +26,10 @@ describe('isolation HTTP : relances', () => {
   let lateA: string;
   let lateB: string;
   let runA: string;
+  const RULE_A = '00000000-0000-7000-8000-0000000f3a01';
 
   const get = async (aid: string, path: string, token: string) => {
-    const res = await f.call(`/associations/${aid}/reminders${path}`, { token });
+    const res = await f.call(`/associations/${aid}${path}`, { token });
     expect(res.status).toBe(200);
     return (await res.json()) as Listed;
   };
@@ -59,9 +60,9 @@ describe('isolation HTTP : relances', () => {
     expect(await mark(B.id, lateA, koffi)).toBe(404);
     expect(await mark(B.id, runA, koffi)).toBe(404);
     expect(await mark(B.id, crypto.randomUUID(), koffi)).toBe(404);
-    const queue = await get(B.id, '/queue', koffi);
+    const queue = await get(B.id, '/reminders/queue', koffi);
     expect(queue.items.map((e) => e.member.id)).toEqual([USERS.fatou]);
-    const history = await get(B.id, '/history', koffi);
+    const history = await get(B.id, '/reminders/history', koffi);
     expect(history.items.map((h) => h.id)).not.toContain(runA);
     expect(history.items.map((h) => h.member.id)).not.toContain(USERS.moussa);
     const targeted = await send(B.id, { userIds: [USERS.moussa] }, koffi);
@@ -69,6 +70,17 @@ describe('isolation HTTP : relances', () => {
     expect(targeted.body.queued).toEqual([]);
     expect((await send(B.id, { allLate: true, projectId: PROJECTS.a }, koffi)).status).toBe(404);
     expect(await runsOfA()).toEqual([{ id: runA, status: 'to_handle' }]);
+    const rules = await get(B.id, '/reminder-rules', koffi);
+    expect(rules.items.map((r) => r.id)).not.toContain(RULE_A);
+    const patched = await f.call(`/associations/${B.id}/reminder-rules/${RULE_A}`, {
+      token: koffi,
+      method: 'PATCH',
+      body: { isActive: false },
+    });
+    expect(patched.status).toBe(404);
+    expect((await f.h.superuser('SELECT is_active FROM reminder_rules WHERE id = $1', [RULE_A])).rows).toEqual([
+      { is_active: true },
+    ]);
   };
 
   beforeAll(async () => {
@@ -85,6 +97,11 @@ describe('isolation HTTP : relances', () => {
     vi.setSystemTime(ENROLLED_ON);
     await f.h.superuser('DELETE FROM notifications');
     await f.h.superuser('DELETE FROM reminder_runs');
+    await f.h.superuser('DELETE FROM reminder_rules');
+    await f.h.superuser(
+      `INSERT INTO reminder_rules (id, association_id, trigger, offset_days, channels) VALUES ($1, $2, 'after_due', 7, '{in_app}')`,
+      [RULE_A, A.id],
+    );
     await f.resetLedger();
     await f.h.superuser(`UPDATE associations SET timezone = 'Africa/Abidjan' WHERE id = ANY($1::uuid[])`, [
       [A.id, B.id],
@@ -120,7 +137,7 @@ describe('isolation HTTP : relances', () => {
   });
 
   it('lecteur de A (Koffi) : lit l’historique ; file, marquage et envoi refusés (403)', async () => {
-    expect((await get(A.id, '/history', f.tokens.koffi)).items.map((h) => h.id)).toEqual([runA]);
+    expect((await get(A.id, '/reminders/history', f.tokens.koffi)).items.map((h) => h.id)).toEqual([runA]);
     expect((await f.call(`/associations/${A.id}/reminders/queue`, { token: f.tokens.koffi })).status).toBe(403);
     expect(await mark(A.id, runA, f.tokens.koffi)).toBe(403);
     expect((await send(A.id, { allLate: true }, f.tokens.koffi)).status).toBe(403);
@@ -129,15 +146,17 @@ describe('isolation HTTP : relances', () => {
 
   it('politiques élargies : la base montre A à B, l’API ne renvoie toujours rien de A', async () => {
     const open = { using: 'true', withCheck: 'true' };
-    await f.h.withPolicy('reminder_runs', 'tenant_isolation', open, () =>
-      f.h.withPolicy('installments', 'tenant_isolation', open, () =>
-        f.h.withPolicy('enrollments', 'tenant_isolation', open, async () => {
-          const visible = await f.h.as(asManagerOf(B), (tx) =>
-            tx.execute<{ id: string }>(sql`SELECT id FROM reminder_runs`).then((r) => r.rows.map((row) => row.id)),
-          );
-          expect(visible).toContain(runA);
-          await fromB();
-        }),
+    await f.h.withPolicy('reminder_rules', 'tenant_isolation', open, () =>
+      f.h.withPolicy('reminder_runs', 'tenant_isolation', open, () =>
+        f.h.withPolicy('installments', 'tenant_isolation', open, () =>
+          f.h.withPolicy('enrollments', 'tenant_isolation', open, async () => {
+            const visible = await f.h.as(asManagerOf(B), (tx) =>
+              tx.execute<{ id: string }>(sql`SELECT id FROM reminder_runs`).then((r) => r.rows.map((row) => row.id)),
+            );
+            expect(visible).toContain(runA);
+            await fromB();
+          }),
+        ),
       ),
     );
   });

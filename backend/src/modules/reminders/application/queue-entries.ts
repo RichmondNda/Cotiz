@@ -1,5 +1,5 @@
 import type { ReminderQueueEntry } from '@cotiz/contracts';
-import { reminderRuns } from '@cotiz/db';
+import { reminderRules, reminderRuns } from '@cotiz/db';
 import type { IsoDate } from '@cotiz/domain';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { z } from 'zod';
@@ -10,6 +10,7 @@ import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { renderTemplate } from '../../../shared/templates/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { handoffLinks } from '../domain/handoff-links.js';
+import { ruleTemplateBodiesOf } from '../infra/rule-templates.js';
 import { DEFAULT_REMINDER_MESSAGE, reminderVars } from '../domain/reminder-message.js';
 import type { ReminderRunRow } from './reminder-runs.js';
 
@@ -56,8 +57,30 @@ export function entryStatus(item: QueueItem, today: IsoDate): QueueEntry['status
 }
 
 /**
- * Entrées de la file pour l'écran : message de la dernière relance encore à traiter, sinon message par défaut rendu
- * pour la personne ; id = celui de cette relance, ou celui de l'échéance si elle n'a jamais été relancée (le marquage
+ * Message de la règle de chaque relance (texte courant de son modèle), pour le rendre à nouveau : le reste dû et le
+ * retard du jour, jamais ceux figés à la création de la relance (paiement partiel validé entre-temps).
+ */
+async function ruleMessagesOf(associationId: string, ruleIds: readonly string[]): Promise<Map<string, string>> {
+  if (ruleIds.length === 0) return new Map();
+  const rules = await currentTx()
+    .select({ id: reminderRules.id, templateId: reminderRules.templateId })
+    .from(reminderRules)
+    .where(and(eq(reminderRules.associationId, associationId), inArray(reminderRules.id, [...ruleIds])));
+  const bodies = await ruleTemplateBodiesOf(
+    associationId,
+    rules.flatMap((r) => (r.templateId ? [r.templateId] : [])),
+  );
+  return new Map(
+    rules.flatMap((r) => {
+      const body = r.templateId ? bodies.get(r.templateId) : undefined;
+      return body ? [[r.id, body] as const] : [];
+    }),
+  );
+}
+
+/**
+ * Entrées de la file pour l'écran : message rendu pour la personne avec le reste dû et le retard du jour — modèle de la
+ * règle de la relance, ou texte d'une relance manuelle du jour, sinon message par défaut ; id = celui de cette relance, ou celui de l'échéance si elle n'a jamais été relancée (le marquage
  * crée alors la relance, rm.queue › handled).
  */
 export async function toQueueEntries(
@@ -72,6 +95,9 @@ export async function toQueueEntries(
     items.map((i) => i.installment.userId),
   );
   const projects = await projectsOf(associationId, [...new Set(items.map((i) => i.installment.projectId))]);
+  const ruleMessages = await ruleMessagesOf(associationId, [
+    ...new Set(items.flatMap((i) => (i.run?.ruleId ? [i.run.ruleId] : []))),
+  ]);
   return items.flatMap((item) => {
     const { installment } = item;
     const status = entryStatus(item, today);
@@ -81,21 +107,24 @@ export async function toQueueEntries(
     const member = contacts.get(installment.userId);
     const project = projects.get(installment.projectId);
     if (!member || !project || !association) return [];
-    const message =
-      run?.message ??
-      renderTemplate(
-        DEFAULT_REMINDER_MESSAGE,
-        reminderVars({
-          firstName: member.firstName,
-          lastName: member.lastName,
-          projectName: project.name,
-          associationName: association.name,
-          remaining: installment.remaining,
-          dueDate: installment.dueDate,
-          today,
-        }),
-      ) ??
-      '';
+    const vars = reminderVars({
+      firstName: member.firstName,
+      lastName: member.lastName,
+      projectName: project.name,
+      associationName: association.name,
+      remaining: installment.remaining,
+      dueDate: installment.dueDate,
+      today,
+    });
+    const rendered = (template: string) =>
+      renderTemplate(template, vars) ?? renderTemplate(DEFAULT_REMINDER_MESSAGE, vars) ?? '';
+    const ruleMessage = run?.ruleId ? ruleMessages.get(run.ruleId) : undefined;
+    // Texte libre d'une relance manuelle : son modèle n'est pas gardé, il ne vaut que le jour de l'envoi.
+    const message = ruleMessage
+      ? rendered(ruleMessage)
+      : run?.message && run.runDate === today
+        ? run.message
+        : rendered(DEFAULT_REMINDER_MESSAGE);
     return [
       {
         id: run?.id ?? installment.id,
