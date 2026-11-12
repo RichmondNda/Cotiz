@@ -3,6 +3,7 @@ import type { Config } from './config.js';
 import { ConfigModule } from './config.module.js';
 import { BillingWorkerModule } from './modules/billing/billing-worker.module.js';
 import { DocumentsWorkerModule } from './modules/documents/documents-worker.module.js';
+import { ImportsWorkerModule } from './modules/imports/imports.public.js';
 import { FilesWorkerModule } from './modules/files/files-worker.module.js';
 import { IdentityWorkerModule } from './modules/identity/identity-worker.module.js';
 import { LedgerWorkerModule } from './modules/ledger/ledger-worker.module.js';
@@ -10,6 +11,7 @@ import { MembersWorkerModule } from './modules/members/members-worker.module.js'
 import { NotificationsWorkerModule } from './modules/notifications/notifications-worker.module.js';
 import { ProjectsWorkerModule } from './modules/projects/projects-worker.module.js';
 import { ReportingWorkerModule } from './modules/reporting/reporting-worker.module.js';
+import { CryptoModule } from './shared/crypto/index.js';
 import { createLogger, type Logger, LoggingModule } from './shared/logging/index.js';
 import { MetricsModule } from './shared/metrics/index.js';
 import { OutboxWorkerModule } from './shared/outbox/worker.js';
@@ -37,6 +39,8 @@ export class WorkerModule {
         QueueMetricsModule,
         SchedulerModule,
         StorageModule,
+        // Codes d'activation chiffrés : inscriptions faites par le worker (imports, lot 4.4).
+        CryptoModule,
         FilesWorkerModule,
         IdentityWorkerModule,
         BillingWorkerModule,
@@ -46,6 +50,7 @@ export class WorkerModule {
         NotificationsWorkerModule,
         ReportingWorkerModule,
         DocumentsWorkerModule,
+        ImportsWorkerModule,
       ],
     };
   }

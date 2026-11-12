@@ -52,6 +52,20 @@ export const QUEUES = {
       removeOnFail: { age: 24 * 3600 },
     },
   },
+  /**
+   * Imports de fichiers (jobs.yaml : concurrence 1 par association, verrou par association dans le processeur) :
+   * analyse, classement des lignes, exécution. Une exécution interrompue reprend aux lignes non traitées.
+   */
+  imports: {
+    name: 'imports',
+    concurrency: 4,
+    jobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 10_000 },
+      removeOnComplete: { age: 24 * 3600, count: 10_000 },
+      removeOnFail: { age: 7 * 24 * 3600 },
+    },
+  },
   /** Tâches planifiées (jobs.yaml, section scheduled) : une purge en échec (MinIO absent…) est reprise. */
   scheduled: {
     name: 'scheduled',

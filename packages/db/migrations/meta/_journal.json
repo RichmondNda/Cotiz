@@ -169,6 +169,13 @@
       "when": 1794500005000,
       "tag": "0023_notifications_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794500006000,
+      "tag": "0024_imports",
+      "breakpoints": true
     }
   ]
 }

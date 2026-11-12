@@ -293,25 +293,35 @@ export interface ContratProjet {
 
 /** Ligne d'un fichier d'import analysé. */
 export interface LigneImport {
+  /** Identifiant de la ligne (im.steps › row). */
+  id: Identifiant
   ligne: number
   prenom: string
   nom: string
   telephone: string
   email?: string
   adresse?: string
-  statut: 'prete' | 'compte_existant' | 'telephone_incomplet' | 'prenom_manquant' | 'doublon'
+  /** `erreur` : autre motif (nom manquant, email invalide, déjà inscrit…), détaillé par `motif`. */
+  statut: 'prete' | 'compte_existant' | 'telephone_incomplet' | 'prenom_manquant' | 'doublon' | 'erreur' | 'ignoree'
+  /** Texte du problème d'une ligne en erreur. */
+  motif?: string
   /** Doublon : ligne d'origine. */
   doublonDe?: number
 }
 
-/** Résultat de `fl.upload › create + im.flow › create + im.read › get` (fichier simulé en V0). */
+/** Import en cours (im.read › get) : colonnes du fichier, lignes par catégorie, progression de l'envoi. */
 export interface AnalyseImport {
+  id: Identifiant
   fichier: string
+  /** `analyse` : lecture ou classement en cours ; `colonnes` : correspondance à compléter ; `pret` : classé. */
+  etat: 'analyse' | 'colonnes' | 'pret' | 'envoi' | 'termine' | 'echec'
+  /** Motif d'un échec (fichier illisible, vide, trop long, refusé par l'antivirus, droits retirés…). */
+  echec: string | null
   nbLignes: number
   colonnes: { colonne: string, exemples: string[], champ: 'prenom' | 'nom' | 'telephone' | 'email' | 'adresse' | null }[]
-  compteurs: { pretes: number, comptesExistants: number, erreurs: number, doublons: number }
-  /** Lignes à examiner (erreurs, doublons) et exemples de lignes prêtes. */
-  lignes: LigneImport[]
+  compteurs: { pretes: number, comptesExistants: number, erreurs: number, doublons: number, ignorees: number }
+  progression: { total: number, traitees: number, inscrits: number, rattaches: number, echecs: number } | null
+  creeLe: string
 }
 
 /** Corps de `pr.patch › patch` (paramètres modifiables après création). */

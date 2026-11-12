@@ -241,3 +241,38 @@ export function contractSignedMessage(p: { name: string; projectId: string; proj
     vars: { souscripteur: p.name, projet: p.projectName },
   };
 }
+
+const importLink = (projectId: string) => `/asso/projets/${projectId}/import`;
+const lines = (n: number) => `${String(n)} ligne${n > 1 ? 's' : ''}`;
+
+/** Import terminé (lot 4.4) → gestionnaire : inscrits, comptes rattachés, lignes en échec. */
+export function importCompletedMessage(p: {
+  projectId: string;
+  projectName: string;
+  enrolled: number;
+  attached: number;
+  failed: number;
+}): RenderedMessage {
+  const total = p.enrolled + p.attached;
+  const failed = p.failed > 0 ? ` ${lines(p.failed)} en erreur.` : '';
+  return {
+    type: 'import.completed',
+    title: 'Import terminé',
+    body: `${String(total)} souscripteur${total > 1 ? 's' : ''} inscrit${total > 1 ? 's' : ''} au projet ${p.projectName}, dont ${String(p.attached)} déjà ${p.attached > 1 ? 'connus' : 'connu'}.${failed}`,
+    actionUrl: importLink(p.projectId),
+    data: { actionLabel: 'Voir le bilan', projectId: p.projectId },
+    vars: { projet: p.projectName },
+  };
+}
+
+/** Import échoué (lot 4.4) → gestionnaire : le fichier n'a pas pu être lu ou l'exécution s'est arrêtée. */
+export function importFailedMessage(p: { projectId: string; projectName: string }): RenderedMessage {
+  return {
+    type: 'import.failed',
+    title: 'Import interrompu',
+    body: `L'import de souscripteurs du projet ${p.projectName} n'a pas abouti. Le motif est indiqué sur l'import.`,
+    actionUrl: importLink(p.projectId),
+    data: { actionLabel: 'Voir l’import', projectId: p.projectId },
+    vars: { projet: p.projectName },
+  };
+}

@@ -20,6 +20,7 @@ import { AssociationIdParams, AssociationParams, ProjectParams } from '../common
 import { Email, PersonContact, PersonRef, PhoneE164 } from '../common/people.js';
 import { QuotaUsage } from '../common/plan.js';
 import { ProjectRef } from '../common/project.js';
+import { StoredFile, UploadRequest, UploadTicket } from './common.js';
 import { Instant, IsoDate, Money, Uuid } from '../common/scalars.js';
 import { defineEndpoint, noFlags } from '../registry.js';
 
@@ -110,14 +111,52 @@ export const ctList = defineEndpoint({
 
 export const ImportField = z.enum(['firstName', 'lastName', 'phone', 'email', 'address']);
 
+/** Champs sans lesquels une ligne ne peut pas être inscrite (NewMemberInput). */
+export const IMPORT_REQUIRED_FIELDS = ['firstName', 'lastName', 'phone'] as const;
+
+/** Lignes de données au plus dans un fichier (lot 4.4 : 5 000 lignes), en plus de la ligne d'en-tête. */
+export const IMPORT_MAX_ROWS = 5000;
+
+/**
+ * Motif d'un import `failed` : fichier refusé par l'analyse antivirus, illisible (ni CSV ni XLSX valide), sans ligne
+ * de données ou sans en-tête, au-delà de IMPORT_MAX_ROWS ; `requester_removed` : la personne qui a lancé l'envoi ne gère
+ * plus l'association ; `internal` : exécution interrompue (erreur imprévue).
+ */
+export const ImportFailure = z.enum([
+  'file_rejected',
+  'unreadable',
+  'empty',
+  'too_many_rows',
+  'requester_removed',
+  'internal',
+]);
+
 export const ImportJob = z.object({
   id: Uuid,
   projectId: Uuid,
   sourceFileId: Uuid,
+  /**
+   * `uploaded` : fichier en cours d'analyse ; `mapped` : colonnes détectées, lignes en cours de classement ;
+   * `validated` : lignes classées, prêtes à l'envoi ; `importing` : inscriptions en cours ; `completed` ; `failed`.
+   */
   status: ImportJobStatus,
   /** Colonnes du fichier, 3 valeurs d'exemple, champ Cotiz retenu (`null` = ignorée). */
   columns: z.array(z.object({ name: z.string(), samples: z.array(z.string()).max(3), field: ImportField.nullable() })),
   counts: z.record(ImportRowCategory, z.int().nonnegative()),
+  /**
+   * Exécution (`importing`, `completed`) : lignes traitées sur le total à inscrire ; nouveaux comptes (codes à
+   * remettre), comptes existants rattachés, lignes refusées. `null` avant l'envoi.
+   */
+  progress: z
+    .object({
+      total: z.int().nonnegative(),
+      processed: z.int().nonnegative(),
+      enrolled: z.int().nonnegative(),
+      attached: z.int().nonnegative(),
+      failed: z.int().nonnegative(),
+    })
+    .nullable(),
+  failure: ImportFailure.nullable(),
   createdAt: Instant,
 });
 
@@ -126,7 +165,11 @@ export const ImportRow = z.object({
   rowNumber: z.int().min(1),
   category: ImportRowCategory,
   values: z.partialRecord(ImportField, z.string()),
-  errors: z.array(z.object({ field: ImportField, code: z.string() })),
+  /**
+   * Erreurs de la ligne : `required`, `invalid_phone`, `invalid_email`, `too_long` sur un champ ; après l'envoi, code
+   * d'erreur du cas d'usage d'inscription (`already_enrolled`, `quota_exceeded`, `invalid_state`…), sans champ.
+   */
+  errors: z.array(z.object({ field: ImportField.nullable(), code: z.string() })),
   /** Doublon : ligne d'origine. */
   duplicateOf: z.int().min(1).nullable(),
   /** Compte existant rattaché. */
@@ -134,6 +177,32 @@ export const ImportRow = z.object({
 });
 
 const ImportParams = AssociationIdParams;
+
+/** Fichier d'un import (CSV, XLSX), déposé sous l'URL de l'association (décision 24 : le jeton ne la porte pas). */
+export const ImportUploadRequest = UploadRequest.extend({ purpose: z.literal('import_source') });
+
+export const imUpload = defineEndpoint({
+  id: 'im.upload',
+  space: 'association',
+  permission: 'members.manage',
+  errors: ['file_too_large', 'file_type_not_allowed', 'file_not_clean'],
+  flags: { ...noFlags, rateLimited: true },
+  operations: {
+    create: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/imports/uploads',
+      request: { params: AssociationParams, body: ImportUploadRequest },
+      response: { status: 201, body: UploadTicket },
+    },
+    /** Confirme le dépôt ; l'analyse antivirus se poursuit dans le worker (l'import l'attend). */
+    complete: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/imports/uploads/{id}/complete',
+      request: { params: AssociationIdParams },
+      response: { status: 202, body: StoredFile },
+    },
+  },
+});
 
 export const imFlow = defineEndpoint({
   id: 'im.flow',

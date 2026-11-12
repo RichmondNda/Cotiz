@@ -746,3 +746,60 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
 - `dev` créée depuis `origin/backend` (8d8ee49, PR #65 incluse) ; Dokploy dev (`cotiz-dev`) suit `dev`, recette suit `backend`.
 - Flux : `lot/*`, `chore/*` → PR `--base dev` → PR `dev` → `backend` (promotion en recette, sur demande) → `main`. Règles dans CLAUDE.md ; `tools/recette-dokploy.mjs` prend la branche de la cible par défaut.
 
+
+## 2026-11-12 · Plan du lot 4.4 (branche `lot/4.4-imports` depuis `origin/dev`, une PR vers `dev`, un commit par étape)
+Lu : `docs/lots/4.4`, `architecture/04` § 4.8, `ui/manager.md#mg-import`, `schema.sql` (lot 4.4 + RLS + FK),
+`data-model.md`, `endpoints.yaml` (`im.*`), `events.yaml` (`import.*`), `jobs.yaml` (`imports`, concurrence 1 par
+association), `features.yaml` (`imports`, planGated), `ui-deviations.md` (canal des invitations supprimé). Contrats Zod
+déjà présents (`manager-misc.ts`), mocks `frontend/server/mocks/handlers/imports.ts`, front V0 (composable
+`useImportSouscripteurs` sur types V0). Dépendance 3.5 `terminé`, aucune décision listée.
+Aucune contradiction avec `docs/specs/` ; remarques : architecture/04 dit « quatre états » mais en liste six (enum
+`import_jobs_status` suivi) ; pas de colonne `duplicate_of` (doublon rangé dans `errors`, code `duplicate`, `row`).
+Choix autonomes :
+- Machine d'états : `uploaded` (analyse en attente : fichier en cours d'analyse antivirus ou lecture) → `mapped`
+  (colonnes détectées, correspondance proposée, lignes brutes stockées) → `validated` (lignes classées, worker) →
+  `importing` → `completed` / `failed`. Mappage complet dès l'analyse → classement enchaîné (`validated`).
+  `PATCH mapping` : `mapped`/`validated` seulement, champs obligatoires (prénom, nom, téléphone) et pas deux colonnes
+  sur le même champ, sinon `validation_failed` ; repasse `mapped` et relance le classement. `PATCH row` : `validated`
+  seulement, revalidé tout de suite (une ligne). Commit : `validated` seulement ; inscrit `ready` + `existing`,
+  `error`/`duplicate`/`ignored` sautées.
+- Classement : téléphone normalisé avec le pays de l'association (`0712345678` → +225…), `existing` = compte trouvé
+  par téléphone (`resolved_user_id`), déjà inscrit au projet → `error` `already_enrolled`, même téléphone qu'une ligne
+  précédente → `duplicate`.
+- Quota : `im.flow` refuse (409) si l'association n'a plus aucune place ; `im.commit` refuse si les lignes à inscrire
+  dépassent les places restantes (détails `limit`, `usage`) ; en.create recontrôle chaque ligne.
+- Fonctionnalité `imports` (planGated) : `assertPlanFeature` → 403 `feature_disabled` (comme les contrats).
+- Contrat (`packages/contracts`, pas `docs/specs`) : `ImportJob.counts` n'admet pas `imported` (prévu par
+  `schema.sql`) → ajout de `progress { processed, total, enrolled, attached, failed } | null` et `error` (code) ; mocks
+  et front mis à jour ensemble.
+- Lecture : `exceljs` (nommé par le lot ; paquet npm public) pour XLSX, lecteur CSV maison (`;` ou `,`, guillemets,
+  BOM UTF-8) ; 5 000 lignes, 5 Mo (taille de dépôt existante).
+- Progression : interrogation toutes les 2 s (le flux SSE du lot 4.2 ne porte que des notifications) ;
+  `import.completed`/`import.failed` → notification au gestionnaire auteur.
+1. **Tables** — migration `0024_imports.sql` (enums, tables, FK, RLS FORCE `tenant_isolation`, index
+   `import_rows (import_job_id, row_number)` unique), Drizzle `packages/db/src/schema/imports.ts`. Tests : conformité
+   du schéma, `test/isolation/imports.test.ts` (autre association, politique affaiblie). Vérif : migration + tests.
+2. **Analyse** — module back `imports` (api + worker) : `im.flow` (fichier `import_source` de l'association, type,
+   projet ouvert, quota, `import.created`, Idempotency-Key), consommateur → file `imports` (job `analyze`, concurrence
+   1 ; fichier pas encore analysé → reprise différée ; infecté → `failed`), lecture CSV/XLSX, colonnes + 3 exemples,
+   correspondance automatique par nom, lignes stockées par lots. Tests : lecteur (unitaires), intégration 5 000 lignes
+   (l'API répond pendant l'analyse), isolation HTTP.
+3. **Mappage et correction** — `im.steps`, `im.read` (pagination, filtre catégorie), job `validate` ; tests
+   d'intégration par catégorie (ready/existing/error/duplicate/ignored), états interdits, isolation.
+4. **Exécution** — `im.commit` (202, audit, Idempotency-Key), job `commit` qui appelle `CreateEnrollmentUseCase.enroll`
+   ligne par ligne (même résultat qu'en.create : test comparatif), progression, `import.completed`/`failed`,
+   notification. Front : composable sur `im.*` + `fl.upload` réel, interrogation 2 s, bilan avec lien « Codes à
+   remettre » et fiche imprimable groupée (impression navigateur) ; bascule `im.*`, handlers simulés supprimés,
+   `/verifier-ecran /asso/projets/:id/import`.
+Vérification : tests ciblés par étape, `pnpm verify` complet une fois avant la PR (accord du 2026-11-11).
+
+### Lot 4.4 · étape 4 — choix faits en autonome (2026-11-12)
+- Notification `import.completed` / `import.failed` (in-app, gestionnaire) : à la personne qui a lancé l'envoi (ou
+  créé l'import) si elle gère encore l'association, sinon à tous les gestionnaires ; lien `/asso/projets/:id/import`.
+- Exécution : chaque ligne passe par son téléphone (comme en.create), jamais par le compte vu au classement ;
+  demandeur recontrôlé au départ, à chaque reprise et toutes les 25 lignes (`requester_removed`).
+- Front : fiches imprimées = codes non remis émis depuis la création de l'import (pas d'identifiant de compte par
+  ligne dans le contrat) ; lignes en erreur autre que prénom ou téléphone : motif affiché, ligne à ignorer seulement.
+- Dépôt du fichier : `im.upload` sous `/associations/{aid}/imports/uploads` (choix de l'utilisateur, 2026-11-12 :
+  `fl.upload` refuse le jeton association, décision 24) ; spec modifiée avec accord (endpoints, permissions, screens,
+  fiche du lot). Handlers simulés de fl.upload et im.* supprimés (« supprime-les et termine le lot »).

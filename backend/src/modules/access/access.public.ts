@@ -28,6 +28,7 @@ export {
   activeSubscriberIdsOf,
   admitSubscriber,
   isSubscriberOf,
+  quotaCountedSubscribersOf,
   subscriberMembershipOf,
 } from './application/subscriber-membership.js';
 export { platformSubscribersCount, platformTeamSizes, type TeamSize } from './application/platform-team-stats.js';

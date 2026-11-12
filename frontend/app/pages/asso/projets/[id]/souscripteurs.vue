@@ -210,12 +210,15 @@ async function apresInscription() {
       <CzButton @click="ajoutOuvert = true">
         + Ajouter
       </CzButton>
-      <CzButton
-        variante="secondaire"
-        :to="`/asso/projets/${id}/import`"
-      >
-        Importer (Excel)
-      </CzButton>
+      <FeatureGate feature="imports">
+        <CzButton
+          variante="secondaire"
+          :to="`/asso/projets/${id}/import`"
+        >
+          Importer (Excel)
+        </CzButton>
+        <template #indisponible />
+      </FeatureGate>
     </div>
 
     <!-- Barre d'outils -->
@@ -256,13 +259,16 @@ async function apresInscription() {
         v-if="projet.souscripteursRequis"
         class="souscripteurs__requis"
       ><b>{{ projet.nbSouscripteurs }} / {{ projet.souscripteursRequis }}</b> souscripteurs requis</span>
-      <CzButton
-        variante="secondaire"
-        taille="sm"
-        :to="`/asso/projets/${id}/import`"
-      >
-        Importer (Excel)
-      </CzButton>
+      <FeatureGate feature="imports">
+        <CzButton
+          variante="secondaire"
+          taille="sm"
+          :to="`/asso/projets/${id}/import`"
+        >
+          Importer (Excel)
+        </CzButton>
+        <template #indisponible />
+      </FeatureGate>
       <CzButton
         taille="sm"
         @click="ajoutOuvert = true"
@@ -281,13 +287,16 @@ async function apresInscription() {
       >
         <template #action>
           <div class="souscripteurs__vide-actions">
-            <CzButton
-              variante="secondaire"
-              taille="sm"
-              :to="`/asso/projets/${id}/import`"
-            >
-              Importer (Excel)
-            </CzButton>
+            <FeatureGate feature="imports">
+              <CzButton
+                variante="secondaire"
+                taille="sm"
+                :to="`/asso/projets/${id}/import`"
+              >
+                Importer (Excel)
+              </CzButton>
+              <template #indisponible />
+            </FeatureGate>
             <CzButton
               taille="sm"
               @click="ajoutOuvert = true"

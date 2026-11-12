@@ -122,4 +122,10 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['me.contract', 'all'],
   ['me.sign', 'all'],
   ['me.contracts', 'all'],
+  // Lot 4.4 : imports de souscripteurs (fichier lu par le worker, classement, correction, envoi).
+  ['im.upload', 'all'],
+  ['im.flow', 'all'],
+  ['im.steps', 'all'],
+  ['im.read', 'all'],
+  ['im.commit', 'all'],
 ])

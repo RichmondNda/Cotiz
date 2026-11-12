@@ -15,4 +15,7 @@ export { installmentsByEnrollment, installmentView } from './application/enrollm
 export { associationToday, contextAssociationId } from './application/member-context.js';
 // Espace souscripteur (lot 3.2) : inscriptions de la personne connectée, calculées comme la vue gestionnaire.
 export { type SubscriberEnrollment, subscriberEnrollmentsOf } from './application/subscriber-enrollments.js';
-export { enrollmentOwnerOf } from './application/enrollment-records.js';
+export { enrollmentOwnerOf, enrolledUserIdsOf } from './application/enrollment-records.js';
+// Import en masse (lot 4.4, worker) : chaque ligne passe par le cas d'usage unitaire, codes hachés d'avance.
+export { CreateEnrollmentUseCase } from './application/create-enrollment.use-case.js';
+export { PreparedCodes } from './application/bulk-enroll.use-case.js';

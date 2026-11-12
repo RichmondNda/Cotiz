@@ -80,7 +80,6 @@ async function problemOf(p: Promise<unknown>) {
 // ---------------------------------------------------------------- Entrées d'exemple
 
 const aid = ID.entraide
-const P = { aid, pid: ID.centre }
 const money = (amount: number) => ({ amount, currency: 'XOF' })
 const moussaCentreLate = () => [
   { installmentId: uid('installment', 'centre-communautaire:moussa-diarra:6'), amount: money(25000) },
@@ -107,31 +106,6 @@ const WRITES: Record<string, () => Call> = {
   'rm.rules patch': () => ({ params: { aid, id: uid('reminder-rule', 'jour-j') }, body: { isActive: false } }),
   'rm.queue handled': () => ({ params: { aid, id: uid('reminder-run', `queue-${uid('installment', 'centre-communautaire:moussa-diarra:6')}`) }, body: { outcome: 'handled' } }),
   'rm.send send': () => ({ params: { aid }, body: { projectId: ID.centre, allLate: true } }),
-  'fl.upload create': () => ({ as: 'subscriber', body: { purpose: 'payment_proof', fileName: 'recu.jpg', mimeType: 'image/jpeg', sizeBytes: 1000 } }),
-  'fl.upload complete': () => ({ as: 'subscriber', params: { id: 'X' }, setup: upload } as Call),
-  'im.flow create': () => ({ params: P, body: { fileId: 'X' }, setup: uploadXlsx } as Call),
-  'im.read get': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-  'im.read rows': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-  'im.steps mapping': () => ({ params: { aid, id: 'X' }, body: { mapping: { Mail: null } }, setup: importJob } as Call),
-  'im.steps row': () => ({ params: { aid, id: 'X', rowId: 'X' }, body: { ignore: true }, setup: importJob } as Call),
-  'im.commit commit': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-}
-
-// Étapes préalables de certaines écritures (dépôt, import) : elles remplissent les `X` de l'appel.
-async function upload(c: Call) {
-  const t = await call('fl.upload', 'create', { as: 'subscriber', body: { purpose: 'payment_proof', fileName: 'recu.jpg', mimeType: 'image/jpeg', sizeBytes: 1000 } }) as { fileId: string }
-  c.params = { id: t.fileId }
-}
-async function uploadXlsx(c: Call) {
-  const t = await call('fl.upload', 'create', { as: 'association', body: { purpose: 'import_source', fileName: 'membres.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', sizeBytes: 1000 } }) as { fileId: string }
-  c.body = { fileId: t.fileId }
-}
-async function importJob(c: Call) {
-  const b: Call = {}
-  await uploadXlsx(b)
-  const job = await call('im.flow', 'create', { params: P, body: b.body }) as { id: string }
-  const rows = await call('im.read', 'rows', { params: { aid, id: job.id } }) as { items: { id: string }[] }
-  c.params = { ...c.params, id: job.id, ...(c.params && 'rowId' in c.params ? { rowId: rows.items[0]!.id } : {}) }
 }
 
 beforeEach(() => resetDb())

@@ -10,6 +10,7 @@ export { IdentityCliModule } from './identity-cli.module.js';
 export { type ManagerAccount, ManagerAccounts, type ManagerContact } from './application/manager-accounts.js';
 export {
   accountByPhone,
+  accountsByPhones,
   accountMatches,
   type IdentityChanges,
   type NewSubscriber,
