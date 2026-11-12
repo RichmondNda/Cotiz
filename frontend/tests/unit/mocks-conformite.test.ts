@@ -90,7 +90,7 @@ const moussaCentreLate = () => [
 const READS: Record<string, Call> = {
   'me.prefs get': {},
   'pf.invoices list': {}, 'pf.staff list': {},
-  'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
+  'bl.inv list': { params: { aid } },
   'me.assos list': {}, 'me.assos get': { params: { aid } },
 }
 
@@ -98,9 +98,6 @@ const READS: Record<string, Call> = {
 const WRITES: Record<string, () => Call> = {
   'auth.mfa verify': () => ({ body: { mfaToken: 'mfa.x', code: '481902' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
-  'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
-  'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
-  'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
 }
 
 beforeEach(() => resetDb())
@@ -183,13 +180,13 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   }
 
   // version_conflict (If-Match) : plus aucune écriture simulée ne l'exige depuis la bascule de ct.get (lot 4.1).
-  it('scénarios : quota_exceeded, association_suspended', async () => {
-    expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
-    expect(await problem('tm.team', 'list', { ...READS['tm.team list'], scenario: 'association_suspended' })).toBe('association_suspended')
+  // quota_exceeded : plus aucune écriture simulée ne le déclare depuis la bascule de tm.team (lot 4.5).
+  it('scénario : association_suspended', async () => {
+    expect(await problem('bl.inv', 'list', { ...READS['bl.inv list'], scenario: 'association_suspended' })).toBe('association_suspended')
   })
 
   it('ressource d’une autre association → 404', async () => {
-    expect(await problem('tm.team', 'list', { params: { aid: ID.man } })).toBe('not_found')
+    expect(await problem('bl.inv', 'list', { params: { aid: ID.man } })).toBe('not_found')
   })
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {

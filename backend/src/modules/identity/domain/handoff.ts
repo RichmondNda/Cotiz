@@ -52,7 +52,9 @@ const DAY = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', ti
 export function buildHandoff(input: HandoffInput): Handoff {
   const { recipient, code } = input;
   const activation = input.purpose !== 'password_reset';
-  const activatePageFor = activationPage(input.appUrl, input.space, recipient.phone);
+  const page = activationPage(input.appUrl, input.space, recipient.phone);
+  // Invitation d'un compte existant : la page demande le mot de passe actuel (lot 4.5).
+  const activatePageFor = input.invitation?.existingAccount ? `${page}&compte=existant` : page;
   const invitation = input.invitation;
   const lines = invitation
     ? [

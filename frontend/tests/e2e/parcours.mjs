@@ -1,7 +1,7 @@
 // Parcours de fumée de la V0 (lots 09 et 0.3), rejoués sur le serveur de dev (mocks Nitro conformes au contrat).
 //   node tests/e2e/parcours.mjs            → tous les parcours
 //   node tests/e2e/parcours.mjs plateforme → un seul (jalon | public | souscripteur | gestionnaire | plateforme |
-//                                            activation | reinitialisation | declaration | contrat)
+//                                            activation | reinitialisation | declaration | contrat | equipe)
 //   COTIZ_BASE=http://localhost:3080 node tests/e2e/parcours.mjs jalon → boucle V1 complète sur la pile Docker (lot 3.5)
 // Captures de chaque étape : .verif/e2e/<parcours>/. Code de sortie 1 si une étape échoue.
 import { readFileSync } from 'node:fs'
@@ -357,6 +357,67 @@ const PARCOURS = {
   // Lot 3.1, étape 3 : un souscripteur qui a oublié son mot de passe le récupère sans fournisseur. Demande depuis
   // « Mot de passe oublié », code à 6 chiffres généré par Awa (Réinitialisations, identité vérifiée hors ligne), saisi par
   // le souscripteur, nouveau mot de passe, connexion.
+  // Lot 4.5 : Awa invite une gestionnaire (code team_invite et message prêt, sans email), la personne active son compte
+  // avec ce code depuis /activer, puis Awa lui retire l'accès (la place se libère : parcours rejouable).
+  equipe: () => {
+    const c = nouveauCompte()
+    const suffixe = String(Date.now()).slice(-6)
+    const invitee = { prenom: 'Mariam', nom: `Diallo ${suffixe}`, email: `equipe-${suffixe}@essai.cotiz.app`, motDePasse: 'Lagune-Equipe-2027' }
+    let code = ''
+    return parcours('equipe', {}, [
+      ['connexion-gestionnaire', c.connexionGestionnaire],
+      ['invitation', async (page) => {
+        // Flux temps réel de la cloche (SSE) : le réseau n'est jamais au repos sur la pile réelle.
+        await page.goto('/asso/equipe', { waitUntil: 'load' })
+        await page.getByRole('row').filter({ hasText: 'Principale' }).first().waitFor()
+        await page.getByRole('button', { name: 'Inviter un gestionnaire' }).filter({ visible: true }).first().click()
+        await page.getByPlaceholder('Prénom').fill(invitee.prenom)
+        await page.getByPlaceholder('Nom', { exact: true }).fill(invitee.nom)
+        await page.getByPlaceholder('nom@exemple.com').fill(invitee.email)
+        const reponse = page.waitForResponse(r => r.url().endsWith('/team/invitations'))
+        await page.getByRole('button', { name: 'Envoyer l’invitation' }).click()
+        await assert((await reponse).status() === 201, 'Invitation créée (201)')
+        const valeur = page.locator('.handoff__valeur').first()
+        await valeur.waitFor({ timeout: 10_000 })
+        code = (await texte(valeur)).trim()
+        await assert(/^[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/.test(code), `Code d’invitation affiché : « ${code} »`)
+        const message = await page.getByRole('dialog').locator('textarea').first().inputValue()
+        await assert(message.includes('vous invite à rejoindre son équipe') && message.includes(code), 'Message prêt de l’invitation, avec le code')
+        await page.keyboard.press('Escape')
+        await contient(page, 'Invitation envoyée', 'Ligne de l’invitée')
+      }],
+      ['activation-invitee', async (page) => {
+        const autre = await page.context().browser().newContext({ baseURL: new URL(page.url()).origin })
+        try {
+          const p = await autre.newPage()
+          await p.goto('/activer?espace=association', { waitUntil: 'load' })
+          await p.getByLabel('Email').fill(invitee.email)
+          await p.getByLabel('Code d’activation').fill(code)
+          await p.getByLabel('Nouveau mot de passe', { exact: true }).fill(invitee.motDePasse)
+          await p.getByLabel('Confirmer le mot de passe', { exact: true }).fill(invitee.motDePasse)
+          await p.getByRole('button', { name: 'Activer mon compte' }).click()
+          await p.waitForURL(u => new URL(u).pathname.startsWith('/asso'), { timeout: 15_000 })
+        }
+        finally {
+          await autre.close()
+        }
+        await page.reload({ waitUntil: 'load' })
+        const ligne = page.getByRole('row').filter({ hasText: invitee.nom })
+        await ligne.waitFor()
+        await assert(await ligne.getByText('Actif').isVisible(), 'L’invitée est active dans l’équipe')
+      }],
+      ['retrait', async (page) => {
+        const ligne = page.getByRole('row').filter({ hasText: invitee.nom })
+        await ligne.getByRole('button', { name: /Actions pour/ }).click()
+        await page.getByRole('menuitem', { name: 'Retirer l’accès' }).click()
+        const reponse = page.waitForResponse(r => r.request().method() === 'DELETE' && r.url().includes('/team/'))
+        await page.getByRole('dialog').getByRole('button', { name: 'Retirer l’accès' }).click()
+        await assert((await reponse).status() === 204, 'Accès retiré (204)')
+        await page.waitForTimeout(500)
+        await assert(!(await page.getByRole('main').getByText(invitee.nom).isVisible()), 'L’invitée ne figure plus dans l’équipe')
+      }],
+    ])
+  },
   reinitialisation: () => {
     const c = nouveauCompte()
     const nouveau = 'Lagune-Oubli-2027'

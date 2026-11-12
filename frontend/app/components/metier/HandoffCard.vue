@@ -23,7 +23,9 @@ const props = withDefaults(defineProps<{
   lien?: string | null
   /** Nom de l'association, en tête de la fiche imprimable. */
   association?: string
-}>(), { code: undefined, expireLe: undefined, whatsapp: null, sms: null, mailto: null, lien: null, association: undefined })
+  /** Libellé au-dessus du code (« Code d’invitation » pour une équipe, lot 4.5). */
+  libelleCode?: string
+}>(), { libelleCode: 'Code d’activation', code: undefined, expireLe: undefined, whatsapp: null, sms: null, mailto: null, lien: null, association: undefined })
 
 /** Code remis à la personne (sans retour arrière) ; `undefined` : case masquée. */
 const remis = defineModel<boolean | undefined>('remis', { default: undefined })
@@ -77,7 +79,7 @@ async function partager() {
       v-if="code"
       class="handoff__code"
     >
-      <span class="handoff__surtitre">Code d’activation</span>
+      <span class="handoff__surtitre">{{ libelleCode }}</span>
       <span class="cz-mono handoff__valeur">{{ code }}</span>
       <span
         v-if="expireLe"

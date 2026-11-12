@@ -225,6 +225,7 @@ describe('équipe (tm.team)', () => {
     expect(member.member.id).toBe(USERS.moussa);
     expect(member.member.firstName).not.toBe('Adjoua');
     expect(handoff.message).toContain('votre mot de passe actuel');
+    expect(handoff.activationUrl).toMatch(/\/activer\?espace=association&compte=existant$/);
     const hashOf = async () =>
       (
         (await f.h.superuser(`SELECT password_hash FROM credentials WHERE user_id = $1`, [USERS.moussa])).rows[0] as {
