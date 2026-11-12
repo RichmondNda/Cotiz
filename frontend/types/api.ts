@@ -365,8 +365,28 @@ export interface EnvoiRelance {
   par: string
 }
 
+/** Entrée de la file « À relancer » (`rm.queue`) : message prêt à transmettre soi-même, puis marquage. */
+export interface EntreeARelancer {
+  id: Identifiant
+  souscripteurId: Identifiant
+  nom: string
+  telephone: string
+  projetId: Identifiant
+  nomProjet: string
+  echeance: DateISO
+  montant: MontantFCFA
+  retardDepuis: DateISO | null
+  message: string
+  whatsapp: string | null
+  sms: string | null
+  /** `a_traiter` ; `relancee` / `ignoree` : marquée aujourd'hui. */
+  statut: 'a_traiter' | 'relancee' | 'ignoree'
+}
+
 /** `rm.queue › list + rm.rules › list + rm.hist › list` — relances de l'association du gestionnaire. */
 export interface Relances {
+  /** File du jour, la plus ancienne échéance d'abord. */
+  aRelancer: EntreeARelancer[]
   retardataires: LigneRetard[]
   /** Souscripteurs en retard / actifs (KPI « 14 sur 52 »). */
   nbEnRetard: number

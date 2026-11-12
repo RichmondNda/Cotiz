@@ -10,7 +10,7 @@ import { SEED } from '../reference'
 import type {
   ActivationCodeRow, AllocationRow, AssociationRow, ContractRow, EnrollmentRow, EventRow, InstallmentRow, InvoiceRow,
   MembershipRow, MockDb, PaymentMethodRow, PaymentRow, PlanRow, PreferenceRow, ProjectRow,
-  ReminderRuleRow, ReminderRunRow, RequestRow, StaffRow, SubscriptionRow, UnlistedRow, UserRow,
+  RequestRow, StaffRow, SubscriptionRow, UnlistedRow, UserRow,
 } from './types'
 
 const at = (date: string, time = '09:00') => `${date}T${time}:00Z`
@@ -388,39 +388,6 @@ function requests(): RequestRow[] {
   ]
 }
 
-// ---------------------------------------------------------------- Relances
-function reminderRules(): ReminderRuleRow[] {
-  const E = A('entraide-yopougon')
-  const R = (key: string, trigger: ReminderRuleRow['trigger'], offsetDays: number, message: string): ReminderRuleRow => ({
-    id: uid('reminder-rule', key), associationId: E, projectId: null, trigger, offsetDays, channels: ['in_app', 'push'], message, isActive: true, createdAt: at('2026-03-01'),
-  })
-  return [
-    R('avant-3j', 'before_due', 3, 'Rappel doux : montant et date de la prochaine échéance'),
-    R('jour-j', 'on_due', 0, 'Si aucun paiement n’a été déclaré'),
-    R('retard-7j', 'after_due', 7, 'Signale le retard et le montant dû'),
-    R('retard-15j', 'after_due', 15, 'Relance ferme, copie au gestionnaire'),
-  ]
-}
-
-function reminderRuns(): ReminderRunRow[] {
-  const E = A('entraide-yopougon')
-  const C = uid('project', 'centre-communautaire')
-  const run = (key: string, atIso: string, kind: ReminderRunRow['kind'], user: string, o: Partial<ReminderRunRow> = {}): ReminderRunRow => ({
-    id: uid('reminder-run', key), associationId: E, at: atIso, kind, status: kind === 'automatic' ? 'auto_sent' : 'handled', userId: U(user),
-    projectId: C, installmentId: null, channels: ['in_app'], message: null, triggeredBy: null, ruleId: null, ...o,
-  })
-  const r15 = uid('reminder-rule', 'retard-15j')
-  return [
-    run('auto-0920-moussa', '2026-09-20T07:30:00Z', 'automatic', 'moussa-diarra', { ruleId: r15 }),
-    run('auto-0920-koffi', '2026-09-20T07:30:00Z', 'automatic', 'koffi-brou', { ruleId: r15 }),
-    run('auto-0920-mariam', '2026-09-20T07:30:00Z', 'automatic', 'mariam-diallo', { ruleId: r15 }),
-    run('man-0912-jean', '2026-09-12T10:00:00Z', 'manual', 'jean-kouassi', { triggeredBy: U('awa-kone') }),
-    // Relance de la frise de la fiche (MgSouscripteur), sans règle associée dans la maquette.
-    run('auto-0910-moussa', '2026-09-10T07:30:00Z', 'automatic', 'moussa-diarra', { installmentId: installmentId('centre-communautaire', 'moussa-diarra', 7) }),
-    run('man-0810-moussa', '2026-08-10T10:00:00Z', 'manual', 'moussa-diarra', { triggeredBy: U('awa-kone'), installmentId: installmentId('centre-communautaire', 'moussa-diarra', 6) }),
-  ]
-}
-
 // ---------------------------------------------------------------- Codes d'activation, préférences, frises
 function activationCodes(): ActivationCodeRow[] {
   return [{ id: uid('activation-code', 'fatou'), associationId: A('entraide-yopougon'), userId: U('fatou-traore'), code: 'K7M4-P9QX', issuedAt: at('2026-09-02'), expiresAt: at('2026-10-02'), handedAt: null }]
@@ -491,8 +458,6 @@ export function buildDb(): MockDb {
     allocations,
     contracts: contracts(projectRows),
     requests: requests(),
-    reminderRules: reminderRules(),
-    reminderRuns: reminderRuns(),
     activationCodes: activationCodes(),
     preferences: preferences(),
     events: events(),

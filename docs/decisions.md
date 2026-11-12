@@ -10,7 +10,7 @@ Statuts : `ouvert` (bloque le lot indiqué) · `proposé` (valable par défaut, 
 | 4 | Fournisseur ou serveur email | Sans objet avant le lot 6.1 (option) | 6.1 | reporté |
 | 5 | Pays d'hébergement | À décider avec l'avis juridique | 7.1 | ouvert |
 | 6 | Trop-perçu | Refusé en V1 (amount_exceeds_remaining) | 3.3 | adopté |
-| 7 | Dispense d'une échéance | Statut waived prévu ; écran à ajouter si besoin confirmé | 4.3 | ouvert |
+| 7 | Dispense d'une échéance | Statut waived prévu, sans écran (une échéance dispensée n'est ni relancée ni dans « À relancer ») ; écran à ajouter si le besoin est confirmé | 4.3 | adopté (2026-11-12) |
 | 8 | Durées de conservation | Tableau de architecture/13-compliance.md | 7.1 | ouvert |
 | 9 | Contenu des plans et quotas | Structure figée (`plans` de `schema.sql`, quotas projets, souscripteurs et gestionnaires, `null` = illimité). Valeurs de départ, pour les données initiales et la démo : celles de `seed-reference.yaml` (Découverte 0 F, 1 / 20 / 1 ; Essentiel 10 000 F, 5 / 100 / 2 ; Pro 25 000 F, illimité / 500 / 5). Les valeurs commerciales définitives se règlent ensuite depuis l'écran super-admin (`pf.plan.write`), sans changement de code | 1.2 | adopté |
 | 10 | Second VPS d'observabilité | Recommandé ; sinon Loki + Uptime Kuma hors du VPS applicatif | 7.1 | ouvert |

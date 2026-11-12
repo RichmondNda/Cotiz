@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderTemplate } from './templates.js';
+import { renderTemplate } from './render-template.js';
 
 /** Lot 4.2 · étape 4 : rendu d'un modèle de message (`{{variable}}`), texte brut, en une seule passe. */
 describe('renderTemplate', () => {

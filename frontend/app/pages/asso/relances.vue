@@ -3,20 +3,22 @@
   Onglets : Retardataires (KPI en retard / montant / dernière relance automatique ; recherche, projet, ancienneté du
   retard ; tableau sélectionnable, « Relancer » par ligne, barre groupée « Relancer maintenant » → modale message +
   canal ; toast « Relance envoyée ») · Relances automatiques (règles activables, canaux, aperçu du message) ·
-  Historique des envois.
+  Historique des envois · À relancer (lot 4.3, `mg-a-relancer`) : file du jour, une carte par échéance en retard avec
+  le message prêt (copier, WhatsApp, SMS), marquée relancée ou ignorée pour la journée.
+  Fonctionnalité `auto_reminders` du plan (écran V2) : « Bientôt disponible » sinon ; le back refuse `feature_disabled`.
   Mobile : en-tête « 14 retardataires », segments, 2 KPI, liste à cocher ; la sélection ouvre la barre « Relancer »
   puis la feuille d'envoi ; confirmation en bandeau.
-  Onglet dans l'URL (`?onglet=automatiques`). Scénarios : `aucun-retard` (+ `chargement`, `erreur`).
+  Onglet dans l'URL (`?onglet=automatiques`, `?onglet=a-relancer`). Scénarios : `aucun-retard` (+ `chargement`, `erreur`).
 -->
 <script setup lang="ts">
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
-import type { LigneRetard } from '~~/types'
+import type { EntreeARelancer, LigneRetard } from '~~/types'
 import { estDate, formatDate, formatFCFA, formatMois, pluriel } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-gestionnaire', layout: 'backoffice', espace: 'gestionnaire', titre: 'Relances' })
 useHead({ title: 'Relances · Cotiz' })
 
-type Onglet = 'retardataires' | 'automatiques' | 'historique'
+type Onglet = 'retardataires' | 'a-relancer' | 'automatiques' | 'historique'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,10 +28,11 @@ const { data: compteurs } = useCompteursNavigation()
 const { data: association } = useAssociationGestionnaire()
 const envoyerRelance = useEnvoiRelance()
 const basculerRegle = useRegleRelance()
+const marquerRelance = useMarquageRelance()
 const { estMobile } = useBreakpoint()
 
 // ---------------------------------------------------------------- Onglets
-const ONGLETS: Onglet[] = ['retardataires', 'automatiques', 'historique']
+const ONGLETS: Onglet[] = ['retardataires', 'a-relancer', 'automatiques', 'historique']
 const onglet = computed<string | undefined>({
   get: () => (ONGLETS.includes(route.query.onglet as Onglet) ? route.query.onglet as string : 'retardataires'),
   set: v => router.replace({ query: { ...route.query, onglet: v === 'retardataires' ? undefined : v } }),
@@ -38,14 +41,42 @@ const ongletMobile = computed<Onglet>({ get: () => onglet.value as Onglet, set: 
 const nbEnRetard = computed(() => data.value?.nbEnRetard ?? 0)
 const ongletsDesktop = computed(() => [
   { valeur: 'retardataires', label: `Retardataires (${nbEnRetard.value})` },
+  { valeur: 'a-relancer', label: `À relancer (${nbATraiter.value})` },
   { valeur: 'automatiques', label: 'Relances automatiques' },
   { valeur: 'historique', label: 'Historique des envois' },
 ])
 const OPTIONS_MOBILE: { valeur: Onglet, label: string }[] = [
   { valeur: 'retardataires', label: 'Retards' },
+  { valeur: 'a-relancer', label: 'File' },
   { valeur: 'automatiques', label: 'Automatiques' },
   { valeur: 'historique', label: 'Historique' },
 ]
+
+// ---------------------------------------------------------------- À relancer
+const file = computed(() => data.value?.aRelancer ?? [])
+const nbATraiter = computed(() => file.value.filter(e => e.statut === 'a_traiter').length)
+const projetsFile = computed(() => [...new Map(file.value.map(e => [e.projetId, e.nomProjet])).entries()])
+const projetFile = ref<string | null>(null)
+const entreesFile = computed(() => file.value.filter(e => !projetFile.value || e.projetId === projetFile.value))
+const { page: pageFile, pages: pagesFile, lignesPage: entreesPage, plage: plageFile } = usePagination(entreesFile, { parPage: 6 })
+watch(projetFile, () => (pageFile.value = 1))
+const marquage = ref<string | null>(null)
+const echeanceDu = (d: string) => (estDate(d) ? formatDate(d, 'long') : d)
+
+async function marquer(entree: EntreeARelancer, issue: 'handled' | 'dismissed') {
+  marquage.value = entree.id
+  try {
+    const marquee = await marquerRelance(entree.id, issue)
+    Object.assign(entree, marquee)
+    toast.succes(issue === 'handled' ? 'Relance notée' : 'Entrée ignorée', { message: `${entree.nom} · ${echeanceDu(entree.echeance)}` })
+  }
+  catch {
+    toast.erreur('L’entrée n’a pas pu être marquée', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  }
+  finally {
+    marquage.value = null
+  }
+}
 
 // ---------------------------------------------------------------- Retardataires : filtres
 const retardataires = computed(() => data.value?.retardataires ?? [])
@@ -214,208 +245,390 @@ const nomAssociation = computed(() => association.value?.nom)
       </template>
     </EnTetePage>
 
-    <CzTabs
-      v-model="onglet"
-      :onglets="ongletsDesktop"
-      label="Relances"
-      class="cz-desktop"
-    />
-    <CzSegmented
-      v-model="ongletMobile"
-      :options="OPTIONS_MOBILE"
-      label="Relances"
-      pleine-largeur
-      class="cz-mobile"
-    />
+    <FeatureGate feature="auto_reminders">
+      <CzTabs
+        v-model="onglet"
+        :onglets="ongletsDesktop"
+        label="Relances"
+        class="cz-desktop"
+      />
+      <CzSegmented
+        v-model="ongletMobile"
+        :options="OPTIONS_MOBILE"
+        label="Relances"
+        pleine-largeur
+        class="cz-mobile"
+      />
 
-    <div
-      v-if="envoyee && onglet === 'retardataires'"
-      class="cz-alert cz-alert--success cz-mobile"
-      role="status"
-    >
-      <div><b>Relance envoyée.</b> Les souscripteurs ont reçu une notification.</div>
-    </div>
-
-    <CzErreurChargement
-      v-if="error"
-      titre="Impossible d’afficher les relances"
-      @reessayer="refresh()"
-    />
-
-    <!-- ================================================= Retardataires -->
-    <template v-else-if="onglet === 'retardataires'">
       <div
-        v-if="aucunRetard"
-        class="cz-card relances__vide"
+        v-if="envoyee && onglet === 'retardataires'"
+        class="cz-alert cz-alert--success cz-mobile"
+        role="status"
       >
-        <CzEmpty
-          icone="coche"
-          ton="success"
-          titre="Aucun retard de paiement"
-          description="Tous vos souscripteurs sont à jour. Les relances automatiques restent actives."
-          integre
-        />
+        <div><b>Relance envoyée.</b> Les souscripteurs ont reçu une notification.</div>
       </div>
 
-      <template v-else>
-        <div class="relances__kpis">
-          <CzKpi
-            libelle="Souscripteurs en retard"
-            icone="en-attente"
-            ton="danger"
-            :valeur="nbEnRetard"
-            :detail="`sur ${data?.nbActifs ?? '—'}${projetKpi ? ` · ${projetKpi}` : ''}`"
-            ton-detail="bad"
-            :chargement="chargement"
-            class="cz-desktop"
-          />
-          <CzKpi
-            libelle="Montant en retard"
-            :valeur="data ? formatFCFA(data.montantEnRetard) : ''"
-            detail="cumul des échéances non payées"
-            :chargement="chargement"
-            class="cz-desktop"
-          />
-          <CzKpi
-            libelle="Dernière relance automatique"
-            :valeur="derniereAuto ? formatDate(derniereAuto.date, 'numerique') : '—'"
-            :detail="derniereAuto ? `« ${derniereAuto.regle} » · ${pluriel(derniereAuto.envois, 'envoi')}` : undefined"
-            :chargement="chargement"
-            class="cz-desktop"
-          />
-          <CzKpi
-            libelle="En retard"
-            :valeur="nbEnRetard"
-            :detail="`sur ${data?.nbActifs ?? '—'}`"
-            :chargement="chargement"
-            class="relances__kpi-retard cz-mobile"
-          />
-          <CzKpi
-            libelle="Dernière auto"
-            :valeur="derniereAuto ? jourMois(derniereAuto.date) : '—'"
-            :detail="derniereAuto ? pluriel(derniereAuto.envois, 'envoi') : undefined"
-            :chargement="chargement"
-            class="cz-mobile"
-          />
-        </div>
+      <CzErreurChargement
+        v-if="error"
+        titre="Impossible d’afficher les relances"
+        @reessayer="refresh()"
+      />
 
-        <div class="cz-toolbar cz-desktop">
-          <CzInput
-            v-model="recherche"
-            placeholder="Nom ou téléphone"
-            aria-label="Rechercher un retardataire par nom ou téléphone"
-            class="relances__recherche"
-          />
-          <CzChip
-            v-for="p in pucesProjets"
-            :key="p.id"
-            :actif="projet === p.id"
-            @click="choisirProjet(p.id)"
-          >
-            {{ p.nom }}
-          </CzChip>
-          <CzChip
-            :actif="retard > 0"
-            class="relances__retard"
-            @click="retard = (retard + 1) % RETARDS.length"
-          >
-            Retard : {{ RETARDS[retard]!.label }}
-          </CzChip>
-        </div>
-
-        <CzTable
-          v-model:selection="selection"
-          v-model:page="page"
-          :colonnes="COLONNES"
-          :lignes="lignesPage"
-          :chargement="chargement"
-          :lignes-squelette="5"
-          selectionnable
-          :cliquable="false"
-          label="Souscripteurs en retard"
-          class="cz-desktop"
+      <!-- ================================================= Retardataires -->
+      <template v-else-if="onglet === 'retardataires'">
+        <div
+          v-if="aucunRetard"
+          class="cz-card relances__vide"
         >
-          <template #actions-groupees>
-            <CzButton
-              variante="fantome"
-              taille="sm"
-              @click="selection = []"
+          <CzEmpty
+            icone="coche"
+            ton="success"
+            titre="Aucun retard de paiement"
+            description="Tous vos souscripteurs sont à jour. Les relances automatiques restent actives."
+            integre
+          />
+        </div>
+
+        <template v-else>
+          <div class="relances__kpis">
+            <CzKpi
+              libelle="Souscripteurs en retard"
+              icone="en-attente"
+              ton="danger"
+              :valeur="nbEnRetard"
+              :detail="`sur ${data?.nbActifs ?? '—'}${projetKpi ? ` · ${projetKpi}` : ''}`"
+              ton-detail="bad"
+              :chargement="chargement"
+              class="cz-desktop"
+            />
+            <CzKpi
+              libelle="Montant en retard"
+              :valeur="data ? formatFCFA(data.montantEnRetard) : ''"
+              detail="cumul des échéances non payées"
+              :chargement="chargement"
+              class="cz-desktop"
+            />
+            <CzKpi
+              libelle="Dernière relance automatique"
+              :valeur="derniereAuto ? formatDate(derniereAuto.date, 'numerique') : '—'"
+              :detail="derniereAuto ? `« ${derniereAuto.regle} » · ${pluriel(derniereAuto.envois, 'envoi')}` : undefined"
+              :chargement="chargement"
+              class="cz-desktop"
+            />
+            <CzKpi
+              libelle="En retard"
+              :valeur="nbEnRetard"
+              :detail="`sur ${data?.nbActifs ?? '—'}`"
+              :chargement="chargement"
+              class="relances__kpi-retard cz-mobile"
+            />
+            <CzKpi
+              libelle="Dernière auto"
+              :valeur="derniereAuto ? jourMois(derniereAuto.date) : '—'"
+              :detail="derniereAuto ? pluriel(derniereAuto.envois, 'envoi') : undefined"
+              :chargement="chargement"
+              class="cz-mobile"
+            />
+          </div>
+
+          <div class="cz-toolbar cz-desktop">
+            <CzInput
+              v-model="recherche"
+              placeholder="Nom ou téléphone"
+              aria-label="Rechercher un retardataire par nom ou téléphone"
+              class="relances__recherche"
+            />
+            <CzChip
+              v-for="p in pucesProjets"
+              :key="p.id"
+              :actif="projet === p.id"
+              @click="choisirProjet(p.id)"
             >
-              Annuler
-            </CzButton>
-            <CzButton
-              taille="sm"
-              @click="ouvrirRelance(selectionnees)"
+              {{ p.nom }}
+            </CzChip>
+            <CzChip
+              :actif="retard > 0"
+              class="relances__retard"
+              @click="retard = (retard + 1) % RETARDS.length"
             >
-              Relancer maintenant
-            </CzButton>
-          </template>
-          <template #cell-nom="{ ligne }">
-            <div class="cz-person">
-              <CzAvatar
-                :nom="ligne.nom"
-                ton="danger"
+              Retard : {{ RETARDS[retard]!.label }}
+            </CzChip>
+          </div>
+
+          <CzTable
+            v-model:selection="selection"
+            v-model:page="page"
+            :colonnes="COLONNES"
+            :lignes="lignesPage"
+            :chargement="chargement"
+            :lignes-squelette="5"
+            selectionnable
+            :cliquable="false"
+            label="Souscripteurs en retard"
+            class="cz-desktop"
+          >
+            <template #actions-groupees>
+              <CzButton
+                variante="fantome"
                 taille="sm"
-              />
-              <div>
-                <NuxtLink
-                  :to="`/asso/souscripteurs/${ligne.souscripteurId}`"
-                  class="relances__nom"
-                >
-                  {{ ligne.nom }}
-                </NuxtLink>
-                <div class="sub cz-mono">
-                  {{ ligne.telephone }}
+                @click="selection = []"
+              >
+                Annuler
+              </CzButton>
+              <CzButton
+                taille="sm"
+                @click="ouvrirRelance(selectionnees)"
+              >
+                Relancer maintenant
+              </CzButton>
+            </template>
+            <template #cell-nom="{ ligne }">
+              <div class="cz-person">
+                <CzAvatar
+                  :nom="ligne.nom"
+                  ton="danger"
+                  taille="sm"
+                />
+                <div>
+                  <NuxtLink
+                    :to="`/asso/souscripteurs/${ligne.souscripteurId}`"
+                    class="relances__nom"
+                  >
+                    {{ ligne.nom }}
+                  </NuxtLink>
+                  <div class="sub cz-mono">
+                    {{ ligne.telephone }}
+                  </div>
                 </div>
               </div>
-            </div>
-          </template>
-          <template #cell-echeances="{ ligne }">
-            {{ libelleEcheances(ligne) }}
-          </template>
-          <template #cell-montant="{ ligne }">
-            <b class="relances__du">{{ formatFCFA(ligne.montant) }}</b>
-          </template>
-          <template #cell-retardDepuis="{ ligne }">
-            {{ estDate(ligne.retardDepuis) ? formatDate(ligne.retardDepuis, 'jour-mois') : ligne.retardDepuis }}
-          </template>
-          <template #cell-derniere="{ ligne }">
-            <span class="relances__muted">{{ derniereRelance(ligne) }}</span>
-          </template>
-          <template #cell-actions="{ ligne }">
-            <CzButton
-              variante="secondaire"
-              taille="sm"
-              :aria-label="`Relancer ${ligne.nom}`"
-              @click="ouvrirRelance([ligne])"
-            >
-              Relancer
-            </CzButton>
-          </template>
-          <template #vide>
-            <CzEmpty
-              icone="recherche"
-              ton="neutral"
-              :titre="page > 1 ? 'Rien à afficher sur cette page' : 'Aucun retardataire ne correspond'"
-              :description="page > 1 ? 'Seuls les retardataires détaillés des données de démonstration sont listés.' : 'Modifiez la recherche ou les filtres.'"
-              integre
+            </template>
+            <template #cell-echeances="{ ligne }">
+              {{ libelleEcheances(ligne) }}
+            </template>
+            <template #cell-montant="{ ligne }">
+              <b class="relances__du">{{ formatFCFA(ligne.montant) }}</b>
+            </template>
+            <template #cell-retardDepuis="{ ligne }">
+              {{ estDate(ligne.retardDepuis) ? formatDate(ligne.retardDepuis, 'jour-mois') : ligne.retardDepuis }}
+            </template>
+            <template #cell-derniere="{ ligne }">
+              <span class="relances__muted">{{ derniereRelance(ligne) }}</span>
+            </template>
+            <template #cell-actions="{ ligne }">
+              <CzButton
+                variante="secondaire"
+                taille="sm"
+                :aria-label="`Relancer ${ligne.nom}`"
+                @click="ouvrirRelance([ligne])"
+              >
+                Relancer
+              </CzButton>
+            </template>
+            <template #vide>
+              <CzEmpty
+                icone="recherche"
+                ton="neutral"
+                :titre="page > 1 ? 'Rien à afficher sur cette page' : 'Aucun retardataire ne correspond'"
+                :description="page > 1 ? 'Seuls les retardataires détaillés des données de démonstration sont listés.' : 'Modifiez la recherche ou les filtres.'"
+                integre
+              />
+            </template>
+          </CzTable>
+          <div
+            v-if="!chargement"
+            class="cz-tfoot cz-desktop"
+          >
+            <span>{{ plage }}</span>
+            <CzPagination
+              v-if="pages > 1"
+              v-model:page="page"
+              :pages="pages"
             />
-          </template>
-        </CzTable>
+          </div>
+
+          <!-- Mobile : liste à cocher -->
+          <div class="cz-mobile">
+            <div
+              v-if="chargement"
+              class="cz-card relances__squelette"
+              aria-busy="true"
+            >
+              <CzSkeleton
+                v-for="i in 5"
+                :key="i"
+                :hauteur="40"
+              />
+            </div>
+            <ul
+              v-else-if="lignes.length"
+              class="cz-card relances__liste"
+              aria-label="Souscripteurs en retard"
+            >
+              <li
+                v-for="l in lignes"
+                :key="l.id"
+              >
+                <CzCheckbox
+                  :model-value="selection.includes(l.id)"
+                  :label="`Sélectionner ${l.nom}`"
+                  class="relances__case"
+                  @update:model-value="basculerMobile(l.id)"
+                />
+                <NuxtLink
+                  :to="`/asso/souscripteurs/${l.souscripteurId}`"
+                  class="relances__qui"
+                >
+                  <b>{{ l.nom }}</b>
+                  <span>{{ libelleCourt(l) }} · relance : {{ derniereRelance(l, true) }}</span>
+                </NuxtLink>
+                <b class="relances__du">{{ formatFCFA(l.montant) }}</b>
+              </li>
+            </ul>
+            <p
+              v-if="!chargement"
+              class="relances__compte"
+            >
+              {{ lignes.length }} affichés sur {{ totalListe }}
+            </p>
+          </div>
+          <BarreActionMobile v-if="selection.length">
+            <CzButton @click="ouvrirRelance(selectionnees)">
+              Relancer {{ selection.length }} souscripteur(s)
+            </CzButton>
+          </BarreActionMobile>
+        </template>
+      </template>
+
+      <!-- ================================================= À relancer -->
+      <section
+        v-else-if="onglet === 'a-relancer'"
+        class="relances__file"
+        aria-label="À relancer aujourd’hui"
+      >
         <div
-          v-if="!chargement"
-          class="cz-tfoot cz-desktop"
+          v-if="projetsFile.length > 1"
+          class="cz-toolbar"
         >
-          <span>{{ plage }}</span>
-          <CzPagination
-            v-if="pages > 1"
-            v-model:page="page"
-            :pages="pages"
+          <CzChip
+            v-for="[id, nom] in projetsFile"
+            :key="id"
+            :actif="projetFile === id"
+            @click="projetFile = projetFile === id ? null : id"
+          >
+            {{ nom }}
+          </CzChip>
+        </div>
+        <p class="relances__file-aide">
+          Transmettez vous-même le message prêt (copier, WhatsApp ou SMS depuis votre téléphone), puis marquez l’entrée.
+          Le souscripteur a déjà reçu un rappel dans son espace.
+        </p>
+        <div
+          v-if="chargement"
+          class="cz-card relances__vide"
+        >
+          <CzSkeleton
+            v-for="n in 3"
+            :key="n"
+            :hauteur="64"
           />
         </div>
+        <div
+          v-else-if="!file.length"
+          class="cz-card relances__vide"
+        >
+          <CzEmpty
+            icone="coche"
+            ton="success"
+            titre="Personne à relancer aujourd’hui"
+            description="Les échéances en retard apparaîtront ici avec un message prêt à transmettre."
+            integre
+          />
+        </div>
+        <div
+          v-else
+          class="relances__cartes"
+        >
+          <article
+            v-for="e in entreesPage"
+            :key="e.id"
+            class="relances__entree"
+            :class="{ 'relances__entree--marquee': e.statut !== 'a_traiter' }"
+          >
+            <HandoffCard
+              :titre="`Échéance du ${echeanceDu(e.echeance)} · ${formatFCFA(e.montant)}`"
+              :destinataire="`${e.nom} · ${e.nomProjet}`"
+              :message="e.message"
+              :whatsapp="e.whatsapp"
+              :sms="e.sms"
+            />
+            <div class="relances__entree-pied">
+              <CzBadge
+                v-if="e.statut !== 'a_traiter'"
+                :ton="e.statut === 'relancee' ? 'success' : 'neutral'"
+                point
+              >
+                {{ e.statut === 'relancee' ? 'Relancée aujourd’hui' : 'Ignorée aujourd’hui' }}
+              </CzBadge>
+              <template v-else>
+                <CzButton
+                  variante="fantome"
+                  :disabled="marquage !== null"
+                  @click="marquer(e, 'dismissed')"
+                >
+                  Ignorer
+                </CzButton>
+                <CzButton
+                  icone="coche"
+                  :chargement="marquage === e.id"
+                  :disabled="marquage !== null && marquage !== e.id"
+                  libelle-chargement="Enregistrement…"
+                  @click="marquer(e, 'handled')"
+                >
+                  Marquer relancée
+                </CzButton>
+              </template>
+            </div>
+          </article>
+        </div>
+        <div
+          v-if="!chargement && file.length"
+          class="cz-tfoot"
+        >
+          <span>{{ plageFile }}</span>
+          <CzPagination
+            v-if="pagesFile > 1"
+            v-model:page="pageFile"
+            :pages="pagesFile"
+          />
+        </div>
+      </section>
 
-        <!-- Mobile : liste à cocher -->
-        <div class="cz-mobile">
+      <!-- ================================================= Relances automatiques -->
+      <div
+        v-else-if="onglet === 'automatiques'"
+        class="relances__auto"
+      >
+        <section
+          class="cz-card relances__regles"
+          aria-labelledby="titre-regles"
+        >
+          <div class="relances__ligne-titre">
+            <h2
+              id="titre-regles"
+              class="relances__h2"
+            >
+              Règles de relance automatique
+            </h2>
+            <CzBadge
+              ton="brand"
+              petit
+            >
+              Tous les projets
+            </CzBadge>
+          </div>
+          <p class="relances__intro">
+            Cotiz envoie ces rappels aux souscripteurs concernés, sans action de votre part.
+          </p>
           <div
             v-if="chargement"
             class="cz-card relances__squelette"
@@ -428,71 +641,69 @@ const nomAssociation = computed(() => association.value?.nom)
             />
           </div>
           <ul
-            v-else-if="lignes.length"
-            class="cz-card relances__liste"
-            aria-label="Souscripteurs en retard"
+            v-else
+            class="relances__liste-regles"
           >
             <li
-              v-for="l in lignes"
-              :key="l.id"
+              v-for="r in data?.regles ?? []"
+              :key="r.id"
             >
-              <CzCheckbox
-                :model-value="selection.includes(l.id)"
-                :label="`Sélectionner ${l.nom}`"
-                class="relances__case"
-                @update:model-value="basculerMobile(l.id)"
+              <span
+                class="relances__icone"
+                :class="`is-${r.ton}`"
+                aria-hidden="true"
+              ><CzIcon :nom="ICONES_REGLE[r.ton]" /></span>
+              <span class="relances__regle">
+                <b>{{ r.titre }}</b>
+                <span>{{ r.description }}</span>
+              </span>
+              <CzToggle
+                :model-value="r.active"
+                :label="`${r.titre} : ${r.active ? 'active' : 'inactive'}`"
+                @update:model-value="v => changerRegle(r.id, Boolean(v))"
               />
-              <NuxtLink
-                :to="`/asso/souscripteurs/${l.souscripteurId}`"
-                class="relances__qui"
-              >
-                <b>{{ l.nom }}</b>
-                <span>{{ libelleCourt(l) }} · relance : {{ derniereRelance(l, true) }}</span>
-              </NuxtLink>
-              <b class="relances__du">{{ formatFCFA(l.montant) }}</b>
             </li>
           </ul>
-          <p
-            v-if="!chargement"
-            class="relances__compte"
-          >
-            {{ lignes.length }} affichés sur {{ totalListe }}
-          </p>
+        </section>
+        <div class="relances__cote">
+          <section class="cz-card relances__carte">
+            <h2 class="relances__h3">
+              Canaux d’envoi
+            </h2>
+            <div class="relances__canal">
+              <span>Notification dans l’espace souscripteur</span>
+              <CzBadge
+                ton="success"
+                petit
+              >
+                Actif
+              </CzBadge>
+            </div>
+            <div class="relances__canal">
+              <span>SMS</span><CzSoon petit>
+                V2
+              </CzSoon>
+            </div>
+            <div class="relances__canal">
+              <span>Email</span><CzSoon petit>
+                V2
+              </CzSoon>
+            </div>
+          </section>
+          <section class="cz-card relances__carte">
+            <h2 class="relances__h3">
+              Aperçu du message
+            </h2>
+            <p class="relances__apercu">
+              Bonjour Moussa, votre échéance de {{ formatFCFA(25_000) }} pour le projet Centre communautaire est prévue le 5 octobre.
+              Pensez à déclarer votre paiement sur Cotiz. — {{ nomAssociation ?? 'Entraide Yopougon' }}
+            </p>
+          </section>
         </div>
-        <BarreActionMobile v-if="selection.length">
-          <CzButton @click="ouvrirRelance(selectionnees)">
-            Relancer {{ selection.length }} souscripteur(s)
-          </CzButton>
-        </BarreActionMobile>
-      </template>
-    </template>
+      </div>
 
-    <!-- ================================================= Relances automatiques -->
-    <div
-      v-else-if="onglet === 'automatiques'"
-      class="relances__auto"
-    >
-      <section
-        class="cz-card relances__regles"
-        aria-labelledby="titre-regles"
-      >
-        <div class="relances__ligne-titre">
-          <h2
-            id="titre-regles"
-            class="relances__h2"
-          >
-            Règles de relance automatique
-          </h2>
-          <CzBadge
-            ton="brand"
-            petit
-          >
-            Tous les projets
-          </CzBadge>
-        </div>
-        <p class="relances__intro">
-          Cotiz envoie ces rappels aux souscripteurs concernés, sans action de votre part.
-        </p>
+      <!-- ================================================= Historique -->
+      <template v-else>
         <div
           v-if="chargement"
           class="cz-card relances__squelette"
@@ -504,148 +715,81 @@ const nomAssociation = computed(() => association.value?.nom)
             :hauteur="40"
           />
         </div>
-        <ul
+        <div
           v-else
-          class="relances__liste-regles"
+          class="cz-table-wrap cz-desktop"
+        >
+          <table
+            class="cz-table"
+            aria-label="Historique des envois"
+          >
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Projet</th>
+                <th class="num">
+                  Destinataires
+                </th>
+                <th>Canal</th>
+                <th>Envoyée par</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="h in data?.historique ?? []"
+                :key="h.id"
+              >
+                <td>{{ formatDate(h.date, 'numerique') }}</td>
+                <td>
+                  <CzBadge
+                    :ton="h.type === 'automatique' ? 'info' : 'brand'"
+                    petit
+                  >
+                    {{ h.type === 'automatique' ? 'Automatique' : 'Manuelle' }}
+                  </CzBadge>
+                </td>
+                <td>{{ h.projet }}</td>
+                <td class="num">
+                  {{ h.destinataires }}
+                </td>
+                <td>Notification</td>
+                <td class="relances__muted">
+                  {{ h.par }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ul
+          v-if="!chargement"
+          class="cz-card relances__liste cz-mobile"
         >
           <li
-            v-for="r in data?.regles ?? []"
-            :key="r.id"
+            v-for="h in data?.historique ?? []"
+            :key="h.id"
           >
-            <span
-              class="relances__icone"
-              :class="`is-${r.ton}`"
-              aria-hidden="true"
-            ><CzIcon :nom="ICONES_REGLE[r.ton]" /></span>
-            <span class="relances__regle">
-              <b>{{ r.titre }}</b>
-              <span>{{ r.description }}</span>
+            <span class="relances__qui">
+              <b>{{ h.projet }}</b>
+              <span>{{ formatDate(h.date, 'numerique') }} · {{ h.destinataires }} destinataire(s) · {{ h.par }}</span>
             </span>
-            <CzToggle
-              :model-value="r.active"
-              :label="`${r.titre} : ${r.active ? 'active' : 'inactive'}`"
-              @update:model-value="v => changerRegle(r.id, Boolean(v))"
-            />
-          </li>
-        </ul>
-      </section>
-      <div class="relances__cote">
-        <section class="cz-card relances__carte">
-          <h2 class="relances__h3">
-            Canaux d’envoi
-          </h2>
-          <div class="relances__canal">
-            <span>Notification dans l’espace souscripteur</span>
             <CzBadge
-              ton="success"
+              :ton="h.type === 'automatique' ? 'info' : 'brand'"
               petit
             >
-              Actif
+              {{ h.type === 'automatique' ? 'Auto' : 'Manuelle' }}
             </CzBadge>
-          </div>
-          <div class="relances__canal">
-            <span>SMS</span><CzSoon petit>
-              V2
-            </CzSoon>
-          </div>
-          <div class="relances__canal">
-            <span>Email</span><CzSoon petit>
-              V2
-            </CzSoon>
-          </div>
-        </section>
-        <section class="cz-card relances__carte">
-          <h2 class="relances__h3">
-            Aperçu du message
-          </h2>
-          <p class="relances__apercu">
-            Bonjour Moussa, votre échéance de {{ formatFCFA(25_000) }} pour le projet Centre communautaire est prévue le 5 octobre.
-            Pensez à déclarer votre paiement sur Cotiz. — {{ nomAssociation ?? 'Entraide Yopougon' }}
-          </p>
-        </section>
-      </div>
-    </div>
+          </li>
+        </ul>
+      </template>
 
-    <!-- ================================================= Historique -->
-    <template v-else>
-      <div
-        v-if="chargement"
-        class="cz-card relances__squelette"
-        aria-busy="true"
-      >
-        <CzSkeleton
-          v-for="i in 5"
-          :key="i"
-          :hauteur="40"
-        />
-      </div>
-      <div
-        v-else
-        class="cz-table-wrap cz-desktop"
-      >
-        <table
-          class="cz-table"
-          aria-label="Historique des envois"
-        >
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Projet</th>
-              <th class="num">
-                Destinataires
-              </th>
-              <th>Canal</th>
-              <th>Envoyée par</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="h in data?.historique ?? []"
-              :key="h.id"
-            >
-              <td>{{ formatDate(h.date, 'numerique') }}</td>
-              <td>
-                <CzBadge
-                  :ton="h.type === 'automatique' ? 'info' : 'brand'"
-                  petit
-                >
-                  {{ h.type === 'automatique' ? 'Automatique' : 'Manuelle' }}
-                </CzBadge>
-              </td>
-              <td>{{ h.projet }}</td>
-              <td class="num">
-                {{ h.destinataires }}
-              </td>
-              <td>Notification</td>
-              <td class="relances__muted">
-                {{ h.par }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <ul
-        v-if="!chargement"
-        class="cz-card relances__liste cz-mobile"
-      >
-        <li
-          v-for="h in data?.historique ?? []"
-          :key="h.id"
-        >
-          <span class="relances__qui">
-            <b>{{ h.projet }}</b>
-            <span>{{ formatDate(h.date, 'numerique') }} · {{ h.destinataires }} destinataire(s) · {{ h.par }}</span>
-          </span>
-          <CzBadge
-            :ton="h.type === 'automatique' ? 'info' : 'brand'"
-            petit
-          >
-            {{ h.type === 'automatique' ? 'Auto' : 'Manuelle' }}
-          </CzBadge>
-        </li>
-      </ul>
-    </template>
+      <template #indisponible>
+        <CzAlert ton="info">
+          <b>Relances non incluses dans votre abonnement.</b> Passez à une formule qui comprend les relances
+          automatiques et la file « À relancer ».
+        </CzAlert>
+      </template>
+    </FeatureGate>
 
     <ModaleRelance
       v-model:ouvert="modale"
@@ -697,6 +841,41 @@ const nomAssociation = computed(() => association.value?.nom)
 
 .relances__muted {
   color: var(--text-muted);
+}
+
+.relances__file {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.relances__file-aide {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+
+.relances__cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: var(--space-4);
+}
+
+.relances__entree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.relances__entree--marquee :deep(.handoff) {
+  opacity: 0.6;
+}
+
+.relances__entree-pied {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .relances__vide {

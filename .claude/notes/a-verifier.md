@@ -294,3 +294,14 @@ Corrigés dans la branche :
 - **Index `import_rows (import_job_id, row_number)`** : la lecture paginée et le classement filtrent sur `import_job_id` sans index (le test de conformité compare strictement à schema.sql). Proposition : l'ajouter à schema.sql et dans une migration.
 - **Association suspendue pendant une exécution** : l'exécution continue (seul le droit du demandeur est recontrôlé). À aligner sur la règle des écritures d'une association suspendue.
 - Limite connue : corriger une ligne ne reclasse pas les doublons des lignes suivantes (seul un nouveau mappage reclasse tout).
+
+- **2026-11-12 · lot 4.3 · relance de signature** — `docs/ui/manager.md` (`mg-projet-contrat` l. 368, page Contrats
+  l. 725) : « Relancer » les non-signataires passe par `rm.send`. Le contrat de `rm.send` (rappel + entrée « À relancer »,
+  `ReminderQueueEntry.installmentId` obligatoire) ne vise que des échéances : une inscription `pending_signature` n'en
+  reçoit aucune (`queued: []`), et l'écran affiche quand même « rappel envoyé ». À trancher : rappel de signature dans
+  `rm.send` (spec à compléter : message, statut, file), endpoint dédié, ou bouton masqué jusqu'à un lot ultérieur.
+  *`send-reminders.use-case.ts`, `remindable-installments.ts` (`enrollments.status = 'active'`), `asso/contrats.vue:68`.*
+- **2026-11-12 · lot 4.3 · retard partiellement déclaré** — `domain-rules.md` : `declared` l'emporte sur `late`. Une
+  échéance en retard avec une déclaration partielle en attente (reste dû > 0) sort donc de la file « À relancer », et une
+  règle `after_due` la classe `auto_sent` au lieu de `to_handle`. Conforme à la spec ; à confirmer que c'est voulu
+  (sinon : retard calculé par `lateSince` et reste dû). *Relecture money-reviewer, `remindable-installments.ts`.*

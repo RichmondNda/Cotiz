@@ -2,7 +2,12 @@
 export { authenticatedSession, JwtGuard } from './http/jwt.guard.js';
 export { type AccessClaims, AccessTokenSigner, type VerifiedAccess } from './infra/access-token-signer.js';
 export { RevokedSessions } from './infra/revoked-sessions.js';
-export { associationPersonNameOf, platformPersonContactsOf, platformPersonRefsOf } from './application/person-refs.js';
+export {
+  associationPersonNameOf,
+  associationSubscriberContactsOf,
+  platformPersonContactsOf,
+  platformPersonRefsOf,
+} from './application/person-refs.js';
 export { notifiableUsersOf } from './application/notifiable-users.js';
 export { platformManagerActivityOf } from './application/session-activity.js';
 export { IdentityModule } from './identity.module.js';

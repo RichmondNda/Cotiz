@@ -803,3 +803,46 @@ Vérification : tests ciblés par étape, `pnpm verify` complet une fois avant l
 - Dépôt du fichier : `im.upload` sous `/associations/{aid}/imports/uploads` (choix de l'utilisateur, 2026-11-12 :
   `fl.upload` refuse le jeton association, décision 24) ; spec modifiée avec accord (endpoints, permissions, screens,
   fiche du lot). Handlers simulés de fl.upload et im.* supprimés (« supprime-les et termine le lot »).
+
+## Lot 4.3 · Relances automatiques et file « À relancer » — plan (2026-11-12)
+Dépendance 4.2 terminée ; décision 7 adoptée par l'utilisateur (« Adopter, sans écran ») : `waived` exclu des relances.
+Contrats `rm.*` déjà présents (lot 0.2) ; front déjà branché sur les mocks (onglets Retardataires, Automatiques,
+Historique). Module back `reminders` (api + worker).
+Choix (sans contradiction avec docs/specs/) :
+- Message d'une règle (`ReminderRule.message`) stocké dans `message_templates` (association, clé `reminder.rule`,
+  canal `manual`) et cité par `reminder_rules.template_id` (schema.sql) ; modification du message = nouvelle version.
+- Une relance = une ligne `reminder_runs` par échéance : règle avant/le jour de l'échéance → `auto_sent` ; échéance en
+  retard (règle `after_due` ou relance manuelle) → `to_handle` (rappel in-app/push envoyé + message prêt dans la file).
+  `channels` = canaux automatiques de la règle (in_app, push) ; relance manuelle : in_app + push.
+- File « À relancer » : entrées `to_handle` dont l'échéance a encore un reste dû (payée ou dispensée entre-temps →
+  absente) ; `handled`/`dismissed` par `rm.queue › handled` (`reminder.handled`).
+- Fonctionnalité `auto_reminders` (features.yaml : « Relances automatiques et file « À relancer » ») exigée par
+  `rm.rules`, `rm.queue` et la tâche ; `rm.send` (sa réponse porte les messages prêts) et `rm.hist` restent ouverts.
+- `reminder.sent` (runIds) → consommateur notifications : rappel au souscripteur sur les canaux de la relance.
+Étapes :
+1. **Tables** — migration `0025_reminders.sql` (enums, tables, FK de schema.sql, index `reminder_queue`, RLS FORCE
+   tenant + system), Drizzle `packages/db/src/schema/reminders.ts`. Tests : conformité schéma, isolation (autre
+   association, politique affaiblie).
+2. **Règles** — `rm.rules` (liste, création, modification ; audit ; feature `auto_reminders` ; projet de l'association).
+   Tests d'intégration + isolation HTTP.
+3. **Évaluation quotidienne** — tâche `reminders.evaluate` (08:30 locale, passage horaire, marque Redis comme
+   `installments.due-soon`), domaine pur (échéances visées par règle) dans `packages/domain` ; `reminder.sent` +
+   notification. Test : deux passages le même jour → un seul rappel ; `waived` exclu ; association sans la
+   fonctionnalité ignorée ; ajout à `housekeeping.test.ts`.
+4. **File et envoi manuel** — `rm.queue` (liste, handled/dismissed), `rm.send` (Idempotency-Key, débit, audit),
+   `rm.hist`. Front : onglet « À relancer » (HandoffCard : copier, WhatsApp, `sms:`, marquer), bascule `rm.*`, mocks
+   supprimés, `/verifier-ecran /asso/relances`. Test : la file liste exactement les retards sans relance du jour.
+Vérification : tests ciblés par étape, `pnpm verify` complet avant la PR.
+Choix de l'étape 4 (2026-11-12) :
+- File « À relancer » (`rm.queue`) : chaque échéance en retard encore due d'un projet `enrolling`/`active` ; statut
+  `handled`/`dismissed` seulement si marquée aujourd'hui (le lendemain, elle revient `to_handle`). L'id de l'entrée est
+  celui de sa relance si elle est à traiter ou marquée du jour, sinon l'id de l'échéance (marquer crée alors une relance
+  manuelle déjà marquée). Message : celui de la relance, ou le message par défaut rendu pour la personne.
+- `rm.send` par `userIds` : échéances en retard de chaque personne ; sans retard, sa prochaine échéance due (une par
+  personne et projet). Personne ou projet d'une autre association : ignorée / 404.
+- `rm.queue` réservé à `reminders.send` (contrat) : le lecteur lit seulement `rm.hist`.
+- Front : toute la page Relances sous `<FeatureGate feature="auto_reminders">` (v0-mapping : « Écran V2
+  (`auto_reminders`) ») ; nouvel onglet « À relancer » (`?onglet=a-relancer`), une HandoffCard par entrée + « Ignorer » /
+  « Marquer relancée ». `auto_reminders` ajoutée à `DELIVERED_FEATURES`.
+- Mocks `rm.*` supprimés ; plus aucune écriture simulée n'a Idempotency-Key : le test du mécanisme de rejeu des mocks
+  (`mocks-conformite.test.ts`) est retiré, le mécanisme reste pour de futurs mocks.

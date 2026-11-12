@@ -176,6 +176,13 @@
       "when": 1794500006000,
       "tag": "0024_imports",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794500007000,
+      "tag": "0025_reminders",
+      "breakpoints": true
     }
   ]
 }
