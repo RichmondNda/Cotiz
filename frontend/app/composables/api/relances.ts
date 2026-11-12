@@ -13,7 +13,7 @@ const STATUTS = { to_handle: 'a_traiter', handled: 'relancee', dismissed: 'ignor
 function vueEntree(e: Entree): EntreeARelancer {
   return {
     id: e.id, souscripteurId: e.member.id, nom: `${e.member.firstName} ${e.member.lastName}`.trim(), telephone: tel(e.member.phone),
-    nomProjet: e.project.name, echeance: e.dueDate, montant: e.amountDue.amount, retardDepuis: e.lateSince,
+    projetId: e.project.id, nomProjet: e.project.name, echeance: e.dueDate, montant: e.amountDue.amount, retardDepuis: e.lateSince,
     message: e.message, whatsapp: e.whatsappUrl, sms: e.smsUrl,
     statut: e.status in STATUTS ? STATUTS[e.status as keyof typeof STATUTS] : 'a_traiter',
   }

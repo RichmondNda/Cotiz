@@ -47,7 +47,7 @@ const ongletsDesktop = computed(() => [
 ])
 const OPTIONS_MOBILE: { valeur: Onglet, label: string }[] = [
   { valeur: 'retardataires', label: 'Retards' },
-  { valeur: 'a-relancer', label: 'À relancer' },
+  { valeur: 'a-relancer', label: 'File' },
   { valeur: 'automatiques', label: 'Automatiques' },
   { valeur: 'historique', label: 'Historique' },
 ]
@@ -55,6 +55,11 @@ const OPTIONS_MOBILE: { valeur: Onglet, label: string }[] = [
 // ---------------------------------------------------------------- À relancer
 const file = computed(() => data.value?.aRelancer ?? [])
 const nbATraiter = computed(() => file.value.filter(e => e.statut === 'a_traiter').length)
+const projetsFile = computed(() => [...new Map(file.value.map(e => [e.projetId, e.nomProjet])).entries()])
+const projetFile = ref<string | null>(null)
+const entreesFile = computed(() => file.value.filter(e => !projetFile.value || e.projetId === projetFile.value))
+const { page: pageFile, pages: pagesFile, lignesPage: entreesPage, plage: plageFile } = usePagination(entreesFile, { parPage: 6 })
+watch(projetFile, () => (pageFile.value = 1))
 const marquage = ref<string | null>(null)
 const echeanceDu = (d: string) => (estDate(d) ? formatDate(d, 'long') : d)
 
@@ -500,6 +505,19 @@ const nomAssociation = computed(() => association.value?.nom)
         class="relances__file"
         aria-label="À relancer aujourd’hui"
       >
+        <div
+          v-if="projetsFile.length > 1"
+          class="cz-toolbar"
+        >
+          <CzChip
+            v-for="[id, nom] in projetsFile"
+            :key="id"
+            :actif="projetFile === id"
+            @click="projetFile = projetFile === id ? null : id"
+          >
+            {{ nom }}
+          </CzChip>
+        </div>
         <p class="relances__file-aide">
           Transmettez vous-même le message prêt (copier, WhatsApp ou SMS depuis votre téléphone), puis marquez l’entrée.
           Le souscripteur a déjà reçu un rappel dans son espace.
@@ -531,7 +549,7 @@ const nomAssociation = computed(() => association.value?.nom)
           class="relances__cartes"
         >
           <article
-            v-for="e in file"
+            v-for="e in entreesPage"
             :key="e.id"
             class="relances__entree"
             :class="{ 'relances__entree--marquee': e.statut !== 'a_traiter' }"
@@ -554,14 +572,12 @@ const nomAssociation = computed(() => association.value?.nom)
               <template v-else>
                 <CzButton
                   variante="fantome"
-                  taille="sm"
                   :disabled="marquage !== null"
                   @click="marquer(e, 'dismissed')"
                 >
                   Ignorer
                 </CzButton>
                 <CzButton
-                  taille="sm"
                   icone="coche"
                   :chargement="marquage === e.id"
                   :disabled="marquage !== null && marquage !== e.id"
@@ -573,6 +589,17 @@ const nomAssociation = computed(() => association.value?.nom)
               </template>
             </div>
           </article>
+        </div>
+        <div
+          v-if="!chargement && file.length"
+          class="cz-tfoot"
+        >
+          <span>{{ plageFile }}</span>
+          <CzPagination
+            v-if="pagesFile > 1"
+            v-model:page="pageFile"
+            :pages="pagesFile"
+          />
         </div>
       </section>
 

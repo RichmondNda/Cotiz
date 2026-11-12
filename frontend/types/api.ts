@@ -371,6 +371,7 @@ export interface EntreeARelancer {
   souscripteurId: Identifiant
   nom: string
   telephone: string
+  projetId: Identifiant
   nomProjet: string
   echeance: DateISO
   montant: MontantFCFA
