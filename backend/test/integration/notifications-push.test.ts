@@ -289,8 +289,11 @@ describe('canal push (Web Push)', () => {
 
   it('heures calmes : à 22 h à Abidjan, un push non urgent est différé à 8 h ; un urgent part tout de suite', async () => {
     await device(USERS.moussa, 'moussa-1');
+    // Nuit fictive très lointaine : BullMQ date le job avec l'horloge simulée ; une date passée rendrait le différé déjà
+    // échu en temps réel (envoyé aussitôt par le worker, test faux dès le lendemain).
+    const night = new Date('2099-06-15T22:00:00Z');
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-11-11T22:00:00Z'));
+    vi.setSystemTime(night);
     await dispatch(normalMsg, [moussa], 'evt-nuit');
     vi.useRealTimers();
     const [job] = await queue.getJobs(['delayed']);
@@ -298,10 +301,14 @@ describe('canal push (Web Push)', () => {
     expect(received).toEqual([]);
 
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-11-11T22:00:00Z'));
+    vi.setSystemTime(night);
     await dispatch(urgentMsg, [moussa], 'evt-urgent');
     vi.useRealTimers();
     expect(await until(() => received.length === 1)).toBe(true);
+    // Le différé n'est pas parti en même temps que l'urgent.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(received).toHaveLength(1);
+    expect(await queue.getJobCounts('delayed')).toMatchObject({ delayed: 1 });
   });
 
   it('404/410 : l’appareil est désabonné, l’envoi échoue sans reprise', async () => {

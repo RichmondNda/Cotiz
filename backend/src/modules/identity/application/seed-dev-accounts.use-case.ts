@@ -121,7 +121,10 @@ export class SeedDevAccountsUseCase {
   async execute(): Promise<SeededAccount[]> {
     assertDevSeedAllowed(this.config);
     const tx = currentTx();
-    const passwordHash = await this.hasher.hash(DEV_PASSWORD);
+    // Environnement de dev en ligne : un mot de passe secret remplace le mot de passe public, et n'est jamais affiché.
+    const custom = this.config.COTIZ_DEV_SEED_PASSWORD;
+    const passwordHash = await this.hasher.hash(custom ?? DEV_PASSWORD);
+    const shownPassword = custom === undefined ? DEV_PASSWORD : '(COTIZ_DEV_SEED_PASSWORD)';
     const seeded: SeededAccount[] = [];
     for (const account of ACCOUNTS) {
       // Jamais un compte que la commande n'a pas créé (create-platform-owner, inscription…) : son mot de passe serait
@@ -180,7 +183,7 @@ export class SeedDevAccountsUseCase {
       if (account.platformRole && (await platformRoleOf(id)) === null)
         await grantPlatformRole(id, account.platformRole);
       if (active) {
-        seeded.push({ identifier, password: DEV_PASSWORD });
+        seeded.push({ identifier, password: shownPassword });
       } else {
         const issued = await this.codes.issue({
           userId: id,

@@ -735,3 +735,9 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
 - Choix de l'utilisateur : recette de type production (pas la pile de dev : dépôt public, mots de passe de démo connus), pilotée par l'API Dokploy, domaines `cotiz.regisnda.com` et `cotiz-fichiers.regisnda.com` (DNS générique `*.regisnda.com` vers le serveur).
 - `infra/compose/staging.yml` (images construites par Dokploy, push obligatoire, `web` et `minio` sur `dokploy-network`) ; `tools/recette-dokploy.mjs` (secrets générés une fois, gardés ensuite, jamais affichés) ; service compose existant `cotiz-recette` (créé vide par l'utilisateur) réutilisé.
 - Premier déploiement depuis `chore/recette-dokploy` (PR #64) : `/health/ready` 200, certificats Let's Encrypt.
+
+### Dev Dokploy (2026-11-12, demande de l'utilisateur)
+- `infra/compose/dev-dokploy.yml` (local.yml + app.yml), domaines `cotiz.dev.regisnda.com` et `cotiz-fichiers.dev.regisnda.com`, `tools/recette-dokploy.mjs --cible dev`.
+- Basic auth Traefik abandonnée : elle prend l'en-tête `Authorization` du jeton du front (api en 401). Choix de l'utilisateur : mot de passe de démonstration secret `COTIZ_DEV_SEED_PASSWORD` posé par `seed-dev`, jamais affiché, dans `~/.config/cotiz-dev-acces` (ligne « comptes de démonstration (IDENTIFIANTS.md) : <mot de passe> »).
+- Vérifié le 2026-11-12 : connexion d'Awa avec le mot de passe secret → `authenticated`, `/me` 200 ; mot de passe public → 401.
+

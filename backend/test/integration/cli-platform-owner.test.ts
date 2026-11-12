@@ -264,6 +264,61 @@ describe('CLI : create-platform-owner', () => {
       expect(await verify(richy.password_hash, DEV_PASSWORD)).toBe(true);
     });
 
+    it('COTIZ_DEV_SEED_PASSWORD (environnement de dev en ligne) : remplace le mot de passe connu, jamais affiché', async () => {
+      const secret = 'Secret-De-Demo-1234';
+      const config = loadConfig({
+        NODE_ENV: 'test',
+        DATABASE_URL: h.db.urlFor('cotiz_app'),
+        PLATFORM_DATABASE_URL: h.db.urlFor('cotiz_platform'),
+        REDIS_URL: 'redis://127.0.0.1:1',
+        S3_ENDPOINT: 'http://127.0.0.1:1',
+        APP_PUBLIC_URL: 'https://app.cotiz.test',
+        COTIZ_DEV_SEED: '1',
+        COTIZ_DEV_SEED_PASSWORD: secret,
+      });
+      const other = await NestFactory.createApplicationContext(CliModule.register(config), { logger: false });
+      vi.spyOn(other.get(StorageService), 'putObject').mockResolvedValue(undefined);
+      const out = new Capture();
+      try {
+        expect(await runCli(other, ['seed-dev'], { out, err: new Capture() })).toBe(0);
+      } finally {
+        await other.close();
+      }
+      expect(out.text).toContain('richy@cotiz.app / (COTIZ_DEV_SEED_PASSWORD)');
+      expect(out.text).not.toContain(secret);
+      expect(out.text).not.toContain(DEV_PASSWORD);
+      const hashOf = async (email: string) =>
+        (
+          (
+            await h.superuser(
+              `SELECT c.password_hash FROM users u JOIN credentials c ON c.user_id = u.id WHERE u.email = $1`,
+              [email],
+            )
+          ).rows[0] as { password_hash: string }
+        ).password_hash;
+      // Comptes existants : le mot de passe public est remplacé (le seed réécrit l'accès à chaque passage).
+      expect(await verify(await hashOf('richy@cotiz.app'), secret)).toBe(true);
+      expect(await verify(await hashOf('richy@cotiz.app'), DEV_PASSWORD)).toBe(false);
+      expect(await verify(await hashOf('awa@entraide.ci'), secret)).toBe(true);
+      // Sans la variable, le mot de passe connu revient (tests suivants, postes de développement).
+      expect((await run('seed-dev')).status).toBe(0);
+      expect(await verify(await hashOf('richy@cotiz.app'), DEV_PASSWORD)).toBe(true);
+    });
+
+    it('COTIZ_DEV_SEED_PASSWORD trop court : configuration refusée au démarrage', () => {
+      expect(() =>
+        loadConfig({
+          NODE_ENV: 'test',
+          DATABASE_URL: h.db.urlFor('cotiz_app'),
+          PLATFORM_DATABASE_URL: h.db.urlFor('cotiz_platform'),
+          REDIS_URL: 'redis://127.0.0.1:1',
+          S3_ENDPOINT: 'http://127.0.0.1:1',
+          APP_PUBLIC_URL: 'https://app.cotiz.test',
+          COTIZ_DEV_SEED_PASSWORD: 'court',
+        }),
+      ).toThrow();
+    });
+
     it('crée les plans de référence (mêmes identifiants que les données simulées) ; une seconde exécution ne change rien', async () => {
       const PLANS = {
         decouverte: '565ad000-94c8-5b93-9921-423aa368ac67',
