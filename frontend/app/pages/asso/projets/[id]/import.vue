@@ -4,6 +4,7 @@
   (Fichier · Colonnes · Vérification · Envoi), carte de l'étape, pied « Retour » / « Continuer ».
   Mobile : en-tête « Étape n sur 4 », segments, barre d'action fixe (précédent + continuer / lancer l'import),
   sans navigation basse. États : 1-fichier, fichier-invalide, 2-colonnes, 3-verification, 4-envoi, import-termine.
+  Sans la fonctionnalité `imports` du plan : message à la place de l'assistant (le back refuse `feature_disabled`).
 -->
 <script setup lang="ts">
 import EtapeImportColonnes from '~/components/metier/import/EtapeImportColonnes.vue'
@@ -72,81 +73,89 @@ async function importer() {
       </template>
     </EnTetePage>
 
-    <div class="import__etapes cz-desktop">
-      <CzSteps
-        :etapes="etapes"
-        :courante="etat.bilan ? etapes.length : etat.etape"
-        :navigable="!etat.bilan"
-        @aller="imp.aller"
-      />
-    </div>
-    <CzEtapesSegments
-      :total="etapes.length"
-      :courante="etat.etape"
-      class="cz-mobile"
-    />
-
-    <CzCard
-      class="import__carte"
-    >
-      <component
-        :is="COMPOSANTS[etat.etape - 1]"
-        v-if="etat.etape < 4"
-      />
-      <EtapeImportEnvoi
-        v-else
-        :association="association?.nom ?? '[ASSOCIATION]'"
-        :projet="projet?.nom ?? '[PROJET]'"
-        :lien-souscripteurs="lienSouscripteurs"
-        @importer="importer"
+    <FeatureGate feature="imports">
+      <div class="import__etapes cz-desktop">
+        <CzSteps
+          :etapes="etapes"
+          :courante="etat.bilan ? etapes.length : etat.etape"
+          :navigable="!etat.bilan"
+          @aller="imp.aller"
+        />
+      </div>
+      <CzEtapesSegments
+        :total="etapes.length"
+        :courante="etat.etape"
+        class="cz-mobile"
       />
 
-      <div
-        v-if="(etat.etape === 1 && etat.analyse && !etat.analyseEnCours) || etat.etape === 2 || etat.etape === 3"
-        class="import__pied cz-desktop"
+      <CzCard
+        class="import__carte"
+      >
+        <component
+          :is="COMPOSANTS[etat.etape - 1]"
+          v-if="etat.etape < 4"
+        />
+        <EtapeImportEnvoi
+          v-else
+          :association="association?.nom ?? '[ASSOCIATION]'"
+          :projet="projet?.nom ?? '[PROJET]'"
+          :lien-souscripteurs="lienSouscripteurs"
+          @importer="importer"
+        />
+
+        <div
+          v-if="(etat.etape === 1 && etat.analyse && !etat.analyseEnCours) || etat.etape === 2 || etat.etape === 3"
+          class="import__pied cz-desktop"
+        >
+          <CzButton
+            v-if="etat.etape > 1"
+            variante="fantome"
+            @click="imp.retour()"
+          >
+            Retour
+          </CzButton>
+          <span class="import__espace" />
+          <CzButton
+            :chargement="etat.reclassement"
+            libelle-chargement="Vérification des lignes…"
+            @click="continuer"
+          >
+            Continuer
+          </CzButton>
+        </div>
+      </CzCard>
+
+      <BarreActionMobile
+        v-if="!etat.bilan"
+        :precedent="etat.etape > 1"
+        @precedent="imp.retour()"
       >
         <CzButton
-          v-if="etat.etape > 1"
-          variante="fantome"
-          @click="imp.retour()"
-        >
-          Retour
-        </CzButton>
-        <span class="import__espace" />
-        <CzButton
+          v-if="etat.etape < 4"
+          :disabled="etat.etape === 1 && (!etat.analyse || etat.analyseEnCours)"
           :chargement="etat.reclassement"
           libelle-chargement="Vérification des lignes…"
           @click="continuer"
         >
           Continuer
         </CzButton>
-      </div>
-    </CzCard>
-
-    <BarreActionMobile
-      v-if="!etat.bilan"
-      :precedent="etat.etape > 1"
-      @precedent="imp.retour()"
-    >
-      <CzButton
-        v-if="etat.etape < 4"
-        :disabled="etat.etape === 1 && (!etat.analyse || etat.analyseEnCours)"
-        :chargement="etat.reclassement"
-        libelle-chargement="Vérification des lignes…"
-        @click="continuer"
-      >
-        Continuer
-      </CzButton>
-      <CzButton
-        v-else
-        :chargement="etat.envoi"
-        libelle-chargement="Import en cours…"
-        :disabled="!imp.aImporter.value"
-        @click="importer"
-      >
-        Lancer l’import
-      </CzButton>
-    </BarreActionMobile>
+        <CzButton
+          v-else
+          :chargement="etat.envoi"
+          libelle-chargement="Import en cours…"
+          :disabled="!imp.aImporter.value"
+          @click="importer"
+        >
+          Lancer l’import
+        </CzButton>
+      </BarreActionMobile>
+      <template #indisponible>
+        <CzAlert ton="info">
+          <b>Import non inclus dans votre abonnement.</b> Ajoutez les souscripteurs un par un depuis la liste du projet,
+          ou passez à une formule qui comprend l’import.
+        </CzAlert>
+      </template>
+    </FeatureGate>
   </div>
 </template>
 

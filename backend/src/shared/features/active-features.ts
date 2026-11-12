@@ -11,6 +11,7 @@ export const DELIVERED_FEATURES: readonly Feature[] = [
   'contracts',
   'realtime',
   'web_push',
+  'imports',
 ];
 
 export interface WebPushConfig {
