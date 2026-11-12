@@ -792,3 +792,13 @@ Choix autonomes :
    remettre » et fiche imprimable groupée (impression navigateur) ; bascule `im.*`, handlers simulés supprimés,
    `/verifier-ecran /asso/projets/:id/import`.
 Vérification : tests ciblés par étape, `pnpm verify` complet une fois avant la PR (accord du 2026-11-11).
+
+### Lot 4.4 · étape 4 — choix faits en autonome (2026-11-12)
+- Notification `import.completed` / `import.failed` (in-app, gestionnaire) : à la personne qui a lancé l'envoi (ou
+  créé l'import) si elle gère encore l'association, sinon à tous les gestionnaires ; lien `/asso/projets/:id/import`.
+- Exécution : chaque ligne passe par son téléphone (comme en.create), jamais par le compte vu au classement ;
+  demandeur recontrôlé au départ, à chaque reprise et toutes les 25 lignes (`requester_removed`).
+- Front : fiches imprimées = codes non remis émis depuis la création de l'import (pas d'identifiant de compte par
+  ligne dans le contrat) ; lignes en erreur autre que prénom ou téléphone : motif affiché, ligne à ignorer seulement.
+- `fl.upload` basculé pour tous les espaces (seul l'import l'appelle en espace association) ; handlers simulés de
+  fl.upload et im.* supprimés à la demande de l'utilisateur (« supprime-les et termine le lot »).
