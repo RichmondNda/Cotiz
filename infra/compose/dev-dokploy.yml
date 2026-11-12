@@ -3,9 +3,9 @@
 #
 # - Comme la pile Docker locale : NODE_ENV=development, front avec ses mocks Nitro pour les endpoints pas encore réels,
 #   comptes de démonstration (`seed`, relancé à chaque déploiement, idempotent) ; ClamAV et Gotenberg toujours actifs.
-# - Dépôt public, donc mots de passe de démonstration connus de tous : tout le site est derrière un mot de passe d'accès
-#   (basic auth Traefik, middleware `cotiz-dev-acces` déclaré ici ; hash dans COTIZ_DEV_BASIC_AUTH, onglet Environment).
-#   Le stockage public n'en a pas besoin : seuls des liens signés y donnent accès.
+# - Dépôt public, donc mot de passe de démonstration connu de tous : ici, les comptes de démonstration reçoivent un mot de
+#   passe secret (COTIZ_DEV_SEED_PASSWORD, onglet Environment ; jamais affiché par le seed). Pas de basic auth : le front
+#   envoie son jeton dans l'en-tête Authorization, que Traefik réserverait à son mot de passe (api refusée en 401).
 # - Identifiants internes (base, MinIO) : ceux du développement local, jamais publiés (aucun port exposé).
 # - Garder aligné sur local.yml et app.yml.
 
@@ -195,13 +195,14 @@ services:
     environment:
       <<: *backend-env
       COTIZ_DEV_SEED: 'true'
+      COTIZ_DEV_SEED_PASSWORD: ${COTIZ_DEV_SEED_PASSWORD:?}
     command: ['node', 'dist/cli.js', 'seed-dev']
     depends_on:
       api:
         condition: service_healthy
     restart: 'no'
 
-  # Application : domaine Dokploy sur le port 3000, derrière le mot de passe d'accès.
+  # Application : domaine Dokploy sur le port 3000.
   web:
     image: cotiz-web:dev-dokploy
     build:
@@ -210,14 +211,12 @@ services:
     environment:
       NUXT_API_ORIGIN: http://api:4000
       NUXT_STORAGE_ORIGIN: ${COTIZ_STORAGE_PUBLIC_URL:?}
-    labels:
-      # Utilisateur:hash (apr1), généré par tools/recette-dokploy.mjs --cible dev ; le domaine Dokploy y renvoie
-      # (`cotiz-dev-acces@docker`).
-      - traefik.http.middlewares.cotiz-dev-acces.basicauth.users=${COTIZ_DEV_BASIC_AUTH:?}
-      - traefik.http.middlewares.cotiz-dev-acces.basicauth.realm=Cotiz dev
+    # Après le seed : jamais en ligne tant que les comptes de démonstration ont encore le mot de passe public.
     depends_on:
       api:
         condition: service_healthy
+      seed:
+        condition: service_completed_successfully
     networks:
       - default
       - dokploy-network

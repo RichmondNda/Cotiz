@@ -5,7 +5,7 @@ tester sans rien installer : écrans encore simulés compris, comptes de démons
 
 | | |
 |---|---|
-| Application | <https://cotiz.dev.regisnda.com> (service `web`, port 3000), **derrière un mot de passe d'accès** |
+| Application | <https://cotiz.dev.regisnda.com> (service `web`, port 3000) |
 | Stockage public | <https://cotiz-fichiers.dev.regisnda.com> (service `minio`, port 9000 : liens signés seulement) |
 | Dokploy | projet **Cotiz** › environnement *dev* › compose **cotiz-dev** |
 | Source | dépôt GitHub public, branche `backend`, fichier `./infra/compose/dev-dokploy.yml` |
@@ -14,21 +14,22 @@ Différences avec la recette (`recette-dokploy.md`) : `NODE_ENV=development`, mo
 réels, données de démonstration (`seed-dev` relancé à chaque déploiement), clés JWT éphémères (un redéploiement de
 l'api déconnecte tout le monde).
 
-## Mot de passe d'accès
+## Mot de passe des comptes de démonstration
 
-Le dépôt est public : les mots de passe des comptes de démonstration (`frontend/server/mocks/IDENTIFIANTS.md`) sont
-connus de tous. Tout le site est donc derrière une authentification HTTP (basic auth de Traefik) : utilisateur `cotiz`,
-mot de passe généré au premier passage de l'outil, lisible par son propriétaire seul :
+Le dépôt est public : le mot de passe des comptes de démonstration écrit dans `frontend/server/mocks/IDENTIFIANTS.md` est
+connu de tous. Ici, il est remplacé par un mot de passe secret (`COTIZ_DEV_SEED_PASSWORD`, onglet Environment de
+Dokploy), généré au premier passage de l'outil et lisible par son propriétaire seul :
 
 ```bash
 cat ~/.config/cotiz-dev-acces      # dans son propre terminal
 ```
 
-Dans Dokploy, seul son hash est rangé (`COTIZ_DEV_BASIC_AUTH`). Pour en changer : supprimer cette variable dans l'onglet
-Environment, relancer l'outil avec `--deployer`.
+Le seed le pose sur tous les comptes actifs à chaque déploiement et ne l'affiche jamais. Pour en changer : supprimer la
+variable dans l'onglet Environment, relancer l'outil avec `--deployer`.
 
-Limite : derrière une authentification HTTP, l'installation en application (PWA, iPhone « Sur l'écran d'accueil ») est
-peu fiable. Pour tester le push sur iPhone, utiliser la recette.
+Pas d'authentification HTTP devant le site : le front envoie son jeton dans l'en-tête `Authorization`, que Traefik
+réserverait à son mot de passe (toute requête à l'api refusée en 401). Pages publiques (accueil, demande d'association)
+visibles de tous, comme en recette ; PWA et push utilisables, iPhone compris.
 
 ## Configurer ou mettre à jour
 
@@ -42,14 +43,13 @@ Clé d'API Dokploy : `~/.config/cotiz-dokploy.key` (voir `recette-dokploy.md`).
 
 ## Comptes
 
-Ceux de `frontend/server/mocks/IDENTIFIANTS.md` (souscripteur Moussa Diarra, gestionnaire Awa Koné, super-admin…).
+Ceux de `frontend/server/mocks/IDENTIFIANTS.md` (souscripteur Moussa Diarra, gestionnaire Awa Koné, super-admin…), avec
+le mot de passe secret ci-dessus.
 Code d'activation de Fatou Traoré (compte non activé) : journaux du service `seed` du dernier déploiement (Dokploy ›
 cotiz-dev › Logs › seed).
 
 ## Vérifier
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://cotiz.dev.regisnda.com/               # 401 sans mot de passe
-curl -s -o /dev/null -w '%{http_code}\n' -u "cotiz:$(sed -n 's/^mot de passe : //p' ~/.config/cotiz-dev-acces)" \
-  https://cotiz.dev.regisnda.com/api/v1/health/ready                                    # 200
+curl -s -o /dev/null -w '%{http_code}\n' https://cotiz.dev.regisnda.com/api/v1/health/ready   # 200
 ```

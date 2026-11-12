@@ -173,6 +173,11 @@ export const ConfigSchema = z.object({
    * development ou test. Jamais en recette ni en production.
    */
   COTIZ_DEV_SEED: z.stringbool().default(false),
+  /**
+   * Mot de passe des comptes de `seed-dev` à la place du mot de passe connu (dépôt public) : environnement de dev en
+   * ligne (docs/runbooks/dev-dokploy.md). Jamais affiché par la commande.
+   */
+  COTIZ_DEV_SEED_PASSWORD: z.string().min(12).optional(),
 });
 
 const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {

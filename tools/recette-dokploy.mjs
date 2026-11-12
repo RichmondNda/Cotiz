@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Déploiements Dokploy de Cotiz, configurés par l'API Dokploy :
 //   - recette (lot 7.1, étape 2, anticipée) : pile de production, https://cotiz.regisnda.com (docs/runbooks/recette-dokploy.md) ;
-//   - dev : pile de développement (mocks, comptes de démonstration) derrière un mot de passe d'accès,
+//   - dev : pile de développement (mocks, comptes de démonstration au mot de passe secret),
 //     https://cotiz.dev.regisnda.com (docs/runbooks/dev-dokploy.md).
 //
 //   node tools/recette-dokploy.mjs [--cible recette|dev] [--branche backend] [--deployer]
@@ -11,11 +11,10 @@
 // - Source : dépôt GitHub public, branche choisie, fichier compose de la cible.
 // - Variables (onglet Environment) : les secrets ne sont générés qu'une fois ; ceux déjà présents sont gardés tels quels
 //   (en changer un casserait la base, les sessions ou les codes chiffrés). Rien n'est affiché : noms seulement.
-// - Dev : mot de passe d'accès (utilisateur `cotiz`) généré une fois, écrit dans ~/.config/cotiz-dev-acces (droits 600)
-//   pour être lu par son propriétaire ; seul son hash (apr1) va dans Dokploy.
+// - Dev : mot de passe des comptes de démonstration (COTIZ_DEV_SEED_PASSWORD, à la place du mot de passe public du dépôt)
+//   généré une fois, écrit aussi dans ~/.config/cotiz-dev-acces (droits 600) pour être lu par son propriétaire.
 // - Domaines : application et stockage public, https Let's Encrypt (DNS *.regisnda.com et *.dev.regisnda.com).
 // - --deployer : lance le déploiement (construction des images sur ce serveur, quelques minutes).
-import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -39,8 +38,8 @@ const CIBLES = {
     compose: './infra/compose/staging.yml',
     domaineApp: 'cotiz.regisnda.com',
     domaineFichiers: 'cotiz-fichiers.regisnda.com',
-    middlewares: null,
     secrets: () => ({ ...secretsProduction(), ...secretsVapid() }),
+    motDePasseDemo: false,
   },
   dev: {
     environnement: 'dev',
@@ -48,9 +47,8 @@ const CIBLES = {
     compose: './infra/compose/dev-dokploy.yml',
     domaineApp: 'cotiz.dev.regisnda.com',
     domaineFichiers: 'cotiz-fichiers.dev.regisnda.com',
-    // Middleware déclaré par les étiquettes du service `web` (infra/compose/dev-dokploy.yml).
-    middlewares: ['cotiz-dev-acces@docker'],
     secrets: () => secretsVapid(),
+    motDePasseDemo: true,
   },
 };
 
@@ -112,16 +110,11 @@ function secretsVapid() {
   return { COTIZ_VAPID_PUBLIC_KEY: publique.toString('base64url'), COTIZ_VAPID_PRIVATE_KEY: vapid.d };
 }
 
-/** Mot de passe d'accès de la cible dev : écrit pour son propriétaire seul, hash apr1 (openssl) pour Traefik. */
-function accesDev() {
-  const motDePasse = hex(10);
-  // Par l'entrée standard : jamais dans la ligne de commande (visible des autres processus).
-  const hash = execFileSync('openssl', ['passwd', '-apr1', '-stdin'], { input: `${motDePasse}\n` })
-    .toString()
-    .trim();
-  writeFileSync(FICHIER_ACCES_DEV, `utilisateur : cotiz\nmot de passe : ${motDePasse}\n`, { mode: 0o600 });
-  // Guillemets simples : le fichier .env de compose n'interpole pas les `$` du hash.
-  return `'cotiz:${hash}'`;
+/** Mot de passe des comptes de démonstration (cible dev) : écrit pour son propriétaire seul, puis rangé dans Dokploy. */
+function motDePasseDemo() {
+  const motDePasse = `Dev-${hex(9)}`;
+  writeFileSync(FICHIER_ACCES_DEV, `comptes de démonstration (IDENTIFIANTS.md) : ${motDePasse}\n`, { mode: 0o600 });
+  return motDePasse;
 }
 
 const lireEnv = (texte) =>
@@ -180,15 +173,17 @@ for (const [nom, valeur] of Object.entries(voulues)) {
     ajoutees.push(nom);
   }
 }
-if (cible.middlewares && !env.has('COTIZ_DEV_BASIC_AUTH')) {
-  env.set('COTIZ_DEV_BASIC_AUTH', accesDev());
-  ajoutees.push('COTIZ_DEV_BASIC_AUTH');
-  console.log(`mot de passe d'accès écrit dans ${FICHIER_ACCES_DEV} (droits 600)`);
-} else if (cible.middlewares && !existsSync(FICHIER_ACCES_DEV)) {
+if (cible.motDePasseDemo && !env.has('COTIZ_DEV_SEED_PASSWORD')) {
+  env.set('COTIZ_DEV_SEED_PASSWORD', motDePasseDemo());
+  ajoutees.push('COTIZ_DEV_SEED_PASSWORD');
+  console.log(`mot de passe des comptes de démonstration écrit dans ${FICHIER_ACCES_DEV} (droits 600)`);
+} else if (cible.motDePasseDemo && !existsSync(FICHIER_ACCES_DEV)) {
   console.log(
-    `mot de passe d'accès déjà dans Dokploy, mais ${FICHIER_ACCES_DEV} absent : retirer COTIZ_DEV_BASIC_AUTH pour en générer un autre`,
+    `mot de passe de démonstration déjà dans Dokploy, ${FICHIER_ACCES_DEV} absent : retirer COTIZ_DEV_SEED_PASSWORD pour en générer un autre`,
   );
 }
+// Mot de passe d'accès Traefik d'une version précédente (incompatible avec le jeton du front) : retiré.
+env.delete('COTIZ_DEV_BASIC_AUTH');
 await api('compose.saveEnvironment', {
   composeId,
   env: [...env].map(([k, v]) => `${k}=${v}`).join('\n'),
@@ -196,13 +191,29 @@ await api('compose.saveEnvironment', {
 });
 console.log(`variables : ${env.size} (ajoutées : ${ajoutees.length ? ajoutees.join(', ') : 'aucune'})`);
 
-// 4. Domaines (https, Let's Encrypt).
+// 4. Domaines (https, Let's Encrypt), sans middleware.
 const domaines = await api(`domain.byComposeId?composeId=${encodeURIComponent(composeId)}`);
-for (const [host, serviceName, port, middlewares] of [
-  [cible.domaineApp, 'web', 3000, cible.middlewares],
-  [cible.domaineFichiers, 'minio', 9000, null],
+for (const [host, serviceName, port] of [
+  [cible.domaineApp, 'web', 3000],
+  [cible.domaineFichiers, 'minio', 9000],
 ]) {
-  if (domaines.some((d) => d.host === host)) {
+  const existant = domaines.find((d) => d.host === host);
+  if (existant?.middlewares?.length) {
+    await api('domain.update', {
+      domainId: existant.domainId,
+      host,
+      path: existant.path ?? '/',
+      port: existant.port,
+      https: existant.https,
+      certificateType: existant.certificateType,
+      serviceName: existant.serviceName,
+      domainType: existant.domainType,
+      middlewares: [],
+    });
+    console.log(`domaine ${host} : middlewares retirés`);
+    continue;
+  }
+  if (existant) {
     console.log(`domaine ${host} : déjà là`);
     continue;
   }
@@ -215,9 +226,8 @@ for (const [host, serviceName, port, middlewares] of [
     composeId,
     serviceName,
     domainType: 'compose',
-    ...(middlewares ? { middlewares } : {}),
   });
-  console.log(`domaine ${host} → ${serviceName}:${port}${middlewares ? ` (${middlewares.join(', ')})` : ''}`);
+  console.log(`domaine ${host} → ${serviceName}:${port}`);
 }
 
 // 5. Déploiement.
