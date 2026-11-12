@@ -20,6 +20,7 @@ import { AssociationIdParams, AssociationParams, ProjectParams } from '../common
 import { Email, PersonContact, PersonRef, PhoneE164 } from '../common/people.js';
 import { QuotaUsage } from '../common/plan.js';
 import { ProjectRef } from '../common/project.js';
+import { StoredFile, UploadRequest, UploadTicket } from './common.js';
 import { Instant, IsoDate, Money, Uuid } from '../common/scalars.js';
 import { defineEndpoint, noFlags } from '../registry.js';
 
@@ -176,6 +177,32 @@ export const ImportRow = z.object({
 });
 
 const ImportParams = AssociationIdParams;
+
+/** Fichier d'un import (CSV, XLSX), déposé sous l'URL de l'association (décision 24 : le jeton ne la porte pas). */
+export const ImportUploadRequest = UploadRequest.extend({ purpose: z.literal('import_source') });
+
+export const imUpload = defineEndpoint({
+  id: 'im.upload',
+  space: 'association',
+  permission: 'members.manage',
+  errors: ['file_too_large', 'file_type_not_allowed', 'file_not_clean'],
+  flags: { ...noFlags, rateLimited: true },
+  operations: {
+    create: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/imports/uploads',
+      request: { params: AssociationParams, body: ImportUploadRequest },
+      response: { status: 201, body: UploadTicket },
+    },
+    /** Confirme le dépôt ; l'analyse antivirus se poursuit dans le worker (l'import l'attend). */
+    complete: {
+      method: 'POST',
+      path: '/api/v1/associations/{aid}/imports/uploads/{id}/complete',
+      request: { params: AssociationIdParams },
+      response: { status: 202, body: StoredFile },
+    },
+  },
+});
 
 export const imFlow = defineEndpoint({
   id: 'im.flow',

@@ -59,6 +59,25 @@ describe('isolation HTTP : imports', () => {
     await untouched();
   });
 
+  it('im.upload : lecteur 403, souscripteur 404 ; fichier de A confirmé par l’URL de B (son owner) → 404', async () => {
+    const body = { purpose: 'import_source', fileName: 'membres.csv', mimeType: 'text/csv', sizeBytes: 10 };
+    const create = (aid: string, token: string) =>
+      f.call(`/associations/${aid}/imports/uploads`, { token, method: 'POST', body });
+    expect((await create(A.id, f.tokens.koffi)).status).toBe(403); // Koffi est lecteur de A
+    expect((await create(A.id, f.tokens.moussa)).status).toBe(404);
+    const res = await create(A.id, f.tokens.awa);
+    expect(res.status).toBe(201);
+    const { fileId } = (await res.json()) as { fileId: string };
+    const complete = await f.call(`/associations/${B.id}/imports/uploads/${fileId}/complete`, {
+      token: f.tokens.koffi,
+      method: 'POST',
+    });
+    expect(complete.status).toBe(404);
+    expect((await f.h.superuser('SELECT association_id FROM files WHERE id = $1', [fileId])).rows).toEqual([
+      { association_id: A.id },
+    ]);
+  });
+
   it('lecteur de A : 403 ; souscripteur sans rôle de gestion : 404 (association cachée)', async () => {
     expect(await statuses(A.id, f.tokens.koffi)).toEqual({ get: 403, rows: 403, mapping: 403, row: 403, commit: 403 });
     const subscriber = await statuses(A.id, f.tokens.moussa);

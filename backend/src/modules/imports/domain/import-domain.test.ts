@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseCsv } from './csv.js';
 import { columnLetter, guessMapping, samplesOf, toImportTable } from './import-table.js';
-import { checkRow, mappingProblem, normalizeImportPhone, valuesOf } from './row-check.js';
+import { checkRow, mappingProblem, normalizeImportPhone, phoneRegionOf, valuesOf } from './row-check.js';
 
 const csv = (text: string, encoding: BufferEncoding = 'utf8') => parseCsv(Buffer.from(text, encoding));
 
@@ -160,5 +160,20 @@ describe('checkRow', () => {
   it('trop long', () => {
     const values = valuesOf({ Prénom: 'x'.repeat(81), NOM: 'B', Tel: '0712345678' }, mapping);
     expect(checkRow(values, 'CI').errors).toEqual([{ field: 'firstName', code: 'too_long' }]);
+  });
+});
+
+describe('phoneRegionOf (pays de l’association, texte libre)', () => {
+  it('code ISO, nom avec accents et apostrophe typographique, inconnu → Côte d’Ivoire', () => {
+    expect(phoneRegionOf('ci')).toBe('CI');
+    expect(phoneRegionOf('Côte d’Ivoire')).toBe('CI');
+    expect(phoneRegionOf("Cote d'Ivoire")).toBe('CI');
+    expect(phoneRegionOf('Sénégal')).toBe('SN');
+    expect(phoneRegionOf('Burkina Faso')).toBe('BF');
+    expect(phoneRegionOf('Atlantide')).toBe('CI');
+  });
+
+  it('numéro national lu dans le pays donné en toutes lettres', () => {
+    expect(normalizeImportPhone('0712345678', 'Côte d’Ivoire')).toBe('+2250712345678');
   });
 });

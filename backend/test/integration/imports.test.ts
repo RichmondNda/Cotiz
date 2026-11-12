@@ -1,3 +1,4 @@
+import { StoredFile, UploadTicket } from '@cotiz/contracts';
 import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ImportJobsConsumer } from '../../src/modules/imports/events/import-jobs.consumer.js';
@@ -156,6 +157,45 @@ describe('imports : création et analyse (im.flow, worker)', () => {
     expect((await f.get(id)).status).toBe('uploaded');
     await f.redis.exec(['redis-cli', 'DEL', `cotiz:lock:imports:${A.id}`]);
     await until(id, 'validated');
+  });
+
+  it('im.upload : dépôt par l’URL de l’association, confirmé, puis im.flow et analyse du fichier déposé', async () => {
+    const body = {
+      purpose: 'import_source',
+      fileName: 'membres.csv',
+      mimeType: CSV,
+      sizeBytes: Buffer.byteLength(MOCKUP),
+    };
+    const res = await f.call(`/associations/${A.id}/imports/uploads`, { token: f.tokens.awa, method: 'POST', body });
+    expect(res.status).toBe(201);
+    const ticket = UploadTicket.parse(await res.json());
+    const put = await fetch(ticket.uploadUrl, { method: 'PUT', headers: ticket.headers, body: MOCKUP });
+    expect(put.status).toBe(200);
+    const done = await f.call(`/associations/${A.id}/imports/uploads/${ticket.fileId}/complete`, {
+      token: f.tokens.awa,
+      method: 'POST',
+    });
+    expect(done.status).toBe(202);
+    expect(StoredFile.parse(await done.json())).toMatchObject({ id: ticket.fileId, purpose: 'import_source' });
+    expect(
+      (await f.h.superuser('SELECT association_id, owner_user_id FROM files WHERE id = $1', [ticket.fileId])).rows,
+    ).toEqual([{ association_id: A.id, owner_user_id: USERS.awa }]);
+    await f.h.superuser(`UPDATE files SET scan_status = 'clean', sha256 = repeat('0', 64) WHERE id = $1`, [
+      ticket.fileId,
+    ]);
+
+    const { id } = Job.parse(await (await f.flow(PROJECTS.a, ticket.fileId)).json());
+    expect(await f.analyze(id)).toBe('done');
+    expect(await f.get(id)).toMatchObject({ status: 'validated', counts: { ready: 3 } });
+  });
+
+  it('im.upload : autre usage 422 ; lecteur 403 ; fl.upload refuse toujours l’espace association', async () => {
+    const body = { purpose: 'import_source', fileName: 'membres.csv', mimeType: CSV, sizeBytes: 10 };
+    const upload = (b: unknown, token = f.tokens.awa) =>
+      f.call(`/associations/${A.id}/imports/uploads`, { token, method: 'POST', body: b });
+    expect((await upload({ ...body, purpose: 'logo' })).status).toBe(422);
+    expect((await upload(body, f.tokens.koffi)).status).toBe(403);
+    expect((await f.call('/uploads', { token: f.tokens.awa, method: 'POST', body })).status).toBe(403);
   });
 
   describe('refus de im.flow', () => {

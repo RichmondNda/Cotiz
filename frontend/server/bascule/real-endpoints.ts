@@ -24,8 +24,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['auth.verify', 'all'],
   ['auth.reset', 'all'],
   ['me', 'all'],
-  // Lot 4.4 : dépôt ouvert à l'espace association (fichier d'import, usage import_source).
-  ['fl.upload', 'all'],
+  ['fl.upload', ['platform', 'subscriber']],
   ['fl.get', ['platform', 'subscriber']],
   // Lot 1.2 : plans (tarifs publics, gestion par le super-admin).
   ['pub.plans', 'all'],
@@ -124,6 +123,7 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['me.sign', 'all'],
   ['me.contracts', 'all'],
   // Lot 4.4 : imports de souscripteurs (fichier lu par le worker, classement, correction, envoi).
+  ['im.upload', 'all'],
   ['im.flow', 'all'],
   ['im.steps', 'all'],
   ['im.read', 'all'],

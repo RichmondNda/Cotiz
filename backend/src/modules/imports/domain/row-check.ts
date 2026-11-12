@@ -47,12 +47,44 @@ export function valuesOf(
   return values;
 }
 
+/** Pays saisis en toutes lettres (`associations.country` est un texte libre) → région téléphonique. */
+const REGIONS: Record<string, CountryCode> = {
+  'cote d ivoire': 'CI',
+  senegal: 'SN',
+  mali: 'ML',
+  'burkina faso': 'BF',
+  benin: 'BJ',
+  togo: 'TG',
+  niger: 'NE',
+  guinee: 'GN',
+  cameroun: 'CM',
+  gabon: 'GA',
+  congo: 'CG',
+  france: 'FR',
+};
+
+/**
+ * Région des numéros nationaux d'une association : code ISO (`CI`) ou nom du pays (`Côte d’Ivoire`, accents et
+ * apostrophes ignorés) ; inconnu → Côte d'Ivoire, comme la saisie du front (`versE164`, +225).
+ */
+export function phoneRegionOf(country: string): CountryCode {
+  const trimmed = country.trim();
+  if (/^[A-Za-z]{2}$/.test(trimmed)) return trimmed.toUpperCase() as CountryCode;
+  const key = trimmed
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z]+/g, ' ')
+    .trim();
+  return REGIONS[key] ?? 'CI';
+}
+
 /**
  * Téléphone saisi → E.164, numéros nationaux lus dans le pays de l'association (`07 12 34 56 78` → +225…).
  * Un numéro lu comme nombre par Excel perd son zéro initial (712345678) : on le retente avec le zéro. `null` : invalide.
  */
 export function normalizeImportPhone(input: string, country: string): string | null {
-  const region = country.toUpperCase() as CountryCode;
+  const region = phoneRegionOf(country);
   const parse = (value: string) => {
     const parsed = parsePhoneNumberFromString(value, region);
     return parsed?.isValid() ? parsed.number : null;

@@ -43,7 +43,6 @@ endpoints:
   audited: false
   screens:
   - mg-projet-new
-  - mg-import
   - mb-declarer
   - mg-rapprochement
 - id: fl.get
@@ -1792,6 +1791,28 @@ endpoints:
   audited: false
   screens:
   - mg-contrats
+- id: im.upload
+  lot: '4.4'
+  space: association
+  permission: members.manage
+  operations:
+  - method: POST
+    path: /api/v1/associations/{aid}/imports/uploads
+  - method: POST
+    path: /api/v1/associations/{aid}/imports/uploads/{id}/complete
+  summary: Dépôt du fichier d'un import (purpose import_source), mêmes étapes que as.upload ; association lue dans l'URL (décision 24)
+  errors:
+  - file_too_large
+  - file_type_not_allowed
+  - file_not_clean
+  emits:
+  - file.uploaded
+  idempotencyKey: false
+  ifMatch: false
+  rateLimited: true
+  audited: false
+  screens:
+  - mg-import
 - id: im.flow
   lot: '4.4'
   space: association
