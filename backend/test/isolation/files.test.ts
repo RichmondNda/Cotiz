@@ -220,6 +220,7 @@ describe('isolation : files (base migrée)', () => {
     it('membre retiré : plus de logo ; hors espace souscripteur : rien', async () => {
       expect(await h.as(asSubscriber(USERS.fatou), visible)).toEqual([FILES.proofFatou]);
       expect(await h.as({ space: 'platform', userId: USERS.moussa }, visible)).toEqual([]);
+      expect(await h.as({ space: 'auth', userId: USERS.moussa }, visible)).toEqual([]);
       expect(await h.as({ space: 'public' }, visible)).toEqual([]);
     });
 
@@ -238,6 +239,28 @@ describe('isolation : files (base migrée)', () => {
         () => h.as(asSubscriber(USERS.fatou), visible),
       );
       expect(leaked).toContain(FILES.logoB);
+    });
+
+    it('le test échoue si subscriber_logo_read ne vérifie plus l’association du fichier', async () => {
+      // A pointe le logo de B : sans la condition, Moussa (membre de A) lit un fichier de B.
+      await h.superuser(`UPDATE associations SET logo_file_id = $2 WHERE id = $1`, [A.id, FILES.logoB]);
+      try {
+        expect(await h.as(asSubscriber(USERS.moussa), visible)).not.toContain(FILES.logoB);
+        const leaked = await h.withPolicy(
+          'files',
+          'subscriber_logo_read',
+          {
+            using: `app_space() = 'subscriber' AND purpose = 'logo' AND EXISTS (SELECT 1 FROM associations a
+                     JOIN memberships m ON m.association_id = a.id WHERE a.logo_file_id = files.id
+                       AND m.user_id = app_user_id() AND m.status = 'active')`,
+            withCheck: null,
+          },
+          () => h.as(asSubscriber(USERS.moussa), visible),
+        );
+        expect(leaked).toContain(FILES.logoB);
+      } finally {
+        await h.superuser(`UPDATE associations SET logo_file_id = $2 WHERE id = $1`, [A.id, FILES.logoA]);
+      }
     });
 
     it('le test échoue si subscriber_logo_read ne se limite plus au logo en cours', async () => {

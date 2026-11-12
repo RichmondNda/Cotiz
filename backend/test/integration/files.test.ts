@@ -370,6 +370,8 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
         // Lecture seulement : ni confirmation de dépôt, ni accès pour un souscripteur d'ailleurs.
         expect((await post(`/uploads/${logo}/complete`, moussa)).status).toBe(404);
         expect((await getFile(logo, fatou)).status).toBe(404);
+        // Logo déposé mais pas encore en place : illisible.
+        expect((await getFile(next, moussa)).status).toBe(404);
         // Logo remplacé : l'ancien n'est plus lisible, le nouveau l'est.
         await h.superuser('UPDATE associations SET logo_file_id = $2 WHERE id = $1', [A.id, next]);
         expect((await getFile(logo, moussa)).status).toBe(404);
@@ -383,6 +385,10 @@ describe('fl.upload et fl.get (MinIO réel)', () => {
         expect((await getFile(next, moussa)).status).toBe(404);
       } finally {
         await h.superuser('UPDATE associations SET logo_file_id = NULL WHERE id = $1', [A.id]);
+        await h.superuser(
+          `DELETE FROM memberships WHERE association_id = $1 AND user_id = $2 AND role = 'subscriber'`,
+          [A.id, USERS.moussa],
+        );
       }
     });
 
