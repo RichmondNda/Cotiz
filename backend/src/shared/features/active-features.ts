@@ -13,6 +13,7 @@ export const DELIVERED_FEATURES: readonly Feature[] = [
   'web_push',
   'imports',
   'auto_reminders',
+  'team',
 ];
 
 export interface WebPushConfig {

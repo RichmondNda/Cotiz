@@ -146,7 +146,27 @@ export async function asSelf<T>(userId: string, fn: () => Promise<T>): Promise<T
   if (store.closed) throw new Error('asSelf() appelé après la fin de la transaction de contexte');
   if (store.suspended) throw new Error('asSelf() concurrent sur la même transaction : refusé');
   if (store.context?.space === 'auth' && store.context.userId === userId) return fn();
-  const self: TenantContext = { space: 'auth', userId };
+  return switched(store, { space: 'auth', userId }, fn);
+}
+
+/**
+ * Acceptation d'une invitation d'équipe (auth.activate, lot 4.5) : depuis l'espace auth seulement, `fn` voit la base
+ * dans l'espace de l'association `associationId` avec la personne `userId` (politique tenant_isolation : passer son
+ * appartenance de `invited` à `active`), puis l'espace auth est rétabli. `associationId` et `userId` viennent du code
+ * d'invitation vérifié (ligne lue par le serveur), jamais du client. Réservé au module access (self.ts).
+ */
+export async function asInvitedMember<T>(associationId: string, userId: string, fn: () => Promise<T>): Promise<T> {
+  const store = storage.getStore();
+  if (!store) throw new Error('asInvitedMember() appelé hors contexte tenant');
+  if (store.closed) throw new Error('asInvitedMember() appelé après la fin de la transaction de contexte');
+  if (store.suspended) throw new Error('asInvitedMember() concurrent sur la même transaction : refusé');
+  if (store.context?.space !== 'auth') throw new Error('asInvitedMember() : espace auth seulement');
+  return switched(store, { space: 'association', associationId, userId }, fn);
+}
+
+/** `fn` dans le contexte `next` sur la transaction du store, puis le contexte d'avant rétabli. */
+async function switched<T>(store: Store, next: TenantContext, fn: () => Promise<T>): Promise<T> {
+  const self = next;
   assertValid(self);
   const previous = store.context;
   const set = (context: TenantContext | null) =>

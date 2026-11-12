@@ -13,6 +13,8 @@ export interface HandoffInput {
   appUrl: string;
   /** Mot du gestionnaire, ajouté à la fin. */
   personalMessage?: string | undefined;
+  /** Invitation dans l'équipe d'une association (`team_invite`, lot 4.5). */
+  invitation?: { associationName: string; existingAccount: boolean } | undefined;
 }
 
 const SPACE_LABEL: Record<HandoffInput['space'], string> = {
@@ -51,15 +53,23 @@ export function buildHandoff(input: HandoffInput): Handoff {
   const { recipient, code } = input;
   const activation = input.purpose !== 'password_reset';
   const activatePageFor = activationPage(input.appUrl, input.space, recipient.phone);
-  const lines = activation
+  const invitation = input.invitation;
+  const lines = invitation
     ? [
-        `Bonjour ${recipient.firstName}, voici votre code d’activation Cotiz pour ${SPACE_LABEL[input.space]} : ${code} (valable jusqu’au ${DAY.format(input.expiresAt)}).`,
-        `Rendez-vous sur ${activatePageFor}, saisissez votre identifiant et ce code, puis choisissez votre mot de passe.`,
+        `Bonjour ${recipient.firstName}, ${invitation.associationName} vous invite à rejoindre son équipe sur Cotiz. Votre code d’invitation : ${code} (valable jusqu’au ${DAY.format(input.expiresAt)}).`,
+        invitation.existingAccount
+          ? `Rendez-vous sur ${activatePageFor}, saisissez votre email, ce code et votre mot de passe actuel.`
+          : `Rendez-vous sur ${activatePageFor}, saisissez votre email et ce code, puis choisissez votre mot de passe.`,
       ]
-    : [
-        `Bonjour ${recipient.firstName}, voici votre code de réinitialisation Cotiz : ${code} (valable 15 minutes).`,
-        'Saisissez-le sur la page « Mot de passe oublié », puis choisissez votre nouveau mot de passe.',
-      ];
+    : activation
+      ? [
+          `Bonjour ${recipient.firstName}, voici votre code d’activation Cotiz pour ${SPACE_LABEL[input.space]} : ${code} (valable jusqu’au ${DAY.format(input.expiresAt)}).`,
+          `Rendez-vous sur ${activatePageFor}, saisissez votre identifiant et ce code, puis choisissez votre mot de passe.`,
+        ]
+      : [
+          `Bonjour ${recipient.firstName}, voici votre code de réinitialisation Cotiz : ${code} (valable 15 minutes).`,
+          'Saisissez-le sur la page « Mot de passe oublié », puis choisissez votre nouveau mot de passe.',
+        ];
   if (input.personalMessage?.trim()) lines.push(input.personalMessage.trim());
   const message = lines.join('\n');
   const text = encodeURIComponent(message);
