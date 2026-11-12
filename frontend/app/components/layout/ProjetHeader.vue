@@ -1,7 +1,8 @@
 <!--
   En-tête du détail d'un projet (commun aux 6 onglets).
   Desktop : bandeau de couverture (motif par défaut sans image), nom, badge de statut, ligne de synthèse,
-  « Ajouter un souscripteur » (primaire), menu ⋯ (dupliquer, exporter, clôturer), onglets liés à l'URL avec compteurs
+  « Ajouter un souscripteur » (primaire ; brouillon : « Ouvrir les inscriptions », écart ui-deviations), menu ⋯
+  (dupliquer, exporter, clôturer ou, pour un brouillon, ouvrir les inscriptions), onglets liés à l'URL avec compteurs
   (souscripteurs : total gris ; paiements : à valider, orange).
   Mobile : en-tête avec retour vers la liste et sous-titre propre à l'onglet, onglets défilants (actif centré).
 -->
@@ -20,6 +21,9 @@ const props = defineProps<{
 }>()
 
 const base = computed(() => `/asso/projets/${props.projet.id}`)
+const brouillon = computed(() => props.projet.statut === 'brouillon')
+/** Publication d'un brouillon : confirmée dans les paramètres du projet. */
+const lienPublication = computed(() => ({ path: `${base.value}/parametres`, query: { publication: '1' } }))
 
 const onglets = computed<Onglet[]>(() => [
   { label: 'Vue d’ensemble', to: base.value },
@@ -33,9 +37,11 @@ const onglets = computed<Onglet[]>(() => [
 const menu = computed<ElementMenu[]>(() => [
   { label: 'Dupliquer', icone: 'copier', to: { path: '/asso/projets/nouveau', query: { modele: props.projet.id } } },
   { label: 'Exporter', icone: 'telecharger', to: `${base.value}/rapports` },
-  ...(props.projet.statut === 'termine'
-    ? []
-    : [{ label: 'Clôturer le projet', icone: 'supprimer' as const, to: { path: `${base.value}/parametres`, query: { cloture: '1' } }, danger: true, separe: true }]),
+  ...(brouillon.value
+    ? [{ label: 'Ouvrir les inscriptions', icone: 'valide' as const, to: lienPublication.value, separe: true }]
+    : props.projet.statut === 'termine'
+      ? []
+      : [{ label: 'Clôturer le projet', icone: 'supprimer' as const, to: { path: `${base.value}/parametres`, query: { cloture: '1' } }, danger: true, separe: true }]),
 ])
 
 const sousTitreMobile = computed(() => {
@@ -89,7 +95,14 @@ const sousTitreMobile = computed(() => {
           <p>{{ sousTitreDetailProjet(projet) }}</p>
         </div>
         <CzButton
-          v-if="projet.statut !== 'termine'"
+          v-if="brouillon"
+          taille="lg"
+          :to="lienPublication"
+        >
+          Ouvrir les inscriptions
+        </CzButton>
+        <CzButton
+          v-else-if="projet.statut !== 'termine'"
           taille="lg"
           icone="ajouter"
           :to="{ path: `${base}/souscripteurs`, query: { ajout: '1' } }"

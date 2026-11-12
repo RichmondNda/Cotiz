@@ -918,3 +918,9 @@ Premier lot de corrections (sans écart à la maquette) ; calendrier, déconnexi
 - Logo côté souscripteur (accord de l'utilisateur, 2026-11-12) : migration 0026, politique `subscriber_logo_read`
   (lecture, logo en cours `associations.logo_file_id`, membre actif) ; `findFile` laisse passer `logo` en espace
   souscripteur ; cartes « Mes associations » et fiche par `useImageFichier` (fl.get).
+
+## Publication d'un brouillon (2026-11-12, branche chore/publier-brouillon, accord « oui vas y »)
+- Aucun écran n'appelait `pr.lifecycle` publish hors création. Ajouts : bandeau « Projet en brouillon » + « Ouvrir les
+  inscriptions » (confirmation) dans les paramètres, ouvert aussi par `?publication=1` depuis l'en-tête (bouton primaire
+  à la place d'« Ajouter un souscripteur », entrée du menu ⋯) et le menu ⋯ de la liste. « Clôturer » désactivé pour un
+  brouillon (transition refusée par le back). Écart consigné dans `docs/specs/ui-deviations.md`.

@@ -308,3 +308,7 @@ Corrigés dans la branche :
 - **2026-11-12 · lot 4.5 · association courante d'un gestionnaire** — décision 26 : un gestionnaire de plusieurs
   associations (possible dès `tm.team`) garde la première association gérée dans `/me`, l'en-tête et la cloche.
   Sélecteur côté gestionnaire reporté (choix de l'utilisateur, 2026-11-12) ; à planifier.
+
+- 2026-11-12 · « Enregistrer le brouillon » (création de projet) échoue par moments sans requête `pr.create`
+  (toast « Vérifiez votre connexion ») : corps refusé côté client (parse Zod du contrat dans `@cotiz/api-client`) ;
+  un brouillon « nom seul » est aussi refusé (startDate vide). À examiner : le contrat exige un projet complet.

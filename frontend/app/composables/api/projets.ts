@@ -218,6 +218,17 @@ export function useActionsProjet() {
         traduireErreur(e, { 'champ:name': 'nom_obligatoire' })
       }
     },
+    /** Brouillon → « Inscriptions ouvertes » (pr.lifecycle publish) ; refusé hors brouillon (invalid_state). */
+    publierProjet: async (projetId: string) => {
+      const aid = await associationCourante(client)
+      try {
+        await client.call('pr.lifecycle', 'publish', { params: { aid, pid: projetId } })
+        return chargerProjet(client, aid, projetId, active('contracts'))
+      }
+      catch (e) {
+        traduireErreur(e, { invalid_state: 'pas_brouillon', quota_exceeded: 'quota_exceeded' })
+      }
+    },
     cloturerProjet: async (projetId: string) => {
       const aid = await associationCourante(client)
       try {
