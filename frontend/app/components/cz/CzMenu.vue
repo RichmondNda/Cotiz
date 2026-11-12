@@ -23,9 +23,11 @@ export interface ElementMenu {
 const props = withDefaults(defineProps<{
   elements: ElementMenu[]
   alignement?: 'gauche' | 'droite'
+  /** `haut` : le menu s'ouvre au-dessus du déclencheur (bas de la barre latérale). */
+  ouverture?: 'bas' | 'haut'
   largeur?: string
   label?: string
-}>(), { alignement: 'droite', largeur: undefined, label: 'Actions' })
+}>(), { alignement: 'droite', ouverture: 'bas', largeur: undefined, label: 'Actions' })
 
 const ouvert = ref(false)
 const racine = ref<HTMLElement | null>(null)
@@ -111,7 +113,7 @@ defineExpose({ ouvrir, fermer })
       :id="idMenu"
       ref="menu"
       class="cz-menu cz-menu-flottant"
-      :class="`is-${alignement}`"
+      :class="[`is-${alignement}`, { 'is-haut': ouverture === 'haut' }]"
       :style="largeur ? { width: largeur } : undefined"
       role="menu"
       :aria-label="props.label"
@@ -167,6 +169,11 @@ defineExpose({ ouvrir, fermer })
   position: absolute;
   top: calc(100% + var(--space-1));
   z-index: 40;
+}
+
+.cz-menu-flottant.is-haut {
+  top: auto;
+  bottom: calc(100% + var(--space-1));
 }
 
 .cz-menu-flottant.is-droite {

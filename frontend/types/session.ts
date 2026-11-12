@@ -11,7 +11,7 @@ export interface UtilisateurSession {
   fonction?: string
   /** Gestionnaire : association courante (carte en tête de la barre latérale). */
   associationId?: Identifiant
-  association?: { id: Identifiant, nom: string, sigle?: string, plan: string }
+  association?: { id: Identifiant, nom: string, sigle?: string, plan: string, logoFichierId?: Identifiant }
   /** Associations où la personne est souscriptrice active (`GET /me`), de la plus ancienne inscription à la plus récente. */
   associationsSouscrites: { id: Identifiant, nom: string }[]
   /** Permissions de l'espace courant (`GET /me`) : le front masque, le back refuse. */

@@ -24,6 +24,8 @@ export interface Association {
   pays: string // incertain : toujours « Côte d'Ivoire » dans les maquettes
   description?: string
   logoUrl?: string
+  /** Logo déposé (`as.file` en espace gestionnaire) ; absent : initiales. */
+  logoFichierId?: Identifiant
   telephoneContact?: string
   emailContact?: string
   numeroEnregistrement?: string

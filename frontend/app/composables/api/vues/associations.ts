@@ -82,7 +82,7 @@ export function vueAssociation(a: AssociationContrat, moyens: PaymentMethod[], c
   const virement = moyens.find(x => x.kind === 'bank_transfer')
   return {
     id: a.id, nom: a.name, sigle: initiales(a.name), type: type(a.type), ville: a.city, pays: a.country,
-    description: a.description ?? undefined, logoUrl: a.logoFileId ? '[LOGO]' : undefined,
+    description: a.description ?? undefined, logoUrl: a.logoFileId ? '[LOGO]' : undefined, logoFichierId: a.logoFileId ?? undefined,
     telephoneContact: tel(a.contactPhone), emailContact: email(a.contactEmail), statut: STATUT_ASSOCIATION[a.status]!,
     planId: c.planId, abonnementProchaineEcheance: c.prochaineEcheance ?? '[DATE]', modalitesPaiement: vueModalites(moyens),
     instructionsPaiement: virement?.instructions ?? undefined, nbProjets: c.projets, nbSouscripteurs: c.souscripteurs,

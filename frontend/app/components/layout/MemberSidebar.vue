@@ -3,6 +3,7 @@
   « Déclarer un paiement » en bas, puis l'utilisateur.
 -->
 <script setup lang="ts">
+import type { ElementMenu } from '~/components/cz/CzMenu.vue'
 import { NAV_SOUSCRIPTEUR, NAV_SOUSCRIPTEUR_NOTIFICATIONS } from '~/config/navigation'
 
 const props = withDefaults(defineProps<{
@@ -16,6 +17,12 @@ const { actif, compteur } = useEntreesNavigation(() => props.alias)
 
 const entrees = [...NAV_SOUSCRIPTEUR, NAV_SOUSCRIPTEUR_NOTIFICATIONS]
 const nom = computed(() => [moi.value?.prenom, moi.value?.nom].filter(Boolean).join(' '))
+// Menu du compte sous le nom (retours d'interface du 2026-11-12) : profil et déconnexion à portée, comme le gestionnaire.
+const { deconnecter } = useSession()
+const menuCompte: ElementMenu[] = [
+  { label: 'Mon profil', to: '/profil' },
+  { label: 'Se déconnecter', danger: true, separe: true, action: deconnecter },
+]
 </script>
 
 <template>
@@ -61,16 +68,34 @@ const nom = computed(() => [moi.value?.prenom, moi.value?.nom].filter(Boolean).j
     >
       Déclarer un paiement
     </CzButton>
-    <div
+    <CzMenu
       v-if="moi"
-      class="membre-nav__moi"
+      :elements="menuCompte"
+      alignement="gauche"
+      ouverture="haut"
+      label="Menu du compte"
+      class="membre-nav__compte"
     >
-      <CzAvatar
-        :nom="nom"
-        taille="sm"
-      />
-      <span><b>{{ nom }}</b><span class="cz-muted">{{ moi.fonction ?? 'Souscripteur' }}</span></span>
-    </div>
+      <template #declencheur="{ basculer, attrs }">
+        <button
+          type="button"
+          class="membre-nav__moi"
+          v-bind="attrs"
+          aria-label="Menu du compte"
+          @click="basculer"
+        >
+          <CzAvatar
+            :nom="nom"
+            taille="sm"
+          />
+          <span><b>{{ nom }}</b><span class="cz-muted">{{ moi.fonction ?? 'Souscripteur' }}</span></span>
+          <CzIcon
+            nom="chevron-bas"
+            class="membre-nav__chevron"
+          />
+        </button>
+      </template>
+    </CzMenu>
   </nav>
 </template>
 
@@ -129,12 +154,43 @@ const nom = computed(() => [moi.value?.prenom, moi.value?.nom].filter(Boolean).j
   flex-grow: 1;
 }
 
+.membre-nav__compte {
+  display: flex;
+  width: 100%;
+}
+
 .membre-nav__moi {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-2) 0;
+  min-height: 44px;
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--r-field);
+  background: none;
+  font: inherit;
   font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.membre-nav__moi:hover {
+  background: var(--surface-hover);
+}
+
+.membre-nav__moi:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.membre-nav__chevron {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--text-muted);
+  transform: rotate(180deg);
 }
 
 .membre-nav__moi b {
