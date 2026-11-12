@@ -24,6 +24,8 @@ export interface ActiveMembership {
   association: { id: string; name: string; slug: string; status: string; logoFileId: string | null };
   role: MembershipRole;
   title: string | null;
+  /** Date d'arrivée (`joined_at`, à défaut la création de l'appartenance) : « membre depuis » (me.assos). */
+  joinedAt: Date;
 }
 
 /**
@@ -98,12 +100,19 @@ export function activeMembershipsOf(userId: string): Promise<ActiveMembership[]>
         logoFileId: associations.logoFileId,
         role: memberships.role,
         title: memberships.title,
+        joinedAt: memberships.joinedAt,
+        createdAt: memberships.createdAt,
       })
       .from(memberships)
       .innerJoin(associations, eq(associations.id, memberships.associationId))
       .where(and(eq(memberships.userId, userId), eq(memberships.status, 'active')))
       .orderBy(sql`${memberships.joinedAt} ASC NULLS LAST`, asc(memberships.createdAt), asc(memberships.id));
-    return rows.map(({ role, title, ...association }) => ({ association, role, title }));
+    return rows.map(({ role, title, joinedAt, createdAt, ...association }) => ({
+      association,
+      role,
+      title,
+      joinedAt: joinedAt ?? createdAt,
+    }));
   });
 }
 

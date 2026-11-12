@@ -4,6 +4,7 @@ import { MembersModule } from '../members/members.public.js';
 import { GetManagerDashboardUseCase } from './application/get-manager-dashboard.use-case.js';
 import { GetPlatformDashboardUseCase } from './application/get-platform-dashboard.use-case.js';
 import { GetProjectReportUseCase } from './application/get-project-report.use-case.js';
+import { GetSubscriberAssociationsUseCase } from './application/get-subscriber-associations.use-case.js';
 import { GetSubscriberDashboardUseCase } from './application/get-subscriber-dashboard.use-case.js';
 import { GetSubscriberHistoryUseCase } from './application/get-subscriber-history.use-case.js';
 import { GetSubscriberProjectUseCase } from './application/get-subscriber-project.use-case.js';
@@ -34,6 +35,7 @@ import { SubscriberSpaceController } from './http/subscriber-space.controller.js
     GetSubscriberHistoryUseCase,
     ListSubscriberProjectsUseCase,
     GetSubscriberProjectUseCase,
+    GetSubscriberAssociationsUseCase,
   ],
 })
 export class ReportingModule {}
