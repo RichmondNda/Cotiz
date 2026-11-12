@@ -57,3 +57,5 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - `associations.country` est un texte libre (« Côte d’Ivoire ») : passer par `phoneRegionOf` (`imports/domain/row-check.ts`) avant libphonenumber, jamais le pays tel quel comme code de région.
 - Écriture d'un job pour le compte d'un gestionnaire (imports, lot 4.4) : revérifier son droit pendant le job (`holdsPermission`, `managementAccessIn` inclut viewer) et donner le vrai rôle à l'audit par `runWithRequestInfo({ actorRole })`.
 - Dépôt de fichier par une association : route sous `/associations/{aid}/…` (`as.upload`, `pr.upload`, `im.upload`, décision 24) ; `fl.upload` refuse l'espace association.
+- Deux `*.public.ts` qui s'importent l'un l'autre (cycle ES, même indirect) cassent l'injection Nest au démarrage du worker (« circular dependency ») : déplacer l'utilitaire partagé dans `shared/` (ex. `shared/templates`, lot 4.3).
+- Texte figé à l'écriture et montant relu à l'affichage (file « À relancer ») : refaire le rendu depuis le modèle avec le reste dû du jour, sinon un paiement partiel laisse un message faux.
