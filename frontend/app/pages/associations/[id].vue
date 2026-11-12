@@ -12,6 +12,7 @@ definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
 const route = useRoute()
 const { data: groupe, pending, error, refresh } = useMonAssociation(() => String(route.params.id))
 const association = computed(() => groupe.value?.association)
+const logo = useImageFichier(() => association.value?.logoFichierId)
 useHead({ title: () => `${association.value?.nom ?? 'Association'} · Cotiz` })
 
 const membreDepuis = computed(() => (groupe.value ? formatMois(groupe.value.membreDepuis).toLowerCase() : ''))
@@ -81,6 +82,7 @@ function pied(s: SouscriptionMembre): [string, string] {
         <CzAvatar
           :nom="association.nom"
           :initiales="association.sigle"
+          :src="logo ?? undefined"
           org
           class="asso__avatar"
         />

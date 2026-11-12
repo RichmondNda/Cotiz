@@ -914,4 +914,7 @@ Premier lot de corrections (sans écart à la maquette) ; calendrier, déconnexi
 - Déconnexion souscripteur : bloc « moi » de `MemberSidebar` devenu un `CzMenu` (Mon profil, Se déconnecter),
   ouvert vers le haut (prop `ouverture` de `CzMenu`) ; en mobile, icône de déconnexion dans l'en-tête de `/profil`.
 - Logo : affiché en espace gestionnaire seulement (`useImageFichier`, barre latérale et paramètres avec aperçu local) ;
-  souscripteur et plateforme gardent les initiales (la RLS de `files` ne leur ouvre pas le logo : à décider).
+  plateforme : initiales.
+- Logo côté souscripteur (accord de l'utilisateur, 2026-11-12) : migration 0026, politique `subscriber_logo_read`
+  (lecture, logo en cours `associations.logo_file_id`, membre actif) ; `findFile` laisse passer `logo` en espace
+  souscripteur ; cartes « Mes associations » et fiche par `useImageFichier` (fl.get).

@@ -17,7 +17,8 @@ import {
 /**
  * Isolation de `files` (base migrée) : tenant_isolation (gestionnaires de l'association), owner_access (le déposant,
  * dans l'espace souscripteur seulement : sa preuve, avant et après rattachement), system_access (worker). Chaque
- * politique est aussi testée affaiblie.
+ * politique est aussi testée affaiblie. subscriber_logo_read (retours d'interface du 2026-11-12) : le logo en cours
+ * d'une association, pour ses membres actifs en espace souscripteur, et rien d'autre.
  */
 
 const FILES = {
@@ -27,6 +28,8 @@ const FILES = {
   proofFatou: '00000000-0000-7000-8000-0000000f0c02',
   /** Preuve de Moussa rattachée à A (déclaration de paiement, lot 3.3) : déposée par un autre que le gestionnaire. */
   proofMoussaA: '00000000-0000-7000-8000-0000000f0c03',
+  /** Ancien logo de A, remplacé : jamais lisible par un souscripteur. */
+  oldLogoA: '00000000-0000-7000-8000-0000000f0a02',
 } as const;
 
 const visible = (tx: Tx) =>
@@ -177,5 +180,78 @@ describe('isolation : files (base migrée)', () => {
       () => h.as(asSubscriber(USERS.fatou), visible),
     );
     expect(leaked).toHaveLength(5);
+  });
+  describe('subscriber_logo_read : le logo en cours, pour les membres actifs', () => {
+    beforeAll(async () => {
+      await h.superuser(
+        `INSERT INTO files (id, association_id, owner_user_id, purpose, bucket, object_key, original_name, mime_type,
+                            size_bytes)
+         VALUES ($1, $2, $3, 'logo', 'cotiz-media', 'k6', 'ancien.png', 'image/png', 10)`,
+        [FILES.oldLogoA, A.id, USERS.awa],
+      );
+      await h.superuser(`UPDATE associations SET logo_file_id = $2 WHERE id = $1`, [A.id, FILES.logoA]);
+      await h.superuser(`UPDATE associations SET logo_file_id = $2 WHERE id = $1`, [B.id, FILES.logoB]);
+      // Moussa membre actif de A ; Fatou retirée de B.
+      await h.superuser(
+        `INSERT INTO memberships (id, association_id, user_id, role, status, joined_at, removed_at)
+         VALUES (gen_random_uuid(), $1, $3, 'subscriber', 'active', now(), NULL),
+                (gen_random_uuid(), $2, $4, 'subscriber', 'removed', now(), now())`,
+        [A.id, B.id, USERS.moussa, USERS.fatou],
+      );
+    });
+
+    afterAll(async () => {
+      await h.superuser(`DELETE FROM memberships WHERE user_id IN ($1, $2) AND role = 'subscriber'`, [
+        USERS.moussa,
+        USERS.fatou,
+      ]);
+      await h.superuser(`UPDATE associations SET logo_file_id = NULL WHERE id IN ($1, $2)`, [A.id, B.id]);
+      await h.superuser(`DELETE FROM files WHERE id = $1`, [FILES.oldLogoA]);
+    });
+
+    it('un membre actif voit le logo en cours de son association, en plus de ses fichiers ; rien d’autre', async () => {
+      expect(await h.as(asSubscriber(USERS.moussa), visible)).toEqual([
+        FILES.logoA,
+        FILES.proofMoussa,
+        FILES.proofMoussaA,
+      ]);
+    });
+
+    it('membre retiré : plus de logo ; hors espace souscripteur : rien', async () => {
+      expect(await h.as(asSubscriber(USERS.fatou), visible)).toEqual([FILES.proofFatou]);
+      expect(await h.as({ space: 'platform', userId: USERS.moussa }, visible)).toEqual([]);
+      expect(await h.as({ space: 'public' }, visible)).toEqual([]);
+    });
+
+    it('lecture seule : un membre ne modifie pas le logo', async () => {
+      const updated = await h.asRollback(asSubscriber(USERS.moussa), (tx) =>
+        tx.execute(sql`UPDATE files SET original_name = 'autre.png' WHERE id = ${FILES.logoA}`),
+      );
+      expect(updated.rowCount).toBe(0);
+    });
+
+    it('le test échoue si subscriber_logo_read ne dépend plus de l’appartenance', async () => {
+      const leaked = await h.withPolicy(
+        'files',
+        'subscriber_logo_read',
+        { using: "app_space() = 'subscriber' AND purpose = 'logo'", withCheck: null },
+        () => h.as(asSubscriber(USERS.fatou), visible),
+      );
+      expect(leaked).toContain(FILES.logoB);
+    });
+
+    it('le test échoue si subscriber_logo_read ne se limite plus au logo en cours', async () => {
+      const leaked = await h.withPolicy(
+        'files',
+        'subscriber_logo_read',
+        {
+          using: `app_space() = 'subscriber' AND purpose = 'logo' AND EXISTS (SELECT 1 FROM memberships m
+                   WHERE m.association_id = files.association_id AND m.user_id = app_user_id() AND m.status = 'active')`,
+          withCheck: null,
+        },
+        () => h.as(asSubscriber(USERS.moussa), visible),
+      );
+      expect(leaked).toContain(FILES.oldLogoA);
+    });
   });
 });
