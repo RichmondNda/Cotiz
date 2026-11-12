@@ -305,3 +305,6 @@ Corrigés dans la branche :
   échéance en retard avec une déclaration partielle en attente (reste dû > 0) sort donc de la file « À relancer », et une
   règle `after_due` la classe `auto_sent` au lieu de `to_handle`. Conforme à la spec ; à confirmer que c'est voulu
   (sinon : retard calculé par `lateSince` et reste dû). *Relecture money-reviewer, `remindable-installments.ts`.*
+- **2026-11-12 · lot 4.5 · association courante d'un gestionnaire** — décision 26 : un gestionnaire de plusieurs
+  associations (possible dès `tm.team`) garde la première association gérée dans `/me`, l'en-tête et la cloche.
+  Sélecteur côté gestionnaire reporté (choix de l'utilisateur, 2026-11-12) ; à planifier.

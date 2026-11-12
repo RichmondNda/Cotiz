@@ -138,3 +138,41 @@ export async function subscriberAssociationsOf(ids: readonly string[]): Promise<
     .where(inArray(associations.id, [...new Set(ids)]));
   return new Map(rows.map(({ status, ...r }) => [r.id, { ...r, suspended: status === 'suspended' }]));
 }
+
+/** Fiche publique d'une association pour l'espace souscripteur (me.assos) : lieu, présentation et contact. */
+export interface SubscriberAssociationDetails extends SubscriberAssociation {
+  city: string;
+  country: string;
+  description: string | null;
+  contactEmail: string;
+  contactPhone: string;
+}
+
+/**
+ * Fiches des associations demandées, lues en espace subscriber (RLS `member_read`, comme `subscriberAssociationsOf`) ;
+ * les autres sont absentes. Le rôle souscripteur se filtre chez l'appelant.
+ */
+export async function subscriberAssociationDetailsOf(
+  ids: readonly string[],
+): Promise<Map<string, SubscriberAssociationDetails>> {
+  if (currentContext()?.space !== 'subscriber') {
+    throw new Error('subscriberAssociationDetailsOf : espace souscripteur seulement');
+  }
+  if (ids.length === 0) return new Map();
+  const rows = await currentTx()
+    .select({
+      id: associations.id,
+      name: associations.name,
+      logoFileId: associations.logoFileId,
+      timezone: associations.timezone,
+      status: associations.status,
+      city: associations.city,
+      country: associations.country,
+      description: associations.description,
+      contactEmail: associations.contactEmail,
+      contactPhone: associations.contactPhone,
+    })
+    .from(associations)
+    .where(inArray(associations.id, [...new Set(ids)]));
+  return new Map(rows.map(({ status, ...r }) => [r.id, { ...r, suspended: status === 'suspended' }]));
+}

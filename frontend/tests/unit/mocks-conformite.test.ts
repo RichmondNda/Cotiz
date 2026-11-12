@@ -11,7 +11,9 @@ import { db, resetDb } from '../../server/mocks/db'
 import { IMPLEMENTATIONS, ProblemError, problemBody, runImplementation, sessionFromRole } from '../../server/mocks/http'
 import type { MockContext } from '../../server/mocks/http'
 import { ID, uid } from '../../server/mocks/ids'
-import { SCENARIO_TRANSFORMS } from '../../server/mocks/scenarios'
+import { enrollmentFigures } from '../../server/mocks/ledger'
+import { SCENARIO_TRANSFORMS, withScenario } from '../../server/mocks/scenarios'
+import { enrollmentsOfUser } from '../../server/mocks/views'
 
 const ROUTES_DIR = new URL('../../server/api/v1/', import.meta.url).pathname
 const routeFiles = (function walk(dir: string): string[] {
@@ -52,10 +54,9 @@ async function call(id: string, op: string, c: Call = {}) {
   return runImplementation(id as never, op, ctx)
 }
 
-/** Moussa a-t-il une association en retard (me.assos, simulé) ? Sonde des scénarios et de la déclaration. */
-async function moussaLate(c: Call = {}) {
-  const { items } = await call('me.assos', 'list', c) as { items: { standing: string }[] }
-  return items.some(i => i.standing === 'late')
+/** Moussa a-t-il une inscription en retard dans le jeu simulé (scénario appliqué) ? Plus aucune lecture simulée ne l'expose. */
+function moussaLate(c: Call = {}) {
+  return withScenario(c.scenario, () => enrollmentsOfUser(ID.moussa).some(e => enrollmentFigures(e).standing === 'late'))
 }
 
 function defaultSpace(id: string): keyof typeof ROLE | null {
@@ -90,17 +91,13 @@ const moussaCentreLate = () => [
 const READS: Record<string, Call> = {
   'me.prefs get': {},
   'pf.invoices list': {}, 'pf.staff list': {},
-  'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
-  'me.assos list': {}, 'me.assos get': { params: { aid } },
+  'bl.inv list': { params: { aid } },
 }
 
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
 const WRITES: Record<string, () => Call> = {
   'auth.mfa verify': () => ({ body: { mfaToken: 'mfa.x', code: '481902' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
-  'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
-  'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
-  'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
 }
 
 beforeEach(() => resetDb())
@@ -161,16 +158,15 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
   }
 
   it('aucun-retard : plus aucun souscripteur en retard ni montant en retard', async () => {
-    // Rapport de projet (lot 2.6) et tableau de bord souscripteur (lot 3.2) servis par NestJS : contrôle sur les
-    // associations de Moussa (me.assos, encore simulé).
+    // Plus aucune lecture simulée ne montre de retard (me.assos servi par NestJS au lot 4.5) : contrôle sur le jeu.
     // Contrôle : sans scénario, Moussa a des échéances en retard.
-    expect(await moussaLate()).toBe(true)
-    expect(await moussaLate({ scenario: 'aucun-retard' })).toBe(false)
+    expect(moussaLate()).toBe(true)
+    expect(moussaLate({ scenario: 'aucun-retard' })).toBe(false)
   })
 
   it('un scénario ne modifie jamais le jeu', async () => {
     const avant = JSON.stringify(db)
-    await call('me.assos', 'list', { scenario: 'tout-est-paye' })
+    await call('bl.inv', 'list', { params: { aid }, scenario: 'tout-est-paye' })
     expect(JSON.stringify(db)).toBe(avant)
   })
 })
@@ -183,18 +179,18 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   }
 
   // version_conflict (If-Match) : plus aucune écriture simulée ne l'exige depuis la bascule de ct.get (lot 4.1).
-  it('scénarios : quota_exceeded, association_suspended', async () => {
-    expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
-    expect(await problem('tm.team', 'list', { ...READS['tm.team list'], scenario: 'association_suspended' })).toBe('association_suspended')
+  // quota_exceeded : plus aucune écriture simulée ne le déclare depuis la bascule de tm.team (lot 4.5).
+  it('scénario : association_suspended', async () => {
+    expect(await problem('bl.inv', 'list', { ...READS['bl.inv list'], scenario: 'association_suspended' })).toBe('association_suspended')
   })
 
   it('ressource d’une autre association → 404', async () => {
-    expect(await problem('tm.team', 'list', { params: { aid: ID.man } })).toBe('not_found')
+    expect(await problem('bl.inv', 'list', { params: { aid: ID.man } })).toBe('not_found')
   })
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
     expect(await problem('pf.staff', 'list', { as: 'association' })).toBe('forbidden')
-    expect(await problem('me.assos', 'list', { as: null })).toBe('session_expired')
+    expect(await problem('me.prefs', 'get', { as: null })).toBe('session_expired')
   })
 })
 

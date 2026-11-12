@@ -846,3 +846,50 @@ Choix de l'étape 4 (2026-11-12) :
   « Marquer relancée ». `auto_reminders` ajoutée à `DELIVERED_FEATURES`.
 - Mocks `rm.*` supprimés ; plus aucune écriture simulée n'a Idempotency-Key : le test du mécanisme de rejeu des mocks
   (`mocks-conformite.test.ts`) est retiré, le mécanisme reste pour de futurs mocks.
+
+## Lot 4.5 · Équipe et multi-associations (2026-11-12)
+Contrats `tm.team` et `me.assos` déjà présents (lot 0.2) ; front déjà branché sur les mocks (`equipe.ts`,
+`souscripteurs.ts`). Quota `managers` déjà dans `QuotaService` (owner, manager, viewer invités ou actifs).
+Réponses de l'utilisateur (2026-11-12) :
+- Invitation d'une adresse qui a déjà un compte actif : `auth.activate` accepte le code `team_invite` d'un compte actif
+  si le champ mot de passe est son mot de passe ACTUEL (aucun changement de mot de passe, pas de prise de compte) ;
+  l'appartenance passe `invited` → `active` (`joined_at`). Compte en attente : `auth.activate` habituel (code
+  `team_invite` ou `activation`), mot de passe posé, appartenance activée (décision 25).
+- Choix de l'association courante côté gestionnaire (décision 26) : hors du lot ; un gestionnaire de plusieurs
+  associations garde la première gérée (noté dans a-verifier).
+Choix autonomes :
+- Invitation : rôles `manager` et `viewer` ; `owner` refusé (`validation_failed`) — un owner se nomme par `PATCH`.
+  Réinviter une personne encore `invited` réémet son code (nouveau message prêt, ancien code invalidé), sans quota.
+  Une personne déjà gestionnaire active de l'association → 422 `validation_failed` champ `email` (le front l'affiche
+  « email-existant »). Personne retirée réinvitée : même ligne repassée `invited`.
+- Rôle : `PATCH` sur la ligne de gestion de la personne (une seule par association, garantie par les cas d'usage) ;
+  rétrograder ou retirer le dernier owner actif → `last_owner` (verrou de l'association) ; on ne se retire pas soi-même
+  s'il est le dernier owner (même règle).
+- Retrait : `status = removed`, `removed_at` ; `team.changed` (`change: removed`) ; sessions de l'espace association de
+  la personne révoquées dans la même transaction (familles, `sid` en liste noire après COMMIT) — immédiat, pas via
+  l'outbox. Les autres changements (`invited`, `role_changed`, `joined`) émettent aussi `team.changed`.
+- Liste : gestionnaires invités ou actifs, owner d'abord, puis ancienneté ; `seats` = `quotaUsageOf('managers')` et
+  limite de l'abonnement.
+Étapes :
+1. **Équipe** — module `access` (cas d'usage `tm.team`), `identity` (création du compte en espace association, code
+   `team_invite`, révocation des sessions), `auth.activate` étendu. Tests : intégration (invitation, réinvitation,
+   quota, rôle, retrait + jeton refusé aussitôt, `last_owner`, compte existant : mauvais / bon mot de passe actuel),
+   isolation HTTP (B ne voit ni ne modifie A ; politique `memberships` élargie). Front : bascule `tm.team`, mocks
+   supprimés, page `/activer` (cas compte existant), `/verifier-ecran /asso/equipe`.
+2. **Multi-associations** — `me.assos` (liste, détail) dans `reporting` à partir de `subscriberEnrollmentsOf`.
+   Tests : souscripteur de A et B voit les deux, détail d'une association non rejointe → 404, isolation entre
+   souscripteurs. Front : bascule `me.assos`, mocks supprimés, `/verifier-ecran /associations`.
+Vérification : tests ciblés par étape, `pnpm verify` complet avant la PR (une PR pour le lot).
+Choix autonomes de l'étape 2 (me.assos) :
+- Associations = appartenances souscriptrices actives (gestionnaire seulement, retirée : absente, fiche → 404), dans
+  l'ordre d'arrivée ; `memberSince` = `joined_at` de l'appartenance (à défaut sa création), ajouté à
+  `activeMembershipsOf` (source : `access/application/memberships.ts`).
+- Chiffres : reste dû = `subscriberSummary` sur les inscriptions non retirées ; projets en cours = inscriptions non
+  retirées d'un projet ni `completed` ni `archived` ; situation = `overallStanding` sur toutes les inscriptions,
+  retirées comprises (« retiré » s'il l'est de tout), « à jour » sans inscription.
+- Fiche : cartes non retirées (comme me.projects) et moyens de paiement **actifs** de l'association
+  (`subscriberAssociationDetailsOf` ajouté à tenancy pour ville, pays, description, contacts).
+- « Sélecteur d'association côté souscripteur » (lot, étape 2) = l'écran Mes associations et sa fiche : aucun autre
+  sélecteur dans la maquette (`design/INVENTAIRE.md`, MbAssociations, MbAssociation).
+- Front : `contexteSouscripteur` lit toujours `me.assos` (repli sur les cartes supprimé, l'endpoint est au registre) ;
+  tests de bascule pris sur `bl.inv` (lot 4.6, encore simulé).

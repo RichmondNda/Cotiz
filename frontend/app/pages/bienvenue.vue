@@ -11,7 +11,7 @@ useHead({ title: 'Bienvenue · Cotiz', bodyAttrs: { 'data-theme': 'member' } })
 
 const { data: moi } = useMoi()
 
-// Association qui a inscrit la personne : la plus ancienne inscription (`GET /me`, réel ; me.assos reste simulé au lot 3.2).
+// Association qui a inscrit la personne : la plus ancienne inscription (`GET /me`).
 const association = computed(() => moi.value?.associationsSouscrites[0]?.nom ?? 'Votre association')
 
 const diapositives = computed<{ icone: NomIcone, titre: string, texte: string }[]>(() => [

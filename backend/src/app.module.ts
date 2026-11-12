@@ -18,6 +18,7 @@ import { ProjectsModule } from './modules/projects/projects.module.js';
 import { ContractsModule } from './modules/contracts/contracts.public.js';
 import { ImportsModule } from './modules/imports/imports.public.js';
 import { RemindersModule } from './modules/reminders/reminders.public.js';
+import { TeamModule } from './modules/team/team.public.js';
 import { ReportingModule } from './modules/reporting/reporting.module.js';
 import { TenancyModule } from './modules/tenancy/tenancy.module.js';
 import { JwtGuard } from './modules/identity/identity.public.js';
@@ -82,6 +83,7 @@ export class AppModule {
         ContractsModule,
         ImportsModule,
         RemindersModule,
+        TeamModule,
         MembersModule,
         LedgerModule,
         NotificationsModule,
