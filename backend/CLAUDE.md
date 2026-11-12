@@ -54,3 +54,6 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - `GET /me` est la seule route `/me` qui porte une association (courante, pour les fonctionnalités du plan) ; le quota de débit par association ne compte que les routes d'espace association.
 - Web Push (lot 4.2) : aucun hôte de service de push dans le code (test « sans fournisseur ») ; `webPushConfigured(config)` = clés VAPID + `WEB_PUSH_HOSTS` (docs/runbooks/web-push.md). La bibliothèque `web-push` ne parle que https : faux service des tests en https auto-signé, `NODE_TLS_REJECT_UNAUTHORIZED=0` dans ce seul fichier.
 - Envoi rejouable par un job BullMQ purgé (24 h) : id de ligne dérivé de la clé de déduplication (UUID v5, `pushDeliveryIdOf`), jamais `newId()`.
+- `associations.country` est un texte libre (« Côte d’Ivoire ») : passer par `phoneRegionOf` (`imports/domain/row-check.ts`) avant libphonenumber, jamais le pays tel quel comme code de région.
+- Écriture d'un job pour le compte d'un gestionnaire (imports, lot 4.4) : revérifier son droit pendant le job (`holdsPermission`, `managementAccessIn` inclut viewer) et donner le vrai rôle à l'audit par `runWithRequestInfo({ actorRole })`.
+- Dépôt de fichier par une association : route sous `/associations/{aid}/…` (`as.upload`, `pr.upload`, `im.upload`, décision 24) ; `fl.upload` refuse l'espace association.
