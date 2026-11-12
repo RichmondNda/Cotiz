@@ -135,4 +135,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['rm.hist', 'all'],
   // Lot 4.5 : équipe de l'association (invitation par code team_invite, rôles, retrait).
   ['tm.team', 'all'],
+  // Lot 4.5 : associations du souscripteur (liste et fiche).
+  ['me.assos', 'all'],
 ])

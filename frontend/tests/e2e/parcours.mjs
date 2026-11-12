@@ -190,6 +190,18 @@ const PARCOURS = {
       await page.getByRole('button', { name: 'Me connecter' }).click()
       await page.waitForURL('**/accueil')
     }],
+    // Mes associations (me.assos, réel au lot 4.5) : liste, puis fiche avec les moyens de paiement de l'association.
+    ['mes-associations', async (page) => {
+      await page.goto('/associations', { waitUntil: 'load' })
+      await page.getByText('Entraide Yopougon').first().waitFor()
+      await contient(page, 'Centre communautaire', 'Projet de Moussa dans Entraide Yopougon')
+      await page.getByRole('link', { name: /Entraide Yopougon/ }).first().click()
+      await page.waitForURL(`**/associations/${ID.entraide}`)
+      // Moyen de paiement actif d'Entraide Yopougon (seed de démo) et date d'arrivée de Moussa (joined_at).
+      await contient(page, 'Orange Money', 'Fiche : moyens de paiement de l’association')
+      await contient(page, 'membre depuis février 2024', 'Fiche : date d’arrivée')
+      await page.goto('/accueil', { waitUntil: 'load' })
+    }],
     ['accueil', async (page) => {
       await page.getByRole('link', { name: /Centre communautaire/ }).first().click()
       await page.waitForURL(`**/projets/${ID.centre}`)

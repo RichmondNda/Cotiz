@@ -880,3 +880,16 @@ Choix autonomes :
    Tests : souscripteur de A et B voit les deux, détail d'une association non rejointe → 404, isolation entre
    souscripteurs. Front : bascule `me.assos`, mocks supprimés, `/verifier-ecran /associations`.
 Vérification : tests ciblés par étape, `pnpm verify` complet avant la PR (une PR pour le lot).
+Choix autonomes de l'étape 2 (me.assos) :
+- Associations = appartenances souscriptrices actives (gestionnaire seulement, retirée : absente, fiche → 404), dans
+  l'ordre d'arrivée ; `memberSince` = `joined_at` de l'appartenance (à défaut sa création), ajouté à
+  `activeMembershipsOf` (source : `access/application/memberships.ts`).
+- Chiffres : reste dû = `subscriberSummary` sur les inscriptions non retirées ; projets en cours = inscriptions non
+  retirées d'un projet ni `completed` ni `archived` ; situation = `overallStanding` sur toutes les inscriptions,
+  retirées comprises (« retiré » s'il l'est de tout), « à jour » sans inscription.
+- Fiche : cartes non retirées (comme me.projects) et moyens de paiement **actifs** de l'association
+  (`subscriberAssociationDetailsOf` ajouté à tenancy pour ville, pays, description, contacts).
+- « Sélecteur d'association côté souscripteur » (lot, étape 2) = l'écran Mes associations et sa fiche : aucun autre
+  sélecteur dans la maquette (`design/INVENTAIRE.md`, MbAssociations, MbAssociation).
+- Front : `contexteSouscripteur` lit toujours `me.assos` (repli sur les cartes supprimé, l'endpoint est au registre) ;
+  tests de bascule pris sur `bl.inv` (lot 4.6, encore simulé).
