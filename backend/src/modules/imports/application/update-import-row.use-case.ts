@@ -48,7 +48,7 @@ export class UpdateImportRowUseCase {
     if (input.ignore === true || (input.ignore === undefined && row.category === 'ignored')) {
       classified.category = 'ignored';
     }
-    await saveClassification([classified]);
+    await saveClassification(job, [classified]);
     await refreshCounts(job);
     const [updated] = await currentTx().select().from(importRows).where(eq(importRows.id, row.id));
     if (!updated) throw new DomainProblem('not_found');

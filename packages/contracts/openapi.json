@@ -4412,7 +4412,14 @@
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                          "enum": [
+                            "file_rejected",
+                            "unreadable",
+                            "empty",
+                            "too_many_rows",
+                            "requester_removed",
+                            "internal"
+                          ]
                         },
                         {
                           "type": "null"
@@ -4630,7 +4637,14 @@
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                          "enum": [
+                            "file_rejected",
+                            "unreadable",
+                            "empty",
+                            "too_many_rows",
+                            "requester_removed",
+                            "internal"
+                          ]
                         },
                         {
                           "type": "null"
@@ -4985,7 +4999,14 @@
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                          "enum": [
+                            "file_rejected",
+                            "unreadable",
+                            "empty",
+                            "too_many_rows",
+                            "requester_removed",
+                            "internal"
+                          ]
                         },
                         {
                           "type": "null"
@@ -5394,7 +5415,14 @@
                       "anyOf": [
                         {
                           "type": "string",
-                          "enum": ["file_rejected", "unreadable", "empty", "too_many_rows", "internal"]
+                          "enum": [
+                            "file_rejected",
+                            "unreadable",
+                            "empty",
+                            "too_many_rows",
+                            "requester_removed",
+                            "internal"
+                          ]
                         },
                         {
                           "type": "null"

@@ -67,7 +67,7 @@ export async function classifyRows(
       pending.push({ row: classified, phone: check.phone });
     }
   }
-  await resolveAccounts(job.projectId, pending);
+  await resolveAccounts(job, pending);
   return result;
 }
 
@@ -105,14 +105,15 @@ export async function classifyRow(job: ImportJobRecord, row: ImportRowRecord, co
     normalized.duplicateOf = earlier.rowNumber;
     return classified;
   }
-  await resolveAccounts(job.projectId, [{ row: classified, phone: check.phone }]);
+  await resolveAccounts(job, [{ row: classified, phone: check.phone }]);
   return classified;
 }
 
-async function resolveAccounts(projectId: string, pending: { row: ClassifiedRow; phone: string }[]): Promise<void> {
+async function resolveAccounts(job: ImportJobRecord, pending: { row: ClassifiedRow; phone: string }[]): Promise<void> {
   const accounts = await accountsByPhones(pending.map((p) => p.phone));
   const enrolled = await enrolledUserIdsOf(
-    projectId,
+    job.associationId,
+    job.projectId,
     [...accounts.values()].map((a) => a.id),
   );
   for (const { row, phone } of pending) {
@@ -129,8 +130,8 @@ async function resolveAccounts(projectId: string, pending: { row: ClassifiedRow;
   }
 }
 
-/** Écrit le classement en une instruction (5 000 lignes). */
-export async function saveClassification(rows: readonly ClassifiedRow[]): Promise<void> {
+/** Écrit le classement par paquets de 1 000 lignes, celles de cet import seulement. */
+export async function saveClassification(job: ImportJobRecord, rows: readonly ClassifiedRow[]): Promise<void> {
   const CHUNK = 1000;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const batch = rows.slice(i, i + CHUNK).map((r) => ({
@@ -146,6 +147,6 @@ export async function saveClassification(rows: readonly ClassifiedRow[]): Promis
              resolved_user_id = x.uid
         FROM jsonb_to_recordset(${JSON.stringify(batch)}::jsonb)
              AS x(id uuid, category text, normalized jsonb, errors jsonb, uid uuid)
-       WHERE r.id = x.id`);
+       WHERE r.id = x.id AND r.import_job_id = ${job.id}`);
   }
 }

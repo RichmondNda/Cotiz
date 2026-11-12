@@ -279,3 +279,18 @@ Corrigés dans la branche : appareil d'une autre personne retiré du navigateur 
   worker (consommateurs d'outbox) ; l'API n'en alimente aucune. Règle 5 : effets de bord par l'outbox.
 - Options : (1, recommandée) ajouter `import.mapped` et `import.commit_requested` à `events.yaml` ; (2) l'API ajoute
   le job directement à la file `imports` ; (3) reclassement synchrone dans l'API, exécution déclenchée autrement.
+
+## 2026-11-12 · Lot 4.4 — relecture d'isolation, points en attente d'accord
+Corrigés dans la branche :
+- l'exécution recontrôle le demandeur (au départ, à chaque reprise, toutes les 25 lignes) ; s'il est retiré ou devenu lecteur, l'import échoue avec `requester_removed` (nouveau motif ajouté au contrat `ImportFailure`) ;
+- chaque ligne est inscrite par son téléphone, comme en.create, jamais par le compte vu au classement ;
+- un résultat de ligne déjà écrit n'est jamais remplacé ;
+- `saveClassification` est filtré sur l'import ;
+- `enrolledUserIdsOf` vérifie le contexte de l'association ;
+- l'audit des inscriptions porte le rôle du demandeur (`association:<rôle>`).
+
+À décider (changement de `docs/specs`) :
+- **Sondage de téléphones en masse** : im.flow et im.steps (`rateLimited: false`, `audited: false`) disent, pour 5 000 numéros, s'il existe un compte (`existingUserId`) et s'il est fermé (`account_closed`). mb.lookup, lui, est limité en débit et audité. Pistes : limite de débit sur im.flow et im.steps, audit du nombre de lignes `existing` par classement, ne plus distinguer `account_closed` avant l'envoi.
+- **Index `import_rows (import_job_id, row_number)`** : la lecture paginée et le classement filtrent sur `import_job_id` sans index (le test de conformité compare strictement à schema.sql). Proposition : l'ajouter à schema.sql et dans une migration.
+- **Association suspendue pendant une exécution** : l'exécution continue (seul le droit du demandeur est recontrôlé). À aligner sur la règle des écritures d'une association suspendue.
+- Limite connue : corriger une ligne ne reclasse pas les doublons des lignes suivantes (seul un nouveau mappage reclasse tout).

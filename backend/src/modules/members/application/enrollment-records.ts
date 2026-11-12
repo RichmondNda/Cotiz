@@ -48,11 +48,25 @@ export async function enrollmentOwnerOf(associationId: string, enrollmentId: str
  * Parmi ces personnes, celles qui ont déjà une inscription au projet (quel que soit son statut : `already_enrolled`
  * d'en.create), sous la RLS du contexte. Import en masse (lot 4.4).
  */
-export async function enrolledUserIdsOf(projectId: string, userIds: readonly string[]): Promise<Set<string>> {
+export async function enrolledUserIdsOf(
+  associationId: string,
+  projectId: string,
+  userIds: readonly string[],
+): Promise<Set<string>> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('enrolledUserIdsOf : contexte de cette association seulement');
+  }
   if (userIds.length === 0) return new Set();
   const rows = await currentTx()
     .select({ userId: enrollments.userId })
     .from(enrollments)
-    .where(and(eq(enrollments.projectId, projectId), inArray(enrollments.userId, [...new Set(userIds)])));
+    .where(
+      and(
+        eq(enrollments.associationId, associationId),
+        eq(enrollments.projectId, projectId),
+        inArray(enrollments.userId, [...new Set(userIds)]),
+      ),
+    );
   return new Set(rows.map((r) => r.userId));
 }

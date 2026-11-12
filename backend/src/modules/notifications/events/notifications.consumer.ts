@@ -8,6 +8,7 @@ import { isActiveSubscriberIn, notifiedManagersOf, notifiedPlatformStaff } from 
 import { associationPersonNameOf, notifiableUsersOf } from '../../identity/identity.public.js';
 import { enrollmentContractOf, pendingSignersOf } from '../../contracts/contracts.public.js';
 import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
+import { importNoticeOf } from '../../imports/imports.public.js';
 import { projectOf } from '../../projects/projects.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
@@ -27,6 +28,8 @@ import {
   contractLockedMessage,
   contractSignatureRequiredMessage,
   contractSignedMessage,
+  importCompletedMessage,
+  importFailedMessage,
   installmentDueSoonMessage,
   memberEnrolledMessage,
   passwordResetRequestedMessage,
@@ -52,6 +55,8 @@ export const NOTIFIED_TYPES = [
   'contract.signature_required',
   'contract.locked',
   'contract.signed',
+  'import.completed',
+  'import.failed',
 ] as const satisfies readonly EventType[];
 
 /** Regroupement (architecture/07) : au-delà de 5 déclarations en 1 h, une notification récapitulative. */
@@ -69,6 +74,15 @@ const Payloads = {
   dueSoon: z.object({ userId: Id, projectId: Id, installmentIds: z.array(Id), dueDate: z.iso.date() }),
   enrollment: z.object({ enrollmentId: Id }),
   locked: z.object({ projectId: Id }),
+  importCompleted: z.object({
+    importId: Id,
+    counts: z.object({
+      enrolled: z.int().nonnegative(),
+      attached: z.int().nonnegative(),
+      failed: z.int().nonnegative(),
+    }),
+  }),
+  importFailed: z.object({ importId: Id }),
 };
 
 /** Une notification à créer : message, destinataires, base de la clé de déduplication. */
@@ -183,6 +197,9 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         return aid ? this.inAssociation(aid, () => this.planContractEnrollment(event, aid)) : [];
       case 'contract.locked':
         return aid ? this.inAssociation(aid, () => this.planContractLocked(event, aid)) : [];
+      case 'import.completed':
+      case 'import.failed':
+        return aid ? this.inAssociation(aid, () => this.planImport(event, aid)) : [];
       default:
         return [];
     }
@@ -241,6 +258,34 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         recipients: managers.map((userId) => ({ userId, associationId: aid, audience: 'manager' })),
         dedupeBase: event.id,
         digest: { associationId: aid, pendingCount: await pendingPaymentsCountOf(aid) },
+      },
+    ];
+  }
+
+  /**
+   * Import terminé ou échoué (lot 4.4) : la personne qui l'a lancé (envoi) ou créé (analyse), si elle gère encore
+   * l'association ; sinon les gestionnaires. Compteurs de l'événement (bilan figé à la fin de l'exécution).
+   */
+  private async planImport(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { importId } = Payloads.importFailed.parse(event.payload);
+    const notice = await importNoticeOf(aid, importId);
+    const project = notice ? await projectOf(aid, notice.projectId) : null;
+    if (!notice || !project) return [];
+    const managers = await notifiedManagersOf(aid);
+    const authors = [event.actorUserId, notice.createdBy].filter((id): id is string => id !== null);
+    const author = authors.find((id) => managers.includes(id));
+    const userIds = author ? [author] : managers;
+    if (userIds.length === 0) return [];
+    const facts = { projectId: project.id, projectName: project.name };
+    const msg =
+      event.type === 'import.completed'
+        ? importCompletedMessage({ ...facts, ...Payloads.importCompleted.parse(event.payload).counts })
+        : importFailedMessage(facts);
+    return [
+      {
+        msg,
+        recipients: userIds.map((userId) => ({ userId, associationId: aid, audience: 'manager' })),
+        dedupeBase: event.id,
       },
     ];
   }

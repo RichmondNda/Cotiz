@@ -120,7 +120,15 @@ export const IMPORT_MAX_ROWS = 5000;
  * Motif d'un import `failed` : fichier refusé par l'analyse antivirus, illisible (ni CSV ni XLSX valide), sans ligne
  * de données ou sans en-tête, au-delà de IMPORT_MAX_ROWS ; `internal` : exécution interrompue (erreur imprévue).
  */
-export const ImportFailure = z.enum(['file_rejected', 'unreadable', 'empty', 'too_many_rows', 'internal']);
+/** Motif d'échec ; `requester_removed` : la personne qui a lancé l'envoi ne gère plus l'association (lot 4.4). */
+export const ImportFailure = z.enum([
+  'file_rejected',
+  'unreadable',
+  'empty',
+  'too_many_rows',
+  'requester_removed',
+  'internal',
+]);
 
 export const ImportJob = z.object({
   id: Uuid,

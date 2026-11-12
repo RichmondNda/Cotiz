@@ -108,7 +108,7 @@ export async function classifyImport(job: ImportJobRecord): Promise<void> {
   const association = await ownAssociationOf(job.associationId);
   if (!association) throw new Error('import : association illisible dans son contexte');
   const classified = await classifyRows(job, await rowsOf(job.id), association.country);
-  await saveClassification(classified);
+  await saveClassification(job, classified);
   await refreshCounts(job);
   await currentTx().update(importJobs).set({ status: 'validated' }).where(eq(importJobs.id, job.id));
 }

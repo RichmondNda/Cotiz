@@ -32,6 +32,9 @@ export const NOTIFICATION_MATRIX = {
   'contract.signature_required': { audience: 'subscriber', channels: ['in_app'] },
   'contract.locked': { audience: 'subscriber', channels: ['in_app'] },
   'contract.signed': { audience: 'manager', channels: ['in_app'] },
+  // Imports (lot 4.4) : consommateur « notifications: gestionnaire » d'events.yaml.
+  'import.completed': { audience: 'manager', channels: ['in_app'] },
+  'import.failed': { audience: 'manager', channels: ['in_app'] },
 } as const satisfies Partial<Record<EventType, MatrixEntry>>;
 
 export type NotifiedEventType = keyof typeof NOTIFICATION_MATRIX;
