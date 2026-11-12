@@ -10,6 +10,8 @@ const props = withDefaults(defineProps<{
 }>(), { alias: () => ({}) })
 
 const { data: moi } = useMoi()
+// Sans projet où déclarer (terminé, contrat à signer, association suspendue, rien à régler) : pas de bouton.
+const { data: declarationPossible } = useDeclarationPossible()
 const { actif, compteur } = useEntreesNavigation(() => props.alias)
 
 const entrees = [...NAV_SOUSCRIPTEUR, NAV_SOUSCRIPTEUR_NOTIFICATIONS]
@@ -52,6 +54,7 @@ const nom = computed(() => [moi.value?.prenom, moi.value?.nom].filter(Boolean).j
     </NuxtLink>
     <div class="membre-nav__sep" />
     <CzButton
+      v-if="declarationPossible"
       bloc
       icone="ajouter"
       to="/paiements/declarer"

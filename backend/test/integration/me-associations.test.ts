@@ -129,18 +129,20 @@ describe('me.assos', () => {
     ]);
   });
 
-  it('liste : projet terminé hors des projets en cours ; tout retiré → « retiré », rien à régler', async () => {
+  it('liste : sans projet en cours ni reste à régler, l’association n’y est plus (sa fiche reste lisible)', async () => {
     const s = await scenario();
-    await f.h.superuser(`UPDATE projects SET status = 'completed' WHERE id = $1`, [PROJECTS.b]);
+    // B : projet terminé et soldé → absente ; A : projet terminé avec un reste → présente, aucun projet en cours.
+    await f.h.superuser(`UPDATE projects SET status = 'completed' WHERE id = ANY($1::uuid[])`, [
+      [PROJECTS.a, PROJECTS.b],
+    ]);
+    const items = await listOf();
+    expect(items.map((i) => i.association.id)).toEqual([A.id]);
+    expect(items[0]).toMatchObject({ activeProjects: 0, remaining: XOF(25000) });
+    // Tout retiré dans A : plus rien à régler.
     await withdraw(s.inA);
-    const [inB, inA] = await listOf();
-    expect(inB).toMatchObject({ association: { id: B.id }, activeProjects: 0, standing: 'up_to_date' });
-    expect(inA).toMatchObject({
-      association: { id: A.id },
-      activeProjects: 0,
-      remaining: XOF(0),
-      standing: 'withdrawn',
-    });
+    expect(await listOf()).toEqual([]);
+    expect((await detailOf(A.id)).projects).toEqual([]);
+    expect((await detailOf(B.id)).association.id).toBe(B.id);
   });
 
   it('liste : projet archivé hors des projets en cours, toujours compté dans le reste dû', async () => {
@@ -173,12 +175,11 @@ describe('me.assos', () => {
     expect((await detailOf(B.id)).association.suspended).toBe(true);
   });
 
-  it('liste : association sans inscription → à jour, rien à régler', async () => {
+  it('liste : membre sans aucune inscription → liste vide, fiche lisible', async () => {
     await setMembership(A.id, 'active', '2025-01-10T08:00:00Z');
     await setMembership(B.id, 'active', '2024-06-01T08:00:00Z');
-    const items = await listOf();
-    expect(items.map((i) => i.association.id)).toEqual([B.id, A.id]);
-    expect(items[1]).toMatchObject({ activeProjects: 0, remaining: XOF(0), standing: 'up_to_date' });
+    expect(await listOf()).toEqual([]);
+    expect((await detailOf(A.id)).projects).toEqual([]);
   });
 
   it('fiche : coordonnées, projets non retirés, moyens de paiement actifs de l’association', async () => {
@@ -208,6 +209,7 @@ describe('me.assos', () => {
     // Moussa n'est souscripteur que de A (ici la RLS masque déjà B ; le filtre du code : test d'isolation élargi).
     expect(await notFound(B.id, f.tokens.moussa)).toEqual(unknown);
     // Awa gère A et n'y est pas souscriptrice : sa fiche souscripteur de A n'existe pas.
+    await f.enroll(PROJECTS.b, USERS.awa, B.id);
     expect(await notFound(A.id, awaSubscriber)).toEqual(unknown);
     expect((await listOf(awaSubscriber)).map((i) => i.association.id)).toEqual([B.id]);
     // Fatou retirée de A : A disparaît de la liste et de la fiche.
