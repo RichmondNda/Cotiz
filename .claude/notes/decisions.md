@@ -800,5 +800,6 @@ Vérification : tests ciblés par étape, `pnpm verify` complet une fois avant l
   demandeur recontrôlé au départ, à chaque reprise et toutes les 25 lignes (`requester_removed`).
 - Front : fiches imprimées = codes non remis émis depuis la création de l'import (pas d'identifiant de compte par
   ligne dans le contrat) ; lignes en erreur autre que prénom ou téléphone : motif affiché, ligne à ignorer seulement.
-- `fl.upload` basculé pour tous les espaces (seul l'import l'appelle en espace association) ; handlers simulés de
-  fl.upload et im.* supprimés à la demande de l'utilisateur (« supprime-les et termine le lot »).
+- Dépôt du fichier : `im.upload` sous `/associations/{aid}/imports/uploads` (choix de l'utilisateur, 2026-11-12 :
+  `fl.upload` refuse le jeton association, décision 24) ; spec modifiée avec accord (endpoints, permissions, screens,
+  fiche du lot). Handlers simulés de fl.upload et im.* supprimés (« supprime-les et termine le lot »).

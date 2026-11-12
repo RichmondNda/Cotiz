@@ -1,4 +1,4 @@
-// Import de souscripteurs (MgImport, lot 4.4) : dépôt du fichier (fl.upload, usage import_source), création (im.flow),
+// Import de souscripteurs (MgImport, lot 4.4) : dépôt du fichier (im.upload, sous l'URL de l'association), création (im.flow),
 // lecture de l'import et de ses lignes (im.read), correspondance des colonnes et correction d'une ligne (im.steps),
 // envoi (im.commit). L'analyse, le classement et l'envoi tournent dans le worker : l'écran relit l'import toutes les 2 s.
 import type { CallOutput } from '@cotiz/api-client'
@@ -98,9 +98,9 @@ export function useActionsImport() {
       const ext = fichier.name.split('.').pop()?.toLowerCase() ?? ''
       try {
         const mimeType = MIME[ext] ?? fichier.type
-        const ticket = await client.call('fl.upload', 'create', { body: { purpose: 'import_source', fileName: fichier.name, mimeType, sizeBytes: fichier.size } })
+        const ticket = await client.call('im.upload', 'create', { params: { aid }, body: { purpose: 'import_source', fileName: fichier.name, mimeType, sizeBytes: fichier.size } })
         await $fetch(ticket.uploadUrl, { method: ticket.method, headers: ticket.headers, body: fichier })
-        await client.call('fl.upload', 'complete', { params: { id: ticket.fileId } })
+        await client.call('im.upload', 'complete', { params: { aid, id: ticket.fileId } })
         const job = await client.call('im.flow', 'create', { params: { aid, pid: projetId }, body: { fileId: ticket.fileId } })
         fichiers.set(job.id, fichier.name)
         return vueImport(job, fichier.name)

@@ -25,6 +25,9 @@ function basculer(f: Filtre) {
   filtre.value = filtre.value === f ? 'tout' : f
 }
 
+/** Ordre de la maquette : lignes à traiter (erreurs, doublons), comptes existants, puis prêtes ; ordre du fichier ensuite. */
+const rang = (l: LigneVerifiee) =>
+  l.decision === 'corrigee' ? 3 : enErreur(l) ? 0 : l.statut === 'doublon' ? 1 : l.statut === 'compte_existant' ? 2 : 3
 const lignes = computed(() => etat.lignes.filter((l) => {
   if (l.decision === 'ignoree') return false
   switch (filtre.value) {
@@ -34,7 +37,7 @@ const lignes = computed(() => etat.lignes.filter((l) => {
     case 'doublons': return l.statut === 'doublon' && !l.decision
     default: return true
   }
-}))
+}).sort((a, b) => rang(a) - rang(b) || a.ligne - b.ligne))
 
 const STATUTS: Record<LigneVerifiee['statut'], { texte: string, ton: 'success' | 'info' | 'danger' | 'warning' }> = {
   prete: { texte: 'Prête', ton: 'success' },

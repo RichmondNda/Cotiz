@@ -1,17 +1,24 @@
 // Parcours de /asso/projets/centre-communautaire/import (MgImport). Lot 4.4 : un vrai fichier CSV est déposé, lu par le
 // worker ; l'écran relit l'import toutes les 2 s. Fichier proche de la maquette : lignes prêtes, deux erreurs (prénom
-// manquant, téléphone incomplet), un doublon de la ligne 2.
-const LIGNES = [
-  'Prénom;NOM;Tel;Mail;Quartier',
-  'Aïcha;Bamba;0712345678;aicha@exemple.ci;Yopougon',
-  ...Array.from({ length: 46 }, (_, i) => `Membre${i + 1};Entraide;070${String(9000000 + i)};;Abobo`),
-  ';Coulibaly;0102030405;;Cocody',
-  'Yao;Kouamé;07 12 34;;Abobo',
-  'Aïcha;Bamba;+225 07 12 34 56 78;;Yopougon',
-]
+// manquant, téléphone incomplet), un doublon de la ligne 2. Numéros neufs à chaque passage (l'envoi inscrit réellement :
+// un second passage avec les mêmes numéros ne trouverait que des personnes déjà inscrites).
+// Le web et le mobile passent dans le même processus : numéros tirés à chaque dépôt, pas au chargement du module.
+let tirage = 0
+const lignes = () => {
+  const base = (Math.floor(Date.now() / 1000) + 100 * tirage++) % 90_000_000
+  const tel = n => `07${String(base + n).padStart(8, '0')}`
+  return [
+    'Prénom;NOM;Tel;Mail;Quartier',
+    `Aïcha;Bamba;${tel(0)};aicha@exemple.ci;Yopougon`,
+    ...Array.from({ length: 46 }, (_, i) => `Membre${i + 1};Entraide;${tel(i + 1)};;Abobo`),
+    ';Coulibaly;0102030405;;Cocody',
+    'Yao;Kouamé;07 12 34;;Abobo',
+    `Aïcha;Bamba;+225 ${tel(0)};;Yopougon`,
+  ]
+}
 const deposer = async (page) => {
   await page.locator('input[type="file"]').setInputFiles({
-    name: 'membres_entraide.csv', mimeType: 'text/csv', buffer: Buffer.from(LIGNES.join('\n'), 'utf8'),
+    name: 'membres_entraide.csv', mimeType: 'text/csv', buffer: Buffer.from(lignes().join('\n'), 'utf8'),
   })
   await page.getByText(/\d+ lignes/).locator('visible=true').first().waitFor({ timeout: 30_000 })
 }
