@@ -373,6 +373,8 @@ COMMENT ON COLUMN subscriptions.manager_seats_override IS 'surcharge décidée p
 
 -- invoices · module billing · V2 · lot 4.6
 -- Factures de la plateforme aux associations.
+-- Numéro CTZ-<année>-<numéro sur 6 chiffres> : séquence globale, jamais remise à zéro ni réutilisée (lot 4.6).
+CREATE SEQUENCE invoice_number_seq;
 CREATE TABLE invoices (
   id uuid PRIMARY KEY,
   association_id uuid NOT NULL,

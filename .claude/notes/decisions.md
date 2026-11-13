@@ -918,3 +918,61 @@ Premier lot de corrections (sans écart à la maquette) ; calendrier, déconnexi
 - Logo côté souscripteur (accord de l'utilisateur, 2026-11-12) : migration 0026, politique `subscriber_logo_read`
   (lecture, logo en cours `associations.logo_file_id`, membre actif) ; `findFile` laisse passer `logo` en espace
   souscripteur ; cartes « Mes associations » et fiche par `useImageFichier` (fl.get).
+
+## Lot 4.6 · Facturation, exports et statistiques d'usage (plan du 2026-11-13, branche lot/4.6-facturation-exports)
+Dépendance 4.1 terminée ; aucune décision listée. Une PR pour le lot (accord du 2026-11-11), tests ciblés par étape,
+`pnpm verify` complet avant la PR.
+
+Écarts tranchés par l'utilisateur (2026-11-13) :
+- **Exports CSV et PDF seulement** : l'enum `export_jobs_kind` (project_report_csv, project_report_pdf, members_csv)
+  fait foi ; « XLSX / Excel » du lot, de features.yaml et du résumé de `rp.export` à corriger à la clôture
+  (proposition de changement de doc). L'export « retardataires » du mobile reste généré par le front (aucun kind).
+- **Reçu de paiement fait dans le lot (étape 5), spec modifiée avec accord** : `files_purpose` + `receipt_pdf`,
+  `payments.receipt_file_id` (UNIQUE, FK files), politique `subscriber_receipt_read` (espace souscripteur, reçu d'un de
+  ses paiements), consommateur « documents : reçu PDF » de `payment.validated`, `receiptFileId` dans `me.payment`
+  (lu par `fl.get`). Généré par une tâche différée **après le délai d'annulation (10 min)**, qui revérifie que le
+  paiement est encore `validated` ; stocké dans cotiz-legal (WORM), jamais régénéré ; pour chaque paiement (pas d'option).
+- **Factures** : numéro continu `CTZ-AAAA-NNNNNN` (séquence PostgreSQL globale, jamais réutilisée, une facture `void`
+  garde son numéro) ; une facture par période d'abonnement, émise le 1er jour de la période, échéance J+15,
+  `overdue` après l'échéance ; aucune facture pendant l'essai ni pour un plan à 0 F ; montant = prix actuel du plan
+  pour la période (commentaire `stats_recurring_revenue` de schema.sql).
+- **Quota d'export** (`quota_exceeded`) : au plus 1 export `queued`/`running` par association et 20 par jour local.
+
+Choix autonomes (conventionnels) :
+- `billing.issue-invoices` (quotidienne, 00:30 du fuseau de l'association, passage horaire comme les autres tâches
+  locales) fait aussi avancer la période d'abonnement : période échue → suivante ; essai terminé → `active` + facture ;
+  facture `overdue` → abonnement `past_due` ; `pf.invoice.paid` → `paid` et l'abonnement repasse `active` s'il était
+  `past_due` sans autre facture impayée. Règles pures dans `@cotiz/domain` (`invoicing.ts`).
+- Écriture des factures en contexte de chaque association (invoices n'a que `tenant_isolation`) ; lecture plateforme par
+  la connexion BYPASSRLS (`platformRoute`, comme `pf.asso.*`).
+- `usage_daily` : tâche `usage.daily` (02:00 Africa/Abidjan) qui recalcule la veille par association (idempotente,
+  `ON CONFLICT DO UPDATE`) : connexions = `sessions` créées en espace association/souscripteur par des membres
+  de l'association, utilisateurs actifs = personnes distinctes, paiements déclarés/validés du jour,
+  délai moyen de validation en heures. Le consommateur « reporting: usage » de `user.logged_in` n'est pas utile
+  (payload sans association) : à noter dans a-verifier.
+
+Plan :
+1. **Tables** — migration `0027_billing_exports_usage.sql` (`invoices`, `invoice_number_seq`, `export_jobs`,
+   `usage_daily`, RLS forcée selon schema.sql), schéma Drizzle `packages/db/src/schema/`, tests de conformité
+   et d'isolation (`backend/test/isolation/billing-v2.test.ts`, politiques affaiblies). Vérif. : migrations + isolation.
+2. **Factures** — `packages/domain/src/invoicing.ts` (+ tests d'abord : numéro, période suivante, échéance, essai,
+   0 F, overdue) ; billing : `issue-invoices.use-case.ts`, tâche `billing.issue-invoices`, `subscription.invoice_issued`
+   / `subscription.invoice_paid` ; documents : gabarit `packages/pdf-templates/src/invoice.ts`, consommateur
+   `invoice-issued.consumer.ts` (PDF dans cotiz-legal, `pdf_file_id`) ; notifications owner ; HTTP `bl.inv`,
+   `pf.invoices` (+ summary KPI), `pf.invoice.paid` (idempotent, audit, `invalid_state`) ; `as.file`/`pf` lecture
+   du PDF. Tests : numéros jamais réutilisés (concurrence, `void`), rejeu de la tâche sans doublon, isolation HTTP.
+   Front : bascule `bl.inv`, `pf.invoices`, `pf.invoice.paid` (facturation, détail association, abonnement).
+3. **Exports** — reporting : `request-export.use-case.ts` (quota, idempotence, audit), file `exports`
+   (concurrence 1 par association), écriture en flux (CSV en curseur, PDF via Gotenberg), fichier `export` dans
+   cotiz-exports `expires_at` +7 j, `export.completed` → notification du demandeur ; lien par `as.file`.
+   Tests : 50 000 lignes en mémoire bornée et p95 de l'API pendant l'export (`test/perf/export-50k.test.ts`), quota,
+   isolation. Front : bascule `rp.export` (rapports CSV/PDF, annuaire).
+4. **Usage** — `usage.daily`, `pf.asso.usage` (30 j par défaut) ; tests de la tâche (horloge simulée, rejeu) et
+   isolation ; front : onglet Usage du détail d'association.
+5. **Reçu de paiement** — spec (accord ci-dessus) : schema.sql, data-model, events.yaml, contrat `me.payment` ;
+   migration 0028 ; gabarit `receipt.ts` ; tâche différée de `payment.validated` ; `fl.get` ouvert au reçu ;
+   front : « Télécharger le reçu » dans le détail du paiement (MbHistorique). Tests : annulé dans les 10 min → aucun
+   reçu, rejeu → un seul reçu, isolation.
+Fin : `/verifier-ecran` sur `/plateforme/facturation`, `/plateforme/associations/:id`, `/asso/abonnement`,
+`/asso/souscripteurs`, `/asso/projets/:id/rapports` ; relectures isolation + argent ; `pnpm verify` ; PR vers `dev` ;
+`/fin-lot 4.6`.
