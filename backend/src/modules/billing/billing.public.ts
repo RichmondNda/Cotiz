@@ -14,3 +14,5 @@ export {
 } from './application/subscription-views.js';
 // Contrats (lot 4.1) : fonctionnalités du plan, `feature_disabled`.
 export { assertPlanFeature, planFeaturesOf } from './application/plan-features.js';
+// Factures (lot 4.6) : données du PDF, pour le module documents.
+export { invoiceDocumentOf, invoiceNoticeOf } from './application/invoice-document.js';

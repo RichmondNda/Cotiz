@@ -5,6 +5,7 @@ export {
   type AssociationOverview,
   associationTimezonesOf,
   type AssociationRecord,
+  contextAssociationId,
   ownAssociationOf,
   platformAssociationOf,
   platformAssociationsOverview,

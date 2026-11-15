@@ -12,6 +12,15 @@ export type { IsoDate } from './dates.js';
 export { firstSubscriptionPeriod, periodEnd } from './subscription.js';
 export type { BillingPeriod, FirstPeriod, FirstPeriodInput } from './subscription.js';
 export { monthlyEquivalent, monthlyRecurringRevenue } from './recurring-revenue.js';
+export {
+  billingRun,
+  INVOICE_DUE_DAYS,
+  invoiceDueOn,
+  invoiceNumber,
+  isInvoiceOverdue,
+  subscriptionStatusAfterInvoices,
+} from './invoicing.js';
+export type { BillingRun, BillingRunInput, InvoiceStatus, InvoiceToIssue, SubscriptionStatus } from './invoicing.js';
 export type { RecurringRevenueLine } from './recurring-revenue.js';
 export {
   byDueOrder,

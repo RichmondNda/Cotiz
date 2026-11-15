@@ -1,8 +1,9 @@
 <!--
   SaFacturation — suivre les encaissements d'abonnements et les impayés. Fonction V2 : en V1, écran
   « Bientôt disponible » avec un lien vers les associations impayées.
-  `?scenario=nominal` : aperçu de la V2 (KPI revenu du mois / encaissé / en attente / impayé, onglets par statut,
-  tableau des factures avec sélection, PDF et « Marquer payée »), comme la capture de référence.
+  Réel dès que la fonctionnalité `invoices` est livrée (lot 4.6, `GET /me`) ; `?scenario=nominal` garde l'aperçu en dev.
+  KPI revenu du mois / encaissé / en attente / impayé, onglets par statut, tableau des factures avec sélection, PDF et
+  « Marquer payée » (pf.invoice.paid), comme la capture de référence. Le PDF n'a pas encore d'accès en espace plateforme.
 -->
 <script setup lang="ts">
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
@@ -10,14 +11,35 @@ import type { Onglet } from '~/components/cz/CzTabs.vue'
 import type { ChiffreOuPlaceholder, StatutFacture } from '~~/types'
 import { formatDate, formatFCFA, formatMois } from '~/utils/format'
 import { STATUTS_FACTURE } from '~/utils/statuts'
+import { messageRefus } from '~/composables/api/client'
 
 definePageMeta({ middleware: 'espace-plateforme', layout: 'backoffice', espace: 'superadmin', titre: 'Facturation' })
 useHead({ title: 'Facturation · Cotiz' })
 
 const route = useRoute()
 const toast = useToast()
-const apercuV2 = computed(() => route.query.scenario === 'nominal')
-const { data, pending, error, refresh } = useFacturationPlateforme({ immediat: apercuV2.value })
+const { active, peut } = usePermissions()
+const apercuV2 = computed(() => route.query.scenario === 'nominal' || active('invoices'))
+const { data, pending, error, refresh } = useFacturationPlateforme({ immediat: false })
+watch(apercuV2, (v) => {
+  if (v && !data.value) void refresh()
+}, { immediate: true })
+const marquer = useMarquageFacture()
+const enCours = ref<string | null>(null)
+async function marquerPayee(ligne: { id: string, numero: string }) {
+  enCours.value = ligne.id
+  try {
+    await marquer(ligne.id)
+    toast.succes(`Facture ${ligne.numero} marquée payée`)
+    await refresh()
+  }
+  catch (e) {
+    toast.erreur('La facture n’a pas pu être marquée payée', { message: messageRefus(e) })
+  }
+  finally {
+    enCours.value = null
+  }
+}
 
 const onglet = ref<'toutes' | StatutFacture>('toutes')
 const ONGLETS: Onglet[] = [
@@ -176,10 +198,12 @@ const bientot = () => toast.info('Bientôt disponible', { message: 'La facturati
           </template>
           <template #cell-action="{ ligne }">
             <CzButton
-              v-if="ligne.statut === 'impayee' || ligne.statut === 'en_attente'"
+              v-if="(ligne.statut === 'impayee' || ligne.statut === 'en_attente') && peut('platform.billing.manage')"
               variante="secondaire"
               taille="sm"
-              @click="bientot"
+              :chargement="enCours === ligne.id"
+              :disabled="enCours !== null"
+              @click="marquerPayee(ligne)"
             >
               Marquer payée
             </CzButton>

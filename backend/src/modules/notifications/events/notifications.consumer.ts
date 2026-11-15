@@ -4,7 +4,13 @@ import { notifications } from '@cotiz/db';
 import { Money } from '@cotiz/domain';
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { isActiveSubscriberIn, notifiedManagersOf, notifiedPlatformStaff } from '../../access/access.public.js';
+import {
+  contextOwnerOf,
+  isActiveSubscriberIn,
+  notifiedManagersOf,
+  notifiedPlatformStaff,
+} from '../../access/access.public.js';
+import { invoiceNoticeOf } from '../../billing/billing.public.js';
 import { associationPersonNameOf, notifiableUsersOf } from '../../identity/identity.public.js';
 import { enrollmentContractOf, pendingSignersOf } from '../../contracts/contracts.public.js';
 import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
@@ -31,6 +37,8 @@ import {
   contractSignedMessage,
   importCompletedMessage,
   importFailedMessage,
+  invoiceIssuedMessage,
+  invoicePaidMessage,
   installmentDueSoonMessage,
   memberEnrolledMessage,
   passwordResetRequestedMessage,
@@ -60,6 +68,8 @@ export const NOTIFIED_TYPES = [
   'import.completed',
   'import.failed',
   'reminder.sent',
+  'subscription.invoice_issued',
+  'subscription.invoice_paid',
 ] as const satisfies readonly EventType[];
 
 /** Regroupement (architecture/07) : au-delà de 5 déclarations en 1 h, une notification récapitulative. */
@@ -77,6 +87,7 @@ const Payloads = {
   dueSoon: z.object({ userId: Id, projectId: Id, installmentIds: z.array(Id), dueDate: z.iso.date() }),
   enrollment: z.object({ enrollmentId: Id }),
   locked: z.object({ projectId: Id }),
+  invoice: z.object({ invoiceId: Id }),
   importCompleted: z.object({
     importId: Id,
     counts: z.object({
@@ -211,6 +222,9 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         return aid ? this.inAssociation(aid, () => this.planImport(event, aid)) : [];
       case 'reminder.sent':
         return aid ? this.inAssociation(aid, () => this.planReminders(event, aid)) : [];
+      case 'subscription.invoice_issued':
+      case 'subscription.invoice_paid':
+        return aid ? this.inAssociation(aid, () => this.planInvoice(event, aid)) : [];
       default:
         return [];
     }
@@ -277,6 +291,23 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
    * Import terminé ou échoué (lot 4.4) : la personne qui l'a lancé (envoi) ou créé (analyse), si elle gère encore
    * l'association ; sinon les gestionnaires. Compteurs de l'événement (bilan figé à la fin de l'exécution).
    */
+  /**
+   * Facture d'abonnement émise ou réglée (lot 4.6) : l'owner actif de l'association (events.yaml « notifications:
+   * owner »), s'il reçoit encore les notifications de gestion ; montant et échéance relus sur la facture.
+   */
+  private async planInvoice(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { invoiceId } = Payloads.invoice.parse(event.payload);
+    const notice = await invoiceNoticeOf(aid, invoiceId);
+    const owner = await contextOwnerOf(aid);
+    if (!notice || !owner || !(await notifiedManagersOf(aid)).includes(owner)) return [];
+    const facts = { invoiceId: notice.id, number: notice.number, amount: notice.amount };
+    const msg =
+      event.type === 'subscription.invoice_issued'
+        ? invoiceIssuedMessage({ ...facts, dueOn: notice.dueOn })
+        : invoicePaidMessage(facts);
+    return [{ msg, recipients: [{ userId: owner, associationId: aid, audience: 'manager' }], dedupeBase: event.id }];
+  }
+
   private async planImport(event: EventEnvelope, aid: string): Promise<Planned[]> {
     const { importId } = Payloads.importFailed.parse(event.payload);
     const notice = await importNoticeOf(aid, importId);

@@ -1,4 +1,4 @@
-// Espace plateforme (super-admin) : onglets de la fiche d'une association, factures, personnel.
+// Espace plateforme (super-admin) : onglets de la fiche d'une association, personnel (factures : NestJS, lot 4.6).
 import { db } from '../db'
 import type { AssociationRow } from '../db'
 import type { MockContext } from '../http'
@@ -7,7 +7,6 @@ import { associationFigures } from '../ledger'
 import {
   associationRow, money, personContact, personRef, planRef, planRow, userRow,
 } from '../views'
-import { page } from './list'
 
 // ---------------------------------------------------------------- Associations
 
@@ -79,27 +78,9 @@ function subscription(id: string) {
 
 // Tableau de bord (pf.dashboard) : vrai back depuis le lot 1.4.
 
-// ---------------------------------------------------------------- Factures (V2) et personnel (V2)
+// ---------------------------------------------------------------- Personnel (V2)
 
-const REVENUE = { revenueThisMonth: 0, collected: 0, pending: 0, overdue: 0 }
-
-export function invoicesList(ctx: MockContext<'pf.invoices', 'list'>) {
-  let rows = [...db.invoices].sort((a, b) => b.periodStart.localeCompare(a.periodStart))
-  if (ctx.query.status) rows = rows.filter(i => i.status === ctx.query.status)
-  if (ctx.query.associationId) rows = rows.filter(i => i.associationId === ctx.query.associationId)
-  const sum = (s: string) => db.invoices.filter(i => i.status === s).reduce((t, i) => t + i.amount, 0)
-  return {
-    ...page(rows.map(i => ({
-      id: i.id, number: i.number, association: { id: i.associationId, name: associationRow(i.associationId).name },
-      periodStart: i.periodStart, periodEnd: i.periodEnd, amount: money(i.amount), status: i.status, issuedAt: i.issuedAt,
-      dueAt: i.dueAt, paidAt: i.paidAt, paymentReference: i.paymentReference, pdfFileId: null,
-    })), ctx.query),
-    summary: {
-      revenueThisMonth: money(REVENUE.revenueThisMonth + db.invoices.filter(i => i.periodStart.startsWith('2026-09')).reduce((t, i) => t + i.amount, 0)),
-      collected: money(sum('paid')), pending: money(sum('open')), overdue: money(sum('overdue')),
-    },
-  }
-}
+// Factures (pf.invoices, pf.invoice.paid) : vrai back depuis le lot 4.6.
 
 export function staffList(_ctx: MockContext<'pf.staff', 'list'>) {
   return {

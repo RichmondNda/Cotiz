@@ -80,7 +80,6 @@ async function problemOf(p: Promise<unknown>) {
 
 // ---------------------------------------------------------------- Entrées d'exemple
 
-const aid = ID.entraide
 const money = (amount: number) => ({ amount, currency: 'XOF' })
 const moussaCentreLate = () => [
   { installmentId: uid('installment', 'centre-communautaire:moussa-diarra:6'), amount: money(25000) },
@@ -90,8 +89,7 @@ const moussaCentreLate = () => [
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
   'me.prefs get': {},
-  'pf.invoices list': {}, 'pf.staff list': {},
-  'bl.inv list': { params: { aid } },
+  'pf.staff list': {},
 }
 
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
@@ -166,7 +164,7 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
 
   it('un scénario ne modifie jamais le jeu', async () => {
     const avant = JSON.stringify(db)
-    await call('bl.inv', 'list', { params: { aid }, scenario: 'tout-est-paye' })
+    await call('pf.staff', 'list', { scenario: 'tout-est-paye' })
     expect(JSON.stringify(db)).toBe(avant)
   })
 })
@@ -180,13 +178,8 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
 
   // version_conflict (If-Match) : plus aucune écriture simulée ne l'exige depuis la bascule de ct.get (lot 4.1).
   // quota_exceeded : plus aucune écriture simulée ne le déclare depuis la bascule de tm.team (lot 4.5).
-  it('scénario : association_suspended', async () => {
-    expect(await problem('bl.inv', 'list', { ...READS['bl.inv list'], scenario: 'association_suspended' })).toBe('association_suspended')
-  })
-
-  it('ressource d’une autre association → 404', async () => {
-    expect(await problem('bl.inv', 'list', { params: { aid: ID.man } })).toBe('not_found')
-  })
+  // association_suspended et « ressource d'une autre association → 404 » : plus aucune route simulée de l'espace
+  // association depuis la bascule de bl.inv (lot 4.6) ; vérifiés par les tests d'isolation et d'intégration du back.
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
     expect(await problem('pf.staff', 'list', { as: 'association' })).toBe('forbidden')

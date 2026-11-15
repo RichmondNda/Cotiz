@@ -298,3 +298,34 @@ export function reminderSentMessage(p: {
     vars: { date, projet: p.projectName, message: p.message },
   };
 }
+
+/** Factures d'abonnement (lot 4.6) : écran Abonnement de l'association. */
+const subscriptionLink = '/asso/abonnement';
+
+/** « 16 novembre 2026 » depuis une date civile (fuseau de l'association déjà appliqué). */
+const civilDate = (day: string) =>
+  new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', dateStyle: 'long' })
+    .format(new Date(`${day}T00:00:00Z`))
+    .replace(/^1 /, '1er ');
+
+export function invoiceIssuedMessage(p: { invoiceId: string; number: string; amount: Money; dueOn: string }) {
+  return {
+    type: 'subscription.invoice_issued',
+    title: 'Nouvelle facture d’abonnement',
+    body: `Facture ${p.number} de ${formatMoney(p.amount)}, à régler au plus tard le ${civilDate(p.dueOn)}.`,
+    actionUrl: subscriptionLink,
+    data: { actionLabel: 'Voir l’abonnement', invoiceId: p.invoiceId },
+    vars: { numero: p.number, montant: formatMoney(p.amount) },
+  } satisfies RenderedMessage;
+}
+
+export function invoicePaidMessage(p: { invoiceId: string; number: string; amount: Money }) {
+  return {
+    type: 'subscription.invoice_paid',
+    title: 'Facture réglée',
+    body: `Le règlement de la facture ${p.number} (${formatMoney(p.amount)}) a été enregistré. Merci.`,
+    actionUrl: subscriptionLink,
+    data: { actionLabel: 'Voir l’abonnement', invoiceId: p.invoiceId },
+    vars: { numero: p.number, montant: formatMoney(p.amount) },
+  } satisfies RenderedMessage;
+}

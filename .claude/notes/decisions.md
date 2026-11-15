@@ -976,3 +976,9 @@ Plan :
 Fin : `/verifier-ecran` sur `/plateforme/facturation`, `/plateforme/associations/:id`, `/asso/abonnement`,
 `/asso/souscripteurs`, `/asso/projets/:id/rapports` ; relectures isolation + argent ; `pnpm verify` ; PR vers `dev` ;
 `/fin-lot 4.6`.
+
+- **2026-11-15 · lot 4.6 · mise en service de la facturation** (choix de l'utilisateur) — un abonnement encore jamais
+  facturé ne l'est qu'à partir de la période qui contient le jour du passage : aucune facture rétroactive, donc aucune
+  facture déjà échue à l'émission ni `past_due` soudain des associations existantes. Échéance = J+15 du jour d'émission
+  quand la facture est émise après le premier jour de sa période (rattrapage). *`packages/domain/src/invoicing.ts`
+  (`billingRun`, `invoiceDueOn`), `billing-invoices.test.ts` (passage du 1er oct. puis du 13 nov.).*

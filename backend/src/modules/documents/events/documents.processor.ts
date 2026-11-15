@@ -13,8 +13,10 @@ import { runWithLogContext } from '../../../shared/logging/index.js';
 import { QUEUES, REDIS_PREFIX, redisConnection } from '../../../shared/queues/index.js';
 import { ErrorReporter, traceJob } from '../../../shared/telemetry/index.js';
 import { GenerateContractPdfUseCase } from '../application/generate-contract-pdf.use-case.js';
+import { GenerateInvoicePdfUseCase } from '../application/generate-invoice-pdf.use-case.js';
 
 const ContractPdfJob = z.object({ associationId: z.uuid(), signatureId: z.uuid() });
+const InvoicePdfJob = z.object({ associationId: z.uuid(), invoiceId: z.uuid() });
 
 /** Traitement de la file `documents` (concurrence 2) : un PDF par job. */
 @Injectable()
@@ -24,6 +26,7 @@ export class DocumentsProcessor implements OnApplicationBootstrap, OnModuleDestr
 
   constructor(
     private readonly contractPdf: GenerateContractPdfUseCase,
+    private readonly invoicePdf: GenerateInvoicePdfUseCase,
     @Inject(CONFIG) private readonly config: Config,
     @Optional() private readonly reporter?: ErrorReporter,
   ) {}
@@ -59,8 +62,9 @@ export class DocumentsProcessor implements OnApplicationBootstrap, OnModuleDestr
   }
 
   private async process(job: Job): Promise<void> {
-    if (job.name !== 'contract-pdf') throw new Error(`file documents : job inconnu ${job.name}`);
-    await this.contractPdf.execute(ContractPdfJob.parse(job.data));
+    if (job.name === 'contract-pdf') return this.contractPdf.execute(ContractPdfJob.parse(job.data));
+    if (job.name === 'invoice-pdf') return this.invoicePdf.execute(InvoicePdfJob.parse(job.data));
+    throw new Error(`file documents : job inconnu ${job.name}`);
   }
 
   async onModuleDestroy(): Promise<void> {

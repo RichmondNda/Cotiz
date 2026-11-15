@@ -47,6 +47,19 @@ export const useFacturationPlateforme = (options: { immediat?: boolean } = {}) =
     }
   }, options)
 
+/**
+ * « Marquer payée » (pf.invoice.paid, lot 4.6) : règlement reçu hors plateforme, saisi à la date du jour. Une même clé
+ * d'idempotence par facture et par essai : un double clic ne produit qu'un règlement.
+ */
+export function useMarquageFacture() {
+  const client = useClient()
+  return async (id: string, cle: string = crypto.randomUUID()) => {
+    await client.call('pf.invoice.paid', 'markPaid', {
+      params: { id }, idempotencyKey: cle, body: { paidOn: new Date().toISOString().slice(0, 10) },
+    })
+  }
+}
+
 /** Équipe interne de Cotiz (V2, lot 4.7). */
 export const useUtilisateursPlateforme = (options: { immediat?: boolean } = {}) =>
   useLecture<UtilisateurPlateforme[]>('utilisateurs-plateforme', async (client) => {

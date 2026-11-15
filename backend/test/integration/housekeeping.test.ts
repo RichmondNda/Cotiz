@@ -162,15 +162,16 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
     try {
       // Enregistrement en arrière-plan au démarrage des workers.
       let schedulers = await queue.getJobSchedulers();
-      for (let i = 0; i < 50 && schedulers.length < 10; i++) {
+      for (let i = 0; i < 50 && schedulers.length < 11; i++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         schedulers = await queue.getJobSchedulers();
       }
-      // Chaque tâche du worker une seule fois (codes.expire : lot 1.1 ; stats.refresh : lot 1.4 ; projects.activate : lot 2.2 ; installments.refresh-statuses : lot 2.4 ; reminders.evaluate : lot 4.3).
+      // Chaque tâche du worker une seule fois (codes.expire : lot 1.1 ; stats.refresh : lot 1.4 ; projects.activate : lot 2.2 ; installments.refresh-statuses : lot 2.4 ; reminders.evaluate : lot 4.3 ; billing.issue-invoices : lot 4.6).
       const byId = schedulers
         .map((s) => ({ id: s.key, pattern: s.pattern, tz: s.tz }))
         .sort((x, y) => x.id.localeCompare(y.id));
       expect(byId).toEqual([
+        { id: 'billing.issue-invoices', pattern: '15 * * * *', tz: 'Africa/Abidjan' },
         { id: 'codes.expire', pattern: '0 * * * *', tz: 'Africa/Abidjan' },
         { id: 'housekeeping', pattern: '0 3 * * *', tz: 'Africa/Abidjan' },
         { id: 'installments.due-soon', pattern: '0 * * * *', tz: 'Africa/Abidjan' },

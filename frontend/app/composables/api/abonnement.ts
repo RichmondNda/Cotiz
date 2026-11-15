@@ -5,7 +5,7 @@ import { formatMois, joursDepuis } from '~/utils/format'
 import { associationCourante } from './session'
 import { jour, m } from './vues/communs'
 
-const FACTURE: Record<string, StatutFactureAbonnement> = { draft: 'a_payer', open: 'a_payer', paid: 'payee', overdue: 'impayee', void: 'payee' }
+const FACTURE: Record<string, StatutFactureAbonnement> = { draft: 'a_payer', open: 'a_payer', paid: 'payee', overdue: 'impayee' }
 /** Une facture à régler dans les 7 jours met l'abonnement « à échéance proche ». */
 const JOURS_ECHEANCE_PROCHE = 7
 
@@ -28,8 +28,10 @@ export const useAbonnement = () => {
       planId: s.plan.id, nomPlan: s.plan.name, prixAnnuel: m(s.plan.priceYearly), statut,
       clientDepuis: '[DATE]', prochaineFacture: s.currentPeriodEnd ?? '[DATE]', moyenPaiement: 'Virement ou mobile money à Cotiz',
       utilisation: { projets: quota(s.quotas.projects), souscripteurs: quota(s.quotas.subscribers), gestionnaires: quota(s.quotas.managers) },
-      factures: factures.items.filter(f => f.status !== 'draft').map(f => ({
+      // Brouillons et factures annulées (void) : pas affichés.
+      factures: factures.items.filter(f => f.status !== 'draft' && f.status !== 'void').map(f => ({
         id: f.id, numero: f.number, periode: formatMois(f.periodStart), emiseLe: f.issuedAt ? jour(f.issuedAt) : '[DATE]', montant: m(f.amount), statut: FACTURE[f.status] ?? 'a_payer',
+        ...(f.pdfFileId ? { pdfFichierId: f.pdfFileId } : {}),
       })),
       ...(statut !== 'actif' && due ? { factureDue: { numero: due.number, echeance: jour(due.dueAt ?? due.periodEnd) } } : {}),
       emailContactCotiz: '[ADRESSE EMAIL DE CONTACT]',

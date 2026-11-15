@@ -17,6 +17,7 @@ export {
 export {
   type AssociationMembers,
   type AssociationTeam,
+  contextOwnerOf,
   grantOwnership,
   membersOf,
   ownerOf,

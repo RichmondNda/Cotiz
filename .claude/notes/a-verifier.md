@@ -308,3 +308,8 @@ Corrigés dans la branche :
 - **2026-11-12 · lot 4.5 · association courante d'un gestionnaire** — décision 26 : un gestionnaire de plusieurs
   associations (possible dès `tm.team`) garde la première association gérée dans `/me`, l'en-tête et la cloche.
   Sélecteur côté gestionnaire reporté (choix de l'utilisateur, 2026-11-12) ; à planifier.
+- **2026-11-15 · lot 4.6 · PDF de facture en espace plateforme** — `sa-facturation` affiche un bouton « PDF », mais
+  `endpoints.yaml` n'ouvre aucune lecture de fichier en espace plateforme (`as.file` : espace association, `fl.get` :
+  refus hors usages déposés). Le bouton affiche un message « bientôt » (`plateforme/facturation.vue:194`). Proposition : endpoint
+  `pf.invoice.pdf` (`GET /platform/invoices/{id}/pdf`, permission `platform.associations.read`, URL signée courte,
+  audité) — changement de spec à valider.

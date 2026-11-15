@@ -1,7 +1,8 @@
 import type { PlanRef, PlatformSubscription } from '@cotiz/contracts';
-import { plans, subscriptions } from '@cotiz/db';
+import { invoices, plans, subscriptions } from '@cotiz/db';
 import { type Currency, Money } from '@cotiz/domain';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { TIMEZONE } from '../../../shared/scheduler/index.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import type { PlanRow } from './plan-records.js';
 
@@ -124,6 +125,8 @@ export interface SubscriptionStanding {
   status: (typeof CURRENT)[number];
   /** Dernier jour inclus de la période en cours. */
   currentPeriodEnd: string | null;
+  /** Échéance de la plus ancienne facture en retard (jour, fuseau de la plateforme) ; `null` : aucune. */
+  unpaidSince: string | null;
   /** Limites appliquées (surcharge des comptes gestionnaires comprise) ; `null` : illimité. */
   limits: { subscribers: number | null; managers: number | null };
 }
@@ -137,6 +140,7 @@ export async function platformCurrentSubscriptions(): Promise<Map<string, Subscr
     throw new Error('platformCurrentSubscriptions : espace plateforme seulement');
   const rows = await currentTx()
     .select({
+      id: subscriptions.id,
       associationId: subscriptions.associationId,
       status: subscriptions.status,
       currentPeriodEnd: subscriptions.currentPeriodEnd,
@@ -147,6 +151,15 @@ export async function platformCurrentSubscriptions(): Promise<Map<string, Subscr
     .from(subscriptions)
     .innerJoin(plans, eq(plans.id, subscriptions.planId))
     .where(inArray(subscriptions.status, CURRENT));
+  const late = await currentTx()
+    .select({
+      subscriptionId: invoices.subscriptionId,
+      since: sql<string>`to_char(min(${invoices.dueAt}) AT TIME ZONE ${TIMEZONE}, 'YYYY-MM-DD')`,
+    })
+    .from(invoices)
+    .where(eq(invoices.status, 'overdue'))
+    .groupBy(invoices.subscriptionId);
+  const unpaidSince = new Map(late.map((l) => [l.subscriptionId, l.since]));
   const standings = new Map<string, SubscriptionStanding>();
   for (const r of rows) {
     // Filtré par CURRENT : jamais suspended ni canceled.
@@ -154,6 +167,7 @@ export async function platformCurrentSubscriptions(): Promise<Map<string, Subscr
     standings.set(r.associationId, {
       status,
       currentPeriodEnd: r.currentPeriodEnd,
+      unpaidSince: unpaidSince.get(r.id) ?? null,
       limits: { subscribers: r.maxSubscribers, managers: r.managerSeatsOverride ?? r.maxManagers },
     });
   }
