@@ -982,3 +982,17 @@ Fin : `/verifier-ecran` sur `/plateforme/facturation`, `/plateforme/associations
   facture déjà échue à l'émission ni `past_due` soudain des associations existantes. Échéance = J+15 du jour d'émission
   quand la facture est émise après le premier jour de sa période (rattrapage). *`packages/domain/src/invoicing.ts`
   (`billingRun`, `invoiceDueOn`), `billing-invoices.test.ts` (passage du 1er oct. puis du 13 nov.).*
+- **2026-11-15 · lot 4.6 · étape 3 (exports)** —
+  - `export.requested` ajouté à events.yaml (accord de l'utilisateur) : la demande écrit l'événement dans sa
+    transaction, le consommateur `reporting-exports` met le job dans la file `exports` (jobId `export-<événement>`).
+  - Chiffres identiques aux écrans : l'export du rapport réutilise `GetProjectReportUseCase` (rp.report) et celui de
+    l'annuaire `memberSummariesOf` (mb.list), en mémoire plutôt qu'en curseur ; mesure sur 50 000 lignes dans
+    `test/perf/export-50k.test.ts` (worker en processus séparé). PDF sans plafond de lignes.
+  - Le worker revérifie le droit `reports.export` du demandeur (accès de gestion) avant de produire ; perdu → `failed`.
+  - Méthodes sûres (GET/HEAD/OPTIONS) exemptées de l'intercepteur d'idempotence : `rp.export` porte le drapeau
+    `idempotencyKey` pour sa création seulement (`shared/http/idempotency.interceptor.ts`, test unitaire).
+  - Quota du jour compté sur l'horloge applicative (`todayIn(tz)`), pas `now()` de la base.
+  - Purge `files.expired` : supprime la ligne `files` et l'objet ; `export_jobs.file_id` reste (pas de clé étrangère),
+    l'export expiré répond 404 à `as.file`.
+  - Front : formule sans `exports` → CSV produit dans le navigateur comme avant, PDF refusé (toast) ; annuaire filtré
+    (recherche, statut) → CSV navigateur, l'export serveur ne porte que le filtre projet.

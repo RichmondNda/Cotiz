@@ -1500,6 +1500,7 @@ endpoints:
   errors:
   - quota_exceeded
   emits:
+  - export.requested
   - export.completed
   idempotencyKey: true
   ifMatch: false

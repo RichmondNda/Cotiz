@@ -329,3 +329,28 @@ export function invoicePaidMessage(p: { invoiceId: string; number: string; amoun
     vars: { numero: p.number, montant: formatMoney(p.amount) },
   } satisfies RenderedMessage;
 }
+
+/** Ce que contient chaque export (rp.export, lot 4.6). */
+const EXPORT_LABELS = {
+  project_report_csv: 'L’état des cotisations (CSV)',
+  project_report_pdf: 'Le rapport du projet (PDF)',
+  members_csv: 'L’annuaire des souscripteurs (CSV)',
+} as const;
+
+/** Export prêt : la personne qui l'a demandé ; lien vers l'écran d'où il part (rapports du projet ou annuaire). */
+export function exportCompletedMessage(p: {
+  exportId: string;
+  fileId: string;
+  kind: keyof typeof EXPORT_LABELS;
+  projectId: string | null;
+}): RenderedMessage {
+  return {
+    type: 'export.completed',
+    title: 'Export prêt',
+    body: `${EXPORT_LABELS[p.kind]} est prêt. Il reste téléchargeable pendant 7 jours.`,
+    actionUrl:
+      p.kind === 'members_csv' || !p.projectId ? '/asso/souscripteurs' : `/asso/projets/${p.projectId}/rapports`,
+    data: { actionLabel: 'Ouvrir', exportId: p.exportId, fileId: p.fileId },
+    vars: {},
+  };
+}

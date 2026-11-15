@@ -424,6 +424,14 @@ events:
   - change
   consumers:
   - auth
+- type: export.requested
+  emitter: reporting
+  lot: '4.6'
+  version: 1
+  payload:
+  - exportId
+  consumers:
+  - 'reporting: file exports'
 - type: export.completed
   emitter: reporting
   lot: '4.6'

@@ -83,10 +83,11 @@ function setup() {
       user?: string | null;
       result?: unknown;
       error?: unknown;
+      method?: string;
     } = {},
   ) => {
     const headers: Record<string, string | undefined> = { 'idempotency-key': 'key' in options ? options.key : KEY };
-    const req = { method: 'POST', url: '/api/v1/me/payments', headers, body: options.body ?? BODY };
+    const req = { method: options.method ?? 'POST', url: '/api/v1/me/payments', headers, body: options.body ?? BODY };
     if (options.user !== null) setRequestContext(req, { space: 'subscriber', userId: options.user ?? MOUSSA });
     const response = new FakeResponse();
     const handler = fakeHandler(options.result ?? { id: 'p1', status: 'pending' }, options.error);
@@ -156,6 +157,17 @@ describe('IdempotencyInterceptor (Idempotency-Key, réponse mémorisée 24 h)', 
     const replay = await call({ route: 'create', result: { rebuilt: true } });
     expect(replay.replayed).toEqual({ reference: { id: 'a1' } });
     expect(replay.value).toEqual({ rebuilt: true });
+  });
+
+  it('lecture (GET) d’un endpoint marqué : ni clé exigée ni réponse mémorisée (méthode sûre)', async () => {
+    const { store, call } = setup();
+    const first = await call({ method: 'GET', key: undefined });
+    expect(first.error).toBeUndefined();
+    expect(first.calls).toBe(1);
+    const again = await call({ method: 'GET' });
+    expect(again.calls).toBe(1);
+    expect(again.replayed).toBeNull();
+    expect(store.records.size).toBe(0);
   });
 
   it('même clé, corps différent → 422 idempotency_key_reused, sans exécution', async () => {

@@ -313,3 +313,10 @@ Corrigés dans la branche :
   refus hors usages déposés). Le bouton affiche un message « bientôt » (`plateforme/facturation.vue:194`). Proposition : endpoint
   `pf.invoice.pdf` (`GET /platform/invoices/{id}/pdf`, permission `platform.associations.read`, URL signée courte,
   audité) — changement de spec à valider.
+
+- **2026-11-15 · lot 4.6 · index `allocations (payment_id)` (proposition, hors lot)** — `check_payment_allocations`
+  (contrainte différée, migration 0013) lit `allocations WHERE payment_id = …` ; seul l'index partiel `allocations_live`
+  (`state <> 'voided'`) porte payment_id, donc un parcours de la table par paiement écrit. Constaté en chargeant
+  40 000 paiements (`test/perf/export-50k.test.ts` : ≈ 3 ms par paiement à 8 000, croissant). Effet en production :
+  chaque validation relit toutes les répartitions. Proposition : nouvelle migration `CREATE INDEX allocations_payment ON
+  allocations (payment_id)` (aucune migration commitée modifiée). En attente d'accord.

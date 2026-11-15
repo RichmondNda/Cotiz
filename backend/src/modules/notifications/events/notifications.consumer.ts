@@ -11,6 +11,7 @@ import {
   notifiedPlatformStaff,
 } from '../../access/access.public.js';
 import { invoiceNoticeOf } from '../../billing/billing.public.js';
+import { exportNoticeOf } from '../../reporting/reporting.public.js';
 import { associationPersonNameOf, notifiableUsersOf } from '../../identity/identity.public.js';
 import { enrollmentContractOf, pendingSignersOf } from '../../contracts/contracts.public.js';
 import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
@@ -35,6 +36,7 @@ import {
   contractLockedMessage,
   contractSignatureRequiredMessage,
   contractSignedMessage,
+  exportCompletedMessage,
   importCompletedMessage,
   importFailedMessage,
   invoiceIssuedMessage,
@@ -70,6 +72,7 @@ export const NOTIFIED_TYPES = [
   'reminder.sent',
   'subscription.invoice_issued',
   'subscription.invoice_paid',
+  'export.completed',
 ] as const satisfies readonly EventType[];
 
 /** Regroupement (architecture/07) : au-delà de 5 déclarations en 1 h, une notification récapitulative. */
@@ -88,6 +91,7 @@ const Payloads = {
   enrollment: z.object({ enrollmentId: Id }),
   locked: z.object({ projectId: Id }),
   invoice: z.object({ invoiceId: Id }),
+  exportCompleted: z.object({ exportId: Id, fileId: Id }),
   importCompleted: z.object({
     importId: Id,
     counts: z.object({
@@ -225,6 +229,8 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
       case 'subscription.invoice_issued':
       case 'subscription.invoice_paid':
         return aid ? this.inAssociation(aid, () => this.planInvoice(event, aid)) : [];
+      case 'export.completed':
+        return aid ? this.inAssociation(aid, () => this.planExport(event, aid)) : [];
       default:
         return [];
     }
@@ -288,10 +294,6 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Import terminé ou échoué (lot 4.4) : la personne qui l'a lancé (envoi) ou créé (analyse), si elle gère encore
-   * l'association ; sinon les gestionnaires. Compteurs de l'événement (bilan figé à la fin de l'exécution).
-   */
-  /**
    * Facture d'abonnement émise ou réglée (lot 4.6) : l'owner actif de l'association (events.yaml « notifications:
    * owner »), s'il reçoit encore les notifications de gestion ; montant et échéance relus sur la facture.
    */
@@ -308,6 +310,28 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
     return [{ msg, recipients: [{ userId: owner, associationId: aid, audience: 'manager' }], dedupeBase: event.id }];
   }
 
+  /**
+   * Export prêt (lot 4.6) : la personne qui l'a demandé (events.yaml « notifications: demandeur »), si elle reçoit
+   * encore les notifications de gestion de l'association ; export relu (`done`) dans l'association de l'enveloppe.
+   */
+  private async planExport(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { exportId, fileId } = Payloads.exportCompleted.parse(event.payload);
+    const notice = await exportNoticeOf(aid, exportId);
+    if (!notice || !(await notifiedManagersOf(aid)).includes(notice.requestedBy)) return [];
+    const msg = exportCompletedMessage({ exportId, fileId, kind: notice.kind, projectId: notice.projectId });
+    return [
+      {
+        msg,
+        recipients: [{ userId: notice.requestedBy, associationId: aid, audience: 'manager' }],
+        dedupeBase: event.id,
+      },
+    ];
+  }
+
+  /**
+   * Import terminé ou échoué (lot 4.4) : la personne qui l'a lancé (envoi) ou créé (analyse), si elle gère encore
+   * l'association ; sinon les gestionnaires. Compteurs de l'événement (bilan figé à la fin de l'exécution).
+   */
   private async planImport(event: EventEnvelope, aid: string): Promise<Planned[]> {
     const { importId } = Payloads.importFailed.parse(event.payload);
     const notice = await importNoticeOf(aid, importId);

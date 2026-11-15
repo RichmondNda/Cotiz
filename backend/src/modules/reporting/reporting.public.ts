@@ -2,3 +2,5 @@
 export { RefreshPlatformStatsUseCase } from './application/refresh-platform-stats.use-case.js';
 export { ProjectFigures } from './application/project-figures.js';
 export { ProjectFiguresModule } from './project-figures.module.js';
+// Exports (lot 4.6) : ce qu'en dit la notification du demandeur.
+export { exportNoticeOf } from './application/export-records.js';

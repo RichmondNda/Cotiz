@@ -40,6 +40,8 @@ export const NOTIFICATION_MATRIX = {
   // Factures d'abonnement (lot 4.6) : consommateur « notifications: owner » d'events.yaml.
   'subscription.invoice_issued': { audience: 'manager', channels: ['in_app'] },
   'subscription.invoice_paid': { audience: 'manager', channels: ['in_app'] },
+  // Exports (lot 4.6) : consommateur « notifications: demandeur » d'events.yaml.
+  'export.completed': { audience: 'manager', channels: ['in_app'] },
 } as const satisfies Partial<Record<EventType, MatrixEntry>>;
 
 export type NotifiedEventType = keyof typeof NOTIFICATION_MATRIX;

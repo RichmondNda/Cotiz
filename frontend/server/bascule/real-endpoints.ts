@@ -141,4 +141,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['bl.inv', 'all'],
   ['pf.invoices', 'all'],
   ['pf.invoice.paid', 'all'],
+  // Lot 4.6 : exports asynchrones (CSV/PDF par le worker, fichier lu par as.file pendant 7 jours).
+  ['rp.export', 'all'],
 ])

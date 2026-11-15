@@ -7,7 +7,10 @@ describe('activeFeatures (docs/specs/features.yaml)', () => {
 
   it('par défaut : les fonctionnalités livrées seulement, hors celles soumises au plan', () => {
     expect(activeFeatures({ planFeatures: null })).toEqual(ungated);
-    expect(activeFeatures({ planFeatures: ['contracts'] })).toEqual([...ungated, 'contracts']);
+    // Ordre de features.yaml : `contracts` se range parmi les autres.
+    expect(activeFeatures({ planFeatures: ['contracts'] })).toEqual(
+      FEATURES.filter((f) => ungated.includes(f) || f === 'contracts'),
+    );
     expect(activeFeatures({ planFeatures: null }, ['password_reset_manual'])).toEqual(['password_reset_manual']);
   });
 

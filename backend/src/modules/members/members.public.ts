@@ -12,6 +12,8 @@ export {
   standingFacets,
 } from './application/member-directory.js';
 export { installmentsByEnrollment, installmentView } from './application/enrollment-views.js';
+// Annuaire sans pagination (export members_csv, lot 4.6).
+export { memberSummariesOf } from './application/list-members.use-case.js';
 export { associationToday, contextAssociationId } from './application/member-context.js';
 // Espace souscripteur (lot 3.2) : inscriptions de la personne connectée, calculées comme la vue gestionnaire.
 export { type SubscriberEnrollment, subscriberEnrollmentsOf } from './application/subscriber-enrollments.js';

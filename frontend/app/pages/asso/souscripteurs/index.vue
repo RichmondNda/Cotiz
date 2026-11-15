@@ -10,6 +10,7 @@
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
 import type { SouscripteurAnnuaire, StatutSouscription } from '~~/types'
 import { formatFCFA, pluriel } from '~/utils/format'
+import { MESSAGES_EXPORT } from '~/composables/api/exports'
 import { telechargerCsv } from '~/utils/csv'
 import { STATUTS_SOUSCRIPTION } from '~/utils/statuts'
 
@@ -24,7 +25,9 @@ const toast = useToast()
 const { data, pending, error, refresh } = useSouscripteurs()
 const { data: projets } = useProjets()
 const { data: association } = useAssociationGestionnaire()
-const { peut } = usePermissions()
+const { peut, active } = usePermissions()
+const exporterServeur = useExport()
+const exportEnCours = ref(false)
 
 // ---------------------------------------------------------------- Filtres
 const STATUTS: { valeur: Statut, label: string }[] = [
@@ -112,7 +115,31 @@ const pucesMobile = computed(() => [
   { valeur: 'signature_attendue' as Statut, label: 'À signer' },
 ])
 
-function exporter() {
+/**
+ * Export de l'annuaire. Fonctionnalité `exports` du plan (lot 4.6) et liste non filtrée (ou filtrée par projet) :
+ * produit par le serveur (members_csv) ; sinon, la liste affichée exportée par le navigateur.
+ */
+async function exporter() {
+  if (active('exports') && !recherche.value.trim() && statut.value === 'tous') {
+    if (exportEnCours.value) return
+    exportEnCours.value = true
+    toast.info('Export en préparation', { message: 'Le fichier se télécharge dès qu’il est prêt.' })
+    try {
+      await exporterServeur('members_csv', {
+        nomFichier: 'souscripteurs.csv',
+        ...(projet.value === 'tous' ? {} : { projectId: projet.value }),
+      })
+      toast.succes('Export prêt', { message: 'Il reste aussi disponible 7 jours depuis la notification.' })
+    }
+    catch (e) {
+      const cle = e instanceof Error ? e.message : ''
+      toast.erreur('Export impossible', { message: MESSAGES_EXPORT[cle] ?? MESSAGES_EXPORT.failed })
+    }
+    finally {
+      exportEnCours.value = false
+    }
+    return
+  }
   telechargerCsv('souscripteurs.csv', [
     ['Souscripteur', 'Téléphone', 'Email', 'Projets', 'Total versé (F)', 'Total restant (F)', 'Statut global'],
     ...lignes.value.map(l => [l.nom, l.telephone, l.email, l.projets.map(nomCourt).join(', '), l.verse, l.reste, STATUTS_SOUSCRIPTION[l.statut].libelle]),
@@ -152,7 +179,7 @@ function exporter() {
         <CzButton
           variante="secondaire"
           icone="telecharger"
-          :disabled="!lignes.length"
+          :disabled="!lignes.length || exportEnCours"
           @click="exporter"
         >
           Exporter
