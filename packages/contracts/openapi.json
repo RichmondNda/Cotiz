@@ -551,7 +551,8 @@
                         "logo",
                         "cover",
                         "import_source",
-                        "bank_statement"
+                        "bank_statement",
+                        "receipt_pdf"
                       ]
                     },
                     "fileName": {
@@ -2339,7 +2340,8 @@
                       "logo",
                       "cover",
                       "import_source",
-                      "bank_statement"
+                      "bank_statement",
+                      "receipt_pdf"
                     ]
                   },
                   "fileName": {
@@ -2463,7 +2465,8 @@
                         "logo",
                         "cover",
                         "import_source",
-                        "bank_statement"
+                        "bank_statement",
+                        "receipt_pdf"
                       ]
                     },
                     "fileName": {
@@ -4400,7 +4403,8 @@
                         "logo",
                         "cover",
                         "import_source",
-                        "bank_statement"
+                        "bank_statement",
+                        "receipt_pdf"
                       ]
                     },
                     "fileName": {
@@ -8527,6 +8531,7 @@
                                 "reminder.handled",
                                 "team.changed",
                                 "staff.changed",
+                                "export.requested",
                                 "export.completed",
                                 "subscription.invoice_issued",
                                 "subscription.invoice_paid",
@@ -8648,6 +8653,7 @@
                         "reminder.handled",
                         "team.changed",
                         "staff.changed",
+                        "export.requested",
                         "export.completed",
                         "subscription.invoice_issued",
                         "subscription.invoice_paid",
@@ -8731,6 +8737,7 @@
                               "reminder.handled",
                               "team.changed",
                               "staff.changed",
+                              "export.requested",
                               "export.completed",
                               "subscription.invoice_issued",
                               "subscription.invoice_paid",
@@ -8867,6 +8874,7 @@
                         "reminder.handled",
                         "team.changed",
                         "staff.changed",
+                        "export.requested",
                         "export.completed",
                         "subscription.invoice_issued",
                         "subscription.invoice_paid",
@@ -8949,6 +8957,7 @@
                           "reminder.handled",
                           "team.changed",
                           "staff.changed",
+                          "export.requested",
                           "export.completed",
                           "subscription.invoice_issued",
                           "subscription.invoice_paid",
@@ -10786,6 +10795,18 @@
                     },
                     "comment": {
                       "type": ["string", "null"]
+                    },
+                    "receiptFileId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -10804,7 +10825,8 @@
                     "reviewedAt",
                     "enrollmentWithdrawn",
                     "paymentMethod",
-                    "comment"
+                    "comment",
+                    "receiptFileId"
                   ],
                   "additionalProperties": false
                 }
@@ -17605,7 +17627,8 @@
                         "logo",
                         "cover",
                         "import_source",
-                        "bank_statement"
+                        "bank_statement",
+                        "receipt_pdf"
                       ]
                     },
                     "fileName": {

@@ -4,6 +4,8 @@
   envoyée. Modale sur desktop, feuille basse sur mobile (CzModal).
   Preuve fichier : lue à la demande (« Voir la preuve », fl.get, lot 3.4), affichée par VisionneusePreuve, URL locale
   libérée à la fermeture ; référence seule : affichée directement.
+  Paiement validé : « Télécharger le reçu » (me.payment › receiptFileId puis fl.get, lot 4.6), produit quelques
+  minutes après la validation (délai d'annulation de 10 min).
 -->
 <script setup lang="ts">
 import type { PaiementListe, Preuve } from '~~/types'
@@ -19,7 +21,32 @@ const props = defineProps<{
 
 const ouvert = defineModel<boolean>('ouvert', { default: false })
 const lire = useLectureFichier()
+const lireRecu = useRecuPaiement()
 const toast = useToast()
+const recuEnCours = ref(false)
+
+async function telechargerRecu() {
+  if (recuEnCours.value) return
+  recuEnCours.value = true
+  try {
+    const lien = await lireRecu(props.paiement.id)
+    if (!lien) {
+      toast.info('Reçu bientôt disponible', { message: 'Le reçu est établi quelques minutes après la validation. Réessayez un peu plus tard.' })
+      return
+    }
+    const a = document.createElement('a')
+    a.href = lien
+    a.download = `recu-${props.paiement.dateVirement ?? props.paiement.id}.pdf`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(lien), 60_000)
+  }
+  catch (e) {
+    toast.erreur('Le reçu n’a pas pu être téléchargé', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
+  }
+  finally {
+    recuEnCours.value = false
+  }
+}
 
 const url = ref<string | null>(null)
 const chargement = ref(false)
@@ -110,6 +137,16 @@ onBeforeUnmount(liberer)
         @click="voirPreuve"
       >
         Voir la preuve
+      </CzButton>
+      <CzButton
+        v-if="paiement.statut === 'valide'"
+        variante="secondaire"
+        bloc
+        icone="telecharger"
+        :chargement="recuEnCours"
+        @click="telechargerRecu"
+      >
+        Télécharger le reçu
       </CzButton>
     </div>
   </CzModal>

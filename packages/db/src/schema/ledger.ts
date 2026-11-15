@@ -127,6 +127,10 @@ export const payments = pgTable(
     version: version(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
+    /** Reçu PDF (lot 4.6, migration 0028) : posé une fois sur un paiement validé, après le délai d'annulation. */
+    receiptFileId: uuid('receipt_file_id')
+      .unique()
+      .references(() => files.id),
   },
   (t) => [
     unique().on(t.id, t.associationId, t.enrollmentId),

@@ -218,3 +218,16 @@ export function useDeclarationPaiement() {
     }
   }
 }
+
+/**
+ * Reçu PDF d'un paiement du souscripteur (me.payment › receiptFileId, lot 4.6) : URL `blob:` locale (à libérer par
+ * `URL.revokeObjectURL`), ou `null` tant qu'il n'est pas produit (quelques minutes après la validation).
+ */
+export function useRecuPaiement() {
+  const client = useClient()
+  const lire = useLectureFichier()
+  return async (paiementId: string): Promise<string | null> => {
+    const { receiptFileId } = await client.call('me.payment', 'get', { params: { id: paiementId } })
+    return receiptFileId ? lire(receiptFileId) : null
+  }
+}

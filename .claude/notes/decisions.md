@@ -1009,3 +1009,15 @@ Fin : `/verifier-ecran` sur `/plateforme/facturation`, `/plateforme/associations
   - pf.asso.usage : jours calculés seulement (le front complète par 0) ; période inversée ou > 366 jours → 422.
   - Front : onglet Usage sans maquette (CzSoon retiré) : 3 KPI + barres `BarresEcheances` (texte lu par les lecteurs
     d'écran ajouté) ; période de 6 mois jusqu'à la veille au jour d'Abidjan.
+- **2026-11-15 · lot 4.6 · étape 5 (reçu de paiement)** — spec acceptée appliquée : schema.sql, data-model,
+  events.yaml, architecture/08, migration `0028_payment_receipts.sql`, `receiptFileId` dans `me.payment`.
+  - `payments_guard` (CREATE OR REPLACE dans 0028) : `receipt_file_id` se pose une fois, NULL → valeur, sur un
+    paiement validé qui le reste ; jamais remplacé ni retiré. La politique `subscriber_receipt_read` n'emploie pas la
+    nouvelle valeur d'enum (même transaction que son ajout) : elle passe par `payments.receipt_file_id`.
+  - Job `receipt-pdf` différé de 11 min (délai d'annulation + 1 min) ; trop tôt malgré tout (horloges) → repris au
+    terme (`moveToDelayed`, sans consommer de tentative) ; paiement plus validé → rien. Le registre (`PaymentReceipts`,
+    ledger.public) réserve le fichier sous verrou du paiement ; documents rend et stocke (`storeLegalPdf`, WORM).
+  - Deux passages simultanés peuvent rendre deux fois, un seul objet est écrit (même règle que factures et contrats).
+  - Reçu lisible par le souscripteur (fl.get) et par les gestionnaires de l'association (as.file, tenant_isolation).
+  - Front : « Télécharger le reçu » dans le détail d'un paiement validé (MbHistorique) ; pas encore produit → toast
+    « Reçu bientôt disponible ». Pas de maquette pour ce bouton (CzButton secondaire, icône telecharger).

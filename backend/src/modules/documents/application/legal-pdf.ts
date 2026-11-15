@@ -8,7 +8,7 @@ import { currentTx, type TenantDatabase } from '../../../shared/tenant-context/i
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
 const sha256 = (content: Buffer) => createHash('sha256').update(content).digest('hex');
 
-export type LegalPurpose = 'contract_pdf' | 'invoice_pdf';
+export type LegalPurpose = 'contract_pdf' | 'invoice_pdf' | 'receipt_pdf';
 
 /** Le PDF d'une ligne `files` est-il encore à produire ? Dans le contexte de l'association (RLS) ; absente : erreur. */
 export async function isPdfPending(fileId: string, associationId: string): Promise<boolean> {

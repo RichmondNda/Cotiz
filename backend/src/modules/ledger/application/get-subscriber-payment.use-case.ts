@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { SubscriberPaymentDetail } from '@cotiz/contracts';
 import { payments as t } from '@cotiz/db';
 import { and, eq } from 'drizzle-orm';
+import { isReadySubscriberReceipt } from '../../files/files.public.js';
 import { subscriberEnrollmentsOf } from '../../members/members.public.js';
 import { subscriberPaymentMethodsOf, toPaymentMethod } from '../../tenancy/tenancy.public.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
@@ -12,7 +13,7 @@ import { subscriberPaymentsOf } from './subscriber-payments.js';
 /**
  * me.payment (lot 3.3, espace subscriber) : une déclaration de la personne connectée, avec son moyen et son
  * commentaire. Appartenance souscripteur active ; inscription retirée comprise, en lecture seule (`enrollmentWithdrawn`,
- * décision du 2026-11-10) ; sinon, comme un paiement d'autrui ou inconnu, 404.
+ * décision du 2026-11-10) ; sinon, comme un paiement d'autrui ou inconnu, 404. Reçu PDF (lot 4.6) une fois produit.
  */
 @Injectable()
 export class GetSubscriberPaymentUseCase {
@@ -25,6 +26,8 @@ export class GetSubscriberPaymentUseCase {
         associationId: t.associationId,
         paymentMethodId: t.paymentMethodId,
         comment: t.comment,
+        status: t.status,
+        receiptFileId: t.receiptFileId,
       })
       .from(t)
       .where(and(eq(t.id, paymentId), eq(t.userId, requireActor().userId)));
@@ -59,6 +62,14 @@ export class GetSubscriberPaymentUseCase {
           (m) => m.id === row.paymentMethodId && m.associationId === association.id,
         )
       : undefined;
-    return { ...view, paymentMethod: method ? toPaymentMethod(method) : null, comment: row.comment };
+    // Reçu (lot 4.6) : seulement produit, et pour un paiement toujours validé.
+    const receiptReady =
+      row.status === 'validated' && row.receiptFileId !== null && (await isReadySubscriberReceipt(row.receiptFileId));
+    return {
+      ...view,
+      paymentMethod: method ? toPaymentMethod(method) : null,
+      comment: row.comment,
+      receiptFileId: receiptReady ? row.receiptFileId : null,
+    };
   }
 }

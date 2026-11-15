@@ -37,3 +37,19 @@ export async function fileNamesOf(ids: readonly string[]): Promise<Map<string, s
     .where(and(eq(files.associationId, context.associationId), inArray(files.id, [...ids])));
   return new Map(rows.map((r) => [r.id, r.name]));
 }
+
+/**
+ * Le reçu `fileId` est-il prêt à être lu par la personne du contexte souscripteur (me.payment, lot 4.6) : le sien
+ * (RLS subscriber_receipt_read et contrôle ici), usage `receipt_pdf`, produit (`clean`) ? En attente ou autre : `false`.
+ */
+export async function isReadySubscriberReceipt(fileId: string): Promise<boolean> {
+  const context = currentContext();
+  if (context?.space !== 'subscriber' || !context.userId) {
+    throw new Error('isReadySubscriberReceipt : contexte souscripteur attendu');
+  }
+  const [row] = await currentTx()
+    .select({ owner: files.ownerUserId, purpose: files.purpose, scanStatus: files.scanStatus })
+    .from(files)
+    .where(eq(files.id, fileId));
+  return row?.owner === context.userId && row.purpose === 'receipt_pdf' && row.scanStatus === 'clean';
+}

@@ -255,7 +255,7 @@ events:
   - 'notifications: souscripteur (in-app, push)'
   - 'cache: KPI, synthèse souscripteur'
   - reporting
-  - 'documents: reçu (4.6, option)'
+  - 'documents: reçu PDF (4.6, après le délai d''annulation)'
   - 'developer: webhooks (5.2)'
 - type: payment.rejected
   emitter: ledger

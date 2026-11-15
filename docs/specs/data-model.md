@@ -376,8 +376,9 @@ Un paiement déclaré par un souscripteur (un virement réel).
 | `idempotency_key` | `text` | évite les doubles déclarations sur réseau mobile instable ; `UNIQUE (user_id, idempotency_key)` (par personne) |
 | `version` | `int` | verrouillage optimiste |
 | `created_at / updated_at` | `timestamptz` |  |
+| `receipt_file_id` | `uuid NULL UNIQUE FK files` | reçu PDF (lot 4.6) : posé une fois, paiement validé, après le délai d'annulation (10 min) ; jamais régénéré |
 | `UNIQUE` | `(id, association_id, enrollment_id)` | cible de la clé composite des répartitions |
-| Déclencheur | `payments_guard` | déclaration immuable (seuls montant reçu, statut, relecture, motif de rejet et version évoluent) ; transitions de domain-rules § 8 ; paiement rejeté ou annulé figé ; sinon `invalid_state` |
+| Déclencheur | `payments_guard` | déclaration immuable (seuls montant reçu, statut, relecture, motif de rejet et version évoluent ; le reçu se pose une fois, sur un paiement validé) ; transitions de domain-rules § 8 ; paiement rejeté ou annulé figé ; sinon `invalid_state` |
 | Déclencheur | `payments_proof` | la preuve est une preuve de paiement de la personne (non rattachée) ou de l'association du paiement, sinon `invalid_proof` |
 | Déclencheurs différés | `payments_allocations_sum`, `allocations_payment_check` | au COMMIT, d'après l'état final du paiement : validé → confirmées = montant reçu (sinon déclaré) et aucune proposition vivante ; en attente → aucune confirmée ; rejeté ou annulé → rien de vivant |
 | `CHECK` | `payments_reviewed`, `payments_rejection_reason` | validé ou rejeté : relecteur et date ; rejeté : motif |
@@ -569,7 +570,7 @@ Référentiel de tous les fichiers stockés dans MinIO.
 | `id` | `uuid PK` |  |
 | `association_id` | `uuid NULL` | RLS |
 | `owner_user_id` | `uuid` |  |
-| `purpose` | `enum` | payment_proof · contract_pdf · invoice_pdf · export · logo · cover · import_source · bank_statement |
+| `purpose` | `enum` | payment_proof · contract_pdf · invoice_pdf · export · logo · cover · import_source · bank_statement · receipt_pdf |
 | `bucket / object_key` | `text` | {association_id}/{purpose}/{uuid}.{ext} |
 | `original_name` | `text` | nom du fichier déposé (affichage) |
 | `mime_type / size_bytes` | `text / bigint` | vérifiés sur le contenu réel |

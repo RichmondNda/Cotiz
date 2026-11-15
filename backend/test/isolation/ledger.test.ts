@@ -20,7 +20,8 @@ import {
 /**
  * Isolation des paiements et des répartitions (lot 2.4, base migrée) : payments (tenant_isolation, subscriber_self_read,
  * subscriber_declare), allocations (tenant_isolation, subscriber_self_read, subscriber_propose), clés composites
- * (association, inscription, personne, moyen de paiement), déclencheurs payments_guard et allocations_guard. Chaque
+ * (association, inscription, personne, moyen de paiement), déclencheurs payments_guard et allocations_guard, reçu de
+ * paiement (files.subscriber_receipt_read, lot 4.6). Chaque
  * politique est aussi testée affaiblie.
  */
 
@@ -1007,6 +1008,81 @@ describe('isolation : payments et allocations (base migrée)', () => {
         errorOf(h.asRollback(asSubscriber(USERS.moussa), (tx) => insertAllocation(tx, MOUSSA_PROPOSAL))),
       );
       expect(isRlsViolation(error)).toBe(true);
+    });
+  });
+
+  describe('files.subscriber_receipt_read : le reçu de ses paiements (lot 4.6)', () => {
+    const RECEIPTS = {
+      /** Reçu du paiement validé de Moussa (A). */
+      moussa: '00000000-0000-7000-8000-0000000f1501',
+      /** Fichier de reçu au nom de Moussa que rien ne référence : jamais lisible. */
+      orphan: '00000000-0000-7000-8000-0000000f1502',
+    } as const;
+    const receipts = (tx: Tx) =>
+      tx
+        .execute<{ id: string }>(sql`SELECT id FROM files WHERE purpose = 'receipt_pdf' ORDER BY id`)
+        .then((r) => r.rows.map((row) => row.id));
+
+    beforeAll(async () => {
+      await h.superuser(
+        `INSERT INTO files (id, association_id, owner_user_id, purpose, bucket, object_key, original_name, mime_type,
+                            size_bytes)
+         VALUES ($1, $3, $4, 'receipt_pdf', 'cotiz-legal', 'r1', 'recu.pdf', 'application/pdf', 10),
+                ($2, $3, $4, 'receipt_pdf', 'cotiz-legal', 'r2', 'recu.pdf', 'application/pdf', 10)`,
+        [RECEIPTS.moussa, RECEIPTS.orphan, A.id, USERS.moussa],
+      );
+      await h.superuser('UPDATE payments SET receipt_file_id = $2 WHERE id = $1', [
+        PAYMENTS.moussaValidated,
+        RECEIPTS.moussa,
+      ]);
+    });
+
+    it('Moussa lit le reçu de son paiement, pas un reçu non référencé ; Aminata, rien', async () => {
+      expect(await h.as(asSubscriber(USERS.moussa), receipts)).toEqual([RECEIPTS.moussa]);
+      expect(await h.as(asSubscriber(USERS.aminata), receipts)).toEqual([]);
+      expect(await h.as({ space: 'platform', userId: USERS.moussa }, receipts)).toEqual([]);
+    });
+
+    it('les gestionnaires de A lisent les reçus de A ; ceux de B, aucun', async () => {
+      expect(await h.as(asManagerOf(A), receipts)).toEqual([RECEIPTS.moussa, RECEIPTS.orphan]);
+      expect(await h.as(asManagerOf(B), receipts)).toEqual([]);
+    });
+
+    it('lecture seule : Moussa ne modifie pas son reçu', async () => {
+      const updated = await h.asRollback(asSubscriber(USERS.moussa), (tx) =>
+        tx.execute(sql`UPDATE files SET original_name = 'autre.pdf' WHERE id = ${RECEIPTS.moussa}`),
+      );
+      expect(updated.rowCount).toBe(0);
+    });
+
+    it('le test échoue si subscriber_receipt_read ne vérifie plus le paiement', async () => {
+      const leaked = await h.withPolicy(
+        'files',
+        'subscriber_receipt_read',
+        { using: "app_space() = 'subscriber' AND owner_user_id = app_user_id()", withCheck: null },
+        () => h.as(asSubscriber(USERS.moussa), receipts),
+      );
+      expect(leaked).toContain(RECEIPTS.orphan);
+    });
+
+    it('le test échoue si subscriber_receipt_read ne vérifie plus la personne', async () => {
+      const leaked = await h.withPolicy(
+        'files',
+        'subscriber_receipt_read',
+        { using: "app_space() = 'subscriber'", withCheck: null },
+        () => h.as(asSubscriber(USERS.aminata), receipts),
+      );
+      expect(leaked).toContain(RECEIPTS.moussa);
+    });
+
+    it('payments_guard : le reçu ne se remplace ni ne se retire', async () => {
+      const error = await errorOf(
+        h.superuser('UPDATE payments SET receipt_file_id = $2 WHERE id = $1', [
+          PAYMENTS.moussaValidated,
+          RECEIPTS.orphan,
+        ]),
+      );
+      expect(pgMessage(error)).toBe('forbidden_update');
     });
   });
 });
