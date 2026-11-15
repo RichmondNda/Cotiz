@@ -996,3 +996,16 @@ Fin : `/verifier-ecran` sur `/plateforme/facturation`, `/plateforme/associations
     l'export expiré répond 404 à `as.file`.
   - Front : formule sans `exports` → CSV produit dans le navigateur comme avant, PDF refusé (toast) ; annuaire filtré
     (recherche, statut) → CSV navigateur, l'export serveur ne porte que le filtre projet.
+- **2026-11-15 · lot 4.6 · étape 4 (usage)** —
+  - `usage.daily` recalcule depuis les sources au lieu de compter `user.logged_in` (consommateur « reporting: usage » de
+    events.yaml non branché) : un compteur alimenté par un consommateur double-compterait au rejeu ; les sessions
+    gardent chaque connexion (premier maillon d'une famille) et chaque renouvellement (activité). Proposition de doc :
+    retirer ce consommateur d'events.yaml à la clôture.
+  - Passage horaire (`40 * * * *`) : jours locaux finis des 7 derniers absents, la veille dès 02:00 locale, écrits une
+    fois (`ON CONFLICT DO NOTHING`, jamais recalculés). Associations suspendues ou fermées ignorées.
+  - Périmètre d'une association : gestionnaires actifs (sessions `association`) et souscripteurs actifs (sessions
+    `subscriber`) ; une personne gestionnaire ici et souscriptrice ailleurs ne compte que là où elle a le rôle de
+    l'espace. Délai moyen : heures à 0,1 près des paiements validés du jour (0 sans validation, colonne NOT NULL).
+  - pf.asso.usage : jours calculés seulement (le front complète par 0) ; période inversée ou > 366 jours → 422.
+  - Front : onglet Usage sans maquette (CzSoon retiré) : 3 KPI + barres `BarresEcheances` (texte lu par les lecteurs
+    d'écran ajouté) ; période de 6 mois jusqu'à la veille au jour d'Abidjan.

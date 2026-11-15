@@ -35,6 +35,7 @@ export {
 export {
   acceptTeamInvitation,
   activeOwnersCountOf,
+  activeTeamIdsOf,
   changeTeamRole,
   inviteToTeam,
   lockTeam,

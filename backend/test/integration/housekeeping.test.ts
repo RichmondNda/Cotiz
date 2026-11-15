@@ -166,7 +166,7 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         schedulers = await queue.getJobSchedulers();
       }
-      // Chaque tâche du worker une seule fois (codes.expire : lot 1.1 ; stats.refresh : lot 1.4 ; projects.activate : lot 2.2 ; installments.refresh-statuses : lot 2.4 ; reminders.evaluate : lot 4.3 ; billing.issue-invoices : lot 4.6).
+      // Chaque tâche du worker une seule fois (codes.expire : lot 1.1 ; stats.refresh : lot 1.4 ; projects.activate : lot 2.2 ; installments.refresh-statuses : lot 2.4 ; reminders.evaluate : lot 4.3 ; billing.issue-invoices, usage.daily : lot 4.6).
       const byId = schedulers
         .map((s) => ({ id: s.key, pattern: s.pattern, tz: s.tz }))
         .sort((x, y) => x.id.localeCompare(y.id));
@@ -182,6 +182,7 @@ describe('housekeeping : fichiers orphelins, une seule exécution', () => {
         { id: 'reminders.evaluate', pattern: '30 * * * *', tz: 'Africa/Abidjan' },
         { id: 'schedule.extend-rolling', pattern: '0 1 1 * *', tz: 'Africa/Abidjan' },
         { id: 'stats.refresh', pattern: '*/15 * * * *', tz: 'Africa/Abidjan' },
+        { id: 'usage.daily', pattern: '40 * * * *', tz: 'Africa/Abidjan' },
       ]);
     } finally {
       await queue.close();

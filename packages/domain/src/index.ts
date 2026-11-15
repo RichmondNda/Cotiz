@@ -92,3 +92,12 @@ export { QUIET_HOURS, quietHoursDelayMs } from './quiet-hours.js';
 export { daysOverdue, isRemindersTime, REMINDERS_MINUTES, reminderDueDate, reminderRunStatus } from './reminders.js';
 export type { ReminderTrigger } from './reminders.js';
 export { EXPORT_LIMITS, EXPORT_RETENTION_DAYS, exportExpiresAt, exportQuotaIssue } from './exports.js';
+export {
+  USAGE_CATCH_UP_DAYS,
+  USAGE_DAILY_HOUR,
+  USAGE_DEFAULT_DAYS,
+  USAGE_MAX_DAYS,
+  type UsagePeriod,
+  usageDaysToCompute,
+  usagePeriod,
+} from './usage.js';
