@@ -320,3 +320,23 @@ Corrigés dans la branche :
   40 000 paiements (`test/perf/export-50k.test.ts` : ≈ 3 ms par paiement à 8 000, croissant). Effet en production :
   chaque validation relit toutes les répartitions. Proposition : nouvelle migration `CREATE INDEX allocations_payment ON
   allocations (payment_id)` (aucune migration commitée modifiée). En attente d'accord.
+
+- **2026-11-15 · lot 4.6 · propositions de doc à la clôture (en attente d'accord)** —
+  1. « XLSX / Excel » (lot 4.6, features.yaml, résumé de `rp.export` dans endpoints.yaml) → « CSV et PDF » :
+     l'enum `export_jobs_kind` fait foi (choix de l'utilisateur du 2026-11-13).
+  2. events.yaml, `user.logged_in` : retirer le consommateur « reporting: usage » (usage.daily relit les sessions,
+     payload sans association ; décision du 2026-11-15).
+  3. jobs.yaml, `usage.daily` : « Quotidienne 02:00 » → « Toutes les heures : la veille de chaque association dès
+     02:00 locale (rattrapage 7 jours) », comme `managers.digest`.
+
+## Lot 4.6 — remarques des relectures (2026-11-15), propositions en attente d'accord
+Source : sous-agents money-reviewer et isolation-reviewer sur `git diff origin/dev...HEAD`. Rien de bloquant ; corrigés dans le lot : marge de 60 s après le délai d'annulation avant le reçu (`RECEIPT_MARGIN_MS`), vérification d'espace plateforme dans `GetUsageUseCase`, commentaire de `IdempotencyInterceptor` replacé.
+- Factures : aucune garde en base (UNIQUE `(association_id, period_start)` ou équivalent) contre deux factures d'une même période ; seule la tâche l'évite. Proposition : migration ajoutant la contrainte (changement de `schema.sql`).
+- `pf.invoice.paid` : `paidOn` sans borne basse (antérieur à l'émission accepté). Proposition : refuser `paidOn < issued_on` (422).
+- Montants de facturation manipulés en `number` côté calcul de période : à repasser par `Money` si une devise à décimales arrive.
+- Export CSV serveur et CSV navigateur de `/asso/souscripteurs` : traitement différent des inscriptions en attente de signature ; à aligner.
+- `usage_daily` : une personne présente dans plusieurs associations (gestionnaire de B, viewer de A ; souscripteur inscrit deux fois) compte dans chacune, faute d'association dans `sessions`. Limite à documenter ou à corriger avec l'association courante de session.
+- `sessionUsageOf` (identity.public) fait confiance aux `userIds` reçus alors que `sessions` n'a pas de RLS : à durcir (liste construite dans identity, ou `associationId` revérifié).
+- `invoices` : `tenant_isolation` permet à cotiz_app en espace association d'écrire ses propres factures (protection applicative seulement). Proposition : politique en lecture seule pour l'espace association (changement de spec), ou au minimum un test qui fige le comportement.
+- Commentaire de la migration 0027 inexact (`usage_daily` écrite en contexte association, pas via `system_access`) : migration commitée, non modifiée.
+- Index `allocations (payment_id)` : voir l'entrée de l'étape 3 (toujours en attente).

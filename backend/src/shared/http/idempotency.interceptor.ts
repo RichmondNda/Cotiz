@@ -99,6 +99,9 @@ export class RedisIdempotencyStore implements IdempotencyStore {
   }
 }
 
+/** Méthodes sans effet (RFC 9110 § 9.2.1) : jamais soumises à `Idempotency-Key`. */
+const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 /**
  * `Idempotency-Key` (architecture/06), pour les écritures des endpoints du contrat qui portent le drapeau : clé exigée ; réponse
  * réussie mémorisée 24 h et rejouée telle quelle (en-tête `Idempotent-Replayed`) ; même clé avec une autre requête →
@@ -106,9 +109,6 @@ export class RedisIdempotencyStore implements IdempotencyStore {
  * mémorisée : la même clé peut être renvoyée. Réponse avec un secret : voir ReplayInHandler. Clés propres à chaque utilisateur : jamais la réponse d'un autre.
  * Placé avant la transaction de contexte : la réponse n'est mémorisée qu'après le COMMIT.
  */
-/** Méthodes sans effet (RFC 9110 § 9.2.1) : jamais soumises à `Idempotency-Key`. */
-const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
-
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
   private readonly logger = new Logger(IdempotencyInterceptor.name);

@@ -93,7 +93,7 @@ describe('reçu de paiement (worker documents)', () => {
     const { reviewed_at: reviewedAt } = (
       await f.h.superuser('SELECT reviewed_at FROM payments WHERE id = $1', [paymentId])
     ).rows[0] as { reviewed_at: Date };
-    return { paymentId, reviewedAt, after: new Date(reviewedAt.getTime() + REVERT_WINDOW_MS + MINUTE) };
+    return { paymentId, reviewedAt, after: new Date(reviewedAt.getTime() + REVERT_WINDOW_MS + 2 * MINUTE) };
   };
 
   beforeAll(async () => {
@@ -135,9 +135,12 @@ describe('reçu de paiement (worker documents)', () => {
     const { paymentId, reviewedAt } = await validated();
     const before = gotenberg.requests.length;
     const result = await generate(paymentId, new Date(reviewedAt.getTime() + 5 * MINUTE));
-    expect(result.retryAt?.getTime()).toBe(reviewedAt.getTime() + REVERT_WINDOW_MS);
-    // Le délai est inclus : à 10 min pile, encore trop tôt.
+    expect(result.retryAt?.getTime()).toBe(reviewedAt.getTime() + REVERT_WINDOW_MS + MINUTE);
+    // Délai et marge inclus : à 10 min, puis à 11 min pile, encore trop tôt (horloges de l'api et du worker).
     expect((await generate(paymentId, new Date(reviewedAt.getTime() + REVERT_WINDOW_MS))).retryAt).toBeDefined();
+    expect(
+      (await generate(paymentId, new Date(reviewedAt.getTime() + REVERT_WINDOW_MS + MINUTE))).retryAt,
+    ).toBeDefined();
     expect(gotenberg.requests.length).toBe(before);
     expect((await receiptOf(paymentId))?.file_id).toBeNull();
     expect((await detail(paymentId)).receiptFileId).toBeNull();

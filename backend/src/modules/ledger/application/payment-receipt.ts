@@ -9,6 +9,12 @@ import { BUCKETS } from '../../../shared/storage/index.js';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import { paymentRefsOf } from './payment-views.js';
 
+/**
+ * Marge après le délai d'annulation avant de poser le reçu : l'annulation (`RevertPaymentUseCase`) lit l'horloge de
+ * l'api, ce passage celle du worker ; un décalage ne doit pas laisser un reçu sur un paiement remis en attente.
+ */
+export const RECEIPT_MARGIN_MS = 60_000;
+
 /** Où en est le reçu d'un paiement : rien à produire, trop tôt (délai d'annulation), ou prêt à rendre. */
 export type ReceiptPreparation =
   | { status: 'skip' }
@@ -18,7 +24,7 @@ export type ReceiptPreparation =
 /**
  * Reçu d'un paiement validé (lot 4.6, documents) dans le contexte de son association : paiement verrouillé (premier
  * verrou de l'ordre paiement → projet → échéances), encore validé, délai d'annulation (10 min, `revertDeadline`)
- * écoulé ; sinon `skip` ou `early`. Le fichier `receipt_pdf` (cotiz-legal, en attente, au souscripteur) est réservé une
+ * écoulé avec une marge (`RECEIPT_MARGIN_MS`) ; sinon `skip` ou `early`. Le fichier `receipt_pdf` (cotiz-legal, en attente, au souscripteur) est réservé une
  * seule fois et posé sur le paiement (`payments.receipt_file_id`, payments_guard) ; un rejeu retrouve le même.
  * Montants en XOF (`payments_currency_xof`).
  */
@@ -40,7 +46,8 @@ export class PaymentReceipts {
     if (row?.status !== 'validated') return { status: 'skip' };
     const deadline = revertDeadline(row);
     if (!deadline || !row.reviewedAt) return { status: 'skip' };
-    if (now.getTime() <= deadline.getTime()) return { status: 'early', retryAt: deadline };
+    const earliest = new Date(deadline.getTime() + RECEIPT_MARGIN_MS);
+    if (now.getTime() <= earliest.getTime()) return { status: 'early', retryAt: earliest };
     const association = await ownAssociationOf(associationId);
     if (!association) return { status: 'skip' };
 

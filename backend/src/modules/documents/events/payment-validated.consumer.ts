@@ -1,6 +1,7 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { EventEnvelope } from '@cotiz/contracts';
 import { REVERT_WINDOW_MS } from '@cotiz/domain';
+import { RECEIPT_MARGIN_MS } from '../../ledger/ledger.public.js';
 import { Queue } from 'bullmq';
 import { z } from 'zod';
 import { CONFIG, type Config } from '../../../config.js';
@@ -10,8 +11,8 @@ import { withTraceContext } from '../../../shared/telemetry/index.js';
 
 const Payload = z.object({ paymentId: z.uuid() });
 
-/** Marge après le délai d'annulation : la validation est datée par la base, le job par l'horloge du worker. */
-export const RECEIPT_DELAY_MS = REVERT_WINDOW_MS + 60_000;
+/** Délai d'annulation, marge du registre, puis une minute : la validation est datée par la base, le job par le worker. */
+export const RECEIPT_DELAY_MS = REVERT_WINDOW_MS + RECEIPT_MARGIN_MS + 60_000;
 
 /**
  * `payment.validated` → job `receipt-pdf` de la file `documents`, différé au-delà du délai d'annulation (events.yaml :

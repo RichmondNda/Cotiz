@@ -6,7 +6,7 @@ import { and, asc, between, eq } from 'drizzle-orm';
 import type { z } from 'zod';
 import { platformAssociationOf } from '../../tenancy/tenancy.public.js';
 import { DomainProblem } from '../../../shared/http/index.js';
-import { currentTx } from '../../../shared/tenant-context/index.js';
+import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 
 /**
  * pf.asso.usage : statistiques d'usage quotidiennes d'une association, lues par la plateforme (connexion
@@ -17,6 +17,7 @@ import { currentTx } from '../../../shared/tenant-context/index.js';
 @Injectable()
 export class GetUsageUseCase {
   async execute(id: string, query: { from?: IsoDate; to?: IsoDate }): Promise<{ days: z.infer<typeof UsageDay>[] }> {
+    if (currentContext()?.space !== 'platform') throw new Error('pf.asso.usage : espace plateforme seulement');
     const association = await platformAssociationOf(id);
     if (!association) throw new DomainProblem('not_found');
     const period = usagePeriod(query, todayIn(association.timezone));
