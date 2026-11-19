@@ -241,3 +241,116 @@ export function contractSignedMessage(p: { name: string; projectId: string; proj
     vars: { souscripteur: p.name, projet: p.projectName },
   };
 }
+
+const importLink = (projectId: string) => `/asso/projets/${projectId}/import`;
+const lines = (n: number) => `${String(n)} ligne${n > 1 ? 's' : ''}`;
+
+/** Import terminé (lot 4.4) → gestionnaire : inscrits, comptes rattachés, lignes en échec. */
+export function importCompletedMessage(p: {
+  projectId: string;
+  projectName: string;
+  enrolled: number;
+  attached: number;
+  failed: number;
+}): RenderedMessage {
+  const total = p.enrolled + p.attached;
+  const failed = p.failed > 0 ? ` ${lines(p.failed)} en erreur.` : '';
+  return {
+    type: 'import.completed',
+    title: 'Import terminé',
+    body: `${String(total)} souscripteur${total > 1 ? 's' : ''} inscrit${total > 1 ? 's' : ''} au projet ${p.projectName}, dont ${String(p.attached)} déjà ${p.attached > 1 ? 'connus' : 'connu'}.${failed}`,
+    actionUrl: importLink(p.projectId),
+    data: { actionLabel: 'Voir le bilan', projectId: p.projectId },
+    vars: { projet: p.projectName },
+  };
+}
+
+/** Import échoué (lot 4.4) → gestionnaire : le fichier n'a pas pu être lu ou l'exécution s'est arrêtée. */
+export function importFailedMessage(p: { projectId: string; projectName: string }): RenderedMessage {
+  return {
+    type: 'import.failed',
+    title: 'Import interrompu',
+    body: `L'import de souscripteurs du projet ${p.projectName} n'a pas abouti. Le motif est indiqué sur l'import.`,
+    actionUrl: importLink(p.projectId),
+    data: { actionLabel: 'Voir l’import', projectId: p.projectId },
+    vars: { projet: p.projectName },
+  };
+}
+
+/**
+ * Rappel d'une relance (lot 4.3) : le message rendu de la règle (ou du gestionnaire) ; titre selon le retard ; lien vers
+ * la déclaration pour ce projet.
+ */
+export function reminderSentMessage(p: {
+  projectId: string;
+  projectName: string;
+  dueDate: string;
+  late: boolean;
+  message: string;
+}): RenderedMessage {
+  const date = dayAndMonth(p.dueDate);
+  return {
+    type: 'reminder.sent',
+    title: p.late ? `Échéance du ${date} en retard` : `Rappel : échéance du ${date}`,
+    body: p.message,
+    actionUrl: `/paiements/declarer?projet=${p.projectId}`,
+    data: { actionLabel: 'Déclarer un paiement', projectId: p.projectId },
+    vars: { date, projet: p.projectName, message: p.message },
+  };
+}
+
+/** Factures d'abonnement (lot 4.6) : écran Abonnement de l'association. */
+const subscriptionLink = '/asso/abonnement';
+
+/** « 16 novembre 2026 » depuis une date civile (fuseau de l'association déjà appliqué). */
+const civilDate = (day: string) =>
+  new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', dateStyle: 'long' })
+    .format(new Date(`${day}T00:00:00Z`))
+    .replace(/^1 /, '1er ');
+
+export function invoiceIssuedMessage(p: { invoiceId: string; number: string; amount: Money; dueOn: string }) {
+  return {
+    type: 'subscription.invoice_issued',
+    title: 'Nouvelle facture d’abonnement',
+    body: `Facture ${p.number} de ${formatMoney(p.amount)}, à régler au plus tard le ${civilDate(p.dueOn)}.`,
+    actionUrl: subscriptionLink,
+    data: { actionLabel: 'Voir l’abonnement', invoiceId: p.invoiceId },
+    vars: { numero: p.number, montant: formatMoney(p.amount) },
+  } satisfies RenderedMessage;
+}
+
+export function invoicePaidMessage(p: { invoiceId: string; number: string; amount: Money }) {
+  return {
+    type: 'subscription.invoice_paid',
+    title: 'Facture réglée',
+    body: `Le règlement de la facture ${p.number} (${formatMoney(p.amount)}) a été enregistré. Merci.`,
+    actionUrl: subscriptionLink,
+    data: { actionLabel: 'Voir l’abonnement', invoiceId: p.invoiceId },
+    vars: { numero: p.number, montant: formatMoney(p.amount) },
+  } satisfies RenderedMessage;
+}
+
+/** Ce que contient chaque export (rp.export, lot 4.6). */
+const EXPORT_LABELS = {
+  project_report_csv: 'L’état des cotisations (CSV)',
+  project_report_pdf: 'Le rapport du projet (PDF)',
+  members_csv: 'L’annuaire des souscripteurs (CSV)',
+} as const;
+
+/** Export prêt : la personne qui l'a demandé ; lien vers l'écran d'où il part (rapports du projet ou annuaire). */
+export function exportCompletedMessage(p: {
+  exportId: string;
+  fileId: string;
+  kind: keyof typeof EXPORT_LABELS;
+  projectId: string | null;
+}): RenderedMessage {
+  return {
+    type: 'export.completed',
+    title: 'Export prêt',
+    body: `${EXPORT_LABELS[p.kind]} est prêt. Il reste téléchargeable pendant 7 jours.`,
+    actionUrl:
+      p.kind === 'members_csv' || !p.projectId ? '/asso/souscripteurs' : `/asso/projets/${p.projectId}/rapports`,
+    data: { actionLabel: 'Ouvrir', exportId: p.exportId, fileId: p.fileId },
+    vars: {},
+  };
+}

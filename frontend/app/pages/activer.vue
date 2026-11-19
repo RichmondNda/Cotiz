@@ -30,6 +30,10 @@ const remetteur = role === 'souscripteur' ? 'votre association' : role === 'gest
 const lien = typeof route.query.t === 'string' ? route.query.t : ''
 const identifiant = ref(parTelephone && lien ? formatSaisieTelephone(chiffresTelephone(lien)) : lien)
 const code = ref('')
+// Invitation dans l'équipe d'une association (lot 4.5) d'une personne qui a déjà un compte Cotiz : elle accepte avec son
+// mot de passe actuel, qui ne change pas. Lien du message prêt : `?compte=existant`.
+const compteExistant = ref(role === 'gestionnaire' && route.query.compte === 'existant')
+const actuel = ref('')
 const nouveau = ref('')
 const confirmation = ref('')
 const tentee = ref(false)
@@ -52,12 +56,13 @@ const erreurCode = computed(() => {
 
 async function soumettre() {
   tentee.value = true
-  if (erreurIdentifiant.value || erreurCode.value || !nouveauMotDePasseValide(nouveau.value, confirmation.value)) return
+  const motDePasseValide = compteExistant.value ? actuel.value.length > 0 : nouveauMotDePasseValide(nouveau.value, confirmation.value)
+  if (erreurIdentifiant.value || erreurCode.value || !motDePasseValide) return
   envoi.value = true
   erreurApi.value = null
   try {
     code.value = formaterCodeActivation(code.value)
-    await activer({ espace: role, identifiant: identifiant.value, code: code.value, motDePasse: nouveau.value })
+    await activer({ espace: role, identifiant: identifiant.value, code: code.value, motDePasse: compteExistant.value ? actuel.value : nouveau.value })
     // Gestionnaire dont l'association n'est pas encore configurée : assistant de démarrage (mg-onboarding).
     // Souscripteur : présentation de Cotiz en 3 écrans (mb-onboarding), puis ses projets.
     const onboarding = role === 'gestionnaire' && await onboardingAFaire(client).catch(() => false)
@@ -89,13 +94,15 @@ async function soumettre() {
           Activer mon compte
         </h1>
         <p class="activer__texte">
-          Saisissez le code d’activation remis par {{ remetteur }}, puis choisissez votre mot de passe.
+          {{ compteExistant
+            ? 'Saisissez le code d’invitation reçu et votre mot de passe actuel.'
+            : `Saisissez le code d’activation remis par ${remetteur}, puis choisissez votre mot de passe.` }}
         </p>
         <CzAlert
           v-if="erreurApi === 'code-incorrect' || erreurApi === 'identifiants-incorrects' || erreurApi === 'mot-de-passe-incorrect'"
           ton="danger"
         >
-          <b>Identifiant ou code incorrect.</b> Vérifiez votre saisie et réessayez.
+          <b>{{ compteExistant ? 'Identifiant, code ou mot de passe incorrect.' : 'Identifiant ou code incorrect.' }}</b> Vérifiez votre saisie et réessayez.
         </CzAlert>
         <CzAlert
           v-else-if="erreurApi === 'code-expire'"
@@ -152,7 +159,26 @@ async function soumettre() {
             @blur="code = formaterCodeActivation(code)"
           />
         </CzField>
+        <CzCheckbox
+          v-if="role === 'gestionnaire'"
+          v-model="compteExistant"
+        >
+          J’ai déjà un compte Cotiz (invitation dans une équipe)
+        </CzCheckbox>
+        <CzField
+          v-if="compteExistant"
+          label="Mot de passe actuel"
+          aide="Votre mot de passe Cotiz ne change pas."
+          :erreur="tentee && !actuel ? 'Indiquez votre mot de passe' : undefined"
+        >
+          <CzInput
+            v-model="actuel"
+            type="password"
+            autocomplete="current-password"
+          />
+        </CzField>
         <NouveauMotDePasse
+          v-else
           v-model:mot-de-passe="nouveau"
           v-model:confirmation="confirmation"
           :tentee="tentee"

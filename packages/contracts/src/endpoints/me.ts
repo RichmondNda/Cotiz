@@ -347,6 +347,11 @@ export const meDeclare = defineEndpoint({
 export const SubscriberPaymentDetail = SubscriberPayment.extend({
   paymentMethod: PaymentMethod.nullable(),
   comment: z.string().nullable(),
+  /**
+   * Reçu PDF (lot 4.6), lu par `fl.get` : produit après le délai d'annulation de la validation (10 min) ; `null` tant
+   * qu'il n'est pas prêt, et pour un paiement non validé.
+   */
+  receiptFileId: Uuid.nullable(),
 });
 
 export const mePayment = defineEndpoint({

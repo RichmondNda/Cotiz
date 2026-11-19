@@ -2,7 +2,7 @@ import { messageTemplates as t } from '@cotiz/db';
 import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import type { RenderedMessage } from '../domain/channel.js';
-import { renderTemplate } from '../domain/templates.js';
+import { renderTemplate } from '../../../shared/templates/index.js';
 
 /** Langue des messages (V1 : une seule). */
 export const TEMPLATE_LOCALE = 'fr-CI';

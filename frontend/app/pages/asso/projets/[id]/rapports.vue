@@ -11,6 +11,7 @@
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
 import type { SegmentStatut } from '~/components/metier/AnneauStatuts.vue'
 import type { LigneRapport } from '~~/types'
+import { MESSAGES_EXPORT } from '~/composables/api/exports'
 import { telechargerCsv } from '~/utils/csv'
 import { estDate, formatDate, formatFCFA, formatMois, formatPourcent, pluriel } from '~/utils/format'
 
@@ -24,6 +25,11 @@ const { data: projet } = useProjet(id)
 const { data: rapport, pending, error, refresh } = useRapportProjet(id)
 const { data: synthese, refresh: rechargerSynthese } = useSyntheseProjet(id)
 const toast = useToast()
+const { active } = usePermissions()
+const exporter = useExport()
+/** Exports produits par le serveur (fonctionnalité `exports` du plan, lot 4.6) ; sinon CSV fait dans le navigateur. */
+const exportsServeur = computed(() => active('exports'))
+const exportEnCours = ref(false)
 
 const nombre = (v: number | string | undefined) => (typeof v === 'number' ? v : 0)
 const inscrits = computed(() => nombre(projet.value?.nbSouscripteurs))
@@ -132,7 +138,28 @@ const montantOuTiret = (v: number | null) => (v === null ? '—' : formatFCFA(v)
 const date = (d?: string) => (estDate(d) ? formatDate(d, 'numerique') : '—')
 
 // ---------------------------------------------------------------- Exports
+/** Export du serveur (rp.export) : attend le fichier, puis le télécharge ; refus et échec en message. */
+async function exporterParLeServeur(kind: 'project_report_csv' | 'project_report_pdf', nomFichier: string) {
+  if (exportEnCours.value) return
+  exportEnCours.value = true
+  toast.info('Export en préparation', { message: 'Le fichier se télécharge dès qu’il est prêt.' })
+  try {
+    await exporter(kind, { projectId: id.value, nomFichier })
+    toast.succes('Export prêt', { message: 'Il reste aussi disponible 7 jours depuis la notification.' })
+  }
+  catch (e) {
+    const cle = e instanceof Error ? e.message : ''
+    toast.erreur('Export impossible', { message: MESSAGES_EXPORT[cle] ?? MESSAGES_EXPORT.failed })
+  }
+  finally {
+    exportEnCours.value = false
+  }
+}
 function exporterCotisations() {
+  if (exportsServeur.value) {
+    void exporterParLeServeur('project_report_csv', `etat-cotisations-${id.value}.csv`)
+    return
+  }
   telechargerCsv(`etat-cotisations-${id.value}.csv`, [
     ['Souscripteur', 'Attendu à date (F)', 'Versé (F)', 'Reste (F)', 'Retards', 'Dernier paiement'],
     ...lignes.value.map((l: LigneRapport) => [l.nom, l.attenduADate ?? '', l.verse, l.reste ?? '', l.retards, date(l.dernierPaiement)]),
@@ -148,7 +175,11 @@ function exporterRetardataires() {
   toast.succes('Export prêt', { message: `${pluriel(retardataires.length, 'retardataire')} exportés (CSV, lisible dans Excel).` })
 }
 function exporterPdf() {
-  toast.info('Bientôt disponible', { message: 'L’export PDF du rapport arrive en V2. En attendant, utilisez l’export CSV.' })
+  if (exportsServeur.value) {
+    void exporterParLeServeur('project_report_pdf', `rapport-${id.value}.pdf`)
+    return
+  }
+  toast.info('Non inclus dans votre formule', { message: 'L’export PDF du rapport fait partie des exports. En attendant, utilisez l’export CSV.' })
 }
 function imprimer() {
   // V0 : relevé imprimable via l'impression du navigateur (« Enregistrer en PDF »).
@@ -191,6 +222,7 @@ function recharger() {
           variante="secondaire"
           taille="sm"
           icone="telecharger"
+          :disabled="exportEnCours"
           @click="exporterCotisations"
         >
           Exporter CSV
@@ -198,9 +230,13 @@ function recharger() {
         <CzButton
           variante="secondaire"
           taille="sm"
+          :disabled="exportEnCours"
           @click="exporterPdf"
         >
-          Exporter PDF <CzSoon petit>
+          Exporter PDF <CzSoon
+            v-if="!exportsServeur"
+            petit
+          >
             V2
           </CzSoon>
         </CzButton>

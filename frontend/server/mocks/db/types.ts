@@ -243,33 +243,6 @@ export interface RequestRow {
   approvedPlanId: string | null
 }
 
-export interface ReminderRuleRow {
-  id: string
-  associationId: string
-  projectId: string | null
-  trigger: 'before_due' | 'on_due' | 'after_due'
-  offsetDays: number
-  channels: ('in_app' | 'push' | 'email' | 'sms')[]
-  message: string
-  isActive: boolean
-  createdAt: string
-}
-
-export interface ReminderRunRow {
-  id: string
-  associationId: string
-  at: string
-  kind: 'automatic' | 'manual'
-  status: 'auto_sent' | 'to_handle' | 'handled' | 'dismissed'
-  userId: string
-  projectId: string
-  installmentId: string | null
-  channels: string[]
-  message: string | null
-  triggeredBy: string | null
-  ruleId: string | null
-}
-
 export interface ActivationCodeRow {
   id: string
   associationId: string
@@ -337,8 +310,6 @@ export interface MockDb {
   allocations: AllocationRow[]
   contracts: ContractRow[]
   requests: RequestRow[]
-  reminderRules: ReminderRuleRow[]
-  reminderRuns: ReminderRunRow[]
   activationCodes: ActivationCodeRow[]
   preferences: PreferenceRow[]
   events: EventRow[]

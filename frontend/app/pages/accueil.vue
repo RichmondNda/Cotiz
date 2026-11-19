@@ -8,7 +8,7 @@
 import type { ActionCarte } from '~/components/metier/CarteProjet.vue'
 import type { SouscriptionMembre } from '~~/types'
 import { formatDate, formatFCFA, nomCourtAssociation, pluriel } from '~/utils/format'
-import { associationsSuspendues, estSuspendue, estTermine, lienDeclarer, lienProjet, progression, statutCarte, trierSouscriptions } from '~/utils/souscriptions'
+import { associationsSuspendues, estSuspendue, estTermine, lienDeclarer, lienProjet, peutDeclarer, progression, statutCarte, trierSouscriptions } from '~/utils/souscriptions'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
 useHead({ title: 'Accueil · Cotiz' })
@@ -50,7 +50,7 @@ const mouvements = computed(() => (paiements.value ?? []).slice(0, 3).map(p => (
 
 /** Propriétés de la carte projet, selon la situation de la souscription. */
 function carte(s: SouscriptionMembre) {
-  const declarer: ActionCarte | undefined = estSuspendue(s) ? undefined : { label: 'Déclarer', to: lienDeclarer(s.projetId) }
+  const declarer: ActionCarte | undefined = peutDeclarer(s) ? { label: 'Déclarer', to: lienDeclarer(s.projetId) } : undefined
   const base = { nom: s.projet.nom, sousTitre: nomCourtAssociation(s.association.nom), statut: statutCarte(s), to: lienProjet(s) }
   if (s.statut === 'signature_attendue') {
     return {
@@ -76,7 +76,7 @@ function carte(s: SouscriptionMembre) {
     pied: s.prochaine
       ? { libelle: 'Prochaine échéance', valeur: `${formatFCFA(s.prochaine.montant)} · ${formatDate(s.prochaine.date, 'jour-mois')}` }
       : undefined,
-    action: estTermine(s) ? undefined : declarer,
+    action: declarer,
   }
 }
 </script>

@@ -4,15 +4,16 @@ import { ScheduledTasks } from '../../shared/scheduler/index.js';
 import { ExpireCodesUseCase } from './application/expire-codes.use-case.js';
 import { SessionFamilies } from './application/session-families.js';
 import { AssociationSuspendedConsumer } from './events/association-suspended.consumer.js';
+import { TeamRemovedConsumer } from './events/team-removed.consumer.js';
 import { RevokedSessions } from './infra/revoked-sessions.js';
 
 /**
  * Partie worker du module identity : tâche `codes.expire` (jobs.yaml : horaire) ; sessions des gestionnaires d'une
- * association suspendue révoquées (association.suspended).
+ * association suspendue (association.suspended) ou d'un gestionnaire retiré d'une équipe (team.changed) révoquées.
  */
 @Module({
   imports: [RedisModule],
-  providers: [ExpireCodesUseCase, SessionFamilies, RevokedSessions, AssociationSuspendedConsumer],
+  providers: [ExpireCodesUseCase, SessionFamilies, RevokedSessions, AssociationSuspendedConsumer, TeamRemovedConsumer],
   exports: [ExpireCodesUseCase],
 })
 export class IdentityWorkerModule implements OnModuleInit {

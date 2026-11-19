@@ -7,7 +7,7 @@ import { METHODS } from '../integration/projects.fixture.js';
 import { A, B, USERS } from './harness.js';
 
 /**
- * Lot 3.2 · étape 3 : isolation de l'espace souscripteur (me.dash, me.projects, me.project), de bout en bout.
+ * Lot 3.2 · étape 3 : isolation de l'espace souscripteur (me.dash, me.projects, me.project ; me.assos au lot 4.5).
  * Appartenances du jeu : A — Awa propriétaire, Moussa souscripteur, Fatou souscriptrice retirée ; B — Koffi
  * propriétaire, Fatou et Awa souscriptrices. Chacun ne voit que ses inscriptions non retirées, dans les associations
  * où il est souscripteur actif ; tout autre projet → 404 identique (architecture/02).
@@ -18,6 +18,8 @@ const NOW = new Date('2026-11-08T10:00:00Z');
 const Dashboard = ENDPOINTS['me.dash'].operations.get.response.body;
 const Projects = ENDPOINTS['me.projects'].operations.list.response.body;
 const Detail = ENDPOINTS['me.project'].operations.get.response.body;
+const Associations = ENDPOINTS['me.assos'].operations.list.response.body;
+const AssociationDetail = ENDPOINTS['me.assos'].operations.get.response.body;
 const UNKNOWN = '00000000-0000-7000-8000-00000000dead';
 const everyone = { using: 'true', withCheck: null };
 
@@ -208,6 +210,42 @@ describe('isolation : espace souscripteur (me.dash, me.projects, me.project)', (
         await notFound(PROJECTS.b, f.tokens.moussa);
         expect(enrollmentsIn(await projectsOf(awaSubscriber))).toEqual([s.awaB.enrollmentId]);
       });
+    });
+
+    it('me.assos : ses associations de souscripteur seulement, même appartenances et associations élargies', async () => {
+      const s = await scenario();
+      const assosOf = async (token: string) =>
+        (await ok('/me/associations', token, Associations)).items.map((i) => i.association.id);
+      await widened(() =>
+        f.h.withPolicy('memberships', 'self_read', everyone, () =>
+          f.h.withPolicy('associations', 'member_read', everyone, async () => {
+            // La base montre alors à Moussa l'association B (le contrôle n'est pas vide).
+            const seen = await f.h.as({ space: 'subscriber', userId: USERS.moussa }, (tx) =>
+              tx.execute<{ id: string }>(sql`SELECT id FROM associations`).then((r) => r.rows.map((row) => row.id)),
+            );
+            expect(seen).toContain(B.id);
+            const methodsSeen = await f.h.as({ space: 'subscriber', userId: USERS.awa }, (tx) =>
+              tx
+                .execute<{ id: string }>(sql`SELECT id FROM association_payment_methods`)
+                .then((r) => r.rows.map((row) => row.id)),
+            );
+            expect(methodsSeen).toContain(METHODS.orangeA);
+            expect(await assosOf(f.tokens.moussa)).toEqual([A.id]);
+            const detail = await ok(`/me/associations/${A.id}`, f.tokens.moussa, AssociationDetail);
+            expect(detail.projects.map((p) => p.enrollmentId)).toEqual([s.moussaA.enrollmentId]);
+            expect(detail.paymentMethods.map((m) => m.id)).toEqual([METHODS.orangeA]);
+            expect((await get(`/me/associations/${B.id}`, f.tokens.moussa)).status).toBe(404);
+            // Awa : gestionnaire de A, souscriptrice de B ; Fatou : retirée de A.
+            expect(await assosOf(awaSubscriber)).toEqual([B.id]);
+            expect((await get(`/me/associations/${A.id}`, awaSubscriber)).status).toBe(404);
+            expect(await assosOf(fatou)).toEqual([B.id]);
+            const fatouB = await ok(`/me/associations/${B.id}`, fatou, AssociationDetail);
+            expect(fatouB.projects.map((p) => p.enrollmentId)).toEqual([s.fatouB.enrollmentId]);
+            expect(fatouB.paymentMethods.map((m) => m.id)).toEqual([METHODS.bankB]);
+            expect((await get(`/me/associations/${A.id}`, fatou)).status).toBe(404);
+          }),
+        ),
+      );
     });
   });
 });

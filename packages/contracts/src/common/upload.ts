@@ -11,7 +11,7 @@ const SPREADSHEETS = ['text/csv', 'application/vnd.openxmlformats-officedocument
 
 /**
  * Types acceptés au dépôt, par usage (architecture/08 : JPG, PNG, PDF ; CSV/XLSX pour imports et relevés). Les
- * contrats signés, factures et exports sont produits par le serveur : jamais déposés.
+ * contrats signés, factures, exports et reçus sont produits par le serveur : jamais déposés.
  */
 export const UPLOAD_MIME_TYPES: Readonly<Record<FilePurpose, readonly string[]>> = {
   payment_proof: [...IMAGES, 'application/pdf'],
@@ -22,6 +22,7 @@ export const UPLOAD_MIME_TYPES: Readonly<Record<FilePurpose, readonly string[]>>
   contract_pdf: [],
   invoice_pdf: [],
   export: [],
+  receipt_pdf: [],
 };
 
 /** Motif de refus d'un dépôt déclaré, `null` s'il est acceptable. Le contenu réel est revérifié par le worker. */

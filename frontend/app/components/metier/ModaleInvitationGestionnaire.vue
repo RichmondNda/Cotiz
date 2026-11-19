@@ -1,5 +1,6 @@
 <!--
-  Invitation d'un gestionnaire secondaire (MgEquipe) : prénom, nom, email (reçoit les identifiants), téléphone.
+  Invitation d'un gestionnaire secondaire (MgEquipe) : prénom, nom, email (son identifiant de connexion), téléphone.
+  Aucun email envoyé (ui-deviations, lot 4.5) : la page affiche ensuite le code d'invitation et son message prêt.
   Le rôle est fixé à « Gestionnaire secondaire » (affiché en desktop, comme dans la maquette).
   Desktop : modale 520 px ; mobile : feuille basse (« Envoyer l'invitation » au-dessus de « Annuler »).
   Émet `inviter` avec le formulaire validé ; `erreur` : message renvoyé par l'API (email déjà utilisé…).
@@ -80,7 +81,7 @@ function envoyer() {
       </div>
       <CzField
         label="Email"
-        :aide="erreurs.email ? undefined : 'Les identifiants de connexion seront envoyés à cette adresse.'"
+        :aide="erreurs.email ? undefined : 'Son identifiant de connexion. Vous lui transmettrez ensuite le code d’invitation.'"
         :erreur="erreurs.email"
         requis
         class="invitation__email"

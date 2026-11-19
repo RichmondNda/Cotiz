@@ -4,11 +4,20 @@ import { notifications } from '@cotiz/db';
 import { Money } from '@cotiz/domain';
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { isActiveSubscriberIn, notifiedManagersOf, notifiedPlatformStaff } from '../../access/access.public.js';
+import {
+  contextOwnerOf,
+  isActiveSubscriberIn,
+  notifiedManagersOf,
+  notifiedPlatformStaff,
+} from '../../access/access.public.js';
+import { invoiceNoticeOf } from '../../billing/billing.public.js';
+import { exportNoticeOf } from '../../reporting/reporting.public.js';
 import { associationPersonNameOf, notifiableUsersOf } from '../../identity/identity.public.js';
 import { enrollmentContractOf, pendingSignersOf } from '../../contracts/contracts.public.js';
 import { dueSoonNoticeOf, paymentNoticeOf, pendingPaymentsCountOf } from '../../ledger/ledger.public.js';
+import { importNoticeOf } from '../../imports/imports.public.js';
 import { projectOf } from '../../projects/projects.public.js';
+import { reminderNoticesOf } from '../../reminders/reminders.public.js';
 import { ownAssociationOf } from '../../tenancy/tenancy.public.js';
 import { EventConsumers } from '../../../shared/outbox/index.js';
 import { currentTx, TenantDatabase } from '../../../shared/tenant-context/index.js';
@@ -18,7 +27,7 @@ import {
   type RoutedDelivery,
   runAfterCommit,
 } from '../application/notification-router.js';
-import type { Recipient, RenderedMessage } from '../domain/channel.js';
+import type { ChannelKind, Recipient, RenderedMessage } from '../domain/channel.js';
 import { applyMessageTemplates } from '../infra/message-templates.js';
 import { NotificationAnnouncer } from '../infra/notification-bus.js';
 import { UnreadCounter } from '../infra/unread-counter.js';
@@ -27,6 +36,11 @@ import {
   contractLockedMessage,
   contractSignatureRequiredMessage,
   contractSignedMessage,
+  exportCompletedMessage,
+  importCompletedMessage,
+  importFailedMessage,
+  invoiceIssuedMessage,
+  invoicePaidMessage,
   installmentDueSoonMessage,
   memberEnrolledMessage,
   passwordResetRequestedMessage,
@@ -35,6 +49,7 @@ import {
   paymentRevertedMessage,
   paymentsDigestMessage,
   paymentValidatedMessage,
+  reminderSentMessage,
   userActivatedMessage,
 } from '../domain/messages.js';
 
@@ -52,6 +67,12 @@ export const NOTIFIED_TYPES = [
   'contract.signature_required',
   'contract.locked',
   'contract.signed',
+  'import.completed',
+  'import.failed',
+  'reminder.sent',
+  'subscription.invoice_issued',
+  'subscription.invoice_paid',
+  'export.completed',
 ] as const satisfies readonly EventType[];
 
 /** Regroupement (architecture/07) : au-delà de 5 déclarations en 1 h, une notification récapitulative. */
@@ -69,6 +90,18 @@ const Payloads = {
   dueSoon: z.object({ userId: Id, projectId: Id, installmentIds: z.array(Id), dueDate: z.iso.date() }),
   enrollment: z.object({ enrollmentId: Id }),
   locked: z.object({ projectId: Id }),
+  invoice: z.object({ invoiceId: Id }),
+  exportCompleted: z.object({ exportId: Id, fileId: Id }),
+  importCompleted: z.object({
+    importId: Id,
+    counts: z.object({
+      enrolled: z.int().nonnegative(),
+      attached: z.int().nonnegative(),
+      failed: z.int().nonnegative(),
+    }),
+  }),
+  importFailed: z.object({ importId: Id }),
+  reminders: z.object({ runIds: z.array(Id) }),
 };
 
 /** Une notification à créer : message, destinataires, base de la clé de déduplication. */
@@ -78,6 +111,8 @@ interface Planned {
   dedupeBase: string;
   /** Déclarations : regroupées au-delà du seuil (association, titre du récapitulatif). */
   digest?: { associationId: string; pendingCount: number };
+  /** Canaux retenus parmi ceux de la matrice (relance : ceux de la règle). */
+  channels?: readonly ChannelKind[];
 }
 
 /**
@@ -125,7 +160,10 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         all.push(
           ...(p.digest
             ? await this.dispatchDeclared(p, p.digest, event)
-            : await this.router.dispatch(p.msg, p.recipients, { dedupeBase: p.dedupeBase })),
+            : await this.router.dispatch(p.msg, p.recipients, {
+                dedupeBase: p.dedupeBase,
+                ...(p.channels ? { channels: p.channels } : {}),
+              })),
         );
       }
       return all;
@@ -183,6 +221,16 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         return aid ? this.inAssociation(aid, () => this.planContractEnrollment(event, aid)) : [];
       case 'contract.locked':
         return aid ? this.inAssociation(aid, () => this.planContractLocked(event, aid)) : [];
+      case 'import.completed':
+      case 'import.failed':
+        return aid ? this.inAssociation(aid, () => this.planImport(event, aid)) : [];
+      case 'reminder.sent':
+        return aid ? this.inAssociation(aid, () => this.planReminders(event, aid)) : [];
+      case 'subscription.invoice_issued':
+      case 'subscription.invoice_paid':
+        return aid ? this.inAssociation(aid, () => this.planInvoice(event, aid)) : [];
+      case 'export.completed':
+        return aid ? this.inAssociation(aid, () => this.planExport(event, aid)) : [];
       default:
         return [];
     }
@@ -243,6 +291,88 @@ export class NotificationsConsumer implements OnModuleInit, OnModuleDestroy {
         digest: { associationId: aid, pendingCount: await pendingPaymentsCountOf(aid) },
       },
     ];
+  }
+
+  /**
+   * Facture d'abonnement émise ou réglée (lot 4.6) : l'owner actif de l'association (events.yaml « notifications:
+   * owner »), s'il reçoit encore les notifications de gestion ; montant et échéance relus sur la facture.
+   */
+  private async planInvoice(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { invoiceId } = Payloads.invoice.parse(event.payload);
+    const notice = await invoiceNoticeOf(aid, invoiceId);
+    const owner = await contextOwnerOf(aid);
+    if (!notice || !owner || !(await notifiedManagersOf(aid)).includes(owner)) return [];
+    const facts = { invoiceId: notice.id, number: notice.number, amount: notice.amount };
+    const msg =
+      event.type === 'subscription.invoice_issued'
+        ? invoiceIssuedMessage({ ...facts, dueOn: notice.dueOn })
+        : invoicePaidMessage(facts);
+    return [{ msg, recipients: [{ userId: owner, associationId: aid, audience: 'manager' }], dedupeBase: event.id }];
+  }
+
+  /**
+   * Export prêt (lot 4.6) : la personne qui l'a demandé (events.yaml « notifications: demandeur »), si elle reçoit
+   * encore les notifications de gestion de l'association ; export relu (`done`) dans l'association de l'enveloppe.
+   */
+  private async planExport(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { exportId, fileId } = Payloads.exportCompleted.parse(event.payload);
+    const notice = await exportNoticeOf(aid, exportId);
+    if (!notice || !(await notifiedManagersOf(aid)).includes(notice.requestedBy)) return [];
+    const msg = exportCompletedMessage({ exportId, fileId, kind: notice.kind, projectId: notice.projectId });
+    return [
+      {
+        msg,
+        recipients: [{ userId: notice.requestedBy, associationId: aid, audience: 'manager' }],
+        dedupeBase: event.id,
+      },
+    ];
+  }
+
+  /**
+   * Import terminé ou échoué (lot 4.4) : la personne qui l'a lancé (envoi) ou créé (analyse), si elle gère encore
+   * l'association ; sinon les gestionnaires. Compteurs de l'événement (bilan figé à la fin de l'exécution).
+   */
+  private async planImport(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { importId } = Payloads.importFailed.parse(event.payload);
+    const notice = await importNoticeOf(aid, importId);
+    const project = notice ? await projectOf(aid, notice.projectId) : null;
+    if (!notice || !project) return [];
+    const managers = await notifiedManagersOf(aid);
+    const authors = [event.actorUserId, notice.createdBy].filter((id): id is string => id !== null);
+    const author = authors.find((id) => managers.includes(id));
+    const userIds = author ? [author] : managers;
+    if (userIds.length === 0) return [];
+    const facts = { projectId: project.id, projectName: project.name };
+    const msg =
+      event.type === 'import.completed'
+        ? importCompletedMessage({ ...facts, ...Payloads.importCompleted.parse(event.payload).counts })
+        : importFailedMessage(facts);
+    return [
+      {
+        msg,
+        recipients: userIds.map((userId) => ({ userId, associationId: aid, audience: 'manager' })),
+        dedupeBase: event.id,
+      },
+    ];
+  }
+
+  /**
+   * Relances (lot 4.3) : un rappel par relance encore utile (échéance toujours due, souscripteur encore actif), sur les
+   * canaux de la relance ; clé `reminder:{relance}` (le routeur y ajoute la personne) : un événement rejoué ne double rien.
+   */
+  private async planReminders(event: EventEnvelope, aid: string): Promise<Planned[]> {
+    const { runIds } = Payloads.reminders.parse(event.payload);
+    const planned: Planned[] = [];
+    for (const notice of await reminderNoticesOf(aid, runIds)) {
+      if (!(await isActiveSubscriberIn(aid, notice.userId))) continue;
+      planned.push({
+        msg: reminderSentMessage(notice),
+        recipients: [{ userId: notice.userId, associationId: aid, audience: 'subscriber' }],
+        dedupeBase: `reminder:${notice.runId}`,
+        channels: notice.channels.filter((c): c is ChannelKind => c === 'in_app' || c === 'push'),
+      });
+    }
+    return planned;
   }
 
   /**

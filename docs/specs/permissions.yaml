@@ -154,6 +154,7 @@ permissions:
   - mb.resend
   - mb.codes
   - mb.patch
+  - im.upload
   - im.flow
   - im.steps
   - im.read

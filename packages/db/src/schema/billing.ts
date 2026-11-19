@@ -13,11 +13,13 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { createdAt, id, version } from '../columns.js';
+import { files } from './files.js';
 import { associations } from './tenancy.js';
 
 // Module billing (docs/specs/schema.sql, lot 1.2 ; migration 0007). Valeurs des enums : celles du schéma cible
 // (conformance.test.ts les compare).
 export const subscriptionsBillingPeriod = pgEnum('subscriptions_billing_period', ['monthly', 'yearly']);
+export const invoicesStatus = pgEnum('invoices_status', ['draft', 'open', 'paid', 'overdue', 'void']);
 export const subscriptionsStatus = pgEnum('subscriptions_status', [
   'trialing',
   'active',
@@ -79,3 +81,30 @@ export const subscriptions = pgTable(
       .where(sql`${t.status} IN ('trialing', 'active', 'past_due')`),
   ],
 );
+
+/**
+ * Factures de la plateforme aux associations (lot 4.6 ; migration 0027). RLS : l'association (tenant_isolation) ;
+ * lecture de toutes les associations par cotiz_platform (BYPASSRLS). Numéro tiré de `invoice_number_seq`, jamais
+ * réutilisé ; aucune suppression physique (DELETE retiré). Montant en entier de la devise (`Money.fromDb`).
+ */
+export const invoices = pgTable('invoices', {
+  id: id(),
+  associationId: uuid('association_id')
+    .notNull()
+    .references(() => associations.id),
+  subscriptionId: uuid('subscription_id')
+    .notNull()
+    .references(() => subscriptions.id),
+  number: text('number').notNull().unique(),
+  periodStart: date('period_start', { mode: 'string' }).notNull(),
+  periodEnd: date('period_end', { mode: 'string' }).notNull(),
+  amount: bigint('amount', { mode: 'bigint' }).notNull(),
+  currency: char('currency', { length: 3 }).notNull().default('XOF'),
+  status: invoicesStatus('status').notNull().default('draft'),
+  issuedAt: timestamp('issued_at', { withTimezone: true }),
+  dueAt: timestamp('due_at', { withTimezone: true }),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+  paymentReference: text('payment_reference'),
+  pdfFileId: uuid('pdf_file_id').references(() => files.id),
+  createdAt: createdAt(),
+});

@@ -270,5 +270,73 @@ Corrigés dans la branche : appareil d'une autre personne retiré du navigateur 
 - Mémoire du serveur : la recette s'ajoute à la pile de dev (`cotiz-*`) et à la répétition de production (`cotiz-prod-*`, lot 3.5), toujours lancées ; les arrêter si besoin (demander).
 
 ### Dev Dokploy (2026-11-12)
-- Après la fusion de la PR #65 : repasser la source du dev sur `backend` (`node tools/recette-dokploy.mjs --cible dev --deployer`) ; aujourd'hui elle suit `chore/dev-dokploy`.
+- ~~Après la fusion de la PR #65 : repasser la source du dev sur `backend`~~ remplacé le 2026-11-12 : le dev suit la branche `dev`.
 - Projet compose du dev au nom aléatoire (`compose-index-bluetooth-application-d13iyl`, `appName` non passé à `compose.create`) : cosmétique, conteneurs à chercher sous ce nom.
+
+## 2026-11-12 · Lot 4.4 — déclencheur du worker pour le classement et l'exécution (**tranché** : option 1, événements ajoutés à events.yaml et emits d'endpoints.yaml)
+- `events.yaml` n'a que `import.created` (→ analyse) ; `im.steps` (mappage changé → reclassement) et `im.commit`
+  (→ exécution dans le worker, 5 000 lignes) n'ont aucun événement. Toutes les files BullMQ sont alimentées par le
+  worker (consommateurs d'outbox) ; l'API n'en alimente aucune. Règle 5 : effets de bord par l'outbox.
+- Options : (1, recommandée) ajouter `import.mapped` et `import.commit_requested` à `events.yaml` ; (2) l'API ajoute
+  le job directement à la file `imports` ; (3) reclassement synchrone dans l'API, exécution déclenchée autrement.
+
+## 2026-11-12 · Lot 4.4 — relecture d'isolation, points en attente d'accord
+Corrigés dans la branche :
+- l'exécution recontrôle le demandeur (au départ, à chaque reprise, toutes les 25 lignes) ; s'il est retiré ou devenu lecteur, l'import échoue avec `requester_removed` (nouveau motif ajouté au contrat `ImportFailure`) ;
+- chaque ligne est inscrite par son téléphone, comme en.create, jamais par le compte vu au classement ;
+- un résultat de ligne déjà écrit n'est jamais remplacé ;
+- `saveClassification` est filtré sur l'import ;
+- `enrolledUserIdsOf` vérifie le contexte de l'association ;
+- l'audit des inscriptions porte le rôle du demandeur (`association:<rôle>`).
+
+À décider (changement de `docs/specs`) :
+- **Sondage de téléphones en masse** : im.flow et im.steps (`rateLimited: false`, `audited: false`) disent, pour 5 000 numéros, s'il existe un compte (`existingUserId`) et s'il est fermé (`account_closed`). mb.lookup, lui, est limité en débit et audité. Pistes : limite de débit sur im.flow et im.steps, audit du nombre de lignes `existing` par classement, ne plus distinguer `account_closed` avant l'envoi.
+- **Index `import_rows (import_job_id, row_number)`** : la lecture paginée et le classement filtrent sur `import_job_id` sans index (le test de conformité compare strictement à schema.sql). Proposition : l'ajouter à schema.sql et dans une migration.
+- **Association suspendue pendant une exécution** : l'exécution continue (seul le droit du demandeur est recontrôlé). À aligner sur la règle des écritures d'une association suspendue.
+- Limite connue : corriger une ligne ne reclasse pas les doublons des lignes suivantes (seul un nouveau mappage reclasse tout).
+
+- **2026-11-12 · lot 4.3 · relance de signature** — `docs/ui/manager.md` (`mg-projet-contrat` l. 368, page Contrats
+  l. 725) : « Relancer » les non-signataires passe par `rm.send`. Le contrat de `rm.send` (rappel + entrée « À relancer »,
+  `ReminderQueueEntry.installmentId` obligatoire) ne vise que des échéances : une inscription `pending_signature` n'en
+  reçoit aucune (`queued: []`), et l'écran affiche quand même « rappel envoyé ». À trancher : rappel de signature dans
+  `rm.send` (spec à compléter : message, statut, file), endpoint dédié, ou bouton masqué jusqu'à un lot ultérieur.
+  *`send-reminders.use-case.ts`, `remindable-installments.ts` (`enrollments.status = 'active'`), `asso/contrats.vue:68`.*
+- **2026-11-12 · lot 4.3 · retard partiellement déclaré** — `domain-rules.md` : `declared` l'emporte sur `late`. Une
+  échéance en retard avec une déclaration partielle en attente (reste dû > 0) sort donc de la file « À relancer », et une
+  règle `after_due` la classe `auto_sent` au lieu de `to_handle`. Conforme à la spec ; à confirmer que c'est voulu
+  (sinon : retard calculé par `lateSince` et reste dû). *Relecture money-reviewer, `remindable-installments.ts`.*
+- **2026-11-12 · lot 4.5 · association courante d'un gestionnaire** — décision 26 : un gestionnaire de plusieurs
+  associations (possible dès `tm.team`) garde la première association gérée dans `/me`, l'en-tête et la cloche.
+  Sélecteur côté gestionnaire reporté (choix de l'utilisateur, 2026-11-12) ; à planifier.
+- **2026-11-15 · lot 4.6 · PDF de facture en espace plateforme** — `sa-facturation` affiche un bouton « PDF », mais
+  `endpoints.yaml` n'ouvre aucune lecture de fichier en espace plateforme (`as.file` : espace association, `fl.get` :
+  refus hors usages déposés). Le bouton affiche un message « bientôt » (`plateforme/facturation.vue:194`). Proposition : endpoint
+  `pf.invoice.pdf` (`GET /platform/invoices/{id}/pdf`, permission `platform.associations.read`, URL signée courte,
+  audité) — changement de spec à valider.
+
+- **2026-11-15 · lot 4.6 · index `allocations (payment_id)` (proposition, hors lot)** — `check_payment_allocations`
+  (contrainte différée, migration 0013) lit `allocations WHERE payment_id = …` ; seul l'index partiel `allocations_live`
+  (`state <> 'voided'`) porte payment_id, donc un parcours de la table par paiement écrit. Constaté en chargeant
+  40 000 paiements (`test/perf/export-50k.test.ts` : ≈ 3 ms par paiement à 8 000, croissant). Effet en production :
+  chaque validation relit toutes les répartitions. Proposition : nouvelle migration `CREATE INDEX allocations_payment ON
+  allocations (payment_id)` (aucune migration commitée modifiée). En attente d'accord.
+
+- **2026-11-15 · lot 4.6 · propositions de doc à la clôture (en attente d'accord)** —
+  1. « XLSX / Excel » (lot 4.6, features.yaml, résumé de `rp.export` dans endpoints.yaml) → « CSV et PDF » :
+     l'enum `export_jobs_kind` fait foi (choix de l'utilisateur du 2026-11-13).
+  2. events.yaml, `user.logged_in` : retirer le consommateur « reporting: usage » (usage.daily relit les sessions,
+     payload sans association ; décision du 2026-11-15).
+  3. jobs.yaml, `usage.daily` : « Quotidienne 02:00 » → « Toutes les heures : la veille de chaque association dès
+     02:00 locale (rattrapage 7 jours) », comme `managers.digest`.
+
+## Lot 4.6 — remarques des relectures (2026-11-15), propositions en attente d'accord
+Source : sous-agents money-reviewer et isolation-reviewer sur `git diff origin/dev...HEAD`. Rien de bloquant ; corrigés dans le lot : marge de 60 s après le délai d'annulation avant le reçu (`RECEIPT_MARGIN_MS`), vérification d'espace plateforme dans `GetUsageUseCase`, commentaire de `IdempotencyInterceptor` replacé.
+- Factures : aucune garde en base (UNIQUE `(association_id, period_start)` ou équivalent) contre deux factures d'une même période ; seule la tâche l'évite. Proposition : migration ajoutant la contrainte (changement de `schema.sql`).
+- `pf.invoice.paid` : `paidOn` sans borne basse (antérieur à l'émission accepté). Proposition : refuser `paidOn < issued_on` (422).
+- Montants de facturation manipulés en `number` côté calcul de période : à repasser par `Money` si une devise à décimales arrive.
+- Export CSV serveur et CSV navigateur de `/asso/souscripteurs` : traitement différent des inscriptions en attente de signature ; à aligner.
+- `usage_daily` : une personne présente dans plusieurs associations (gestionnaire de B, viewer de A ; souscripteur inscrit deux fois) compte dans chacune, faute d'association dans `sessions`. Limite à documenter ou à corriger avec l'association courante de session.
+- `sessionUsageOf` (identity.public) fait confiance aux `userIds` reçus alors que `sessions` n'a pas de RLS : à durcir (liste construite dans identity, ou `associationId` revérifié).
+- `invoices` : `tenant_isolation` permet à cotiz_app en espace association d'écrire ses propres factures (protection applicative seulement). Proposition : politique en lecture seule pour l'espace association (changement de spec), ou au minimum un test qui fige le comportement.
+- Commentaire de la migration 0027 inexact (`usage_daily` écrite en contexte association, pas via `system_access`) : migration commitée, non modifiée.
+- Index `allocations (payment_id)` : voir l'entrée de l'étape 3 (toujours en attente).

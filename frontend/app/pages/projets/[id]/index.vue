@@ -6,7 +6,7 @@
 -->
 <script setup lang="ts">
 import { formatFCFA, nomCourtAssociation } from '~/utils/format'
-import { estSuspendue, lienDeclarer, progression } from '~/utils/souscriptions'
+import { estSuspendue, lienDeclarer, peutDeclarer, progression } from '~/utils/souscriptions'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur', fab: false })
 
@@ -19,6 +19,7 @@ useHead({ title: () => `${s.value?.projet.nom ?? 'Projet'} · Cotiz` })
 const termine = computed(() => s.value?.projet.statut === 'termine')
 const aSigner = computed(() => s.value?.statut === 'signature_attendue')
 const suspendue = computed(() => (s.value ? estSuspendue(s.value) : false))
+const declarable = computed(() => (s.value ? peutDeclarer(s.value) : false))
 const enRetard = computed(() => !termine.value && s.value?.statut === 'en_retard')
 const enAttente = computed(() => s.value?.paiements.some(p => p.statut === 'en_attente') ?? false)
 const restantes = computed(() => s.value?.echeances.filter(e => e.statut !== 'payee').length ?? 0)
@@ -153,7 +154,7 @@ const commentPayerOuvert = ref(false)
         </CzCard>
 
         <CzButton
-          v-if="!termine && !suspendue"
+          v-if="declarable"
           taille="lg"
           bloc
           :to="lienDeclarer(projetId)"

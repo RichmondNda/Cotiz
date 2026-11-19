@@ -12,6 +12,7 @@ export const filesPurpose = pgEnum('files_purpose', [
   'cover',
   'import_source',
   'bank_statement',
+  'receipt_pdf',
 ]);
 export const filesScanStatus = pgEnum('files_scan_status', ['pending', 'clean', 'infected']);
 

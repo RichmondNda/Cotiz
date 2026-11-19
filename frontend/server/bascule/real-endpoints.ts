@@ -122,4 +122,26 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['me.contract', 'all'],
   ['me.sign', 'all'],
   ['me.contracts', 'all'],
+  // Lot 4.4 : imports de souscripteurs (fichier lu par le worker, classement, correction, envoi).
+  ['im.upload', 'all'],
+  ['im.flow', 'all'],
+  ['im.steps', 'all'],
+  ['im.read', 'all'],
+  ['im.commit', 'all'],
+  // Lot 4.3 : relances (règles, tâche quotidienne, file « À relancer », relance ciblée, historique).
+  ['rm.rules', 'all'],
+  ['rm.send', 'all'],
+  ['rm.queue', 'all'],
+  ['rm.hist', 'all'],
+  // Lot 4.5 : équipe de l'association (invitation par code team_invite, rôles, retrait).
+  ['tm.team', 'all'],
+  // Lot 4.5 : associations du souscripteur (liste et fiche).
+  ['me.assos', 'all'],
+  // Lot 4.6 : factures d'abonnement (tâche billing.issue-invoices, PDF par as.file, marquage manuel par la plateforme).
+  ['bl.inv', 'all'],
+  ['pf.invoices', 'all'],
+  ['pf.asso.usage', 'all'],
+  ['pf.invoice.paid', 'all'],
+  // Lot 4.6 : exports asynchrones (CSV/PDF par le worker, fichier lu par as.file pendant 7 jours).
+  ['rp.export', 'all'],
 ])

@@ -1,6 +1,6 @@
 import { memberships } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { type AnyColumn, and, eq, ne, type SQL, sql } from 'drizzle-orm';
+import { type AnyColumn, and, eq, inArray, ne, type SQL, sql } from 'drizzle-orm';
 import { currentContext, currentTx } from '../../../shared/tenant-context/index.js';
 import type { MembershipStatus } from './memberships.js';
 
@@ -79,6 +79,30 @@ export async function activeSubscriberIdsOf(associationId: string): Promise<stri
     )
     .orderBy(memberships.userId);
   return rows.map((r) => r.userId);
+}
+
+/**
+ * Parmi ces personnes, celles qui comptent déjà dans le quota de souscripteurs de l'association du contexte
+ * (appartenance non retirée) : les inscrire n'en consomme pas (import en masse, lot 4.4).
+ */
+export async function quotaCountedSubscribersOf(
+  associationId: string,
+  userIds: readonly string[],
+): Promise<Set<string>> {
+  assertAssociation(associationId, 'quotaCountedSubscribersOf');
+  if (userIds.length === 0) return new Set();
+  const rows = await currentTx()
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.associationId, associationId),
+        eq(memberships.role, 'subscriber'),
+        ne(memberships.status, 'removed'),
+        inArray(memberships.userId, [...new Set(userIds)]),
+      ),
+    );
+  return new Set(rows.map((r) => r.userId));
 }
 
 function assertAssociation(associationId: string, what: string): void {

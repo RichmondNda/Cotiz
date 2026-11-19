@@ -33,6 +33,17 @@ x-backend-env: &backend-env
   # Traefik puis le front (proxy Nitro) devant l'api : un seul saut compte (voir production.yml).
   TRUST_PROXY_HOPS: ${COTIZ_TRUST_PROXY_HOPS:-1}
   APP_VERSION: ${COTIZ_VERSION:-recette}
+  # Observabilité : stack ELK du VPS (dépôt RichmondNda/observability-elk). Traces OTLP vers son OTel Collector, dont
+  # le port 4319 étiquette l'environnement « recette » (le SDK ne lit pas OTEL_RESOURCE_ATTRIBUTES). Désactivées par
+  # défaut ; à activer dans l'onglet Environment : COTIZ_OTEL_TRACES_EXPORTER=otlp et
+  # COTIZ_OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer <jeton>. Le collector échantillonne (erreurs et lenteurs à 100 %).
+  OTEL_TRACES_EXPORTER: ${COTIZ_OTEL_TRACES_EXPORTER:-none}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${COTIZ_OTEL_EXPORTER_OTLP_ENDPOINT:-http://elk-otel-collector:4319}
+  OTEL_EXPORTER_OTLP_HEADERS: ${COTIZ_OTEL_EXPORTER_OTLP_HEADERS:-}
+  # Métriques Prometheus internes (api 9464, worker 9465), lues par l'OTel Collector sur dokploy-network ; jamais publiées.
+  API_METRICS_PORT: '9464'
+  WORKER_METRICS_PORT: '9465'
+  METRICS_HOST: 0.0.0.0
 
 x-api-build: &api-build
   context: ../..
@@ -64,6 +75,8 @@ x-healthcheck: &healthcheck
 services:
   postgres:
     image: postgres:16-alpine
+    # Statistiques des requêtes, lues par la supervision (postgres-monitoring).
+    command: ['postgres', '-c', 'shared_preload_libraries=pg_stat_statements']
     environment:
       POSTGRES_USER: cotiz
       POSTGRES_PASSWORD: ${COTIZ_DB_SUPERUSER_PASSWORD:?}
@@ -81,6 +94,23 @@ services:
       <<: *healthcheck
       test: ['CMD-SHELL', 'pg_isready -U cotiz -d cotiz']
     restart: unless-stopped
+
+  # Rôle de supervision (intégration PostgreSQL d'Elastic), rejoué à chaque déploiement : voir le script.
+  postgres-monitoring:
+    image: postgres:16-alpine
+    command: ['sh', '/monitoring-role.sh']
+    environment:
+      PGHOST: postgres
+      PGUSER: cotiz
+      PGPASSWORD: ${COTIZ_DB_SUPERUSER_PASSWORD:?}
+      PGDATABASE: cotiz
+      COTIZ_DB_MONITORING_PASSWORD: ${COTIZ_DB_MONITORING_PASSWORD:-}
+    volumes:
+      - ./postgres-monitoring/monitoring-role.sh:/monitoring-role.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
 
   # Mode transaction : le contexte tenant passe par SET LOCAL (architecture/02).
   pgbouncer:
@@ -185,6 +215,11 @@ services:
 
   api:
     <<: *backend
+    # Réseau partagé : traces vers l'OTel Collector, métriques lues par lui (alias unique par environnement).
+    networks:
+      default:
+      dokploy-network:
+        aliases: [cotiz-recette-api]
     healthcheck:
       <<: *healthcheck
       test:
@@ -198,6 +233,11 @@ services:
   worker:
     <<: *backend
     command: ['node', '--import', './dist/telemetry.js', 'dist/worker.js']
+    # Réseau partagé : traces vers l'OTel Collector, métriques lues par lui (alias unique par environnement).
+    networks:
+      default:
+      dokploy-network:
+        aliases: [cotiz-recette-worker]
     depends_on:
       migrate:
         condition: service_completed_successfully

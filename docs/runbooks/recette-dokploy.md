@@ -27,7 +27,8 @@ node tools/recette-dokploy.mjs --branche lot/x --deployer   # essayer une branch
 - Les secrets (base, JWT, chiffrement des codes, MinIO, VAPID) sont générés **une seule fois** et rangés dans l'onglet
   Environment du service ; une relance garde ceux qui y sont. Ne pas les modifier à la main : un mot de passe de base
   changé ne s'applique pas à un volume existant, une clé de chiffrement changée rend illisibles les codes en attente.
-- Après une fusion sur `backend`, redéployer : `--deployer`, ou le bouton **Deploy** de Dokploy.
+- `backend` ne reçoit que des promotions de `dev` (PR `dev` → `backend`, une fois le dev validé ; voir
+  `dev-dokploy.md`). Après chaque promotion, redéployer : `--deployer`, ou le bouton **Deploy** de Dokploy.
 
 ## Premier compte (owner plateforme)
 

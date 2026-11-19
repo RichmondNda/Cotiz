@@ -5,7 +5,6 @@
 <script setup lang="ts">
 import type { TypeCalendrier } from '~~/types'
 import { useFormulaireProjet } from '~/composables/useNouveauProjet'
-import { formatSaisieDate } from '~/utils/echeancier'
 import { formatMois, pluriel } from '~/utils/format'
 
 const { etat, erreurs, debutIso, finIso, nbEcheances } = useFormulaireProjet()
@@ -15,7 +14,6 @@ const TYPES: { valeur: TypeCalendrier, label: string }[] = [
   { valeur: 'cycle_roulant', label: 'Cycle roulant' },
 ]
 
-const masque = (cle: 'dateDebut' | 'dateFin') => (v: string | number | null) => (etat[cle] = formatSaisieDate(String(v ?? '')))
 const mois = (iso: string | null) => (iso ? formatMois(iso).toLowerCase() : '')
 const jour = computed(() => (etat.frequence === 'hebdomadaire' ? null : etat.jourEcheance))
 </script>
@@ -39,23 +37,13 @@ const jour = computed(() => (etat.frequence === 'hebdomadaire' ? null : etat.jou
         label="Date de début"
         :erreur="erreurs.dateDebut"
       >
-        <CzInput
-          :model-value="etat.dateDebut"
-          placeholder="JJ/MM/AAAA"
-          inputmode="numeric"
-          @update:model-value="masque('dateDebut')($event)"
-        />
+        <CzChampDate v-model="etat.dateDebut" />
       </CzField>
       <CzField
         label="Date de fin"
         :erreur="erreurs.dateFin"
       >
-        <CzInput
-          :model-value="etat.dateFin"
-          placeholder="JJ/MM/AAAA"
-          inputmode="numeric"
-          @update:model-value="masque('dateFin')($event)"
-        />
+        <CzChampDate v-model="etat.dateFin" />
       </CzField>
     </div>
     <template v-else>
@@ -63,12 +51,7 @@ const jour = computed(() => (etat.frequence === 'hebdomadaire' ? null : etat.jou
         label="Date de début"
         :erreur="erreurs.dateDebut"
       >
-        <CzInput
-          :model-value="etat.dateDebut"
-          placeholder="JJ/MM/AAAA"
-          inputmode="numeric"
-          @update:model-value="masque('dateDebut')($event)"
-        />
+        <CzChampDate v-model="etat.dateDebut" />
       </CzField>
       <CzAlert ton="info">
         Les échéances se génèrent en continu jusqu’à clôture du projet.

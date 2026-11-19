@@ -111,3 +111,14 @@ Format : **date** · contexte — apprentissage. *Source.*
   (`container.stop()`) échoue parfois en « (HTTP code 409) cannot remove container … container is running » alors que
   les 8 tests passent ; isolé : vert. Comme `pnpm test` s'arrête au premier échec, le backend ne tourne alors pas :
   relancer `sg docker -c "pnpm turbo run test --continue"` et vérifier les comptes. Deux fois sur chore/cumul-historique.
+- **2026-11-12** · Fixtures d'intégration avec un worker (`imports.fixture.ts`) : `OUTBOX_RELAY_INTERVAL_MS: '0'`
+  coupe le relais ; une « chaîne réelle » se teste en remettant l'enveloppe lue dans `outbox_events` au consommateur
+  (`worker.get(XConsumer).handle(...)`), jamais en attendant le relais. *imports-commit.test.ts, lot 4.4.*
+- **2026-11-12** · Audit écrit depuis le worker : sans requête HTTP, `actor_role` vaut l'espace (`association`) ; pour
+  le rôle réel (`association:owner`), entourer l'appel de `runWithRequestInfo({ …, actorRole })`.
+  *execute-import.use-case.ts, test comparatif avec en.create.*
+- **2026-11-12** · `managementAccessIn` (access) renvoie aussi le rôle `viewer` : contrôler un droit avec
+  `holdsPermission('<permission>', { role: 'association:<rôle>' })`, pas la seule présence d'un accès.
+- **2026-11-12** · `projects_status` n'a pas `closed` : draft, enrolling, active, completed, archived (schema.sql).
+- **2026-11-12** · `exceljs` en lecture continue (`WorkbookReader`) : `styles: 'cache'` sinon les dates sortent en
+  nombres de série. *spreadsheet-reader.ts, lot 4.4.*

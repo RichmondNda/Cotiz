@@ -6,6 +6,8 @@
   `compact` : miniature seule (file de validation).
   `grand` (détail d'un paiement, gestionnaire) : l'image occupe la largeur de la carte (300 px, 200 px en mobile)
   avec ses outils (agrandir, pivoter, télécharger) ; PDF en 160×200 ; la référence seule est expliquée dessous.
+  Fichier déposé (`fichierId`, url `[URL]`) : lu par fl.get (URL `blob:` libérée au démontage) — tout de suite en
+  `grand` (miniature réelle), sinon au premier clic (agrandir, télécharger, ouvrir le PDF).
 -->
 <script setup lang="ts">
 import type { Preuve } from '~~/types'
@@ -40,6 +42,71 @@ async function copier(ref: string) {
   }
 }
 const reference = computed(() => props.preuve.reference)
+
+const lire = useLectureFichier()
+const toast = useToast()
+const urlLue = ref<string | null>(null)
+const lecture = ref<Promise<string | null> | null>(null)
+/** Adresse affichable : URL déjà fournie (exemple, preuve lue par la page), sinon celle lue par fl.get. */
+const source = computed(() => {
+  if (props.preuve.type === 'reference') return null
+  if (props.preuve.url && !props.preuve.url.startsWith('[')) return props.preuve.url
+  return urlLue.value
+})
+
+function liberer() {
+  if (urlLue.value) URL.revokeObjectURL(urlLue.value)
+  urlLue.value = null
+  lecture.value = null
+}
+
+/** Lit le fichier une seule fois ; `null` (avec un message) s'il ne peut pas l'être. */
+function charger(): Promise<string | null> {
+  if (source.value) return Promise.resolve(source.value)
+  const p = props.preuve
+  if (p.type === 'reference' || !p.fichierId) return Promise.resolve(null)
+  const id = p.fichierId
+  lecture.value ??= lire(id)
+    .then((u) => {
+      // Autre preuve affichée entre-temps : l'URL lue n'est plus la bonne.
+      if (props.preuve.type === 'reference' || props.preuve.fichierId !== id) {
+        URL.revokeObjectURL(u)
+        return null
+      }
+      urlLue.value = u
+      return u
+    })
+    .catch((e: unknown) => {
+      lecture.value = null
+      toast.erreur('La preuve n’a pas pu être ouverte', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
+      return null
+    })
+  return lecture.value
+}
+
+async function agrandir() {
+  if (await charger()) ouvrir()
+}
+
+/** Télécharge le fichier ou l'ouvre dans un nouvel onglet (PDF). */
+async function ouvrirFichier(telecharger: boolean) {
+  const url = await charger()
+  if (!url) return
+  const lien = document.createElement('a')
+  lien.href = url
+  if (telecharger) lien.download = props.preuve.type === 'reference' ? 'preuve' : props.preuve.nomFichier
+  else {
+    lien.target = '_blank'
+    lien.rel = 'noopener'
+  }
+  lien.click()
+}
+
+watch(() => (props.preuve.type === 'reference' ? null : props.preuve.fichierId), () => {
+  liberer()
+  if (props.grand && import.meta.client) void charger()
+}, { immediate: true })
+onBeforeUnmount(liberer)
 </script>
 
 <template>
@@ -53,9 +120,16 @@ const reference = computed(() => props.preuve.reference)
           type="button"
           class="preuve__apercu"
           :aria-label="`Agrandir la preuve ${preuve.nomFichier}`"
-          @click="ouvrir"
+          @click="agrandir"
         >
+          <img
+            v-if="source"
+            :src="source"
+            alt=""
+            class="preuve__miniature"
+          >
           <CzIcon
+            v-else
             nom="image"
             class="preuve__glyphe"
           />
@@ -66,7 +140,7 @@ const reference = computed(() => props.preuve.reference)
             variante="icone"
             taille="sm"
             label="Agrandir"
-            @click="ouvrir"
+            @click="agrandir"
           >
             +
           </CzButton>
@@ -74,7 +148,7 @@ const reference = computed(() => props.preuve.reference)
             variante="icone"
             taille="sm"
             label="Pivoter"
-            @click="rotation = (rotation + 90) % 360; pleinEcran = true"
+            @click="rotation = (rotation + 90) % 360; agrandir()"
           >
             ↻
           </CzButton>
@@ -83,8 +157,7 @@ const reference = computed(() => props.preuve.reference)
             taille="sm"
             icone="telecharger"
             label="Télécharger"
-            :href="preuve.url"
-            download
+            @click="ouvrirFichier(true)"
           />
         </div>
       </div>
@@ -96,7 +169,7 @@ const reference = computed(() => props.preuve.reference)
         type="button"
         class="cz-proof"
         :aria-label="`Agrandir la preuve ${preuve.nomFichier}`"
-        @click="ouvrir"
+        @click="agrandir"
       >
         <span class="glyph glyph--repos"><CzIcon nom="image" /></span>
         <span class="glyph glyph--survol"><CzIcon nom="voir" /></span>
@@ -107,8 +180,7 @@ const reference = computed(() => props.preuve.reference)
         variante="fantome"
         taille="sm"
         icone="telecharger"
-        :href="preuve.url"
-        download
+        @click="ouvrirFichier(true)"
       >
         Télécharger
       </CzButton>
@@ -118,10 +190,11 @@ const reference = computed(() => props.preuve.reference)
       <a
         class="cz-proof cz-proof--pdf"
         :class="{ preuve__pdf: grand }"
-        :href="preuve.url"
+        :href="source ?? '#'"
         target="_blank"
         rel="noopener"
         :aria-label="`Ouvrir ${preuve.nomFichier}`"
+        @click.prevent="ouvrirFichier(false)"
       >
         <span class="glyph"><CzIcon nom="contrat" /></span>
         <span class="preuve__nom">{{ preuve.nomFichier }} · p.1</span>
@@ -129,9 +202,7 @@ const reference = computed(() => props.preuve.reference)
       <CzButton
         variante="secondaire"
         taille="sm"
-        :href="preuve.url"
-        target="_blank"
-        rel="noopener"
+        @click="ouvrirFichier(false)"
       >
         Ouvrir le PDF
       </CzButton>
@@ -212,7 +283,8 @@ const reference = computed(() => props.preuve.reference)
         </div>
         <div class="preuve__scene">
           <img
-            :src="preuve.url"
+            v-if="source"
+            :src="source"
             :alt="`Preuve de paiement ${preuve.nomFichier}`"
             :style="{ transform: `scale(${zoom}) rotate(${rotation}deg)` }"
           >
@@ -306,8 +378,23 @@ const reference = computed(() => props.preuve.reference)
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: linear-gradient(160deg, var(--info-bg), var(--surface-subtle));
+  overflow: hidden;
+  padding: var(--space-2);
 }
 
+/* Miniature réelle (fichier lu) : remplit la zone sous la barre d'outils, sans jamais en sortir. */
+.preuve__apercu:has(.preuve__miniature) {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+.preuve__miniature {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  border-radius: var(--r-field);
+}
 .preuve__apercu {
   display: flex;
   flex-direction: column;

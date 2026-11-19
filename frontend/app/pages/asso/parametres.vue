@@ -210,6 +210,17 @@ onMounted(() => {
   }, { immediate: true })
 })
 const sigle = computed(() => association.value?.sigle ?? initiales(form.nom || association.value?.nom || ''))
+// Vignette : le fichier choisi (aperçu avant enregistrement), sinon le logo enregistré, sinon les initiales.
+const logoEnregistre = useImageFichier(() => association.value?.logoFichierId)
+const apercuLogo = ref<string | null>(null)
+watch(fichierLogo, (f) => {
+  if (apercuLogo.value) URL.revokeObjectURL(apercuLogo.value)
+  apercuLogo.value = f ? URL.createObjectURL(f) : null
+})
+onBeforeUnmount(() => {
+  if (apercuLogo.value) URL.revokeObjectURL(apercuLogo.value)
+})
+const vignetteLogo = computed(() => apercuLogo.value ?? logoEnregistre.value)
 </script>
 
 <template>
@@ -307,7 +318,12 @@ const sigle = computed(() => association.value?.sigle ?? initiales(form.nom || a
             <span
               class="parametres__vignette"
               aria-hidden="true"
-            >{{ sigle }}</span>
+            ><img
+              v-if="vignetteLogo"
+              :src="vignetteLogo"
+              alt=""
+              class="parametres__vignette-img"
+            ><template v-else>{{ sigle }}</template></span>
             <div class="parametres__logo-texte">
               <CzButton
                 variante="secondaire"
@@ -324,7 +340,7 @@ const sigle = computed(() => association.value?.sigle ?? initiales(form.nom || a
               <span
                 v-else
                 class="cz-help cz-desktop"
-              >{{ form.logoUrl.startsWith('[LOGO]') ? form.logoUrl.replace('[LOGO] ', '') : 'PNG ou JPG carré, 1 Mo maximum' }}</span>
+              >{{ fichierLogo?.name ?? 'PNG ou JPG carré, 1 Mo maximum' }}</span>
               <input
                 ref="champLogo"
                 type="file"
@@ -604,6 +620,13 @@ const sigle = computed(() => association.value?.sigle ?? initiales(form.nom || a
   display: flex;
   align-items: flex-start;
   gap: var(--space-4);
+}
+
+.parametres__vignette-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
 }
 
 .parametres__vignette {

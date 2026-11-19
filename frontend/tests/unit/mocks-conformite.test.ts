@@ -11,7 +11,9 @@ import { db, resetDb } from '../../server/mocks/db'
 import { IMPLEMENTATIONS, ProblemError, problemBody, runImplementation, sessionFromRole } from '../../server/mocks/http'
 import type { MockContext } from '../../server/mocks/http'
 import { ID, uid } from '../../server/mocks/ids'
-import { SCENARIO_TRANSFORMS } from '../../server/mocks/scenarios'
+import { enrollmentFigures } from '../../server/mocks/ledger'
+import { SCENARIO_TRANSFORMS, withScenario } from '../../server/mocks/scenarios'
+import { enrollmentsOfUser } from '../../server/mocks/views'
 
 const ROUTES_DIR = new URL('../../server/api/v1/', import.meta.url).pathname
 const routeFiles = (function walk(dir: string): string[] {
@@ -52,10 +54,9 @@ async function call(id: string, op: string, c: Call = {}) {
   return runImplementation(id as never, op, ctx)
 }
 
-/** Moussa a-t-il une association en retard (me.assos, simulé) ? Sonde des scénarios et de la déclaration. */
-async function moussaLate(c: Call = {}) {
-  const { items } = await call('me.assos', 'list', c) as { items: { standing: string }[] }
-  return items.some(i => i.standing === 'late')
+/** Moussa a-t-il une inscription en retard dans le jeu simulé (scénario appliqué) ? Plus aucune lecture simulée ne l'expose. */
+function moussaLate(c: Call = {}) {
+  return withScenario(c.scenario, () => enrollmentsOfUser(ID.moussa).some(e => enrollmentFigures(e).standing === 'late'))
 }
 
 function defaultSpace(id: string): keyof typeof ROLE | null {
@@ -79,8 +80,6 @@ async function problemOf(p: Promise<unknown>) {
 
 // ---------------------------------------------------------------- Entrées d'exemple
 
-const aid = ID.entraide
-const P = { aid, pid: ID.centre }
 const money = (amount: number) => ({ amount, currency: 'XOF' })
 const moussaCentreLate = () => [
   { installmentId: uid('installment', 'centre-communautaire:moussa-diarra:6'), amount: money(25000) },
@@ -90,48 +89,13 @@ const moussaCentreLate = () => [
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
   'me.prefs get': {},
-  'pf.invoices list': {}, 'pf.staff list': {},
-  'bl.inv list': { params: { aid } }, 'tm.team list': { params: { aid } },
-  'rm.rules list': { params: { aid } }, 'rm.queue list': { params: { aid } }, 'rm.hist list': { params: { aid } },
-  'me.assos list': {}, 'me.assos get': { params: { aid } },
+  'pf.staff list': {},
 }
 
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
 const WRITES: Record<string, () => Call> = {
   'auth.mfa verify': () => ({ body: { mfaToken: 'mfa.x', code: '481902' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
-  'tm.team invite': () => ({ params: { aid }, body: { firstName: 'Ali', lastName: 'Koné', email: 'ali@exemple.ci', role: 'manager' } }),
-  'tm.team patch': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') }, body: { role: 'viewer' } }),
-  'tm.team remove': () => ({ params: { aid, uid: uid('user', 'serge-gnagne') } }),
-  'rm.rules create': () => ({ params: { aid }, body: { projectId: null, trigger: 'after_due', offsetDays: 30, channels: ['in_app'], message: 'Rappel', isActive: true } }),
-  'rm.rules patch': () => ({ params: { aid, id: uid('reminder-rule', 'jour-j') }, body: { isActive: false } }),
-  'rm.queue handled': () => ({ params: { aid, id: uid('reminder-run', `queue-${uid('installment', 'centre-communautaire:moussa-diarra:6')}`) }, body: { outcome: 'handled' } }),
-  'rm.send send': () => ({ params: { aid }, body: { projectId: ID.centre, allLate: true } }),
-  'fl.upload create': () => ({ as: 'subscriber', body: { purpose: 'payment_proof', fileName: 'recu.jpg', mimeType: 'image/jpeg', sizeBytes: 1000 } }),
-  'fl.upload complete': () => ({ as: 'subscriber', params: { id: 'X' }, setup: upload } as Call),
-  'im.flow create': () => ({ params: P, body: { fileId: 'X' }, setup: uploadXlsx } as Call),
-  'im.read get': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-  'im.read rows': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-  'im.steps mapping': () => ({ params: { aid, id: 'X' }, body: { mapping: { Mail: null } }, setup: importJob } as Call),
-  'im.steps row': () => ({ params: { aid, id: 'X', rowId: 'X' }, body: { ignore: true }, setup: importJob } as Call),
-  'im.commit commit': () => ({ params: { aid, id: 'X' }, setup: importJob } as Call),
-}
-
-// Étapes préalables de certaines écritures (dépôt, import) : elles remplissent les `X` de l'appel.
-async function upload(c: Call) {
-  const t = await call('fl.upload', 'create', { as: 'subscriber', body: { purpose: 'payment_proof', fileName: 'recu.jpg', mimeType: 'image/jpeg', sizeBytes: 1000 } }) as { fileId: string }
-  c.params = { id: t.fileId }
-}
-async function uploadXlsx(c: Call) {
-  const t = await call('fl.upload', 'create', { as: 'association', body: { purpose: 'import_source', fileName: 'membres.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', sizeBytes: 1000 } }) as { fileId: string }
-  c.body = { fileId: t.fileId }
-}
-async function importJob(c: Call) {
-  const b: Call = {}
-  await uploadXlsx(b)
-  const job = await call('im.flow', 'create', { params: P, body: b.body }) as { id: string }
-  const rows = await call('im.read', 'rows', { params: { aid, id: job.id } }) as { items: { id: string }[] }
-  c.params = { ...c.params, id: job.id, ...(c.params && 'rowId' in c.params ? { rowId: rows.items[0]!.id } : {}) }
 }
 
 beforeEach(() => resetDb())
@@ -192,16 +156,15 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
   }
 
   it('aucun-retard : plus aucun souscripteur en retard ni montant en retard', async () => {
-    // Rapport de projet (lot 2.6) et tableau de bord souscripteur (lot 3.2) servis par NestJS : contrôle sur les
-    // associations de Moussa (me.assos, encore simulé).
+    // Plus aucune lecture simulée ne montre de retard (me.assos servi par NestJS au lot 4.5) : contrôle sur le jeu.
     // Contrôle : sans scénario, Moussa a des échéances en retard.
-    expect(await moussaLate()).toBe(true)
-    expect(await moussaLate({ scenario: 'aucun-retard' })).toBe(false)
+    expect(moussaLate()).toBe(true)
+    expect(moussaLate({ scenario: 'aucun-retard' })).toBe(false)
   })
 
   it('un scénario ne modifie jamais le jeu', async () => {
     const avant = JSON.stringify(db)
-    await call('me.assos', 'list', { scenario: 'tout-est-paye' })
+    await call('pf.staff', 'list', { scenario: 'tout-est-paye' })
     expect(JSON.stringify(db)).toBe(avant)
   })
 })
@@ -214,34 +177,17 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   }
 
   // version_conflict (If-Match) : plus aucune écriture simulée ne l'exige depuis la bascule de ct.get (lot 4.1).
-  it('scénarios : quota_exceeded, association_suspended', async () => {
-    expect(await problem('tm.team', 'invite', { ...WRITES['tm.team invite']!(), scenario: 'quota_exceeded' })).toBe('quota_exceeded')
-    expect(await problem('tm.team', 'list', { ...READS['tm.team list'], scenario: 'association_suspended' })).toBe('association_suspended')
-  })
-
-  it('ressource d’une autre association → 404', async () => {
-    expect(await problem('tm.team', 'list', { params: { aid: ID.man } })).toBe('not_found')
-  })
+  // quota_exceeded : plus aucune écriture simulée ne le déclare depuis la bascule de tm.team (lot 4.5).
+  // association_suspended et « ressource d'une autre association → 404 » : plus aucune route simulée de l'espace
+  // association depuis la bascule de bl.inv (lot 4.6) ; vérifiés par les tests d'isolation et d'intégration du back.
 
   it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
     expect(await problem('pf.staff', 'list', { as: 'association' })).toBe('forbidden')
-    expect(await problem('me.assos', 'list', { as: null })).toBe('session_expired')
+    expect(await problem('me.prefs', 'get', { as: null })).toBe('session_expired')
   })
 })
 
 describe('mutations : état en mémoire', () => {
-  it('Idempotency-Key : même clé et même corps → même réponse ; corps différent → idempotency_key_reused', async () => {
-    // Mécanisme commun des mocks (server/mocks/http.ts), essayé sur une écriture encore simulée.
-    const run = (body: unknown) => runImplementation('rm.send' as never, 'send', {
-      params: { aid }, query: undefined, body, session: sessionFromRole('gestionnaire'), scenario: undefined, ifMatch: null, idempotencyKey: 'cle-1',
-    } as MockContext<never, never>)
-    const send = ENDPOINTS['rm.send'].operations.send.request.body
-    const body = send.parse(WRITES['rm.send send']!().body)
-    expect(await run(body)).toEqual(await run(body))
-    const other = send.parse({ ...(body as object), message: 'Autre message' })
-    await expect(run(other)).rejects.toMatchObject({ code: 'idempotency_key_reused' })
-  })
-
   it('déclaration sans preuve ni référence → proof_required (règle du schéma)', async () => {
     const sansPreuve = { projectId: ID.centre, amount: money(50000), paidOn: '2026-09-25', paymentMethodId: null, allocations: moussaCentreLate() }
     const result = ENDPOINTS['me.declare'].operations.declare.request.body.safeParse(sansPreuve)

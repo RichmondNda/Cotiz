@@ -44,7 +44,17 @@ async function regler(r: ReglageNotification, canal: 'in_app' | 'push', valeur: 
 
 <template>
   <div class="profil">
-    <EnTeteSouscripteur titre="Profil" />
+    <EnTeteSouscripteur titre="Profil">
+      <!-- Mobile : la déconnexion en haut de l'écran, pas seulement au bas du profil (retours du 2026-11-12). -->
+      <template #actions-mobile>
+        <CzButton
+          variante="icone"
+          icone="deconnexion"
+          label="Se déconnecter"
+          @click="deconnecter()"
+        />
+      </template>
+    </EnTeteSouscripteur>
 
     <div class="profil__colonne">
       <template v-if="pending && !profil">

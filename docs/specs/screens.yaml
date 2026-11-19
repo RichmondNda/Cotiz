@@ -429,7 +429,7 @@ screens:
   realAtLot: '4.4'
   completeAtLot: '4.4'
   endpoints:
-  - fl.upload
+  - im.upload
   - im.flow
   - im.steps
   - im.read

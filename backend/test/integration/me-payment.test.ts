@@ -73,9 +73,11 @@ describe('me.payment', () => {
     });
     const declared = Declared.parse(await res.json());
     const detail = await detailOf(declared.id);
-    const { paymentMethod, comment, ...rest } = detail;
+    const { paymentMethod, comment, receiptFileId, ...rest } = detail;
     expect(rest).toEqual(declared);
     expect(comment).toBe('Versé par mon frère');
+    // Reçu (lot 4.6) : seulement pour un paiement validé, après le délai d'annulation.
+    expect(receiptFileId).toBeNull();
     expect(paymentMethod).toMatchObject({ id: METHODS.orangeA, kind: 'mobile_money', isActive: true });
     expect(detail.covered).toEqual([expect.objectContaining({ installmentId: march, amount: XOF(25000) })]);
     // Identifiant en majuscules : le même paiement.

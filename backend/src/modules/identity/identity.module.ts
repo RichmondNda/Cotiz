@@ -11,6 +11,7 @@ import { LogoutUseCase } from './application/logout.use-case.js';
 import { ManagerAccounts } from './application/manager-accounts.js';
 import { SubscriberActivationCodes } from './application/subscriber-activation-codes.js';
 import { SubscriberAccounts } from './application/subscriber-accounts.js';
+import { TeamAccounts } from './application/team-accounts.js';
 import { RefreshSessionUseCase } from './application/refresh-session.use-case.js';
 import { RequestPasswordResetUseCase } from './application/request-password-reset.use-case.js';
 import { ChangePasswordUseCase } from './application/change-password.use-case.js';
@@ -61,6 +62,7 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     UserProfiles,
     ManagerAccounts,
     SubscriberAccounts,
+    TeamAccounts,
     ListPlatformResetRequestsUseCase,
     IssuePlatformResetCodeUseCase,
     ListAssociationResetRequestsUseCase,
@@ -68,6 +70,14 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
   ],
   // Garde d'authentification, enregistrée globalement par AppModule ; comptes des gestionnaires (onboarding) ;
   // sessions révoquées (flux nt.stream, lot 4.2).
-  exports: [JwtGuard, ManagerAccounts, RevokedSessions, SubscriberAccounts, SubscriberActivationCodes, UserProfiles],
+  exports: [
+    JwtGuard,
+    ManagerAccounts,
+    RevokedSessions,
+    SubscriberAccounts,
+    SubscriberActivationCodes,
+    TeamAccounts,
+    UserProfiles,
+  ],
 })
 export class IdentityModule {}

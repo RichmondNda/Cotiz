@@ -10,6 +10,8 @@ export interface BarreEcheance {
   ratio: number
   enCours?: boolean
   aVenir?: boolean
+  /** Valeur lue par les lecteurs d'écran à la place du pourcentage (ex. « 12 connexions »). */
+  texte?: string
 }
 
 const props = withDefaults(defineProps<{
@@ -22,7 +24,7 @@ const props = withDefaults(defineProps<{
 
 const description = computed(() => props.barres
   .filter(b => !b.aVenir)
-  .map(b => `${b.label} : ${Math.round(b.ratio * 100)} %`)
+  .map(b => `${b.label} : ${b.texte ?? `${Math.round(b.ratio * 100)} %`}`)
   .join(', '))
 </script>
 

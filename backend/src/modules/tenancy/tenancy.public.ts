@@ -5,11 +5,14 @@ export {
   type AssociationOverview,
   associationTimezonesOf,
   type AssociationRecord,
+  contextAssociationId,
   ownAssociationOf,
   platformAssociationOf,
   platformAssociationsOverview,
   remindableAssociationTimezonesOf,
   type SubscriberAssociation,
+  type SubscriberAssociationDetails,
+  subscriberAssociationDetailsOf,
   subscriberAssociationsOf,
 } from './application/association-records.js';
 export { platformAssociationDetail } from './application/association-views.js';

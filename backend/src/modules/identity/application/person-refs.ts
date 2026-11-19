@@ -55,3 +55,38 @@ export async function associationPersonNameOf(associationId: string, userId: str
     .limit(1);
   return row ? `${row.firstName} ${row.lastName}`.trim() : null;
 }
+
+/**
+ * Coordonnées des souscripteurs de l'association du contexte (appartenance `subscriber` active, lue sous RLS), pour
+ * un message prêt à transmettre (relances, lot 4.3) ; une personne étrangère à l'association est absente du résultat.
+ */
+export async function associationSubscriberContactsOf(
+  associationId: string,
+  ids: readonly string[],
+): Promise<Map<string, PersonContact>> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('associationSubscriberContactsOf : contexte de cette association seulement');
+  }
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const rows = await currentTx()
+    .selectDistinct({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      phone: users.phoneE164,
+      email: users.email,
+    })
+    .from(users)
+    .innerJoin(memberships, eq(memberships.userId, users.id))
+    .where(
+      and(
+        inArray(users.id, unique),
+        eq(memberships.associationId, associationId),
+        eq(memberships.role, 'subscriber'),
+        eq(memberships.status, 'active'),
+      ),
+    );
+  return new Map(rows.map((r) => [r.id, r]));
+}

@@ -3,12 +3,13 @@
   En-tête : logo carré, nom, badge de statut, ville · plan · inscrite depuis ; « Se connecter en tant que » (V3) ;
   menu ⋯ (changer de plan, réactiver, suspendre). Bandeau orange si impayée, rouge + « Réactiver » si suspendue.
   Onglets (`?onglet=`) : Vue d'ensemble (KPI, contact principal, abonnement et quotas, événements) · Projets ·
-  Souscripteurs (lecture seule) · Abonnement (historique de facturation, changer de plan) · Usage (V2) ·
+  Souscripteurs (lecture seule) · Abonnement (historique de facturation, changer de plan) · Usage (pf.asso.usage) ·
   Paramètres (comptes gestionnaires autorisés, zone de danger : suspendre, confirmation renforcée).
   Scénarios : `etat-suspendue` (+ `chargement`, `erreur`).
 -->
 <script setup lang="ts">
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
+import type { BarreEcheance } from '~/components/metier/BarresEcheances.vue'
 import type { Definition } from '~/components/metier/ListeDefinitions.vue'
 import type { ElementMenu } from '~/components/cz/CzMenu.vue'
 import type { Onglet } from '~/components/cz/CzTabs.vue'
@@ -26,6 +27,7 @@ const toast = useToast()
 const id = computed(() => String(route.params.id))
 const { data: fiche, pending, error, refresh } = useFicheAssociation(id)
 const { data: plans } = usePlans({ statut: 'actif' })
+const { data: usage, pending: usageEnCours, error: usageErreur, refresh: rechargerUsage } = useUsageAssociation(id)
 const { suspendre, reactiver, changerAbonnement } = useActionsAssociationPlateforme()
 
 const f = computed(() => fiche.value)
@@ -44,7 +46,7 @@ const ONGLETS: Onglet[] = [
   { label: 'Projets', valeur: 'projets' },
   { label: 'Souscripteurs', valeur: 'souscripteurs' },
   { label: 'Abonnement', valeur: 'abonnement' },
-  { label: 'Usage', valeur: 'usage', bientot: 'V2' },
+  { label: 'Usage', valeur: 'usage' },
   { label: 'Paramètres', valeur: 'parametres' },
 ]
 
@@ -53,6 +55,27 @@ const inscriteDepuis = computed(() => (a.value ? formatMois(a.value.creeeLe).toL
 const montant = (v: ChiffreOuPlaceholder) => formatFCFA(v)
 const taux = (v: FicheAssociationPlateforme['kpi']['tauxRecouvrement']) => (v === null ? '—' : typeof v === 'number' ? formatPourcent(v) : `${v} %`)
 const prix = (v: number | '[PRIX]') => `${formatFCFA(v)} / mois`
+
+// Onglet « Usage » : lu à sa première ouverture.
+watch(onglet, (v) => {
+  if (v === 'usage' && !usage.value && !usageEnCours.value) void rechargerUsage()
+}, { immediate: true })
+const heures = (h: number | null) => (h === null ? '—' : `${h.toLocaleString('fr-FR')}\u00a0h`)
+const pluriel = (n: number, mot: string) => `${String(n)}\u00a0${mot}${n > 1 ? 's' : ''}`
+const barresConnexions = computed<BarreEcheance[]>(() => {
+  const jours = usage.value?.connexions ?? []
+  const max = Math.max(1, ...jours.map(j => j.valeur))
+  return jours.map(j => ({ label: formatDate(j.jour), ratio: j.valeur / max, texte: pluriel(j.valeur, 'connexion') }))
+})
+const barresPaiements = computed<BarreEcheance[]>(() => {
+  const mois = usage.value?.paiementsParMois ?? []
+  const max = Math.max(1, ...mois.map(m => m.valides))
+  return mois.map(m => ({
+    label: formatMois(m.mois, 'court'),
+    ratio: m.valides / max,
+    texte: `${pluriel(m.valides, 'validé')} sur ${pluriel(m.declares, 'déclaré')}`,
+  }))
+})
 
 const contact = computed<Definition[]>(() => f.value
   ? [
@@ -481,23 +504,15 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
         </CzTable>
       </section>
 
-      <!-- Usage (V2) -->
-      <section
+      <!-- Usage (pf.asso.usage, lot 4.6) -->
+      <div
         v-else-if="onglet === 'usage'"
-        class="cz-card sa-asso__carte sa-asso__section"
+        class="sa-asso__section"
       >
-        <div class="sa-asso__carte-tete sa-asso__carte-tete--gauche">
-          <h2 class="sa-asso__h2 sa-asso__h2--seul">
-            Usage
-          </h2>
-          <CzSoon />
-        </div>
-        <p class="sa-asso__texte">
-          Cet onglet montrera les connexions des 30 derniers jours, les paiements traités par mois et le délai moyen de validation des paiements.
-        </p>
         <div
+          v-if="usageEnCours || (!usage && !usageErreur)"
           class="sa-asso__usage"
-          aria-hidden="true"
+          aria-busy="true"
         >
           <CzSkeleton
             v-for="i in 3"
@@ -505,7 +520,56 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
             :hauteur="120"
           />
         </div>
-      </section>
+        <CzErreurChargement
+          v-else-if="usageErreur || !usage"
+          titre="Impossible d’afficher l’usage"
+          @reessayer="rechargerUsage()"
+        />
+        <template v-else>
+          <p
+            v-if="!usage.calcule"
+            class="sa-asso__texte sa-asso__texte--aide"
+          >
+            Les statistiques sont calculées chaque nuit : les premières apparaîtront demain.
+          </p>
+          <div class="sa-asso__kpis">
+            <CzKpi
+              libelle="Connexions (30 jours)"
+              :valeur="usage.totalConnexions"
+            />
+            <CzKpi
+              libelle="Paiements validés (ce mois)"
+              :valeur="usage.paiementsParMois.at(-1)?.valides ?? 0"
+            />
+            <CzKpi
+              libelle="Délai moyen de validation"
+              :valeur="heures(usage.delaiMoyenHeures)"
+              detail="Sur 30 jours, de la déclaration à la validation"
+            />
+          </div>
+          <section class="cz-card sa-asso__carte">
+            <h2 class="sa-asso__h2">
+              Connexions des 30 derniers jours
+            </h2>
+            <BarresEcheances
+              label="Connexions par jour"
+              :barres="barresConnexions"
+              :debut="formatDate(usage.connexions[0]?.jour ?? '')"
+              :fin="formatDate(usage.connexions.at(-1)?.jour ?? '')"
+            />
+          </section>
+          <section class="cz-card sa-asso__carte">
+            <h2 class="sa-asso__h2">
+              Paiements traités par mois
+            </h2>
+            <BarresEcheances
+              label="Paiements validés par mois"
+              etiquettes="toutes"
+              :barres="barresPaiements"
+            />
+          </section>
+        </template>
+      </div>
 
       <!-- Paramètres -->
       <div
@@ -748,7 +812,6 @@ const introuvable = computed(() => (error.value as { statusCode?: number } | nul
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-3);
-  opacity: 0.6;
 }
 
 .sa-asso__parametres {

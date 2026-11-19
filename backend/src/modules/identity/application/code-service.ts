@@ -188,6 +188,45 @@ export class CodeService {
     };
   }
 
+  /**
+   * Le dernier code de cet usage de la personne est-il encore utilisable (ni consommé, ni expiré, ni bloqué) ? Choix
+   * du code comparé par auth.activate (invitation d'équipe ou activation), sans compter d'essai.
+   */
+  async hasLive(userId: string, purpose: CodePurpose, now = new Date()): Promise<boolean> {
+    const [code] = await currentTx()
+      .select({
+        attempts: oneTimeCodes.attempts,
+        expiresAt: oneTimeCodes.expiresAt,
+        consumedAt: oneTimeCodes.consumedAt,
+      })
+      .from(oneTimeCodes)
+      .where(and(eq(oneTimeCodes.userId, userId), eq(oneTimeCodes.purpose, purpose)))
+      .orderBy(desc(oneTimeCodes.createdAt), desc(oneTimeCodes.id))
+      .limit(1);
+    if (!code) return false;
+    return code.consumedAt === null && code.expiresAt > now && code.attempts < MAX_CODE_ATTEMPTS;
+  }
+
+  /** Association émettrice du code (`null` : émis par la plateforme). */
+  async associationOf(codeId: string): Promise<string | null> {
+    const [code] = await currentTx()
+      .select({ associationId: oneTimeCodes.associationId })
+      .from(oneTimeCodes)
+      .where(eq(oneTimeCodes.id, codeId))
+      .limit(1);
+    return code?.associationId ?? null;
+  }
+
+  /** Compte un essai de plus sur le code (mot de passe actuel faux à l'acceptation d'une invitation) ; bloqué ? */
+  async countAttempt(codeId: string): Promise<boolean> {
+    const [counted] = await currentTx()
+      .update(oneTimeCodes)
+      .set({ attempts: sql`${oneTimeCodes.attempts} + 1` })
+      .where(eq(oneTimeCodes.id, codeId))
+      .returning({ attempts: oneTimeCodes.attempts });
+    return (counted?.attempts ?? MAX_CODE_ATTEMPTS) >= MAX_CODE_ATTEMPTS;
+  }
+
   /** Consomme le code (et efface son chiffré) ; `false` s'il l'était déjà (deux consommations simultanées). */
   async consume(codeId: string, now = new Date()): Promise<boolean> {
     const consumed = await currentTx()

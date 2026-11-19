@@ -1,16 +1,58 @@
 // Fichiers (fl.get) : lecture d'un fichier déposé, après contrôle d'accès du back. Lot 3.4 : preuve de paiement du
-// souscripteur (justificatifs de l'historique).
+// souscripteur (justificatifs de l'historique) ; preuves vues par le gestionnaire (as.file).
 //
 // `fl.get` répond par une redirection 302 vers une URL signée de 5 min (MinIO). Un lien simple n'emporterait pas le
 // jeton d'accès (en mémoire, jamais en cookie) : le client suit la redirection avec son en-tête Authorization, le
 // navigateur le retire en changeant d'origine, et le contenu est servi à la page par une URL `blob:` locale, à libérer
 // avec `URL.revokeObjectURL` quand elle n'est plus affichée.
 
-/** Lecture d'un fichier par son identifiant : URL `blob:` locale du contenu (navigateur seulement). */
+import { associationCourante } from './session'
+
+/**
+ * Lecture d'un fichier par son identifiant : URL `blob:` locale du contenu (navigateur seulement). Espace gestionnaire :
+ * `as.file` (fichiers de l'association courante, dont les preuves de paiement) ; ailleurs `fl.get` (fichiers déposés
+ * depuis l'espace : preuve du souscripteur, contrat signé).
+ */
 export function useLectureFichier() {
   const client = useClient()
+  const { role } = useSession()
   return async (fileId: string): Promise<string> => {
-    const reponse = await client.call('fl.get', 'get', { params: { id: fileId } })
+    const reponse = role.value === 'gestionnaire'
+      ? await client.call('as.file', 'get', { params: { aid: await associationCourante(client), id: fileId } })
+      : await client.call('fl.get', 'get', { params: { id: fileId } })
     return URL.createObjectURL(await reponse.blob())
   }
+}
+
+/**
+ * Image d'un fichier déposé (logo de l'association…) affichable par `<img>` : URL `blob:` lue à chaque changement
+ * d'identifiant, libérée à la suivante et à la fin du composant ; `null` sans fichier, avant lecture ou en cas d'échec
+ * (l'appelant garde alors ses initiales).
+ */
+export function useImageFichier(fichierId: MaybeRefOrGetter<string | undefined>) {
+  const lire = useLectureFichier()
+  const url = ref<string | null>(null)
+  let tour = 0
+  const liberer = () => {
+    if (url.value) URL.revokeObjectURL(url.value)
+    url.value = null
+  }
+  watch(() => toValue(fichierId), async (id) => {
+    const moi = ++tour
+    liberer()
+    if (!id || !import.meta.client) return
+    try {
+      const lue = await lire(id)
+      if (moi === tour) url.value = lue
+      else URL.revokeObjectURL(lue)
+    }
+    catch {
+      // Fichier illisible (en analyse, retiré) : initiales.
+    }
+  }, { immediate: true })
+  onScopeDispose(() => {
+    tour++
+    liberer()
+  })
+  return url
 }

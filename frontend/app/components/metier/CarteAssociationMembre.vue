@@ -12,6 +12,7 @@ const props = defineProps<{
 }>()
 
 const lien = computed(() => `/associations/${props.groupe.association.id}`)
+const logo = useImageFichier(() => props.groupe.association.logoFichierId)
 
 function detail(s: SouscriptionMembre) {
   if (estTermine(s)) return `${formatFCFA(s.engagement)} · terminé`
@@ -32,6 +33,7 @@ function detail(s: SouscriptionMembre) {
       <CzAvatar
         :nom="groupe.association.nom"
         :initiales="groupe.association.sigle"
+        :src="logo ?? undefined"
         org
       />
       <span class="asso-membre__nom">

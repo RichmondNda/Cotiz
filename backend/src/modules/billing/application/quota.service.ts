@@ -38,36 +38,21 @@ export async function lockQuota(associationId: string, kind: QuotaKind): Promise
 @Injectable()
 export class QuotaService {
   /**
-   * Permet un ajout de plus, ou lève 409 `quota_exceeded` (`limit`, `usage`). Verrou de transaction par association et
+   * Permet `needed` ajouts de plus (un par défaut ; import en masse : toutes ses lignes), ou lève 409 `quota_exceeded`
+   * (`limit`, `usage`). Verrou de transaction par association et
    * quota d'abord, puis limite et comptage : deux ajouts concurrents sont comptés l'un après l'autre (le cas d'usage
    * insère avant son COMMIT), et un changement de plan les ordonne de même.
    */
-  async assert(associationId: string, kind: QuotaKind): Promise<void> {
+  async assert(associationId: string, kind: QuotaKind, needed = 1): Promise<void> {
     const context = currentContext();
     if (context?.space !== 'association' || context.associationId !== associationId) {
       throw new Error('QuotaService.assert : contexte de l’association attendu');
     }
     await lockQuota(associationId, kind);
-    const limit = (await this.limits(associationId))[kind];
+    const limit = (await quotaLimitsOf(associationId))[kind];
     if (limit === null) return;
     const usage = await quotaUsageOf(associationId, kind);
-    if (usage >= limit) throw new DomainProblem('quota_exceeded', { limit, usage });
-  }
-
-  private async limits(associationId: string): Promise<QuotaLimits> {
-    const [row] = await currentTx()
-      .select({
-        projects: plans.maxProjects,
-        subscribers: plans.maxSubscribers,
-        managers: plans.maxManagers,
-        managerSeatsOverride: subscriptions.managerSeatsOverride,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(plans.id, subscriptions.planId))
-      .where(and(eq(subscriptions.associationId, associationId), inArray(subscriptions.status, CURRENT)));
-    return row
-      ? { projects: row.projects, subscribers: row.subscribers, managers: row.managerSeatsOverride ?? row.managers }
-      : NONE;
+    if (usage + needed > limit) throw new DomainProblem('quota_exceeded', { limit, usage });
   }
 }
 
@@ -95,4 +80,30 @@ export async function quotaUsageOf(associationId: string, kind: QuotaKind): Prom
     .from(memberships)
     .where(and(eq(memberships.associationId, associationId), roles, ne(memberships.status, 'removed')));
   return row?.n ?? 0;
+}
+
+/** Limites de l'abonnement en cours de l'association (lues en base, jamais en cache). */
+async function quotaLimitsOf(associationId: string): Promise<QuotaLimits> {
+  const [row] = await currentTx()
+    .select({
+      projects: plans.maxProjects,
+      subscribers: plans.maxSubscribers,
+      managers: plans.maxManagers,
+      managerSeatsOverride: subscriptions.managerSeatsOverride,
+    })
+    .from(subscriptions)
+    .innerJoin(plans, eq(plans.id, subscriptions.planId))
+    .where(and(eq(subscriptions.associationId, associationId), inArray(subscriptions.status, CURRENT)));
+  return row
+    ? { projects: row.projects, subscribers: row.subscribers, managers: row.managerSeatsOverride ?? row.managers }
+    : NONE;
+}
+
+/**
+ * Usage et limite d'un quota pour l'affichage (places de l'équipe, tm.team › list) ; `limit` `null` : illimité.
+ * Contexte de l'association seulement.
+ */
+export async function quotaOf(associationId: string, kind: QuotaKind): Promise<{ used: number; limit: number | null }> {
+  const used = await quotaUsageOf(associationId, kind);
+  return { used, limit: (await quotaLimitsOf(associationId))[kind] };
 }

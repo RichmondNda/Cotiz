@@ -1,13 +1,15 @@
 // Associations : espace gestionnaire (as.get, as.patch, as.upload, as.pm, as.onb) et espace plateforme (pf.asso.*).
+import { todayIn } from '@cotiz/domain'
 import type { ApiClient } from './client'
 import type {
   Association, AssociationCreee, AssociationListe, FicheAssociationPlateforme, ListeAssociations, ModificationAssociation,
-  NouvelleAssociationPlateforme, SuspensionAssociation,
+  NouvelleAssociationPlateforme, SuspensionAssociation, UsageAssociation,
 } from '~~/types'
 import { associationCourante } from './session'
 import { STATUT_ASSOCIATION, STATUT_ASSOCIATION_INVERSE, versE164, vueAcces } from './vues/communs'
 import { versMoyens, vueAssociation, vueAssociationListe, vueFiche } from './vues/associations'
 import { vuePlans } from './vues/plans'
+import { decalerJours, periodeUsage, vueUsage } from './vues/usage'
 
 // ---------------------------------------------------------------- Espace gestionnaire
 
@@ -119,6 +121,17 @@ async function fiche(client: ApiClient, id: string): Promise<FicheAssociationPla
 /** Fiche plateforme d'une association (SaAssociation). */
 export const useFicheAssociation = (id: MaybeRefOrGetter<string>) =>
   useLecture<FicheAssociationPlateforme>(() => `fiche-association:${toValue(id)}`, client => fiche(client, toValue(id)))
+
+/**
+ * Onglet « Usage » (pf.asso.usage) : 6 mois de jours calculés, jusqu'à la veille (jour d'Abidjan, fuseau de référence de
+ * la plateforme). Lu à l'ouverture de l'onglet (`immediat: false`, `refresh()` par la page).
+ */
+export const useUsageAssociation = (id: MaybeRefOrGetter<string>) =>
+  useLecture<UsageAssociation>(() => `usage-association:${toValue(id)}`, async (client) => {
+    const periode = periodeUsage(decalerJours(todayIn(), -1))
+    const { days } = await client.call('pf.asso.usage', 'get', { params: { id: toValue(id) }, query: periode })
+    return vueUsage(days, periode)
+  }, { immediat: false })
 
 /** Actions plateforme sur une association : création directe, suspension, réactivation, plan et comptes. */
 export function useActionsAssociationPlateforme() {

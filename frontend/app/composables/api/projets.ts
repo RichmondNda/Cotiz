@@ -1,10 +1,10 @@
 // Projets de l'association (pr.*), inscriptions (en.*, mb.lookup), grille (lg.grid), rapport (rp.report), contrat (ct.get),
-// relances ponctuelles (rm.send) et import (fl.upload, im.*).
+// relances ponctuelles (rm.send).
 import type { Enrollment, Project, ProjectSummary as ProjectSummarySchema } from '@cotiz/contracts'
 import type { z } from 'zod'
 import type { ApiClient } from './client'
 import type {
-  AnalyseImport, ContratProjet, InscriptionCreee, LigneGrilleProjet, LigneImport, ModificationProjet, NouveauProjet, NouvelleInscription, Projet,
+  ContratProjet, InscriptionCreee, LigneGrilleProjet, ModificationProjet, NouveauProjet, NouvelleInscription, Projet,
   RapportProjet, ResultatRechercheSouscripteur, SouscriptionAvecSouscripteur, SyntheseProjet,
 } from '~~/types'
 import { DATE_REFERENCE } from '~/utils/date-reference'
@@ -152,14 +152,10 @@ export const useContratProjet = (id: MaybeRefOrGetter<string>) =>
     return vueContratProjet(c, p, a)
   })
 
-const MIME: Record<string, string> = { csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
-const STATUT_LIGNE = { ready: 'prete', existing: 'compte_existant', duplicate: 'doublon' } as const
-
 /** Mutations du détail d'un projet (gestionnaire) : à appeler dans `setup`. */
 export function useActionsProjet() {
   const client = useClient()
   const { active } = usePermissions()
-  let importEnCours: string | null = null
   return {
     rechercherSouscripteur: async (projetId: string, telephone: string): Promise<ResultatRechercheSouscripteur> => {
       try {
@@ -243,41 +239,6 @@ export function useActionsProjet() {
         // Projet publié : la suppression est refusée (brouillon seulement), il faut le clôturer.
         traduireErreur(e, { invalid_state: 'pas_brouillon' })
       }
-    },
-    /** Analyse d'un fichier d'import (V2) : dépôt (fl.upload), lancement (im.flow), lignes à examiner (im.read). */
-    analyserImport: async (projetId: string, fichier: string): Promise<AnalyseImport> => {
-      const aid = await associationCourante(client)
-      const ext = fichier.split('.').pop()?.toLowerCase() ?? ''
-      try {
-        const ticket = await client.call('fl.upload', 'create', { body: { purpose: 'import_source', fileName: fichier, mimeType: MIME[ext] ?? 'application/octet-stream', sizeBytes: 1 } })
-        await $fetch(ticket.uploadUrl, { method: 'PUT', headers: ticket.headers, body: '' })
-        await client.call('fl.upload', 'complete', { params: { id: ticket.fileId } })
-        const job = await client.call('im.flow', 'create', { params: { aid, pid: projetId }, body: { fileId: ticket.fileId } })
-        importEnCours = job.id
-        const lignes = (await client.call('im.read', 'rows', { params: { aid, id: job.id }, query: { limit: 100 } })).items
-        const c = job.counts as Record<string, number>
-        return {
-          fichier,
-          nbLignes: Object.values(c).reduce((t, n) => t + n, 0),
-          colonnes: job.columns.map(col => ({ colonne: col.name, exemples: col.samples, champ: col.field ? ({ firstName: 'prenom', lastName: 'nom', phone: 'telephone', email: 'email', address: 'adresse' } as const)[col.field] : null })),
-          compteurs: { pretes: c.ready ?? 0, comptesExistants: c.existing ?? 0, erreurs: c.error ?? 0, doublons: c.duplicate ?? 0 },
-          lignes: lignes.map((l): LigneImport => ({
-            ligne: l.rowNumber, prenom: l.values.firstName ?? '', nom: l.values.lastName ?? '', telephone: l.values.phone ?? '',
-            ...(l.values.email ? { email: l.values.email } : {}), ...(l.values.address ? { adresse: l.values.address } : {}),
-            statut: l.category === 'error' ? (l.errors.some(x => x.field === 'phone') ? 'telephone_incomplet' : 'prenom_manquant') : STATUT_LIGNE[l.category as keyof typeof STATUT_LIGNE] ?? 'prete',
-            ...(l.duplicateOf ? { doublonDe: l.duplicateOf } : {}),
-          })),
-        }
-      }
-      catch (e) {
-        traduireErreur(e, { file_type_not_allowed: 'fichier_invalide' })
-      }
-    },
-    /** Lance l'import analysé ; le canal SMS / email n'est plus proposé (ui-deviations, lot 4.4). */
-    importer: async (_projetId: string, lignes: number, _canal: 'sms' | 'email' | 'les_deux') => {
-      if (!importEnCours || lignes <= 0) throw Object.assign(new Error('rien_a_importer'), { data: { code: 'rien_a_importer' } })
-      await client.call('im.commit', 'commit', { params: { aid: await associationCourante(client), id: importEnCours } })
-      return { importes: lignes, invitations: lignes }
     },
   }
 }

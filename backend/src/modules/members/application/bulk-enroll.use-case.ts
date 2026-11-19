@@ -98,7 +98,7 @@ export class BulkEnrollUseCase {
  * Réserve de codes hachés d'avance : `size` en préparation, chaque prise en relance un. Un code préparé mais jamais pris
  * (fin du lot) est simplement perdu.
  */
-class PreparedCodes {
+export class PreparedCodes {
   private readonly queue: Promise<PreparedCode>[] = [];
 
   constructor(

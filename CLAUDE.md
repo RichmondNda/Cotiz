@@ -7,8 +7,8 @@ plusieurs échéances (répartition).
 
 ## Où en est-on
 - **Front V0 : terminé** — `frontend/` (Nuxt 4), tous les écrans sur mocks Nitro (lots front 00–09 de `prompts/`).
-- **Back-end : en cours** — NestJS dans `backend/`, 33 lots dans `docs/lots/`. Lots 0.1 à 2.4 livrés sur la branche
-  d'intégration `backend` (le registre et la validation des paiements sont réels) ; `main` n'a que le front V0 et la doc.
+- **Back-end : en cours** — NestJS dans `backend/`, 33 lots dans `docs/lots/`. Lots livrés sur `dev` puis promus sur la
+  branche de recette `backend` (le registre et la validation des paiements sont réels) ; `main` n'a que le front V0 et la doc.
   Avancement à jour dans `docs/progress.md` : commencer par `/statut`.
 
 ## Carte du dépôt
@@ -101,8 +101,11 @@ node tools/check-docs.mjs         # cohérence de docs/specs et docs/lots
 - Ne modifie `docs/` que pour mettre à jour `docs/progress.md`, sauf demande explicite. Si une spec doit changer, propose le changement.
 - Tout écran touché par une bascule est revérifié avec `/verifier-ecran` (le rendu ne doit pas bouger).
 - Commits : Conventional Commits, portée = module ou paquet (`feat(ledger): valider un paiement`). Branche `lot/<id>-<slug>`.
-- Branche d'intégration des lots back : `backend`. Chaque `lot/<id>-<slug>` part de `origin/backend` et sa PR y est fusionnée
-  (`--base backend`, commit de fusion) ; `backend` n'est fusionnée dans `main` que sur demande.
+- Branches, de la plus instable à la plus stable : `dev` (déployée sur https://cotiz.dev.regisnda.com) → `backend`
+  (recette, https://cotiz.regisnda.com) → `main`. Chaque `lot/<id>-<slug>` ou `chore/<slug>` part de `origin/dev` et sa PR y
+  est fusionnée (`--base dev`, commit de fusion). Passage en recette : PR `dev` → `backend` ; puis `backend` → `main`.
+  Chaque promotion se fait sur demande seulement. Après une fusion : redéployer la cible (`node tools/recette-dokploy.mjs
+  --cible dev --deployer`, ou sans `--cible` pour la recette).
 - Termine chaque étape par : ce qui est fait, résultat de `pnpm verify`, ce qui reste.
 - Si une information manque ou si une règle bloque : **demander**, ne pas inventer.
 
@@ -127,6 +130,6 @@ avec leur source ; mettre à jour une entrée existante plutôt que la dupliquer
   - modification de secrets, de fichiers `.env` ou de clés SSH ;
   - installation de skills ou de dépendances dont la source n'est pas vérifiée ;
   - toute dépense ou action irréversible vers un service externe.
-- **Pousser sans demander** les branches `lot/*` et `chore/*` et ouvrir leur PR vers `backend` (`--base backend`), une fois
+- **Pousser sans demander** les branches `lot/*` et `chore/*` et ouvrir leur PR vers `dev` (`--base dev`), une fois
   `pnpm verify` vert (ou, pour un changement limité à du Markdown, contrôle du diff). Jamais de `--force`, jamais de push
-  vers `main` ni `backend` directement ; fusionner une PR reste une demande explicite.
+  vers `main`, `backend` ni `dev` directement ; fusionner une PR ou promouvoir une branche reste une demande explicite.

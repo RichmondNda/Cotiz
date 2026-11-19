@@ -10,6 +10,8 @@ export { type DueSoonNotice, dueSoonNoticeOf } from './application/due-soon-noti
 export { lastValidatedPaymentDates } from './application/payment-dates.js';
 export { latestPaymentsOf, monthlyReceiptsOf, pendingPaymentsOverviewOf } from './application/dashboard-figures.js';
 export { newLateSubscribersOf } from './application/new-late-subscribers.js';
+export { type PaymentActivity, paymentActivityOf } from './application/payment-activity.js';
+export { PaymentReceipts, RECEIPT_MARGIN_MS, type ReceiptPreparation } from './application/payment-receipt.js';
 // Espace souscripteur (lot 3.2) : paiements déclarés par la personne connectée.
 export {
   type PaidOnPeriod,
@@ -19,3 +21,5 @@ export {
   subscriberPaymentsPage,
   subscriberValidatedPaymentsOf,
 } from './application/subscriber-payments.js';
+// Relances (lot 4.3) : échéances à relancer, reste dû relu.
+export { type RemindableInstallment, remindableInstallmentsOf } from './application/remindable-installments.js';

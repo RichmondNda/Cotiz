@@ -255,7 +255,7 @@ events:
   - 'notifications: souscripteur (in-app, push)'
   - 'cache: KPI, synthèse souscripteur'
   - reporting
-  - 'documents: reçu (4.6, option)'
+  - 'documents: reçu PDF (4.6, après le délai d''annulation)'
   - 'developer: webhooks (5.2)'
 - type: payment.rejected
   emitter: ledger
@@ -350,6 +350,23 @@ events:
   - importId
   consumers:
   - 'imports: analyse du fichier'
+- type: import.mapped
+  emitter: imports
+  lot: '4.4'
+  version: 1
+  payload:
+  - importId
+  consumers:
+  - 'imports: classement des lignes'
+- type: import.commit_requested
+  emitter: imports
+  lot: '4.4'
+  version: 1
+  payload:
+  - importId
+  - requestedBy
+  consumers:
+  - 'imports: exécution ligne par ligne'
 - type: import.completed
   emitter: imports
   lot: '4.4'
@@ -407,6 +424,14 @@ events:
   - change
   consumers:
   - auth
+- type: export.requested
+  emitter: reporting
+  lot: '4.6'
+  version: 1
+  payload:
+  - exportId
+  consumers:
+  - 'reporting: file exports'
 - type: export.completed
   emitter: reporting
   lot: '4.6'

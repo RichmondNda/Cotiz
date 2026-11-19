@@ -3,20 +3,27 @@ import { IdentityModule } from '../identity/identity.public.js';
 import { MembersModule } from '../members/members.public.js';
 import { GetManagerDashboardUseCase } from './application/get-manager-dashboard.use-case.js';
 import { GetPlatformDashboardUseCase } from './application/get-platform-dashboard.use-case.js';
+import { GetExportUseCase } from './application/get-export.use-case.js';
 import { GetProjectReportUseCase } from './application/get-project-report.use-case.js';
+import { GetUsageUseCase } from './application/get-usage.use-case.js';
+import { GetSubscriberAssociationsUseCase } from './application/get-subscriber-associations.use-case.js';
 import { GetSubscriberDashboardUseCase } from './application/get-subscriber-dashboard.use-case.js';
 import { GetSubscriberHistoryUseCase } from './application/get-subscriber-history.use-case.js';
 import { GetSubscriberProjectUseCase } from './application/get-subscriber-project.use-case.js';
 import { ListSubscriberProjectsUseCase } from './application/list-subscriber-projects.use-case.js';
+import { RequestExportUseCase } from './application/request-export.use-case.js';
+import { ExportsController } from './http/exports.controller.js';
 import { ManagerDashboardController } from './http/manager-dashboard.controller.js';
 import { PlatformDashboardController } from './http/platform-dashboard.controller.js';
+import { PlatformUsageController } from './http/platform-usage.controller.js';
 import { ProjectReportController } from './http/project-report.controller.js';
 import { SubscriberSpaceController } from './http/subscriber-space.controller.js';
 
 /**
  * Module reporting (lecture seule, architecture/01) : tableau de bord plateforme (pf.dashboard, lot 1.4), rapport de
  * projet (rp.report), tableau de bord gestionnaire (as.dashboard, lot 2.6) et espace souscripteur (me.dash,
- * me.projects, me.project ; lot 3.2).
+ * me.projects, me.project ; lot 3.2) ; exports (rp.export) et
+ * statistiques d'usage (pf.asso.usage), lot 4.6.
  */
 @Module({
   imports: [MembersModule, IdentityModule],
@@ -25,6 +32,8 @@ import { SubscriberSpaceController } from './http/subscriber-space.controller.js
     ProjectReportController,
     ManagerDashboardController,
     SubscriberSpaceController,
+    ExportsController,
+    PlatformUsageController,
   ],
   providers: [
     GetPlatformDashboardUseCase,
@@ -34,6 +43,10 @@ import { SubscriberSpaceController } from './http/subscriber-space.controller.js
     GetSubscriberHistoryUseCase,
     ListSubscriberProjectsUseCase,
     GetSubscriberProjectUseCase,
+    GetSubscriberAssociationsUseCase,
+    RequestExportUseCase,
+    GetExportUseCase,
+    GetUsageUseCase,
   ],
 })
 export class ReportingModule {}

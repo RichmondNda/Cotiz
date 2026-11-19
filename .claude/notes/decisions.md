@@ -741,3 +741,283 @@ appareil » + un interrupteur par type qui pilote in-app et push ensemble, ligne
 - Basic auth Traefik abandonnée : elle prend l'en-tête `Authorization` du jeton du front (api en 401). Choix de l'utilisateur : mot de passe de démonstration secret `COTIZ_DEV_SEED_PASSWORD` posé par `seed-dev`, jamais affiché, dans `~/.config/cotiz-dev-acces` (ligne « comptes de démonstration (IDENTIFIANTS.md) : <mot de passe> »).
 - Vérifié le 2026-11-12 : connexion d'Awa avec le mot de passe secret → `authenticated`, `/me` 200 ; mot de passe public → 401.
 
+### Branche `dev` (2026-11-12, demande de l'utilisateur)
+- « je veux que tu crée un branche dev vers laquel sera dersomais poussé le code en mode dev et c'est elle qui sera linké dans le dockploy de dev une fois le dev terminé on passera en recette ».
+- `dev` créée depuis `origin/backend` (8d8ee49, PR #65 incluse) ; Dokploy dev (`cotiz-dev`) suit `dev`, recette suit `backend`.
+- Flux : `lot/*`, `chore/*` → PR `--base dev` → PR `dev` → `backend` (promotion en recette, sur demande) → `main`. Règles dans CLAUDE.md ; `tools/recette-dokploy.mjs` prend la branche de la cible par défaut.
+
+
+## 2026-11-12 · Plan du lot 4.4 (branche `lot/4.4-imports` depuis `origin/dev`, une PR vers `dev`, un commit par étape)
+Lu : `docs/lots/4.4`, `architecture/04` § 4.8, `ui/manager.md#mg-import`, `schema.sql` (lot 4.4 + RLS + FK),
+`data-model.md`, `endpoints.yaml` (`im.*`), `events.yaml` (`import.*`), `jobs.yaml` (`imports`, concurrence 1 par
+association), `features.yaml` (`imports`, planGated), `ui-deviations.md` (canal des invitations supprimé). Contrats Zod
+déjà présents (`manager-misc.ts`), mocks `frontend/server/mocks/handlers/imports.ts`, front V0 (composable
+`useImportSouscripteurs` sur types V0). Dépendance 3.5 `terminé`, aucune décision listée.
+Aucune contradiction avec `docs/specs/` ; remarques : architecture/04 dit « quatre états » mais en liste six (enum
+`import_jobs_status` suivi) ; pas de colonne `duplicate_of` (doublon rangé dans `errors`, code `duplicate`, `row`).
+Choix autonomes :
+- Machine d'états : `uploaded` (analyse en attente : fichier en cours d'analyse antivirus ou lecture) → `mapped`
+  (colonnes détectées, correspondance proposée, lignes brutes stockées) → `validated` (lignes classées, worker) →
+  `importing` → `completed` / `failed`. Mappage complet dès l'analyse → classement enchaîné (`validated`).
+  `PATCH mapping` : `mapped`/`validated` seulement, champs obligatoires (prénom, nom, téléphone) et pas deux colonnes
+  sur le même champ, sinon `validation_failed` ; repasse `mapped` et relance le classement. `PATCH row` : `validated`
+  seulement, revalidé tout de suite (une ligne). Commit : `validated` seulement ; inscrit `ready` + `existing`,
+  `error`/`duplicate`/`ignored` sautées.
+- Classement : téléphone normalisé avec le pays de l'association (`0712345678` → +225…), `existing` = compte trouvé
+  par téléphone (`resolved_user_id`), déjà inscrit au projet → `error` `already_enrolled`, même téléphone qu'une ligne
+  précédente → `duplicate`.
+- Quota : `im.flow` refuse (409) si l'association n'a plus aucune place ; `im.commit` refuse si les lignes à inscrire
+  dépassent les places restantes (détails `limit`, `usage`) ; en.create recontrôle chaque ligne.
+- Fonctionnalité `imports` (planGated) : `assertPlanFeature` → 403 `feature_disabled` (comme les contrats).
+- Contrat (`packages/contracts`, pas `docs/specs`) : `ImportJob.counts` n'admet pas `imported` (prévu par
+  `schema.sql`) → ajout de `progress { processed, total, enrolled, attached, failed } | null` et `error` (code) ; mocks
+  et front mis à jour ensemble.
+- Lecture : `exceljs` (nommé par le lot ; paquet npm public) pour XLSX, lecteur CSV maison (`;` ou `,`, guillemets,
+  BOM UTF-8) ; 5 000 lignes, 5 Mo (taille de dépôt existante).
+- Progression : interrogation toutes les 2 s (le flux SSE du lot 4.2 ne porte que des notifications) ;
+  `import.completed`/`import.failed` → notification au gestionnaire auteur.
+1. **Tables** — migration `0024_imports.sql` (enums, tables, FK, RLS FORCE `tenant_isolation`, index
+   `import_rows (import_job_id, row_number)` unique), Drizzle `packages/db/src/schema/imports.ts`. Tests : conformité
+   du schéma, `test/isolation/imports.test.ts` (autre association, politique affaiblie). Vérif : migration + tests.
+2. **Analyse** — module back `imports` (api + worker) : `im.flow` (fichier `import_source` de l'association, type,
+   projet ouvert, quota, `import.created`, Idempotency-Key), consommateur → file `imports` (job `analyze`, concurrence
+   1 ; fichier pas encore analysé → reprise différée ; infecté → `failed`), lecture CSV/XLSX, colonnes + 3 exemples,
+   correspondance automatique par nom, lignes stockées par lots. Tests : lecteur (unitaires), intégration 5 000 lignes
+   (l'API répond pendant l'analyse), isolation HTTP.
+3. **Mappage et correction** — `im.steps`, `im.read` (pagination, filtre catégorie), job `validate` ; tests
+   d'intégration par catégorie (ready/existing/error/duplicate/ignored), états interdits, isolation.
+4. **Exécution** — `im.commit` (202, audit, Idempotency-Key), job `commit` qui appelle `CreateEnrollmentUseCase.enroll`
+   ligne par ligne (même résultat qu'en.create : test comparatif), progression, `import.completed`/`failed`,
+   notification. Front : composable sur `im.*` + `fl.upload` réel, interrogation 2 s, bilan avec lien « Codes à
+   remettre » et fiche imprimable groupée (impression navigateur) ; bascule `im.*`, handlers simulés supprimés,
+   `/verifier-ecran /asso/projets/:id/import`.
+Vérification : tests ciblés par étape, `pnpm verify` complet une fois avant la PR (accord du 2026-11-11).
+
+### Lot 4.4 · étape 4 — choix faits en autonome (2026-11-12)
+- Notification `import.completed` / `import.failed` (in-app, gestionnaire) : à la personne qui a lancé l'envoi (ou
+  créé l'import) si elle gère encore l'association, sinon à tous les gestionnaires ; lien `/asso/projets/:id/import`.
+- Exécution : chaque ligne passe par son téléphone (comme en.create), jamais par le compte vu au classement ;
+  demandeur recontrôlé au départ, à chaque reprise et toutes les 25 lignes (`requester_removed`).
+- Front : fiches imprimées = codes non remis émis depuis la création de l'import (pas d'identifiant de compte par
+  ligne dans le contrat) ; lignes en erreur autre que prénom ou téléphone : motif affiché, ligne à ignorer seulement.
+- Dépôt du fichier : `im.upload` sous `/associations/{aid}/imports/uploads` (choix de l'utilisateur, 2026-11-12 :
+  `fl.upload` refuse le jeton association, décision 24) ; spec modifiée avec accord (endpoints, permissions, screens,
+  fiche du lot). Handlers simulés de fl.upload et im.* supprimés (« supprime-les et termine le lot »).
+
+## Lot 4.3 · Relances automatiques et file « À relancer » — plan (2026-11-12)
+Dépendance 4.2 terminée ; décision 7 adoptée par l'utilisateur (« Adopter, sans écran ») : `waived` exclu des relances.
+Contrats `rm.*` déjà présents (lot 0.2) ; front déjà branché sur les mocks (onglets Retardataires, Automatiques,
+Historique). Module back `reminders` (api + worker).
+Choix (sans contradiction avec docs/specs/) :
+- Message d'une règle (`ReminderRule.message`) stocké dans `message_templates` (association, clé `reminder.rule`,
+  canal `manual`) et cité par `reminder_rules.template_id` (schema.sql) ; modification du message = nouvelle version.
+- Une relance = une ligne `reminder_runs` par échéance : règle avant/le jour de l'échéance → `auto_sent` ; échéance en
+  retard (règle `after_due` ou relance manuelle) → `to_handle` (rappel in-app/push envoyé + message prêt dans la file).
+  `channels` = canaux automatiques de la règle (in_app, push) ; relance manuelle : in_app + push.
+- File « À relancer » : entrées `to_handle` dont l'échéance a encore un reste dû (payée ou dispensée entre-temps →
+  absente) ; `handled`/`dismissed` par `rm.queue › handled` (`reminder.handled`).
+- Fonctionnalité `auto_reminders` (features.yaml : « Relances automatiques et file « À relancer » ») exigée par
+  `rm.rules`, `rm.queue` et la tâche ; `rm.send` (sa réponse porte les messages prêts) et `rm.hist` restent ouverts.
+- `reminder.sent` (runIds) → consommateur notifications : rappel au souscripteur sur les canaux de la relance.
+Étapes :
+1. **Tables** — migration `0025_reminders.sql` (enums, tables, FK de schema.sql, index `reminder_queue`, RLS FORCE
+   tenant + system), Drizzle `packages/db/src/schema/reminders.ts`. Tests : conformité schéma, isolation (autre
+   association, politique affaiblie).
+2. **Règles** — `rm.rules` (liste, création, modification ; audit ; feature `auto_reminders` ; projet de l'association).
+   Tests d'intégration + isolation HTTP.
+3. **Évaluation quotidienne** — tâche `reminders.evaluate` (08:30 locale, passage horaire, marque Redis comme
+   `installments.due-soon`), domaine pur (échéances visées par règle) dans `packages/domain` ; `reminder.sent` +
+   notification. Test : deux passages le même jour → un seul rappel ; `waived` exclu ; association sans la
+   fonctionnalité ignorée ; ajout à `housekeeping.test.ts`.
+4. **File et envoi manuel** — `rm.queue` (liste, handled/dismissed), `rm.send` (Idempotency-Key, débit, audit),
+   `rm.hist`. Front : onglet « À relancer » (HandoffCard : copier, WhatsApp, `sms:`, marquer), bascule `rm.*`, mocks
+   supprimés, `/verifier-ecran /asso/relances`. Test : la file liste exactement les retards sans relance du jour.
+Vérification : tests ciblés par étape, `pnpm verify` complet avant la PR.
+Choix de l'étape 4 (2026-11-12) :
+- File « À relancer » (`rm.queue`) : chaque échéance en retard encore due d'un projet `enrolling`/`active` ; statut
+  `handled`/`dismissed` seulement si marquée aujourd'hui (le lendemain, elle revient `to_handle`). L'id de l'entrée est
+  celui de sa relance si elle est à traiter ou marquée du jour, sinon l'id de l'échéance (marquer crée alors une relance
+  manuelle déjà marquée). Message : celui de la relance, ou le message par défaut rendu pour la personne.
+- `rm.send` par `userIds` : échéances en retard de chaque personne ; sans retard, sa prochaine échéance due (une par
+  personne et projet). Personne ou projet d'une autre association : ignorée / 404.
+- `rm.queue` réservé à `reminders.send` (contrat) : le lecteur lit seulement `rm.hist`.
+- Front : toute la page Relances sous `<FeatureGate feature="auto_reminders">` (v0-mapping : « Écran V2
+  (`auto_reminders`) ») ; nouvel onglet « À relancer » (`?onglet=a-relancer`), une HandoffCard par entrée + « Ignorer » /
+  « Marquer relancée ». `auto_reminders` ajoutée à `DELIVERED_FEATURES`.
+- Mocks `rm.*` supprimés ; plus aucune écriture simulée n'a Idempotency-Key : le test du mécanisme de rejeu des mocks
+  (`mocks-conformite.test.ts`) est retiré, le mécanisme reste pour de futurs mocks.
+
+## Lot 4.5 · Équipe et multi-associations (2026-11-12)
+Contrats `tm.team` et `me.assos` déjà présents (lot 0.2) ; front déjà branché sur les mocks (`equipe.ts`,
+`souscripteurs.ts`). Quota `managers` déjà dans `QuotaService` (owner, manager, viewer invités ou actifs).
+Réponses de l'utilisateur (2026-11-12) :
+- Invitation d'une adresse qui a déjà un compte actif : `auth.activate` accepte le code `team_invite` d'un compte actif
+  si le champ mot de passe est son mot de passe ACTUEL (aucun changement de mot de passe, pas de prise de compte) ;
+  l'appartenance passe `invited` → `active` (`joined_at`). Compte en attente : `auth.activate` habituel (code
+  `team_invite` ou `activation`), mot de passe posé, appartenance activée (décision 25).
+- Choix de l'association courante côté gestionnaire (décision 26) : hors du lot ; un gestionnaire de plusieurs
+  associations garde la première gérée (noté dans a-verifier).
+Choix autonomes :
+- Invitation : rôles `manager` et `viewer` ; `owner` refusé (`validation_failed`) — un owner se nomme par `PATCH`.
+  Réinviter une personne encore `invited` réémet son code (nouveau message prêt, ancien code invalidé), sans quota.
+  Une personne déjà gestionnaire active de l'association → 422 `validation_failed` champ `email` (le front l'affiche
+  « email-existant »). Personne retirée réinvitée : même ligne repassée `invited`.
+- Rôle : `PATCH` sur la ligne de gestion de la personne (une seule par association, garantie par les cas d'usage) ;
+  rétrograder ou retirer le dernier owner actif → `last_owner` (verrou de l'association) ; on ne se retire pas soi-même
+  s'il est le dernier owner (même règle).
+- Retrait : `status = removed`, `removed_at` ; `team.changed` (`change: removed`) ; sessions de l'espace association de
+  la personne révoquées dans la même transaction (familles, `sid` en liste noire après COMMIT) — immédiat, pas via
+  l'outbox. Les autres changements (`invited`, `role_changed`, `joined`) émettent aussi `team.changed`.
+- Liste : gestionnaires invités ou actifs, owner d'abord, puis ancienneté ; `seats` = `quotaUsageOf('managers')` et
+  limite de l'abonnement.
+Étapes :
+1. **Équipe** — module `access` (cas d'usage `tm.team`), `identity` (création du compte en espace association, code
+   `team_invite`, révocation des sessions), `auth.activate` étendu. Tests : intégration (invitation, réinvitation,
+   quota, rôle, retrait + jeton refusé aussitôt, `last_owner`, compte existant : mauvais / bon mot de passe actuel),
+   isolation HTTP (B ne voit ni ne modifie A ; politique `memberships` élargie). Front : bascule `tm.team`, mocks
+   supprimés, page `/activer` (cas compte existant), `/verifier-ecran /asso/equipe`.
+2. **Multi-associations** — `me.assos` (liste, détail) dans `reporting` à partir de `subscriberEnrollmentsOf`.
+   Tests : souscripteur de A et B voit les deux, détail d'une association non rejointe → 404, isolation entre
+   souscripteurs. Front : bascule `me.assos`, mocks supprimés, `/verifier-ecran /associations`.
+Vérification : tests ciblés par étape, `pnpm verify` complet avant la PR (une PR pour le lot).
+Choix autonomes de l'étape 2 (me.assos) :
+- Associations = appartenances souscriptrices actives (gestionnaire seulement, retirée : absente, fiche → 404), dans
+  l'ordre d'arrivée ; `memberSince` = `joined_at` de l'appartenance (à défaut sa création), ajouté à
+  `activeMembershipsOf` (source : `access/application/memberships.ts`).
+- Chiffres : reste dû = `subscriberSummary` sur les inscriptions non retirées ; projets en cours = inscriptions non
+  retirées d'un projet ni `completed` ni `archived` ; situation = `overallStanding` sur toutes les inscriptions,
+  retirées comprises (« retiré » s'il l'est de tout), « à jour » sans inscription.
+- Fiche : cartes non retirées (comme me.projects) et moyens de paiement **actifs** de l'association
+  (`subscriberAssociationDetailsOf` ajouté à tenancy pour ville, pays, description, contacts).
+- « Sélecteur d'association côté souscripteur » (lot, étape 2) = l'écran Mes associations et sa fiche : aucun autre
+  sélecteur dans la maquette (`design/INVENTAIRE.md`, MbAssociations, MbAssociation).
+- Front : `contexteSouscripteur` lit toujours `me.assos` (repli sur les cartes supprimé, l'endpoint est au registre) ;
+  tests de bascule pris sur `bl.inv` (lot 4.6, encore simulé).
+
+## Retours d'interface de l'utilisateur (2026-11-12, branche chore/retours-interface)
+Premier lot de corrections (sans écart à la maquette) ; calendrier, déconnexion souscripteur et logo attendent son accord.
+- Espace impossible dans un champ : `CzCard` annulait Entrée/Espace venus de ses descendants (`@keydown.space.prevent`) ;
+  la carte ne réagit plus qu'à une touche qui la vise elle-même (`e.target === e.currentTarget`).
+- Preuve côté gestionnaire : l'url restait `[URL]` (jamais lue). `VisionneusePreuve` lit le fichier elle-même
+  (`useLectureFichier`, tout de suite en `grand`, au premier clic sinon) ; `useLectureFichier` passe par `as.file` en
+  espace gestionnaire (`fl.get` refuse les fichiers d'association hors espace souscripteur : `files/find-file.ts`).
+- Boutons « Déclarer un paiement » : règle `peutDeclarer` (utils/souscriptions.ts) = refus du back (`me.declare` :
+  projet terminé/archivé, contrat à signer, association suspendue) + reste > 0 ; bouton flottant et barre latérale par
+  `useDeclarationPossible` (lecture `me.projects` seule), fiche d'association, détail d'un projet, cartes de l'accueil.
+- Mes associations (choix de l'utilisateur : écran souscripteur) : une association n'est listée que si la personne y a
+  un projet en cours ou un reste à régler (`me.assos` list, back) ; sa fiche reste servie par l'API.
+
+## Retours d'interface, second lot (2026-11-12, branche chore/retours-interface-2, accord « vas y »)
+Écarts consignés dans `docs/specs/ui-deviations.md` (5 lignes).
+- Calendrier : `CzChampDate` (cz/) = saisie masquée JJ/MM/AAAA + bouton qui ouvre le sélecteur natif
+  (`input type=date` caché ancré au bouton, `showPicker`, repli `focus`) ; création de projet et ajout d'un souscripteur.
+- Déconnexion souscripteur : bloc « moi » de `MemberSidebar` devenu un `CzMenu` (Mon profil, Se déconnecter),
+  ouvert vers le haut (prop `ouverture` de `CzMenu`) ; en mobile, icône de déconnexion dans l'en-tête de `/profil`.
+- Logo : affiché en espace gestionnaire seulement (`useImageFichier`, barre latérale et paramètres avec aperçu local) ;
+  plateforme : initiales.
+- Logo côté souscripteur (accord de l'utilisateur, 2026-11-12) : migration 0026, politique `subscriber_logo_read`
+  (lecture, logo en cours `associations.logo_file_id`, membre actif) ; `findFile` laisse passer `logo` en espace
+  souscripteur ; cartes « Mes associations » et fiche par `useImageFichier` (fl.get).
+
+## Lot 4.6 · Facturation, exports et statistiques d'usage (plan du 2026-11-13, branche lot/4.6-facturation-exports)
+Dépendance 4.1 terminée ; aucune décision listée. Une PR pour le lot (accord du 2026-11-11), tests ciblés par étape,
+`pnpm verify` complet avant la PR.
+
+Écarts tranchés par l'utilisateur (2026-11-13) :
+- **Exports CSV et PDF seulement** : l'enum `export_jobs_kind` (project_report_csv, project_report_pdf, members_csv)
+  fait foi ; « XLSX / Excel » du lot, de features.yaml et du résumé de `rp.export` à corriger à la clôture
+  (proposition de changement de doc). L'export « retardataires » du mobile reste généré par le front (aucun kind).
+- **Reçu de paiement fait dans le lot (étape 5), spec modifiée avec accord** : `files_purpose` + `receipt_pdf`,
+  `payments.receipt_file_id` (UNIQUE, FK files), politique `subscriber_receipt_read` (espace souscripteur, reçu d'un de
+  ses paiements), consommateur « documents : reçu PDF » de `payment.validated`, `receiptFileId` dans `me.payment`
+  (lu par `fl.get`). Généré par une tâche différée **après le délai d'annulation (10 min)**, qui revérifie que le
+  paiement est encore `validated` ; stocké dans cotiz-legal (WORM), jamais régénéré ; pour chaque paiement (pas d'option).
+- **Factures** : numéro continu `CTZ-AAAA-NNNNNN` (séquence PostgreSQL globale, jamais réutilisée, une facture `void`
+  garde son numéro) ; une facture par période d'abonnement, émise le 1er jour de la période, échéance J+15,
+  `overdue` après l'échéance ; aucune facture pendant l'essai ni pour un plan à 0 F ; montant = prix actuel du plan
+  pour la période (commentaire `stats_recurring_revenue` de schema.sql).
+- **Quota d'export** (`quota_exceeded`) : au plus 1 export `queued`/`running` par association et 20 par jour local.
+
+Choix autonomes (conventionnels) :
+- `billing.issue-invoices` (quotidienne, 00:30 du fuseau de l'association, passage horaire comme les autres tâches
+  locales) fait aussi avancer la période d'abonnement : période échue → suivante ; essai terminé → `active` + facture ;
+  facture `overdue` → abonnement `past_due` ; `pf.invoice.paid` → `paid` et l'abonnement repasse `active` s'il était
+  `past_due` sans autre facture impayée. Règles pures dans `@cotiz/domain` (`invoicing.ts`).
+- Écriture des factures en contexte de chaque association (invoices n'a que `tenant_isolation`) ; lecture plateforme par
+  la connexion BYPASSRLS (`platformRoute`, comme `pf.asso.*`).
+- `usage_daily` : tâche `usage.daily` (02:00 Africa/Abidjan) qui recalcule la veille par association (idempotente,
+  `ON CONFLICT DO UPDATE`) : connexions = `sessions` créées en espace association/souscripteur par des membres
+  de l'association, utilisateurs actifs = personnes distinctes, paiements déclarés/validés du jour,
+  délai moyen de validation en heures. Le consommateur « reporting: usage » de `user.logged_in` n'est pas utile
+  (payload sans association) : à noter dans a-verifier.
+
+Plan :
+1. **Tables** — migration `0027_billing_exports_usage.sql` (`invoices`, `invoice_number_seq`, `export_jobs`,
+   `usage_daily`, RLS forcée selon schema.sql), schéma Drizzle `packages/db/src/schema/`, tests de conformité
+   et d'isolation (`backend/test/isolation/billing-v2.test.ts`, politiques affaiblies). Vérif. : migrations + isolation.
+2. **Factures** — `packages/domain/src/invoicing.ts` (+ tests d'abord : numéro, période suivante, échéance, essai,
+   0 F, overdue) ; billing : `issue-invoices.use-case.ts`, tâche `billing.issue-invoices`, `subscription.invoice_issued`
+   / `subscription.invoice_paid` ; documents : gabarit `packages/pdf-templates/src/invoice.ts`, consommateur
+   `invoice-issued.consumer.ts` (PDF dans cotiz-legal, `pdf_file_id`) ; notifications owner ; HTTP `bl.inv`,
+   `pf.invoices` (+ summary KPI), `pf.invoice.paid` (idempotent, audit, `invalid_state`) ; `as.file`/`pf` lecture
+   du PDF. Tests : numéros jamais réutilisés (concurrence, `void`), rejeu de la tâche sans doublon, isolation HTTP.
+   Front : bascule `bl.inv`, `pf.invoices`, `pf.invoice.paid` (facturation, détail association, abonnement).
+3. **Exports** — reporting : `request-export.use-case.ts` (quota, idempotence, audit), file `exports`
+   (concurrence 1 par association), écriture en flux (CSV en curseur, PDF via Gotenberg), fichier `export` dans
+   cotiz-exports `expires_at` +7 j, `export.completed` → notification du demandeur ; lien par `as.file`.
+   Tests : 50 000 lignes en mémoire bornée et p95 de l'API pendant l'export (`test/perf/export-50k.test.ts`), quota,
+   isolation. Front : bascule `rp.export` (rapports CSV/PDF, annuaire).
+4. **Usage** — `usage.daily`, `pf.asso.usage` (30 j par défaut) ; tests de la tâche (horloge simulée, rejeu) et
+   isolation ; front : onglet Usage du détail d'association.
+5. **Reçu de paiement** — spec (accord ci-dessus) : schema.sql, data-model, events.yaml, contrat `me.payment` ;
+   migration 0028 ; gabarit `receipt.ts` ; tâche différée de `payment.validated` ; `fl.get` ouvert au reçu ;
+   front : « Télécharger le reçu » dans le détail du paiement (MbHistorique). Tests : annulé dans les 10 min → aucun
+   reçu, rejeu → un seul reçu, isolation.
+Fin : `/verifier-ecran` sur `/plateforme/facturation`, `/plateforme/associations/:id`, `/asso/abonnement`,
+`/asso/souscripteurs`, `/asso/projets/:id/rapports` ; relectures isolation + argent ; `pnpm verify` ; PR vers `dev` ;
+`/fin-lot 4.6`.
+
+- **2026-11-15 · lot 4.6 · mise en service de la facturation** (choix de l'utilisateur) — un abonnement encore jamais
+  facturé ne l'est qu'à partir de la période qui contient le jour du passage : aucune facture rétroactive, donc aucune
+  facture déjà échue à l'émission ni `past_due` soudain des associations existantes. Échéance = J+15 du jour d'émission
+  quand la facture est émise après le premier jour de sa période (rattrapage). *`packages/domain/src/invoicing.ts`
+  (`billingRun`, `invoiceDueOn`), `billing-invoices.test.ts` (passage du 1er oct. puis du 13 nov.).*
+- **2026-11-15 · lot 4.6 · étape 3 (exports)** —
+  - `export.requested` ajouté à events.yaml (accord de l'utilisateur) : la demande écrit l'événement dans sa
+    transaction, le consommateur `reporting-exports` met le job dans la file `exports` (jobId `export-<événement>`).
+  - Chiffres identiques aux écrans : l'export du rapport réutilise `GetProjectReportUseCase` (rp.report) et celui de
+    l'annuaire `memberSummariesOf` (mb.list), en mémoire plutôt qu'en curseur ; mesure sur 50 000 lignes dans
+    `test/perf/export-50k.test.ts` (worker en processus séparé). PDF sans plafond de lignes.
+  - Le worker revérifie le droit `reports.export` du demandeur (accès de gestion) avant de produire ; perdu → `failed`.
+  - Méthodes sûres (GET/HEAD/OPTIONS) exemptées de l'intercepteur d'idempotence : `rp.export` porte le drapeau
+    `idempotencyKey` pour sa création seulement (`shared/http/idempotency.interceptor.ts`, test unitaire).
+  - Quota du jour compté sur l'horloge applicative (`todayIn(tz)`), pas `now()` de la base.
+  - Purge `files.expired` : supprime la ligne `files` et l'objet ; `export_jobs.file_id` reste (pas de clé étrangère),
+    l'export expiré répond 404 à `as.file`.
+  - Front : formule sans `exports` → CSV produit dans le navigateur comme avant, PDF refusé (toast) ; annuaire filtré
+    (recherche, statut) → CSV navigateur, l'export serveur ne porte que le filtre projet.
+- **2026-11-15 · lot 4.6 · étape 4 (usage)** —
+  - `usage.daily` recalcule depuis les sources au lieu de compter `user.logged_in` (consommateur « reporting: usage » de
+    events.yaml non branché) : un compteur alimenté par un consommateur double-compterait au rejeu ; les sessions
+    gardent chaque connexion (premier maillon d'une famille) et chaque renouvellement (activité). Proposition de doc :
+    retirer ce consommateur d'events.yaml à la clôture.
+  - Passage horaire (`40 * * * *`) : jours locaux finis des 7 derniers absents, la veille dès 02:00 locale, écrits une
+    fois (`ON CONFLICT DO NOTHING`, jamais recalculés). Associations suspendues ou fermées ignorées.
+  - Périmètre d'une association : gestionnaires actifs (sessions `association`) et souscripteurs actifs (sessions
+    `subscriber`) ; une personne gestionnaire ici et souscriptrice ailleurs ne compte que là où elle a le rôle de
+    l'espace. Délai moyen : heures à 0,1 près des paiements validés du jour (0 sans validation, colonne NOT NULL).
+  - pf.asso.usage : jours calculés seulement (le front complète par 0) ; période inversée ou > 366 jours → 422.
+  - Front : onglet Usage sans maquette (CzSoon retiré) : 3 KPI + barres `BarresEcheances` (texte lu par les lecteurs
+    d'écran ajouté) ; période de 6 mois jusqu'à la veille au jour d'Abidjan.
+- **2026-11-15 · lot 4.6 · étape 5 (reçu de paiement)** — spec acceptée appliquée : schema.sql, data-model,
+  events.yaml, architecture/08, migration `0028_payment_receipts.sql`, `receiptFileId` dans `me.payment`.
+  - `payments_guard` (CREATE OR REPLACE dans 0028) : `receipt_file_id` se pose une fois, NULL → valeur, sur un
+    paiement validé qui le reste ; jamais remplacé ni retiré. La politique `subscriber_receipt_read` n'emploie pas la
+    nouvelle valeur d'enum (même transaction que son ajout) : elle passe par `payments.receipt_file_id`.
+  - Job `receipt-pdf` différé de 11 min (délai d'annulation + 1 min) ; trop tôt malgré tout (horloges) → repris au
+    terme (`moveToDelayed`, sans consommer de tentative) ; paiement plus validé → rien. Le registre (`PaymentReceipts`,
+    ledger.public) réserve le fichier sous verrou du paiement ; documents rend et stocke (`storeLegalPdf`, WORM).
+  - Deux passages simultanés peuvent rendre deux fois, un seul objet est écrit (même règle que factures et contrats).
+  - Reçu lisible par le souscripteur (fl.get) et par les gestionnaires de l'association (as.file, tenant_isolation).
+  - Front : « Télécharger le reçu » dans le détail d'un paiement validé (MbHistorique) ; pas encore produit → toast
+    « Reçu bientôt disponible ». Pas de maquette pour ce bouton (CzButton secondaire, icône telecharger).

@@ -5,12 +5,14 @@
   Mobile : jauge « Comptes secondaires 2 / 3 », liste, rôle secondaire expliqué, bouton pleine largeur.
   Invitation : modale (desktop) / feuille basse (mobile). Quota atteint : barre rouge, explication, bouton désactivé.
   Scénarios : `quota-atteint` (+ `chargement`, `erreur`).
+  Écart sans fournisseur (ui-deviations, lot 4.5) : aucun email ; l'invitation (ou son renvoi) affiche le code
+  `team_invite` et son message prêt (HandoffCard) à transmettre par la personne qui invite.
 -->
 <script setup lang="ts">
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
 import type { ElementMenu } from '~/components/cz/CzMenu.vue'
-import type { Gestionnaire, InvitationGestionnaire } from '~~/types'
-import { codeErreur } from '~/composables/api/client'
+import type { AccesARemettre, Gestionnaire, InvitationGestionnaire } from '~~/types'
+import { codeErreur, messageRefus } from '~/composables/api/client'
 import { formatDate, joursDepuis, lireDate } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-gestionnaire', layout: 'backoffice', espace: 'gestionnaire', titre: 'Équipe' })
@@ -64,6 +66,12 @@ const lignes = computed(() => membres.value.map(g => ({ id: g.id, membre: g })))
 
 // ---------------------------------------------------------------- Invitation
 const invitation = ref(false)
+/** Message prêt de la dernière invitation (ou de son renvoi), à transmettre par la personne qui invite. */
+const acces = ref<AccesARemettre | null>(null)
+const accesOuvert = computed({
+  get: () => acces.value !== null,
+  set: (v) => { if (!v) acces.value = null },
+})
 const envoi = ref(false)
 const erreurInvitation = ref<string>()
 const ERREURS: Record<string, string> = {
@@ -81,9 +89,9 @@ async function inviter(corps: InvitationGestionnaire) {
   envoi.value = true
   erreurInvitation.value = undefined
   try {
-    await actions.inviter(corps)
+    const r = await actions.inviter(corps)
     invitation.value = false
-    toast.succes('Invitation envoyée', { message: `${corps.prenom} ${corps.nom} reçoit ses identifiants à ${corps.email}.` })
+    acces.value = r.acces
     await refresh()
   }
   catch (e) {
@@ -112,11 +120,10 @@ const confirmationOuverte = computed({
 
 async function renvoyer(g: Gestionnaire) {
   try {
-    const r = await actions.renvoyer(g.id)
-    toast.succes(r.type === 'invitation' ? 'Invitation renvoyée' : 'Identifiants renvoyés', { message: `Envoyé à ${r.email}.` })
+    acces.value = await actions.renvoyer(g.id)
   }
-  catch {
-    toast.erreur('Envoi impossible', { message: 'Vérifiez votre connexion, puis réessayez.' })
+  catch (e) {
+    toast.erreur('Nouveau code impossible', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
   }
 }
 
@@ -138,9 +145,11 @@ async function retirer() {
   }
 }
 
+// Renvoi : un nouveau code d'invitation, tant que la personne ne l'a pas accepté. Un compte actif qui a perdu son mot
+// de passe passe par « Mot de passe oublié » (traité par la plateforme).
 const menu = (g: Gestionnaire): ElementMenu[] => [
-  { label: g.statut === 'invite' ? 'Renvoyer l’invitation' : 'Renvoyer les identifiants', action: () => renvoyer(g) },
-  { label: 'Retirer l’accès', danger: true, separe: true, action: () => (aRetirer.value = g) },
+  ...(g.statut === 'invite' ? [{ label: 'Renvoyer l’invitation', action: () => renvoyer(g) }] : []),
+  { label: 'Retirer l’accès', danger: true, separe: g.statut === 'invite', action: () => (aRetirer.value = g) },
 ]
 
 const chargement = computed(() => pending.value && !data.value)
@@ -391,6 +400,25 @@ const chargement = computed(() => pending.value && !data.value)
       :erreur="erreurInvitation"
       @inviter="inviter"
     />
+
+    <CzModal
+      v-model:ouvert="accesOuvert"
+      titre="Invitation à transmettre"
+      taille="md"
+    >
+      <HandoffCard
+        v-if="acces"
+        titre="Invitation dans l’équipe"
+        libelle-code="Code d’invitation"
+        :destinataire="acces.destinataire"
+        :code="acces.code"
+        :expire-le="acces.expireLe"
+        :message="acces.message"
+        :whatsapp="acces.whatsapp"
+        :sms="acces.sms"
+        :mailto="acces.mailto"
+      />
+    </CzModal>
 
     <CzConfirmation
       v-model:ouvert="confirmationOuverte"

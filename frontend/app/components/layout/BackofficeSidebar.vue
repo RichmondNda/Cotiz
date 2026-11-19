@@ -16,6 +16,8 @@ defineEmits<{ naviguer: [] }>()
 
 const { deconnecter } = useSession()
 const { data: moi } = useMoi()
+// Logo de l'association courante (gestionnaire), à défaut ses initiales.
+const logo = useImageFichier(() => (props.espace === 'gestionnaire' ? moi.value?.association?.logoFichierId : undefined))
 const { actif, compteur } = useEntreesNavigation()
 
 const { peut } = usePermissions()
@@ -55,6 +57,7 @@ const accueil = computed(() => (props.espace === 'superadmin' ? '/plateforme' : 
       <CzAvatar
         :nom="moi.association.nom"
         :initiales="moi.association.sigle"
+        :src="logo ?? undefined"
         org
         class="sidebar__org-avatar"
       />

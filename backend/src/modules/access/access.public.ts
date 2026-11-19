@@ -17,6 +17,7 @@ export {
 export {
   type AssociationMembers,
   type AssociationTeam,
+  contextOwnerOf,
   grantOwnership,
   membersOf,
   ownerOf,
@@ -28,8 +29,22 @@ export {
   activeSubscriberIdsOf,
   admitSubscriber,
   isSubscriberOf,
+  quotaCountedSubscribersOf,
   subscriberMembershipOf,
 } from './application/subscriber-membership.js';
+export {
+  acceptTeamInvitation,
+  activeOwnersCountOf,
+  activeTeamIdsOf,
+  changeTeamRole,
+  inviteToTeam,
+  lockTeam,
+  removeFromTeam,
+  type TeamMembership,
+  teamMembershipOf,
+  teamOf,
+  type TeamRow,
+} from './application/team-memberships.js';
 export { platformSubscribersCount, platformTeamSizes, type TeamSize } from './application/platform-team-stats.js';
 export { SeedDevMembershipsUseCase } from './application/seed-dev-memberships.use-case.js';
 export { SelfRoles } from './application/self-roles.js';
