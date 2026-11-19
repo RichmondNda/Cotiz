@@ -75,6 +75,8 @@ x-healthcheck: &healthcheck
 services:
   postgres:
     image: postgres:16-alpine
+    # Statistiques des requêtes, lues par la supervision (postgres-monitoring).
+    command: ['postgres', '-c', 'shared_preload_libraries=pg_stat_statements']
     environment:
       POSTGRES_USER: cotiz
       POSTGRES_PASSWORD: ${COTIZ_DB_SUPERUSER_PASSWORD:?}
@@ -92,6 +94,23 @@ services:
       <<: *healthcheck
       test: ['CMD-SHELL', 'pg_isready -U cotiz -d cotiz']
     restart: unless-stopped
+
+  # Rôle de supervision (intégration PostgreSQL d'Elastic), rejoué à chaque déploiement : voir le script.
+  postgres-monitoring:
+    image: postgres:16-alpine
+    command: ['sh', '/monitoring-role.sh']
+    environment:
+      PGHOST: postgres
+      PGUSER: cotiz
+      PGPASSWORD: ${COTIZ_DB_SUPERUSER_PASSWORD:?}
+      PGDATABASE: cotiz
+      COTIZ_DB_MONITORING_PASSWORD: ${COTIZ_DB_MONITORING_PASSWORD:-}
+    volumes:
+      - ./postgres-monitoring/monitoring-role.sh:/monitoring-role.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
 
   # Mode transaction : le contexte tenant passe par SET LOCAL (architecture/02).
   pgbouncer:
