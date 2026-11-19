@@ -96,6 +96,8 @@ function secretsProduction() {
     COTIZ_DB_APP_PASSWORD: hex(24),
     COTIZ_DB_PLATFORM_PASSWORD: hex(24),
     COTIZ_DB_READONLY_PASSWORD: hex(24),
+    // Rôle de supervision cotiz_monitoring (infra/compose/postgres-monitoring), repris par l'intégration PostgreSQL d'Elastic.
+    COTIZ_DB_MONITORING_PASSWORD: hex(24),
     COTIZ_S3_ACCESS_KEY_ID: `cotiz-${hex(6)}`,
     COTIZ_S3_SECRET_ACCESS_KEY: hex(24),
   };
