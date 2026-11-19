@@ -5,7 +5,8 @@
 # docker-entrypoint-initdb.d.
 #
 # Droits : membre de pg_monitor seulement (statistiques du serveur, requêtes en cours), aucun accès aux tables
-# (pas d'USAGE sur le schéma public, pas de BYPASSRLS), session en lecture seule, 3 connexions au plus.
+# (pas d'USAGE sur le schéma public, pas de BYPASSRLS), session en lecture seule, 6 connexions au plus
+# (l'agent Elastic en ouvre une par jeu de métriques : activity, bgwriter, database, statement).
 # pg_stat_statements est installé dans un schéma dédié « monitoring » : public reste fermé à ce rôle, et les
 # requêtes y sont normalisées (constantes remplacées par $1, $2…).
 #
@@ -21,7 +22,7 @@ psql -v ON_ERROR_STOP=1 -q <<'SQL'
 \getenv monitoring COTIZ_DB_MONITORING_PASSWORD
 SELECT 'CREATE ROLE cotiz_monitoring LOGIN' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'cotiz_monitoring') \gexec
 SELECT format('ALTER ROLE cotiz_monitoring PASSWORD %L', :'monitoring') \gexec
-ALTER ROLE cotiz_monitoring LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 3;
+ALTER ROLE cotiz_monitoring LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 6;
 GRANT pg_monitor TO cotiz_monitoring;
 
 CREATE SCHEMA IF NOT EXISTS monitoring;
