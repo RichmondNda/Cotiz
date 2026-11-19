@@ -6,7 +6,7 @@ import { findFile } from './find-file.js';
 
 /**
  * fl.get : contrôle d'accès (RLS : association ou déposant), puis URL de lecture signée de 5 min. Un fichier en
- * attente d'analyse ou infecté n'est jamais servi (404). Chaque consultation est auditée (endpoints.yaml).
+ * attente d'analyse ou infecté n'est jamais servi (404), ni un fichier expiré (export de plus de 7 jours). Chaque consultation est auditée (endpoints.yaml).
  */
 @Injectable()
 export class GetFileUseCase {
@@ -17,6 +17,8 @@ export class GetFileUseCase {
     const actor = requireActor();
     const file = await findFile(actor, id);
     if (file?.scanStatus !== 'clean') throw new DomainProblem('not_found');
+    // Export expiré (7 jours) pas encore purgé : plus servi.
+    if (file.expiresAt && file.expiresAt <= new Date()) throw new DomainProblem('not_found');
     recordAudit({ entityType: 'file', entityId: file.id, associationId: file.associationId });
     return this.storage.presignDownload({
       bucket: file.bucket,

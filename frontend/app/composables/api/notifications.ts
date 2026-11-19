@@ -12,6 +12,8 @@ const TYPES: Record<string, TypeNotification> = {
   'password_reset.requested': 'relance', 'association.request_submitted': 'inscriptions',
   // Lot 2.6 : récapitulatif du jour des gestionnaires (tâche managers.digest), d'abord des paiements à valider.
   'digest.daily': 'paiement_declare',
+  // Lot 4.6 : facture d'abonnement émise ou réglée (owner de l'association).
+  'subscription.invoice_issued': 'abonnement', 'subscription.invoice_paid': 'abonnement',
 }
 
 export const useNotifications = () =>

@@ -55,6 +55,30 @@ export async function ownerOf(associationId: string): Promise<string | null> {
   return row?.userId ?? null;
 }
 
+/**
+ * Owner actif le plus ancien de l'association du contexte (facture d'abonnement, lot 4.6 : propriétaire du fichier
+ * PDF) ; `null` sans owner actif. Espace association seulement, association du contexte seulement (RLS en plus).
+ */
+export async function contextOwnerOf(associationId: string): Promise<string | null> {
+  const context = currentContext();
+  if (context?.space !== 'association' || context.associationId !== associationId) {
+    throw new Error('contextOwnerOf : contexte de cette association seulement');
+  }
+  const [row] = await currentTx()
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.associationId, associationId),
+        eq(memberships.role, 'owner'),
+        eq(memberships.status, 'active'),
+      ),
+    )
+    .orderBy(memberships.createdAt)
+    .limit(1);
+  return row?.userId ?? null;
+}
+
 export interface AssociationMembers {
   /** Gestionnaires (owner, manager, viewer) invités ou actifs, owner en premier, puis par ancienneté. */
   managers: { userId: string; role: 'owner' | 'manager' | 'viewer' }[];

@@ -22,11 +22,7 @@ export class ListMembersUseCase {
     const after = listPosition(query);
     const associationId = contextAssociationId(aid);
     const entries = await this.directory.entries(associationId, await associationToday(aid), { q: query.q });
-    const byMember = new Map<string, EnrollmentEntry[]>();
-    for (const entry of entries) byMember.set(entry.row.userId, [...(byMember.get(entry.row.userId) ?? []), entry]);
-    const members = [...byMember.values()]
-      .filter((own) => !query.projectId || own.some((e) => e.row.projectId === query.projectId))
-      .map(summaryOf);
+    const members = memberSummariesOf(entries, { projectId: query.projectId });
     const filtered = query.standing ? members.filter((m) => m.summary.standing === query.standing) : members;
     const page = pageOf(filtered, (m) => ({ at: m.at, id: m.summary.member.id }), after, query.limit);
     return {
@@ -36,6 +32,21 @@ export class ListMembersUseCase {
       facets: { standing: standingFacets(members.map((m) => m.summary.standing)) },
     };
   }
+}
+
+/**
+ * Lignes de l'annuaire (une par personne, ses inscriptions regroupées), sans pagination ni tri : mb.list et l'export
+ * `members_csv` (rp.export, lot 4.6). Filtre projet : personnes inscrites à ce projet, tous leurs projets gardés.
+ */
+export function memberSummariesOf(
+  entries: readonly EnrollmentEntry[],
+  filter: { projectId?: string | undefined } = {},
+): { at: string; summary: Summary }[] {
+  const byMember = new Map<string, EnrollmentEntry[]>();
+  for (const entry of entries) byMember.set(entry.row.userId, [...(byMember.get(entry.row.userId) ?? []), entry]);
+  return [...byMember.values()]
+    .filter((own) => !filter.projectId || own.some((e) => e.row.projectId === filter.projectId))
+    .map(summaryOf);
 }
 
 /** Ligne de l'annuaire d'une personne (inscriptions non vides) ; `at` : sa première inscription (clé de tri). */

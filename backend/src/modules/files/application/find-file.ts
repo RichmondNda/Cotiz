@@ -4,14 +4,16 @@ import type { Actor } from '../../../shared/http/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { UPLOAD_SPACE } from '../domain/upload-policy.js';
 
+/** Usages produits pour le souscripteur ou partagés avec lui : contrat signé, logo de ses associations, reçu (4.6). */
+const SUBSCRIBER_READABLE: ReadonlySet<string> = new Set(['contract_pdf', 'logo', 'receipt_pdf']);
+
 /**
- * Usages lisibles hors espace association : ceux qu'on y dépose, le PDF de son contrat signé (lot 4.1) et le logo
- * d'une association dont on est membre (RLS subscriber_logo_read, retours d'interface du 2026-11-12).
+ * Usages lisibles hors espace association : ceux qu'on y dépose, le PDF de son contrat signé (lot 4.1), le logo
+ * d'une association dont on est membre (RLS subscriber_logo_read, retours d'interface du 2026-11-12) et le reçu d'un
+ * de ses paiements (RLS subscriber_receipt_read, lot 4.6).
  */
 function readableOutsideAssociation(purpose: (typeof files.$inferSelect)['purpose'], space: Actor['space']): boolean {
-  return (
-    UPLOAD_SPACE[purpose] === space || ((purpose === 'contract_pdf' || purpose === 'logo') && space === 'subscriber')
-  );
+  return UPLOAD_SPACE[purpose] === space || (SUBSCRIBER_READABLE.has(purpose) && space === 'subscriber');
 }
 
 /** Logo d'association : lisible par ses membres (la RLS ne le laisse passer que pour eux), pas seulement le déposant. */

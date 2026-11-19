@@ -106,7 +106,11 @@ export class GetPlatformDashboardUseCase {
             createdAt: a.createdAt,
             lastActivityAt: lastActivityOf(a.id),
             subscription: subscription
-              ? { status: subscription.status, currentPeriodEnd: subscription.currentPeriodEnd }
+              ? {
+                  status: subscription.status,
+                  currentPeriodEnd: subscription.currentPeriodEnd,
+                  unpaidSince: subscription.unpaidSince,
+                }
               : null,
             usage: { subscribers: team?.subscribers ?? 0, managers: team?.managers ?? 0 },
             limits: subscription?.limits ?? null,

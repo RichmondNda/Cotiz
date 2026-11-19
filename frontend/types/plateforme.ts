@@ -237,3 +237,16 @@ export interface CodeReinitialisation {
   demande: DemandeReinitialisation
   acces: AccesARemettre
 }
+
+/** Onglet « Usage » du détail d'association (pf.asso.usage, lot 4.6) : jours calculés par la tâche usage.daily. */
+export interface UsageAssociation {
+  /** Connexions des 30 derniers jours finis, un élément par jour (0 pour un jour sans activité ou pas encore calculé). */
+  connexions: { jour: string, valeur: number }[]
+  totalConnexions: number
+  /** Paiements déclarés et validés par mois, des 6 derniers mois (mois en cours compris). */
+  paiementsParMois: { mois: string, declares: number, valides: number }[]
+  /** Délai moyen déclaration → validation sur 30 jours, en heures ; `null` sans validation. */
+  delaiMoyenHeures: number | null
+  /** Au moins un jour calculé sur la période. */
+  calcule: boolean
+}

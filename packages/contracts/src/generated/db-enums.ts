@@ -43,6 +43,7 @@ export const DB_ENUMS = {
     'cover',
     'import_source',
     'bank_statement',
+    'receipt_pdf',
   ],
   files_scan_status: ['pending', 'clean', 'infected'],
   export_jobs_kind: ['project_report_csv', 'project_report_pdf', 'members_csv'],

@@ -30,6 +30,15 @@ describe('watchlist', () => {
     ]);
   });
 
+  it('facture en retard (lot 4.6) : unpaid depuis son échéance, pas depuis la fin de la période avancée', () => {
+    const c = candidate({
+      subscription: { status: 'past_due', currentPeriodEnd: '2026-11-30', unpaidSince: '2026-10-16' },
+    });
+    expect(watchlist([c], NOW)).toEqual([
+      { associationId: 'a1', name: 'Association A', signal: 'unpaid', since: '2026-10-16' },
+    ]);
+  });
+
   it('aucune session de gestionnaire depuis plus de 30 jours : inactive depuis la dernière activité', () => {
     expect(watchlist([candidate({ lastActivityAt: daysAgo(31) })], NOW)).toEqual([
       { associationId: 'a1', name: 'Association A', signal: 'inactive', since: '2026-09-22' },

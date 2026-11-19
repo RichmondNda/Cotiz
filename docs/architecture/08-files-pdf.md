@@ -4,7 +4,7 @@
 | Compartiment | Contenu | Règles |
 |---|---|---|
 | cotiz-proofs | Preuves de paiement | Privé, versionné, antivirus, EXIF supprimé |
-| cotiz-legal | Contrats signés, factures | Privé, verrouillage d'objet en mode conformité (WORM) |
+| cotiz-legal | Contrats signés, factures, reçus de paiement | Privé, verrouillage d'objet en mode conformité (WORM) |
 | cotiz-exports | Exports | Privé, expiration 7 jours |
 | cotiz-imports | Fichiers importés, relevés | Privé, expiration 30 jours |
 | cotiz-media | Logos, couvertures | Privé, servis par URL signée longue ou proxy avec cache |
@@ -28,6 +28,6 @@ Gabarits HTML dans `packages/pdf-templates` (polices Poppins et Inter embarquée
 | Contrat signé + page de preuve | `contract.signed` | 4.1 |
 | Facture d'abonnement | `subscription.invoice_issued` | 4.6 |
 | Rapport de projet | Export demandé | 4.6 |
-| Reçu de paiement (optionnel) | `payment.validated` | 4.6 |
+| Reçu de paiement | `payment.validated`, après le délai d'annulation (10 min) | 4.6 |
 
-Tout PDF est haché, stocké, référencé dans `files`. Un contrat signé n'est jamais régénéré.
+Tout PDF est haché, stocké, référencé dans `files`. Un contrat signé, une facture ou un reçu n'est jamais régénéré.

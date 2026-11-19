@@ -12,6 +12,15 @@ export type { IsoDate } from './dates.js';
 export { firstSubscriptionPeriod, periodEnd } from './subscription.js';
 export type { BillingPeriod, FirstPeriod, FirstPeriodInput } from './subscription.js';
 export { monthlyEquivalent, monthlyRecurringRevenue } from './recurring-revenue.js';
+export {
+  billingRun,
+  INVOICE_DUE_DAYS,
+  invoiceDueOn,
+  invoiceNumber,
+  isInvoiceOverdue,
+  subscriptionStatusAfterInvoices,
+} from './invoicing.js';
+export type { BillingRun, BillingRunInput, InvoiceStatus, InvoiceToIssue, SubscriptionStatus } from './invoicing.js';
 export type { RecurringRevenueLine } from './recurring-revenue.js';
 export {
   byDueOrder,
@@ -82,3 +91,13 @@ export type { ContractContext, ContractValues, ContractVariable } from './contra
 export { QUIET_HOURS, quietHoursDelayMs } from './quiet-hours.js';
 export { daysOverdue, isRemindersTime, REMINDERS_MINUTES, reminderDueDate, reminderRunStatus } from './reminders.js';
 export type { ReminderTrigger } from './reminders.js';
+export { EXPORT_LIMITS, EXPORT_RETENTION_DAYS, exportExpiresAt, exportQuotaIssue } from './exports.js';
+export {
+  USAGE_CATCH_UP_DAYS,
+  USAGE_DAILY_HOUR,
+  USAGE_DEFAULT_DAYS,
+  USAGE_MAX_DAYS,
+  type UsagePeriod,
+  usageDaysToCompute,
+  usagePeriod,
+} from './usage.js';

@@ -20,6 +20,7 @@ export const BUCKETS: Readonly<Record<FilePurpose, string>> = {
   payment_proof: 'cotiz-proofs',
   contract_pdf: 'cotiz-legal',
   invoice_pdf: 'cotiz-legal',
+  receipt_pdf: 'cotiz-legal',
   export: 'cotiz-exports',
   import_source: 'cotiz-imports',
   bank_statement: 'cotiz-imports',

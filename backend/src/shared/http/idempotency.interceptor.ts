@@ -99,8 +99,11 @@ export class RedisIdempotencyStore implements IdempotencyStore {
   }
 }
 
+/** Méthodes sans effet (RFC 9110 § 9.2.1) : jamais soumises à `Idempotency-Key`. */
+const SAFE_METHODS: ReadonlySet<string> = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 /**
- * `Idempotency-Key` (architecture/06), pour les endpoints du contrat qui portent le drapeau : clé exigée ; réponse
+ * `Idempotency-Key` (architecture/06), pour les écritures des endpoints du contrat qui portent le drapeau : clé exigée ; réponse
  * réussie mémorisée 24 h et rejouée telle quelle (en-tête `Idempotent-Replayed`) ; même clé avec une autre requête →
  * 422 idempotency_key_reused ; même requête encore en cours → 409 invalid_state. Une opération en échec n'est pas
  * mémorisée : la même clé peut être renvoyée. Réponse avec un secret : voir ReplayInHandler. Clés propres à chaque utilisateur : jamais la réponse d'un autre.
@@ -126,6 +129,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
       body?: unknown;
       headers: Record<string, string | string[] | undefined>;
     }>();
+    // Méthode sûre (lecture d'un endpoint qui porte aussi une écriture, ex. rp.export › get) : rien à rejouer.
+    if (SAFE_METHODS.has(request.method)) return next.handle();
     const raw = request.headers['idempotency-key'];
     const key = Array.isArray(raw) ? raw[0] : raw;
     if (key === undefined || key === '') {

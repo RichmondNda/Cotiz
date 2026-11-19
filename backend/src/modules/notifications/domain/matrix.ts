@@ -37,6 +37,11 @@ export const NOTIFICATION_MATRIX = {
   'import.failed': { audience: 'manager', channels: ['in_app'] },
   // Relances (lot 4.3) : rappel au souscripteur ; canaux restreints à ceux de la règle (in_app, push).
   'reminder.sent': { audience: 'subscriber', channels: ['in_app', 'push'] },
+  // Factures d'abonnement (lot 4.6) : consommateur « notifications: owner » d'events.yaml.
+  'subscription.invoice_issued': { audience: 'manager', channels: ['in_app'] },
+  'subscription.invoice_paid': { audience: 'manager', channels: ['in_app'] },
+  // Exports (lot 4.6) : consommateur « notifications: demandeur » d'events.yaml.
+  'export.completed': { audience: 'manager', channels: ['in_app'] },
 } as const satisfies Partial<Record<EventType, MatrixEntry>>;
 
 export type NotifiedEventType = keyof typeof NOTIFICATION_MATRIX;

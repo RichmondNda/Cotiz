@@ -60,7 +60,7 @@ CREATE TYPE notification_channel AS ENUM ('in_app', 'push', 'email', 'sms');
 CREATE TYPE template_channel AS ENUM ('in_app', 'push', 'email', 'sms', 'manual');
 CREATE TYPE delivery_channel AS ENUM ('push', 'email', 'sms');
 CREATE TYPE deliveries_status AS ENUM ('queued', 'sent', 'delivered', 'failed', 'bounced');
-CREATE TYPE files_purpose AS ENUM ('payment_proof', 'contract_pdf', 'invoice_pdf', 'export', 'logo', 'cover', 'import_source', 'bank_statement');
+CREATE TYPE files_purpose AS ENUM ('payment_proof', 'contract_pdf', 'invoice_pdf', 'export', 'logo', 'cover', 'import_source', 'bank_statement', 'receipt_pdf');
 CREATE TYPE files_scan_status AS ENUM ('pending', 'clean', 'infected');
 CREATE TYPE export_jobs_kind AS ENUM ('project_report_csv', 'project_report_pdf', 'members_csv');
 CREATE TYPE export_jobs_status AS ENUM ('queued', 'running', 'done', 'failed');
@@ -373,6 +373,8 @@ COMMENT ON COLUMN subscriptions.manager_seats_override IS 'surcharge décidée p
 
 -- invoices · module billing · V2 · lot 4.6
 -- Factures de la plateforme aux associations.
+-- Numéro CTZ-<année>-<numéro sur 6 chiffres> : séquence globale, jamais remise à zéro ni réutilisée (lot 4.6).
+CREATE SEQUENCE invoice_number_seq;
 CREATE TABLE invoices (
   id uuid PRIMARY KEY,
   association_id uuid NOT NULL,
@@ -531,6 +533,7 @@ CREATE TABLE payments (
   version int NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  receipt_file_id uuid UNIQUE,
   UNIQUE (id, association_id, enrollment_id),
   UNIQUE (user_id, idempotency_key)
 );
@@ -541,6 +544,7 @@ COMMENT ON COLUMN payments.paid_on IS 'date du virement selon le souscripteur';
 COMMENT ON COLUMN payments.proof_file_id IS 'preuve OU référence obligatoire';
 COMMENT ON COLUMN payments.status IS 'pending · validated · rejected · canceled';
 COMMENT ON COLUMN payments.idempotency_key IS 'évite les doubles déclarations sur réseau mobile instable (unique par personne)';
+COMMENT ON COLUMN payments.receipt_file_id IS 'reçu PDF (lot 4.6) : posé une fois sur un paiement validé, après le délai d''annulation ; jamais régénéré';
 COMMENT ON COLUMN payments.version IS 'verrouillage optimiste';
 
 -- allocations · module ledger · V1 · lot 2.4
@@ -797,7 +801,7 @@ CREATE TABLE files (
 );
 COMMENT ON TABLE files IS 'Référentiel de tous les fichiers stockés dans MinIO.';
 COMMENT ON COLUMN files.association_id IS 'RLS';
-COMMENT ON COLUMN files.purpose IS 'payment_proof · contract_pdf · invoice_pdf · export · logo · cover · import_source · bank_statement';
+COMMENT ON COLUMN files.purpose IS 'payment_proof · contract_pdf · invoice_pdf · export · logo · cover · import_source · bank_statement · receipt_pdf';
 COMMENT ON COLUMN files.bucket IS '{association_id}/{purpose}/{uuid}.{ext}';
 COMMENT ON COLUMN files.object_key IS '{association_id}/{purpose}/{uuid}.{ext}';
 COMMENT ON COLUMN files.original_name IS 'nom du fichier déposé (affichage seulement, jamais utilisé comme clé)';
@@ -1090,6 +1094,7 @@ ALTER TABLE payments ADD FOREIGN KEY (user_id) REFERENCES users(id);
 -- Moyen de paiement de la même association.
 ALTER TABLE payments ADD FOREIGN KEY (payment_method_id, association_id) REFERENCES association_payment_methods(id, association_id);
 ALTER TABLE payments ADD FOREIGN KEY (proof_file_id) REFERENCES files(id);
+ALTER TABLE payments ADD FOREIGN KEY (receipt_file_id) REFERENCES files(id);
 ALTER TABLE payments ADD FOREIGN KEY (reviewed_by) REFERENCES users(id);
 ALTER TABLE allocations ADD FOREIGN KEY (association_id) REFERENCES associations(id);
 -- Paiement et échéance de la même association et de la même inscription (lot 2.4).
@@ -1250,10 +1255,15 @@ $$ BEGIN
     RAISE EXCEPTION 'invalid_state' USING ERRCODE = 'P0001';
   END IF;
   IF (to_jsonb(NEW) - 'amount_received' - 'status' - 'reviewed_by' - 'reviewed_at' - 'rejection_reason_code'
-        - 'rejection_message' - 'version' - 'updated_at')
+        - 'rejection_message' - 'version' - 'updated_at' - 'receipt_file_id')
      IS DISTINCT FROM
      (to_jsonb(OLD) - 'amount_received' - 'status' - 'reviewed_by' - 'reviewed_at' - 'rejection_reason_code'
-        - 'rejection_message' - 'version' - 'updated_at') THEN
+        - 'rejection_message' - 'version' - 'updated_at' - 'receipt_file_id') THEN
+    RAISE EXCEPTION 'forbidden_update' USING ERRCODE = 'P0001';
+  END IF;
+  -- Reçu (lot 4.6) : posé une seule fois, sur un paiement validé qui le reste.
+  IF NEW.receipt_file_id IS DISTINCT FROM OLD.receipt_file_id
+     AND (OLD.receipt_file_id IS NOT NULL OR OLD.status <> 'validated' OR NEW.status <> 'validated') THEN
     RAISE EXCEPTION 'forbidden_update' USING ERRCODE = 'P0001';
   END IF;
   IF NEW.status <> OLD.status AND NOT (
@@ -1615,6 +1625,10 @@ CREATE POLICY subscriber_contract_pdf_create ON files FOR INSERT
               AND object_key = association_id::text || '/contract_pdf/' || id::text || '.pdf'
               AND EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = app_user_id() AND e.association_id = files.association_id
                             AND e.status = 'pending_signature'));
+-- Reçu de ses paiements (lot 4.6) : lecture seule, le reçu posé sur un de ses paiements (payments.receipt_file_id).
+CREATE POLICY subscriber_receipt_read ON files FOR SELECT
+  USING (app_space() = 'subscriber' AND owner_user_id = app_user_id()
+         AND EXISTS (SELECT 1 FROM payments p WHERE p.receipt_file_id = files.id AND p.user_id = app_user_id()));
 -- Logo des associations dont il est membre actif (retours d'interface du 2026-11-12) : lecture seule, le logo en cours
 -- seulement (associations.logo_file_id), jamais un autre fichier de l'association.
 CREATE POLICY subscriber_logo_read ON files FOR SELECT

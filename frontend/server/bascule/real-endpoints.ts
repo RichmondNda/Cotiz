@@ -137,4 +137,11 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['tm.team', 'all'],
   // Lot 4.5 : associations du souscripteur (liste et fiche).
   ['me.assos', 'all'],
+  // Lot 4.6 : factures d'abonnement (tâche billing.issue-invoices, PDF par as.file, marquage manuel par la plateforme).
+  ['bl.inv', 'all'],
+  ['pf.invoices', 'all'],
+  ['pf.asso.usage', 'all'],
+  ['pf.invoice.paid', 'all'],
+  // Lot 4.6 : exports asynchrones (CSV/PDF par le worker, fichier lu par as.file pendant 7 jours).
+  ['rp.export', 'all'],
 ])

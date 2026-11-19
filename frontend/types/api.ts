@@ -446,6 +446,8 @@ export interface FactureAbonnement {
   emiseLe: DateISO
   montant: MontantFCFA | '[MONTANT]'
   statut: StatutFactureAbonnement
+  /** PDF de la facture (lu par as.file), absent tant qu'il n'est pas produit. */
+  pdfFichierId?: Identifiant
 }
 
 /** Jauge d'utilisation d'un quota. `pourcentage` : remplissage de la barre (la limite peut être un placeholder). */

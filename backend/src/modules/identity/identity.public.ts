@@ -9,7 +9,7 @@ export {
   platformPersonRefsOf,
 } from './application/person-refs.js';
 export { notifiableUsersOf } from './application/notifiable-users.js';
-export { platformManagerActivityOf } from './application/session-activity.js';
+export { platformManagerActivityOf, type SessionUsage, sessionUsageOf } from './application/session-activity.js';
 export { IdentityModule } from './identity.module.js';
 export { IdentityCliModule } from './identity-cli.module.js';
 export { type ManagerAccount, ManagerAccounts, type ManagerContact } from './application/manager-accounts.js';

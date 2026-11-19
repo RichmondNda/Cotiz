@@ -57,10 +57,28 @@ const COLONNES: ColonneTable[] = [
   { cle: 'pdf', label: '', largeur: '120px' },
 ]
 
-function pdf(f?: FactureAbonnement) {
-  toast.info(f ? 'PDF de la facture bientôt disponible' : 'Contrat plateforme bientôt disponible', {
-    message: 'Le téléchargement arrivera avec la facturation en ligne.',
-  })
+const lireFichier = useLectureFichier()
+/** PDF d'une facture (as.file), téléchargé comme le contrat signé ; le contrat plateforme n'a pas encore de document. */
+async function pdf(f?: FactureAbonnement) {
+  if (!f) {
+    toast.info('Contrat plateforme bientôt disponible', { message: 'Le téléchargement arrivera avec la facturation en ligne.' })
+    return
+  }
+  if (!f.pdfFichierId) {
+    toast.info('PDF en préparation', { message: 'Il sera téléchargeable dans quelques minutes.' })
+    return
+  }
+  try {
+    const url = await lireFichier(f.pdfFichierId)
+    const lien = document.createElement('a')
+    lien.href = url
+    lien.download = `facture-${f.numero}.pdf`
+    lien.click()
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  }
+  catch {
+    toast.info('PDF en préparation', { message: 'Il sera téléchargeable dans quelques minutes.' })
+  }
 }
 
 const envoi = ref(false)

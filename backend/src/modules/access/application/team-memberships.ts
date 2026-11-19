@@ -91,6 +91,17 @@ export async function teamMembershipOf(associationId: string, userId: string): P
   return sorted[0] ?? null;
 }
 
+/** Gestionnaires actifs (owner, manager, viewer) de l'association : leurs connexions font l'usage de l'espace gestion. */
+export async function activeTeamIdsOf(associationId: string): Promise<string[]> {
+  assertAssociation(associationId, 'activeTeamIdsOf');
+  const rows = await currentTx()
+    .selectDistinct({ userId: memberships.userId })
+    .from(memberships)
+    .where(and(eq(memberships.associationId, associationId), managed, eq(memberships.status, 'active')))
+    .orderBy(memberships.userId);
+  return rows.map((r) => r.userId);
+}
+
 /** Owners actifs de l'association (protection du dernier owner, `last_owner`). */
 export async function activeOwnersCountOf(associationId: string): Promise<number> {
   assertAssociation(associationId, 'activeOwnersCountOf');
