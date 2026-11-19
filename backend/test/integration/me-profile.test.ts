@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app.js';
 import { loadConfig } from '../../src/config.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
+import { platformLogin } from '../support/platform-mfa.js';
 import { A, type IsolationHarness, seedAssociations, startIsolationHarness } from '../isolation/harness.js';
 
 /**
@@ -39,7 +40,11 @@ describe('me.profile', () => {
     if (body.status !== 'authenticated') throw new Error('attendu : authenticated');
     return { status: 200, token: body.accessToken };
   };
-  const tokenOf = async (space: Space, identifier: string) => (await login(space, identifier)).token;
+  // Plateforme : second facteur obligatoire (lot 4.7) ; une session restreinte n'ouvre pas le profil.
+  const tokenOf = async (space: Space, identifier: string) =>
+    space === 'platform'
+      ? (await platformLogin({ app, base, identifier, password: PASSWORD })).accessToken
+      : (await login(space, identifier)).token;
 
   const call = (method: string, path: string, token: string, body?: unknown) =>
     fetch(`${base}${path}`, {
@@ -101,7 +106,7 @@ describe('me.profile', () => {
   });
 
   describe('GET /me/profile', () => {
-    it('personnel plateforme : identité, date du dernier changement de mot de passe, sans adresse', async () => {
+    it('personnel plateforme : identité, date du dernier changement de mot de passe, sans adresse, second facteur activé', async () => {
       const res = await call('GET', '/me/profile', await tokenOf('platform', STAFF.email));
       expect(res.status).toBe(200);
       expect(res.headers.get('cache-control')).toBe('no-store');
@@ -115,7 +120,7 @@ describe('me.profile', () => {
         city: null,
         locale: 'fr-CI',
         passwordChangedAt: '2026-10-01T08:00:00.000Z',
-        mfaEnabled: false,
+        mfaEnabled: true,
         version: 1,
       });
     });

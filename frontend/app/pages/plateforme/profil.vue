@@ -236,20 +236,17 @@ const chargement = computed(() => pending.value && !profil.value)
       <section class="cz-card sa-profil__carte sa-profil__ligne">
         <div>
           <h2 class="sa-profil__h2 sa-profil__h2--seul">
-            Double authentification <CzSoon petit>
-              V2
-            </CzSoon>
+            Double authentification
           </h2>
           <p class="sa-profil__aide">
-            Un code à 6 chiffres sera demandé à chaque connexion.
+            {{ profil.doubleAuthentification
+              ? 'Un code à 6 chiffres est demandé à chaque connexion.'
+              : 'Obligatoire pour l’équipe Cotiz : elle vous sera demandée à la prochaine connexion.' }}
           </p>
         </div>
-        <CzButton
-          variante="secondaire"
-          @click="bientot('La double authentification arrive en V2.')"
-        >
-          Activer
-        </CzButton>
+        <CzBadge :ton="profil.doubleAuthentification ? 'success' : 'warning'">
+          {{ profil.doubleAuthentification ? 'Activée' : 'À activer' }}
+        </CzBadge>
       </section>
 
       <section class="cz-card sa-profil__carte">

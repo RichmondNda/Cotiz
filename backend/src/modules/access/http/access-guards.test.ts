@@ -60,6 +60,12 @@ class Routes {
     // Route de test.
   }
 
+  @Endpoint('me.profile', 'get')
+  @Can('authenticated')
+  profile(): void {
+    return;
+  }
+
   @Endpoint('me.dash', 'get')
   @Can('subscriber.self')
   dashboard(): void {
@@ -142,7 +148,7 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
   /** Chaîne des gardes globales, dans l'ordre d'AppModule ; `ip` : adresse du client. */
   const chain = async (
     route: Route | ExecutionContext,
-    options: { bearer?: string; ip?: string; config?: Config; aid?: string } = {},
+    options: { bearer?: string; ip?: string; aid?: string } = {},
   ) => {
     const request: FakeRequest = {
       method: 'GET',
@@ -152,11 +158,10 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
     };
     const context = typeof route === 'string' ? httpContext(routeHandler(Routes, route), Routes, request) : route;
     const req = context.switchToHttp().getRequest<FakeRequest>();
-    const effective = options.config ?? config;
     await runWithRequestInfo({ requestId: 'r', ip: options.ip ?? '127.0.0.1', userAgent: null }, async () => {
       for (const guard of [
         new JwtGuard(signer, revoked, reflector),
-        new SpaceGuard(reflector, effective),
+        new SpaceGuard(reflector),
         new MembershipGuard(reflector, selfRoles),
         new PermissionGuard(reflector, selfRoles),
       ]) {
@@ -213,6 +218,18 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       });
     });
 
+    it('session restreinte à l’enrôlement (mfa: enroll) : espace auth et /me ; profil et ailleurs 403', async () => {
+      platformRole = 'owner';
+      const bearer = await token({ space: 'platform', mfa: 'enroll' });
+      expect(await refusal(chain('platformList', { bearer }))).toBe('forbidden');
+      expect(await refusal(chain('file', { bearer }))).toBe('forbidden');
+      expect(await refusal(chain('me', { bearer }))).toBe('accepté');
+      expect(await refusal(chain('profile', { bearer }))).toBe('forbidden');
+      expect(await refusal(chain('logout', { bearer }))).toBe('accepté');
+      // Le même jeton sans restriction passe partout.
+      expect(await refusal(chain('platformList', { bearer: await token({ space: 'platform' }) }))).toBe('accepté');
+    });
+
     it('connexion plateforme (BYPASSRLS) : route /platform seulement, jamais /me ni une route commune', async () => {
       platformRole = 'support';
       const bearer = await token({ space: 'platform' });
@@ -220,13 +237,6 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
       expect((await chain('me', { bearer })).platformConnection).toBe(false);
       expect((await chain('file', { bearer })).platformConnection).toBe(false);
       expect((await chain('login')).platformConnection).toBe(false);
-    });
-
-    it('jeton platform depuis une adresse hors PLATFORM_ALLOWED_IPS : refusé à chaque requête', async () => {
-      const restricted = loadConfig({ ...env, PLATFORM_ALLOWED_IPS: '203.0.113.0/24' });
-      const bearer = await token({ space: 'platform' });
-      expect(await refusal(chain('me', { bearer, config: restricted, ip: '127.0.0.1' }))).toBe('forbidden');
-      expect(await refusal(chain('me', { bearer, config: restricted, ip: '203.0.113.9' }))).toBe('accepté');
     });
   });
 
@@ -290,12 +300,6 @@ describe('gardes d’authentification et d’accès (lots 1.1 et 1.2)', () => {
           userId: USER,
         });
       }
-    });
-
-    it('jeton platform hors PLATFORM_ALLOWED_IPS : la déconnexion reste possible', async () => {
-      const restricted = loadConfig({ ...env, PLATFORM_ALLOWED_IPS: '203.0.113.0/24' });
-      const bearer = await token({ space: 'platform' });
-      expect(await refusal(chain('logout', { bearer, config: restricted, ip: '127.0.0.1' }))).toBe('accepté');
     });
   });
 

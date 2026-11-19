@@ -214,6 +214,8 @@ export interface ProfilPlateforme {
   nom: string
   email: string
   role: RolePlateforme
+  /** Second facteur TOTP confirmé (`mfaEnabled`, lot 4.7) : obligatoire pour l'équipe Cotiz. */
+  doubleAuthentification: boolean
   preferences: { nouvelleDemande: boolean, abonnementImpaye: boolean, nouvelleAssociation: boolean, resumeHebdomadaire: boolean }
 }
 

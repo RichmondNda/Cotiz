@@ -8,6 +8,10 @@ export const LOGIN_LOCK_MS = 15 * 60_000;
 export const ACCESS_TOKEN_TTL_MS = 15 * 60_000;
 /** Jeton de réinitialisation (auth.verify → auth.reset) : il peut survivre jusqu'à 10 min à son code. */
 export const RESET_TOKEN_TTL_MS = 10 * 60_000;
+/** Jeton de second facteur (auth.login → auth.mfa › verify, lot 4.7). */
+export const MFA_TOKEN_TTL_MS = 5 * 60_000;
+/** Codes de second facteur faux par personne avant `too_many_attempts` (fenêtre de LOGIN_LOCK_MS). */
+export const MAX_MFA_ATTEMPTS = 5;
 /** Durée ABSOLUE d'une connexion : les rotations ne la prolongent pas (30 jours au plus après la connexion). */
 export const REFRESH_TOKEN_TTL_MS = 30 * 86_400_000;
 

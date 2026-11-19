@@ -1,5 +1,5 @@
 // Parcours de /connexion/plateforme (super-admin). Compte de seed-dev : server/mocks/IDENTIFIANTS.md ; erreur et
-// second facteur imposés (scripts/reponses-imposees.mjs ; second facteur réel au lot 4.7).
+// second facteur imposés (scripts/reponses-imposees.mjs) ; le vrai second facteur (lot 4.7) est passé par session-test.mjs.
 import { COMPTES } from '../session-test.mjs'
 import { imposerProbleme, imposerReponse } from '../reponses-imposees.mjs'
 

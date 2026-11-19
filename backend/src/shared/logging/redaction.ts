@@ -10,8 +10,8 @@ export const MASKED = '[masqué]';
 const SENSITIVE_KEYS = new Set(['code', 'pin', 'tel', 'msisdn', 'cookie', 'setcookie', 'dsn']);
 /** Tout nom qui contient l'un de ces mots : newPassword, x-api-key, phoneE164, totpSecret, proxy-authorization… */
 const SENSITIVE_PARTS = ['password', 'passwd', 'pwd', 'token', 'secret', 'phone', 'otp', 'apikey', 'authorization'];
-/** Tout nom qui finit par l'un de ces mots : activationCode, keyHash, codeEncrypted, actorUserId… */
-const SENSITIVE_SUFFIXES = ['code', 'hash', 'encrypted', 'userid', 'credentials'];
+/** Tout nom qui finit par l'un de ces mots : activationCode, keyHash, codeEncrypted, actorUserId, recoveryCodes… */
+const SENSITIVE_SUFFIXES = ['code', 'codes', 'hash', 'hashes', 'encrypted', 'userid', 'credentials'];
 /** Codes qui ne sont pas des secrets : catalogue d'erreurs, statut HTTP, pays, devise. */
 const SAFE_CODES = new Set(['errorcode', 'statuscode', 'countrycode', 'currencycode']);
 

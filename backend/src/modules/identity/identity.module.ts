@@ -1,5 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ActivateAccountUseCase } from './application/activate-account.use-case.js';
+import { ConfirmTotpUseCase } from './application/confirm-totp.use-case.js';
+import { EnrollTotpUseCase } from './application/enroll-totp.use-case.js';
+import { MfaFactors } from './application/mfa-factors.js';
+import { VerifyMfaUseCase } from './application/verify-mfa.use-case.js';
+import { MfaController } from './http/mfa.controller.js';
+import { MfaAttempts } from './infra/mfa-attempts.js';
 import { CodeService } from './application/code-service.js';
 import { GetMeUseCase } from './application/get-me.use-case.js';
 import { IssueAssociationResetCodeUseCase } from './application/issue-association-reset-code.use-case.js';
@@ -25,7 +31,7 @@ import { AuthController } from './http/auth.controller.js';
 import { MeController } from './http/me.controller.js';
 import { AssociationResetsController } from './http/association-resets.controller.js';
 import { PlatformResetsController } from './http/platform-resets.controller.js';
-import { JwtGuard } from './http/jwt.guard.js';
+import { BearerSessionGuard, JwtGuard } from './http/jwt.guard.js';
 import { AccessTokenSigner } from './infra/access-token-signer.js';
 import { LoginThrottle } from './infra/login-throttle.js';
 import { RevokedSessions } from './infra/revoked-sessions.js';
@@ -34,10 +40,10 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
 
 /**
  * Module identity (lot 1.1) : connexion, renouvellement, déconnexion, `GET /me`, activation et mot de passe oublié ;
- * demandes des gestionnaires traitées par le super-admin (pf.resets, lot 1.4).
+ * demandes des gestionnaires traitées par le super-admin (pf.resets, lot 1.4) ; double authentification (auth.mfa, lot 4.7).
  */
 @Module({
-  controllers: [AuthController, MeController, PlatformResetsController, AssociationResetsController],
+  controllers: [AuthController, MfaController, MeController, PlatformResetsController, AssociationResetsController],
   providers: [
     SubscriberActivationCodes,
     SecretHasher,
@@ -47,6 +53,12 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     SessionFamilies,
     SpaceAccess,
     JwtGuard,
+    BearerSessionGuard,
+    MfaFactors,
+    MfaAttempts,
+    EnrollTotpUseCase,
+    ConfirmTotpUseCase,
+    VerifyMfaUseCase,
     LoginUseCase,
     RefreshSessionUseCase,
     LogoutUseCase,

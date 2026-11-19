@@ -340,3 +340,17 @@ Source : sous-agents money-reviewer et isolation-reviewer sur `git diff origin/d
 - `invoices` : `tenant_isolation` permet à cotiz_app en espace association d'écrire ses propres factures (protection applicative seulement). Proposition : politique en lecture seule pour l'espace association (changement de spec), ou au minimum un test qui fige le comportement.
 - Commentaire de la migration 0027 inexact (`usage_daily` écrite en contexte association, pas via `system_access`) : migration commitée, non modifiée.
 - Index `allocations (payment_id)` : voir l'entrée de l'étape 3 (toujours en attente).
+
+## Lot 4.7 — étape 1 (2FA), points en attente (2026-11-19)
+- **Dokploy (dev, recette)** : `PLATFORM_ALLOWED_IPS` n'est plus lue par l'api (retirée du code, accord du
+  2026-11-19) ; si elle est posée dans Dokploy, la retirer (changement de configuration Dokploy : demande explicite).
+  Les fichiers `.env*` (dont `.env.example`) n'ont pas été lus (règle 10) : vérifier s'ils la citent encore.
+- **Recette et dev en ligne** : après déploiement, le premier login plateforme ouvre une session restreinte et
+  demande d'activer la double authentification (QR code). Seed-dev ne pose le facteur au secret public
+  (`DEV_TOTP_SECRET`) qu'en local (sans `COTIZ_DEV_SEED_PASSWORD`).
+- **Proposition** : TOTP proposé (facultatif) aux gestionnaires (03-auth : « TOTP proposé en V2 »). Ce lot le réserve
+  à la plateforme (enrôlement refusé, 403, pour un jeton d'un autre espace).
+- **Audit** : `user.mfa_recovery_use` est écrit sans acteur (`actor_user_id` NULL, route publique sans contexte) ;
+  l'entité (facteur) identifie la personne. `user.mfa_enable` a l'acteur (contexte auth posé par BearerSessionGuard).
+- Capture/e2e (`frontend/scripts/session-test.mjs`) : un code TOTP par pas de 30 s ; deux processus qui se connectent
+  en super-admin dans le même pas : le second réessaie au pas suivant.

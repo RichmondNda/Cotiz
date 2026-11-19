@@ -94,7 +94,6 @@ const READS: Record<string, Call> = {
 
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
 const WRITES: Record<string, () => Call> = {
-  'auth.mfa verify': () => ({ body: { mfaToken: 'mfa.x', code: '481902' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
 }
 

@@ -144,4 +144,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['pf.invoice.paid', 'all'],
   // Lot 4.6 : exports asynchrones (CSV/PDF par le worker, fichier lu par as.file pendant 7 jours).
   ['rp.export', 'all'],
+  // Lot 4.7 : second facteur TOTP de la plateforme (enrôlement, confirmation, vérification à la connexion).
+  ['auth.mfa', 'all'],
 ])

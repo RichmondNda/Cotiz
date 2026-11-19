@@ -156,3 +156,24 @@ export const passwordResetRequests = pgTable(
       .where(sql`${t.status} = 'pending'`),
   ],
 );
+
+export const mfaFactorsType = pgEnum('mfa_factors_type', ['totp']);
+
+/** Double authentification (lot 4.7, migration 0029). Table globale sans RLS : accès limité au module identity. */
+export const mfaFactors = pgTable('mfa_factors', {
+  id: id(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id),
+  type: mfaFactorsType('type').notNull(),
+  /** Secret TOTP chiffré (SecretBox, AES-256-GCM). */
+  secretEncrypted: bytea('secret_encrypted').notNull(),
+  /** `null` tant que l'enrôlement n'est pas confirmé par un premier code. */
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  /** Codes de secours hachés (argon2id) ; un code utilisé est retiré. */
+  recoveryCodeHashes: text('recovery_code_hashes')
+    .array()
+    .notNull()
+    .default(sql`'{}'::text[]`),
+  createdAt: createdAt(),
+});

@@ -62,6 +62,35 @@ describe('AccessTokenSigner', () => {
       exp: expect.any(Number) as number,
     });
   });
+
+  it('claim mfa (lot 4.7) : `enroll` gardé, toute autre valeur refusée', async () => {
+    const { token } = await signer.sign({ sub: USER, space: 'platform', sid: SID, mfa: 'enroll' });
+    expect(await signer.verify(token)).toMatchObject({ mfa: 'enroll' });
+    const full = await signer.sign({ sub: USER, space: 'platform', sid: SID });
+    expect(await signer.verify(full.token)).not.toHaveProperty('mfa');
+    const forged = await new SignJWT({ space: 'platform', sid: SID, mfa: 'done' })
+      .setProtectedHeader({ alg: 'EdDSA' })
+      .setSubject(USER)
+      .setIssuer('cotiz')
+      .setAudience('cotiz-api')
+      .setExpirationTime('5m')
+      .sign(privateKeyOf(signer));
+    await expect(signer.verify(forged)).rejects.toThrow();
+  });
+
+  it('jeton de second facteur : 5 min, autre audience (jamais un jeton d’accès, ni l’inverse)', async () => {
+    const now = new Date('2026-10-15T10:00:00.400Z');
+    const expired = await signer.signMfaToken({ sub: USER, rememberMe: true }, now);
+    expect(expired.expiresAt.toISOString()).toBe('2026-10-15T10:05:00.000Z');
+    await expect(signer.verifyMfaToken(expired.token)).rejects.toThrow();
+    const mfa = await signer.signMfaToken({ sub: USER, rememberMe: true });
+    expect(await signer.verifyMfaToken(mfa.token)).toMatchObject({ sub: USER, rememberMe: true });
+    await expect(signer.verify(mfa.token)).rejects.toThrow();
+    const access = await signer.sign({ sub: USER, space: 'platform', sid: SID });
+    await expect(signer.verifyMfaToken(access.token)).rejects.toThrow();
+    const reset = await signer.signResetToken({ sub: USER, cid: SID, space: 'platform' });
+    await expect(signer.verifyMfaToken(reset.token)).rejects.toThrow();
+  });
 });
 
 /** Clé privée du signataire (test seulement) : forger des claims que `sign()` refuserait de typer. */

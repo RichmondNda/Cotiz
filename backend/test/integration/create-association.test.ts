@@ -7,6 +7,7 @@ import { createApp } from '../../src/app.js';
 import { loadConfig } from '../../src/config.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { A, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
+import { platformLogin } from '../support/platform-mfa.js';
 
 /**
  * Lot 1.3 · étape 6 : création directe d'une association par la plateforme, sans demande (pf.asso.create), même mise
@@ -61,6 +62,8 @@ describe('création directe d’une association (pf.asso.create)', () => {
   const newKey = () => `cle-creation-${String(++keySeq).padStart(4, '0')}`;
 
   const login = async (space: string, identifier: string, password = PASSWORD) => {
+    // Espace plateforme : second facteur obligatoire (lot 4.7), enrôlé à la première connexion.
+    if (space === 'platform') return (await platformLogin({ app, base, identifier, password })).accessToken;
     const res = await fetch(`${base}/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

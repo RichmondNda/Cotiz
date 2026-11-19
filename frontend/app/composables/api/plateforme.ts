@@ -77,7 +77,7 @@ async function profil(client: ApiClient): Promise<ProfilPlateforme> {
   const [me, p, prefs] = await Promise.all([client.call('me', 'get'), client.call('me.profile', 'get'), client.call('me.prefs', 'get')])
   const active = (type: string) => prefs.items.find(x => x.type === type && x.channel === 'in_app')?.enabled ?? false
   return {
-    prenom: p.firstName, nom: p.lastName || '[Nom]', email: email(p.email), role: ROLE[me.platformRole ?? 'owner']!,
+    prenom: p.firstName, nom: p.lastName || '[Nom]', email: email(p.email), role: ROLE[me.platformRole ?? 'owner']!, doubleAuthentification: p.mfaEnabled,
     preferences: { nouvelleDemande: active(PREFERENCES.nouvelleDemande), abonnementImpaye: active(PREFERENCES.abonnementImpaye), nouvelleAssociation: active(PREFERENCES.nouvelleAssociation), resumeHebdomadaire: active(PREFERENCES.resumeHebdomadaire) },
   }
 }
