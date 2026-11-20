@@ -17,6 +17,7 @@ import { LogoutUseCase } from './application/logout.use-case.js';
 import { ManagerAccounts } from './application/manager-accounts.js';
 import { SubscriberActivationCodes } from './application/subscriber-activation-codes.js';
 import { SubscriberAccounts } from './application/subscriber-accounts.js';
+import { StaffAccounts } from './application/staff-accounts.js';
 import { TeamAccounts } from './application/team-accounts.js';
 import { RefreshSessionUseCase } from './application/refresh-session.use-case.js';
 import { RequestPasswordResetUseCase } from './application/request-password-reset.use-case.js';
@@ -75,6 +76,7 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     ManagerAccounts,
     SubscriberAccounts,
     TeamAccounts,
+    StaffAccounts,
     ListPlatformResetRequestsUseCase,
     IssuePlatformResetCodeUseCase,
     ListAssociationResetRequestsUseCase,
@@ -89,6 +91,7 @@ import { UncountedCodeAttempts } from './infra/uncounted-code-attempts.js';
     SubscriberAccounts,
     SubscriberActivationCodes,
     TeamAccounts,
+    StaffAccounts,
     UserProfiles,
   ],
 })

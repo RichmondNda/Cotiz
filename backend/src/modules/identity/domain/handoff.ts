@@ -63,15 +63,20 @@ export function buildHandoff(input: HandoffInput): Handoff {
           ? `Rendez-vous sur ${activatePageFor}, saisissez votre email, ce code et votre mot de passe actuel.`
           : `Rendez-vous sur ${activatePageFor}, saisissez votre email et ce code, puis choisissez votre mot de passe.`,
       ]
-    : activation
+    : input.purpose === 'staff_invite'
       ? [
-          `Bonjour ${recipient.firstName}, voici votre code d’activation Cotiz pour ${SPACE_LABEL[input.space]} : ${code} (valable jusqu’au ${DAY.format(input.expiresAt)}).`,
-          `Rendez-vous sur ${activatePageFor}, saisissez votre identifiant et ce code, puis choisissez votre mot de passe.`,
+          `Bonjour ${recipient.firstName}, vous êtes invité·e à rejoindre l’équipe de la plateforme Cotiz. Votre code d’invitation : ${code} (valable jusqu’au ${DAY.format(input.expiresAt)}).`,
+          `Rendez-vous sur ${activatePageFor}, saisissez votre email et ce code, puis choisissez votre mot de passe. Vous activerez ensuite la double authentification avec une application d’authentification.`,
         ]
-      : [
-          `Bonjour ${recipient.firstName}, voici votre code de réinitialisation Cotiz : ${code} (valable 15 minutes).`,
-          'Saisissez-le sur la page « Mot de passe oublié », puis choisissez votre nouveau mot de passe.',
-        ];
+      : activation
+        ? [
+            `Bonjour ${recipient.firstName}, voici votre code d’activation Cotiz pour ${SPACE_LABEL[input.space]} : ${code} (valable jusqu’au ${DAY.format(input.expiresAt)}).`,
+            `Rendez-vous sur ${activatePageFor}, saisissez votre identifiant et ce code, puis choisissez votre mot de passe.`,
+          ]
+        : [
+            `Bonjour ${recipient.firstName}, voici votre code de réinitialisation Cotiz : ${code} (valable 15 minutes).`,
+            'Saisissez-le sur la page « Mot de passe oublié », puis choisissez votre nouveau mot de passe.',
+          ];
   if (input.personalMessage?.trim()) lines.push(input.personalMessage.trim());
   const message = lines.join('\n');
   const text = encodeURIComponent(message);

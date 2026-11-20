@@ -1,9 +1,9 @@
 // Espace plateforme : tableau de bord (pf.dashboard), facturation (pf.invoices), personnel (pf.staff), profil (me.profile, me.prefs).
 import type {
-  FacturationPlateforme, ModificationProfilPlateforme, ProfilPlateforme, RolePlateforme, TableauDeBordPlateforme, UtilisateurPlateforme,
+  AccesARemettre, FacturationPlateforme, InvitationPersonnel, ModificationProfilPlateforme, ProfilPlateforme, RolePlateforme, TableauDeBordPlateforme, UtilisateurPlateforme,
 } from '~~/types'
 import type { ApiClient } from './client'
-import { email, jour, local, m } from './vues/communs'
+import { email, jour, local, m, vueAcces } from './vues/communs'
 import { statutFacture, vueActivite } from './vues/associations'
 import { vueDemande } from './vues/demandes'
 import { traduireErreur } from './vues/erreurs'
@@ -69,6 +69,47 @@ export const useUtilisateursPlateforme = (options: { immediat?: boolean } = {}) 
       derniereConnexion: x.lastLoginAt ? local(x.lastLoginAt) : (x.status === 'active' ? '[date]' : null), statut: x.status === 'invited' ? 'invite' : 'actif',
     }))
   }, options)
+
+const ROLE_API: Record<RolePlateforme, 'owner' | 'admin' | 'support'> = { proprietaire: 'owner', administrateur: 'admin', support: 'support' }
+
+/** Invitation, renvoi, rôle et retrait d'une personne du personnel (pf.staff, propriétaires seulement). */
+export function useActionsPersonnel() {
+  const client = useClient()
+  const inviter = async (i: InvitationPersonnel): Promise<AccesARemettre> => {
+    try {
+      const r = await client.call('pf.staff', 'invite', { body: { firstName: i.prenom, lastName: i.nom, email: i.email, role: ROLE_API[i.role] } })
+      return vueAcces(r.handoff)
+    }
+    catch (e) {
+      traduireErreur(e, { 'champ:email': 'email-existant', 'champ:firstName': 'nom-requis', 'champ:lastName': 'nom-requis', 'validation_failed': 'email-invalide' })
+    }
+  }
+  return {
+    inviter,
+    /** Nouveau code d'invitation (l'ancien ne vaut plus), même rôle. */
+    renvoyer: async (u: UtilisateurPlateforme): Promise<AccesARemettre> => {
+      const membre = (await client.call('pf.staff', 'list')).items.find(x => x.user.id === u.id)
+      if (!membre) throw createError({ statusCode: 404, statusMessage: 'Personne introuvable' })
+      return inviter({ prenom: membre.user.firstName, nom: membre.user.lastName, email: membre.user.email, role: ROLE[membre.role]! })
+    },
+    changerRole: async (id: string, role: RolePlateforme) => {
+      try {
+        await client.call('pf.staff', 'patch', { params: { uid: id }, body: { role: ROLE_API[role] } })
+      }
+      catch (e) {
+        traduireErreur(e, { last_owner: 'dernier-proprietaire' })
+      }
+    },
+    retirer: async (id: string) => {
+      try {
+        await client.call('pf.staff', 'remove', { params: { uid: id } })
+      }
+      catch (e) {
+        traduireErreur(e, { last_owner: 'dernier-proprietaire' })
+      }
+    },
+  }
+}
 
 /** Préférences de SaProfil ↔ types d'événements (canal « dans l'application »). */
 const PREFERENCES = { nouvelleDemande: 'request.received', abonnementImpaye: 'subscription.past_due', nouvelleAssociation: 'association.created', resumeHebdomadaire: 'digest.weekly' } as const

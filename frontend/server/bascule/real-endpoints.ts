@@ -146,4 +146,6 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['rp.export', 'all'],
   // Lot 4.7 : second facteur TOTP de la plateforme (enrôlement, confirmation, vérification à la connexion).
   ['auth.mfa', 'all'],
+  // Lot 4.7 : personnel plateforme (invitation par code staff_invite affiché, rôle, retrait).
+  ['pf.staff', 'all'],
 ])

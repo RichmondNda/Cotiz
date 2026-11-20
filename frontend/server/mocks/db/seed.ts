@@ -10,7 +10,7 @@ import { SEED } from '../reference'
 import type {
   ActivationCodeRow, AllocationRow, AssociationRow, ContractRow, EnrollmentRow, EventRow, InstallmentRow, InvoiceRow,
   MembershipRow, MockDb, PaymentMethodRow, PaymentRow, PlanRow, PreferenceRow, ProjectRow,
-  RequestRow, StaffRow, SubscriptionRow, UnlistedRow, UserRow,
+  RequestRow, SubscriptionRow, UnlistedRow, UserRow,
 } from './types'
 
 const at = (date: string, time = '09:00') => `${date}T${time}:00Z`
@@ -165,14 +165,6 @@ function memberships(): MembershipRow[] {
     M(A('jeunesse-bouake'), 'responsable-bouake', 'owner', { joinedAt: at('2026-09-24') }),
     ...subscribers.map(k => M(E, k, 'subscriber', { joinedAt: at(k === 'fatou-traore' ? '2026-09-02' : k === 'moussa-diarra' ? '2024-02-03' : '2026-03-12') })),
     M(A('ressortissants-man'), 'moussa-diarra', 'subscriber', { joinedAt: at('2026-07-01') }),
-  ]
-}
-
-function staff(): StaffRow[] {
-  return [
-    { userId: U('richy'), role: 'owner', status: 'active' },
-    { userId: U('staff-admin'), role: 'admin', status: 'active' },
-    { userId: U('staff-support'), role: 'support', status: 'invited' },
   ]
 }
 
@@ -450,7 +442,6 @@ export function buildDb(): MockDb {
     invoices: invoices(),
     users: users(),
     memberships: memberships(),
-    staff: staff(),
     projects: projectRows,
     enrollments,
     installments,

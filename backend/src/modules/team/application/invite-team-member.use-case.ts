@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ENDPOINTS, Handoff } from '@cotiz/contracts';
 import type { z } from 'zod';
-import { inviteToTeam, lockTeam, teamMembershipOf } from '../../access/access.public.js';
+import { inviteToTeam, lockTeam, platformRoleOf, teamMembershipOf } from '../../access/access.public.js';
 import { QuotaService } from '../../billing/billing.public.js';
 import { TeamAccounts } from '../../identity/identity.public.js';
 import { contextAssociationId } from '../../members/members.public.js';
@@ -19,7 +19,7 @@ type InviteBody = z.infer<(typeof ENDPOINTS)['tm.team']['operations']['invite'][
  * email envoyé, ui-deviations). Sous le verrou de l'équipe et de l'adresse :
  * - rôle `manager` ou `viewer` (un owner se nomme par tm.team › patch) ;
  * - adresse sans compte : compte en attente créé ; compte actif : il acceptera avec son mot de passe actuel ;
- *   compte inutilisable (verrouillé, désactivé, anonymisé) : `validation_failed` (email) ;
+ *   compte inutilisable (verrouillé, désactivé, anonymisé, invité au personnel plateforme) : `validation_failed` ;
  * - déjà gestionnaire active de l'association : `validation_failed` (email, `already_member`) ;
  * - encore invitée : réinvitation (nouveau code, l'ancien invalidé, rôle mis à jour), sans place de plus ;
  * - sinon une place de plus (`quota_exceeded`, quota `managers`).
@@ -44,6 +44,11 @@ export class InviteTeamMemberUseCase {
 
     const account = await this.accounts.findByEmail(email);
     if (account && account.status !== 'active' && account.status !== 'pending_activation') {
+      throw new DomainProblem('validation_failed', { fields: { email: 'account_unavailable' } });
+    }
+    // Invitation au personnel plateforme en attente (lot 4.7) : son code ne s'active jamais par une association (le
+    // mot de passe posé à l'activation ouvrirait la plateforme).
+    if (account?.status === 'pending_activation' && (await platformRoleOf(account.userId)) !== null) {
       throw new DomainProblem('validation_failed', { fields: { email: 'account_unavailable' } });
     }
     const before = account ? await teamMembershipOf(associationId, account.userId) : null;

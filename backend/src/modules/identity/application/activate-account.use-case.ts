@@ -34,7 +34,9 @@ export interface ActivateInput {
  * - Espace sans rôle : `wrong_space`, sans consommer le code ni activer (la personne réessaie depuis la bonne page).
  * - Réussite : code consommé, compte actif, mot de passe posé, `user.activated`, audit, session ouverte.
  * Invitation d'équipe (lot 4.5) : dans l'espace association, si la personne a un code `team_invite` encore utilisable,
- * c'est lui qui est comparé. Son appartenance invitée dans l'association du code passe `active` (`team.changed`
+ * c'est lui qui est comparé. Invitation au personnel (lot 4.7) : dans l'espace plateforme, code `staff_invite` ;
+ * compte en attente activé comme par un code d'activation (`staff.changed` `joined`), session restreinte à l'enrôlement
+ * du second facteur. Son appartenance invitée dans l'association du code passe `active` (`team.changed`
  * `joined`). Compte déjà actif : le mot de passe saisi doit être son mot de passe ACTUEL (jamais changé ici : un owner
  * qui connaît le code ne prend pas le compte d'un tiers) ; faux, il compte un essai sur le code et sur la connexion
  * (5 échecs verrouillent comme auth.login) et répond `invalid_code`.
@@ -62,10 +64,7 @@ export class ActivateAccountUseCase {
       .where(identifier.kind === 'email' ? eq(users.email, identifier.value) : eq(users.phoneE164, identifier.value))
       .limit(1);
 
-    const purpose: CodePurpose =
-      input.space === 'association' && user && (await this.codes.hasLive(user.id, 'team_invite', now))
-        ? 'team_invite'
-        : 'activation';
+    const purpose: CodePurpose = await this.purposeFor(input.space, user?.id, now);
     const check = await this.codes.verify({ userId: user?.id ?? null, purpose, code: input.code }, now);
     if (!check.ok) {
       let problem: 'invalid_code' | 'code_expired' | 'too_many_attempts' | 'already_activated' =
@@ -90,6 +89,10 @@ export class ActivateAccountUseCase {
     }
     if (status === 'active') throw new DomainProblem('already_activated');
     if (status !== 'pending_activation') throw new DomainProblem('invalid_code');
+    // Invitation au personnel retirée avant l'activation : le code ne vaut plus rien.
+    if (purpose === 'staff_invite' && !(await this.spaceAccess.allows(user.id, 'platform'))) {
+      throw new DomainProblem('invalid_code');
+    }
     // Activer son compte : l'appartenance peut n'être qu'une invitation (choix du lot 1.2) ; jamais retirée.
     if (!(await this.spaceAccess.allows(user.id, input.space, ['active', 'invited']))) {
       throw new DomainProblem('wrong_space');
@@ -98,7 +101,42 @@ export class ActivateAccountUseCase {
     if (!(await this.codes.consume(check.codeId, now))) throw new DomainProblem('already_activated');
 
     await this.activate(user.id, input.newPassword, now);
+    if (purpose === 'staff_invite') await this.joinedStaff(user.id);
     return this.sessions.open({ userId: user.id, space: input.space, rememberMe: false }, now);
+  }
+
+  /**
+   * Code comparé : invitation d'équipe encore utilisable (espace association) ; invitation au personnel si c'est le
+   * dernier code émis à la personne pour la plateforme (déjà consommé : `already_activated` comme une activation).
+   */
+  private async purposeFor(space: ActivateInput['space'], userId: string | undefined, now: Date): Promise<CodePurpose> {
+    if (!userId) return 'activation';
+    if (space === 'association' && (await this.codes.hasLive(userId, 'team_invite', now))) return 'team_invite';
+    if (
+      space === 'platform' &&
+      (await this.codes.latestPlatformPurpose(userId, ['activation', 'staff_invite'])) === 'staff_invite'
+    ) {
+      return 'staff_invite';
+    }
+    return 'activation';
+  }
+
+  @Audited('staff.join')
+  private async joinedStaff(userId: string): Promise<void> {
+    await this.outbox.publish(currentTx(), {
+      type: 'staff.changed',
+      associationId: null,
+      actorUserId: userId,
+      aggregate: { type: 'platform_staff', id: userId },
+      payload: { userId, change: 'joined' },
+    });
+    recordAudit({
+      entityType: 'platform_staff',
+      entityId: userId,
+      associationId: null,
+      before: { status: 'invited' },
+      after: { status: 'active' },
+    });
   }
 
   /** Code `team_invite` juste : compte en attente activé (mot de passe posé), ou compte actif (mot de passe actuel). */
@@ -125,6 +163,9 @@ export class ActivateAccountUseCase {
       }
       await this.throttle.succeed(subjects);
     } else if (account.status !== 'pending_activation') {
+      throw new DomainProblem('invalid_code');
+    } else if (await this.spaceAccess.allows(userId, 'platform')) {
+      // Compte en attente invité au personnel plateforme : il ne s'active que par son code `staff_invite`.
       throw new DomainProblem('invalid_code');
     }
     const associationId = await this.codes.associationOf(codeId);

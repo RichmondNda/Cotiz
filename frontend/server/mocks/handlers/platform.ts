@@ -1,7 +1,7 @@
-// Espace plateforme (super-admin) : onglets de la fiche d'une association, personnel (factures : NestJS, lot 4.6).
+// Espace plateforme (super-admin) : onglets de la fiche d'une association (factures : NestJS, lot 4.6 ; personnel :
+// NestJS, lot 4.7).
 import { db } from '../db'
 import type { AssociationRow } from '../db'
-import type { MockContext } from '../http'
 import { uid } from '../ids'
 import { associationFigures } from '../ledger'
 import {
@@ -77,16 +77,3 @@ function subscription(id: string) {
 // Plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) : vrai back depuis le lot 1.2.
 
 // Tableau de bord (pf.dashboard) : vrai back depuis le lot 1.4.
-
-// ---------------------------------------------------------------- Personnel (V2)
-
-// Factures (pf.invoices, pf.invoice.paid) : vrai back depuis le lot 4.6.
-
-export function staffList(_ctx: MockContext<'pf.staff', 'list'>) {
-  return {
-    items: db.staff.map((s) => {
-      const u = userRow(s.userId)
-      return { user: { ...personRef(u), email: u.email ?? `${u.key}@cotiz.example` }, role: s.role, status: s.status, lastLoginAt: s.status === 'active' && u.key === 'richy' ? '2026-09-25T09:02:00Z' : null }
-    }),
-  }
-}

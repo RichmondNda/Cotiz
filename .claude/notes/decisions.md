@@ -1085,3 +1085,13 @@ Choix autonomes :
 - front : onglet Journal d'audit (filtres, export), « Exporter mes données » dans les profils ; bascule `pf.audit`.
 
 Fin : relectures isolation-reviewer, test-skeptic (et contract-guardian), `pnpm verify`, PR vers `dev`, `/fin-lot 4.7`.
+
+### Lot 4.7 · étape 2 — choix faits en autonome (2026-11-20)
+- `pf.staff › invite` n'invite qu'une adresse **sans compte** (ou un invité du personnel encore en attente, y compris
+  retiré avant activation) ; tout autre compte : 422 `validation_failed` (`email: account_exists`). Raison : ne jamais
+  ajouter un rôle plateforme à un compte existant sans son accord, et pas de colonne « invitation en attente » au schéma.
+- Statut `invited` = compte `pending_activation` ; la ligne `platform_staff` existe dès l'invitation (comme le CLI).
+- Activation : `auth.activate` espace plateforme compare le code `staff_invite` si c'est le dernier code émis par la
+  plateforme ; un compte en attente invité au personnel ne s'active jamais par une association (relecture B1).
+- Retrait : suppression de la ligne `platform_staff` (pas de donnée financière ; audit `staff.remove`) ;
+  sessions plateforme révoquées par `StaffRemovedConsumer` (staff.changed `removed`).

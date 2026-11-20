@@ -208,6 +208,14 @@ export interface UtilisateurPlateforme {
   statut: 'actif' | 'invite'
 }
 
+/** `pf.staff › invite` : nouvelle personne du personnel (adresse sans compte Cotiz). */
+export interface InvitationPersonnel {
+  prenom: string
+  nom: string
+  email: string
+  role: RolePlateforme
+}
+
 /** `me.profile › get + me.prefs › get` (SaProfil). */
 export interface ProfilPlateforme {
   prenom: string

@@ -1,7 +1,17 @@
 // Surface publique du module access : personnel de la plateforme, appartenances aux associations (lus « de soi »),
 // rôles des gardes et politique de permissions.
 
-export { grantPlatformRole, isPlatformStaff, type PlatformRole, platformRoleOf } from './application/platform-staff.js';
+export {
+  changePlatformRole,
+  grantPlatformRole,
+  isPlatformStaff,
+  lockPlatformStaff,
+  type PlatformRole,
+  platformRoleOf,
+  platformStaffList,
+  revokePlatformRole,
+  type StaffRow,
+} from './application/platform-staff.js';
 export {
   type ActiveMembership,
   activeMembershipsOf,

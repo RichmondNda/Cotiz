@@ -354,3 +354,6 @@ Source : sous-agents money-reviewer et isolation-reviewer sur `git diff origin/d
   l'entité (facteur) identifie la personne. `user.mfa_enable` a l'acteur (contexte auth posé par BearerSessionGuard).
 - Capture/e2e (`frontend/scripts/session-test.mjs`) : un code TOTP par pas de 30 s ; deux processus qui se connectent
   en super-admin dans le même pas : le second réessaie au pas suivant.
+- **Dates relatives du front** (constaté le 2026-11-20) : `app/utils/date-reference.ts` fige « aujourd'hui » au
+  25 septembre 2026 (maquettes) ; sur le vrai back, une date réelle s'affiche « dans 56 jours » (`formatRelatif`,
+  `joursDepuis` : MgEquipe, SaUtilisateurs avant correction…). Proposition : `new Date()` hors mocks (chore dédiée).
