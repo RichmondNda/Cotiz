@@ -41,7 +41,7 @@ export type CallInput<I extends EndpointKey, N extends OperationName<I>> = Part<
 
 type Response_<I extends EndpointKey, N extends OperationName<I>> = Op<I, N> extends { response: infer R } ? R : never;
 export type CallOutput<I extends EndpointKey, N extends OperationName<I>> =
-  Response_<I, N> extends { contentType: 'text/event-stream' }
+  Response_<I, N> extends { contentType: 'text/event-stream' | 'text/csv' }
     ? Response
     : Response_<I, N> extends { status: 302 }
       ? Response
@@ -167,7 +167,11 @@ export function createClient(options: ClientOptions) {
       signal: raw.signal,
     });
     if (!response.ok) throw await toError(response);
-    if (op.response.contentType === 'text/event-stream' || op.response.status === 302) {
+    if (
+      op.response.contentType === 'text/event-stream' ||
+      op.response.contentType === 'text/csv' ||
+      op.response.status === 302
+    ) {
       return response as CallOutput<I, N>;
     }
     if (response.status === 204 || !op.response.body) return undefined as CallOutput<I, N>;

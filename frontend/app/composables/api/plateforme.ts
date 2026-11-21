@@ -1,12 +1,14 @@
 // Espace plateforme : tableau de bord (pf.dashboard), facturation (pf.invoices), personnel (pf.staff), profil (me.profile, me.prefs).
+import type { CallOutput } from '@cotiz/api-client'
 import type {
-  AccesARemettre, FacturationPlateforme, InvitationPersonnel, ModificationProfilPlateforme, ProfilPlateforme, RolePlateforme, TableauDeBordPlateforme, UtilisateurPlateforme,
+  AccesARemettre, EntreeAudit, FacturationPlateforme, FiltresAudit, InvitationPersonnel, ModificationProfilPlateforme, ProfilPlateforme, RolePlateforme, TableauDeBordPlateforme, UtilisateurPlateforme,
 } from '~~/types'
 import type { ApiClient } from './client'
 import { email, jour, local, m, vueAcces } from './vues/communs'
 import { statutFacture, vueActivite } from './vues/associations'
 import { vueDemande } from './vues/demandes'
 import { traduireErreur } from './vues/erreurs'
+import { telechargerBlob } from '~/utils/telechargement'
 
 const ROLE: Record<string, RolePlateforme> = { owner: 'proprietaire', admin: 'administrateur', support: 'support' }
 const SIGNAL = { unpaid: 'impaye', inactive: 'onboarding', quota: 'quota' } as const
@@ -153,6 +155,93 @@ export function useActionsProfilPlateforme() {
       catch (e) {
         traduireErreur(e, { invalid_credentials: 'mot-de-passe-incorrect', weak_password: 'mot-de-passe-faible', validation_failed: 'mot-de-passe-faible' })
       }
+    },
+  }
+}
+
+// ---------------------------------------------------------------- Journal d'audit (pf.audit, lot 4.7)
+
+const requeteAudit = (f: FiltresAudit) => ({
+  ...(f.acteurId ? { actorUserId: f.acteurId } : {}),
+  ...(f.action ? { action: f.action } : {}),
+  ...(f.associationId ? { associationId: f.associationId } : {}),
+  ...(f.depuis ? { from: f.depuis } : {}),
+})
+
+/**
+ * Journal d'audit de la plateforme (SaUtilisateurs › Journal d'audit, `platform.audit.read`) : pages de 50, les plus
+ * récentes d'abord ; `charger(filtres)` repart du début, `suite()` ajoute la page suivante. Noms d'association lus
+ * dans pf.asso.list (100 premières), repli sur l'identifiant.
+ */
+export function useJournalAudit() {
+  const client = useClient()
+  const entrees = ref<EntreeAudit[]>([])
+  const total = ref(0)
+  const curseur = ref<string | null>(null)
+  const chargement = ref(false)
+  const erreur = ref(false)
+  const associations = ref(new Map<string, string>())
+  let filtres: FiltresAudit = {}
+  let demande = 0
+
+  async function nomsAssociations() {
+    if (associations.value.size) return
+    try {
+      const r = await client.call('pf.asso.list', 'list', { query: { limit: 100 } })
+      associations.value = new Map(r.items.map(a => [a.id, a.name]))
+    }
+    catch {
+      // Noms facultatifs : l'identifiant s'affiche à la place.
+    }
+  }
+
+  const vue = (e: CallOutput<'pf.audit', 'list'>['items'][number]): EntreeAudit => ({
+    id: e.id,
+    date: e.occurredAt,
+    acteur: e.actor ? { id: e.actor.id, nom: `${e.actor.firstName} ${e.actor.lastName}`.trim() } : null,
+    roleActeur: e.actorRole,
+    association: e.associationId ? { id: e.associationId, nom: associations.value.get(e.associationId) ?? e.associationId } : null,
+    action: e.action,
+    cible: e.entityId ? `${e.entityType} · ${e.entityId.slice(0, 8)}` : e.entityType,
+    ip: e.ip,
+  })
+
+  async function page(depuisCurseur: string | null) {
+    const numero = ++demande
+    chargement.value = true
+    erreur.value = false
+    try {
+      await nomsAssociations()
+      const r = await client.call('pf.audit', 'list', {
+        query: { ...requeteAudit(filtres), limit: 50, ...(depuisCurseur ? { cursor: depuisCurseur } : {}) },
+      })
+      if (numero !== demande) return
+      entrees.value = depuisCurseur ? [...entrees.value, ...r.items.map(vue)] : r.items.map(vue)
+      total.value = r.total
+      curseur.value = r.nextCursor
+    }
+    catch {
+      if (numero === demande) erreur.value = true
+    }
+    finally {
+      if (numero === demande) chargement.value = false
+    }
+  }
+
+  return {
+    entrees, total, chargement, erreur, associations,
+    aSuite: computed(() => curseur.value !== null),
+    charger: (f: FiltresAudit) => {
+      filtres = f
+      return page(null)
+    },
+    suite: () => page(curseur.value),
+    /** CSV des mêmes filtres (10 000 entrées au plus) ; `true` si l'export est tronqué. */
+    exporter: async (f: FiltresAudit): Promise<boolean> => {
+      const reponse = await client.call('pf.audit', 'export', { query: requeteAudit(f) })
+      const nom = /filename="([^"]+)"/.exec(reponse.headers.get('content-disposition') ?? '')?.[1] ?? 'journal-audit.csv'
+      telechargerBlob(nom, await reponse.blob())
+      return reponse.headers.get('x-truncated') === 'true'
     },
   }
 }

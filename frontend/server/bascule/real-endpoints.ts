@@ -148,4 +148,5 @@ export const REAL_ENDPOINTS: ReadonlyMap<EndpointId, BasculeRule> = new Map<Endp
   ['auth.mfa', 'all'],
   // Lot 4.7 : personnel plateforme (invitation par code staff_invite affiché, rôle, retrait).
   ['pf.staff', 'all'],
+  ['pf.audit', 'all'],
 ])

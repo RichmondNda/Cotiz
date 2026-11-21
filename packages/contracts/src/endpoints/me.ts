@@ -3,6 +3,7 @@ import { FEATURES } from '../generated/features.js';
 import { PERMISSIONS } from '../generated/permissions.js';
 import {
   AssociationStatus,
+  EnrollmentStatus,
   MemberStanding,
   MembershipRole,
   NotificationChannel,
@@ -93,41 +94,6 @@ export const Profile = z.object({
   version: z.int().min(1),
 });
 
-export const meProfile = defineEndpoint({
-  id: 'me.profile',
-  space: 'me',
-  permission: 'authenticated',
-  errors: ['invalid_credentials', 'weak_password'],
-  flags: { ...noFlags, audited: true },
-  operations: {
-    get: { method: 'GET', path: '/api/v1/me/profile', request: {}, response: { status: 200, body: Profile } },
-    patch: {
-      method: 'PATCH',
-      path: '/api/v1/me/profile',
-      request: {
-        body: z
-          .object({
-            firstName: z.string().min(1).max(80),
-            lastName: z.string().min(1).max(80),
-            email: Email.nullable(),
-            address: z.string().max(200).nullable(),
-            city: z.string().max(80).nullable(),
-            locale: z.string().min(2).max(10),
-          })
-          .partial(),
-      },
-      response: { status: 200, body: Profile },
-    },
-    /** Les autres sessions sont révoquées. */
-    changePassword: {
-      method: 'PUT',
-      path: '/api/v1/me/password',
-      request: { body: z.object({ currentPassword: z.string().min(1), newPassword: NewPassword }) },
-      response: { status: 204 },
-    },
-  },
-});
-
 export const NotificationPreferences = z.object({
   items: z.array(z.object({ type: z.string(), channel: NotificationChannel, enabled: z.boolean() })),
   /** Canaux proposés : `in_app`, `push` ; `sms`, `email` seulement si la fonctionnalité est activée. */
@@ -198,6 +164,99 @@ export const SubscriberPayment = z
   })
   .meta({ id: 'SubscriberPayment' });
 export type SubscriberPayment = z.infer<typeof SubscriberPayment>;
+
+/**
+ * Export de ses données (`me.profile › export`, lot 4.7) : identité, rôles, connexions récentes et, en espace
+ * souscripteur, inscriptions et paiements déclarés de la personne du jeton. Jamais de haché, de secret, de code ni de jeton.
+ */
+export const PersonalDataExport = z.object({
+  exportedAt: Instant,
+  profile: Profile,
+  account: z.object({ status: z.string(), createdAt: Instant, lastLoginAt: Instant.nullable() }),
+  platformRole: PlatformRole.nullable(),
+  memberships: z.array(
+    z.object({
+      association: z.object({ id: Uuid, name: z.string() }),
+      role: MembershipRole,
+      title: z.string().nullable(),
+      joinedAt: Instant,
+    }),
+  ),
+  /** 50 dernières connexions (toutes espaces), les plus récentes d'abord. */
+  sessions: z.array(
+    z.object({
+      space: SessionSpace,
+      createdAt: Instant,
+      lastUsedAt: Instant.nullable(),
+      expiresAt: Instant,
+      revokedAt: Instant.nullable(),
+      ip: z.string().nullable(),
+      userAgent: z.string().nullable(),
+    }),
+  ),
+  /**
+   * Espace souscripteur seulement (`null` ailleurs) : ses inscriptions, retirées comprises, et ses paiements déclarés,
+   * dans les associations où la personne est souscriptrice active (comme me.history).
+   */
+  subscriber: z
+    .object({
+      enrollments: z.array(
+        z.object({
+          id: Uuid,
+          association: z.object({ id: Uuid, name: z.string() }),
+          project: ProjectRef,
+          status: EnrollmentStatus,
+          startsFrom: IsoDate,
+          joinedAt: Instant,
+          withdrawnAt: Instant.nullable(),
+        }),
+      ),
+      payments: z.array(SubscriberPayment),
+    })
+    .nullable(),
+});
+
+export const meProfile = defineEndpoint({
+  id: 'me.profile',
+  space: 'me',
+  permission: 'authenticated',
+  errors: ['invalid_credentials', 'weak_password'],
+  flags: { ...noFlags, audited: true },
+  operations: {
+    get: { method: 'GET', path: '/api/v1/me/profile', request: {}, response: { status: 200, body: Profile } },
+    patch: {
+      method: 'PATCH',
+      path: '/api/v1/me/profile',
+      request: {
+        body: z
+          .object({
+            firstName: z.string().min(1).max(80),
+            lastName: z.string().min(1).max(80),
+            email: Email.nullable(),
+            address: z.string().max(200).nullable(),
+            city: z.string().max(80).nullable(),
+            locale: z.string().min(2).max(10),
+          })
+          .partial(),
+      },
+      response: { status: 200, body: Profile },
+    },
+    /** Les autres sessions sont révoquées. */
+    changePassword: {
+      method: 'PUT',
+      path: '/api/v1/me/password',
+      request: { body: z.object({ currentPassword: z.string().min(1), newPassword: NewPassword }) },
+      response: { status: 204 },
+    },
+    /** Export JSON de ses données (lot 4.7), audité. */
+    export: {
+      method: 'GET',
+      path: '/api/v1/me/export',
+      request: {},
+      response: { status: 200, body: PersonalDataExport },
+    },
+  },
+});
 
 export const SubscriberDashboard = z.object({
   /** Toutes associations confondues. */

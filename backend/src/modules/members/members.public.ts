@@ -21,3 +21,5 @@ export { enrollmentOwnerOf, enrolledUserIdsOf } from './application/enrollment-r
 // Import en masse (lot 4.4, worker) : chaque ligne passe par le cas d'usage unitaire, codes hachés d'avance.
 export { CreateEnrollmentUseCase } from './application/create-enrollment.use-case.js';
 export { PreparedCodes } from './application/bulk-enroll.use-case.js';
+// Export de ses données (lot 4.7, module reporting) : profil de la personne du jeton.
+export { MyProfile } from './application/my-profile.js';

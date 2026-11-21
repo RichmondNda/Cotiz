@@ -208,6 +208,30 @@ export interface UtilisateurPlateforme {
   statut: 'actif' | 'invite'
 }
 
+/** `pf.audit › list` : une action sensible du journal (lot 4.7). */
+export interface EntreeAudit {
+  id: string
+  /** Instant ISO (UTC). */
+  date: string
+  acteur: { id: Identifiant, nom: string } | null
+  /** `platform:owner`, `association:manager`, `subscriber`, `system`… */
+  roleActeur: string
+  association: { id: Identifiant, nom: string } | null
+  action: string
+  cible: string
+  ip: string | null
+}
+
+/** Filtres du journal d'audit (pf.audit, mêmes pour la liste et l'export). */
+export interface FiltresAudit {
+  acteurId?: Identifiant
+  /** Préfixe d'action (`association.`, `payment.`…). */
+  action?: string
+  associationId?: Identifiant
+  /** Instant ISO de début (inclus). */
+  depuis?: string
+}
+
 /** `pf.staff › invite` : nouvelle personne du personnel (adresse sans compte Cotiz). */
 export interface InvitationPersonnel {
   prenom: string

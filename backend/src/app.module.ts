@@ -18,6 +18,7 @@ import { ProjectsModule } from './modules/projects/projects.module.js';
 import { ContractsModule } from './modules/contracts/contracts.public.js';
 import { ImportsModule } from './modules/imports/imports.public.js';
 import { RemindersModule } from './modules/reminders/reminders.public.js';
+import { AuditModule } from './modules/audit/audit.public.js';
 import { StaffModule } from './modules/staff/staff.public.js';
 import { TeamModule } from './modules/team/team.public.js';
 import { ReportingModule } from './modules/reporting/reporting.module.js';
@@ -86,6 +87,7 @@ export class AppModule {
         RemindersModule,
         TeamModule,
         StaffModule,
+        AuditModule,
         MembersModule,
         LedgerModule,
         NotificationsModule,

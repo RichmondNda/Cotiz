@@ -3,7 +3,8 @@
   Onglet Équipe (pf.staff, propriétaires seulement) : tableau nom, email, rôle, dernière connexion, statut, actions
   (renvoyer l'invitation, changer le rôle, retirer l'accès) ; « Inviter un membre ».
   Écart sans fournisseur (ui-deviations) : aucun email ; l'invitation (ou son renvoi) affiche le code `staff_invite` et
-  son message prêt (HandoffCard) à transmettre par la personne qui invite. Journal d'audit : étape 3 du lot.
+  son message prêt (HandoffCard) à transmettre par la personne qui invite.
+  Onglet Journal d'audit (pf.audit, propriétaires et administrateurs) : composant JournalAudit (filtres, export CSV).
 -->
 <script setup lang="ts">
 import type { ColonneTable } from '~/components/cz/CzTable.vue'
@@ -20,6 +21,7 @@ useHead({ title: 'Utilisateurs · Cotiz' })
 const toast = useToast()
 const { peut, pret } = usePermissions()
 const gere = computed(() => peut('platform.staff.manage'))
+const lit = computed(() => peut('platform.audit.read'))
 const { data, pending, error, refresh } = useUtilisateursPlateforme({ immediat: false })
 const actions = useActionsPersonnel()
 watch([pret, gere], ([p, g]) => {
@@ -242,17 +244,20 @@ const menu = (u: UtilisateurPlateforme): ElementMenu[] => [
         </template>
       </CzTable>
     </template>
-    <div
-      v-else
-      class="cz-card"
-    >
-      <CzEmpty
-        icone="historique"
-        bientot
-        description="Liste chronologique filtrable des actions sensibles : acteur, action, cible, date, adresse IP."
-        integre
-      />
-    </div>
+    <template v-else>
+      <div
+        v-if="pret && !lit"
+        class="cz-card"
+      >
+        <CzEmpty
+          icone="historique"
+          titre="Réservé aux propriétaires et administrateurs"
+          description="Le journal des actions sensibles de la plateforme est lu par les propriétaires et les administrateurs."
+          integre
+        />
+      </div>
+      <JournalAudit v-else-if="pret" />
+    </template>
 
     <ModaleInvitationPersonnel
       v-model:ouvert="invitation"

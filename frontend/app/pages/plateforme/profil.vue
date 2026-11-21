@@ -268,6 +268,8 @@ const chargement = computed(() => pending.value && !profil.value)
           </div>
         </div>
       </section>
+
+      <CarteExportDonnees />
     </template>
   </div>
 </template>

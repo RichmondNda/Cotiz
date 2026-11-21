@@ -33,3 +33,5 @@ export type { PreparedCode } from './application/code-service.js';
 export { type UserProfile, type UserProfileChanges, UserProfiles } from './application/user-profiles.js';
 export { type StaffContact, StaffAccounts } from './application/staff-accounts.js';
 export { type NewTeamAccount, type TeamAccount, TeamAccounts, type TeamContact } from './application/team-accounts.js';
+// Export de ses données (lot 4.7).
+export { personalAccountOf } from './application/personal-data.js';

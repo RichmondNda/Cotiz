@@ -406,6 +406,8 @@ const chargement = computed(() => pending.value && !profil.value)
           </ul>
         </section>
 
+        <CarteExportDonnees />
+
         <!-- Raccourcis et déconnexion -->
         <section class="cz-card profil__raccourcis">
           <NuxtLink

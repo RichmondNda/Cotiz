@@ -712,7 +712,9 @@ endpoints:
   operations:
   - method: GET
     path: /api/v1/platform/audit-logs
-  summary: Journal d'audit filtrable, export
+  - method: GET
+    path: /api/v1/platform/audit-logs/export
+  summary: Journal d'audit filtrable, export CSV (mêmes filtres)
   errors: []
   emits: []
   idempotencyKey: false
@@ -1520,7 +1522,9 @@ endpoints:
     path: /api/v1/me/profile
   - method: PUT
     path: /api/v1/me/password
-  summary: Profil et changement de mot de passe
+  - method: GET
+    path: /api/v1/me/export
+  summary: Profil, changement de mot de passe et export JSON de ses données (lot 4.7)
   errors:
   - invalid_credentials
   - weak_password

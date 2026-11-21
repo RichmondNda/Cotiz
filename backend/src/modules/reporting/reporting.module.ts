@@ -12,6 +12,8 @@ import { GetSubscriberHistoryUseCase } from './application/get-subscriber-histor
 import { GetSubscriberProjectUseCase } from './application/get-subscriber-project.use-case.js';
 import { ListSubscriberProjectsUseCase } from './application/list-subscriber-projects.use-case.js';
 import { RequestExportUseCase } from './application/request-export.use-case.js';
+import { ExportMyDataUseCase } from './application/export-my-data.use-case.js';
+import { MeExportController } from './http/me-export.controller.js';
 import { ExportsController } from './http/exports.controller.js';
 import { ManagerDashboardController } from './http/manager-dashboard.controller.js';
 import { PlatformDashboardController } from './http/platform-dashboard.controller.js';
@@ -23,7 +25,7 @@ import { SubscriberSpaceController } from './http/subscriber-space.controller.js
  * Module reporting (lecture seule, architecture/01) : tableau de bord plateforme (pf.dashboard, lot 1.4), rapport de
  * projet (rp.report), tableau de bord gestionnaire (as.dashboard, lot 2.6) et espace souscripteur (me.dash,
  * me.projects, me.project ; lot 3.2) ; exports (rp.export) et
- * statistiques d'usage (pf.asso.usage), lot 4.6.
+ * statistiques d'usage (pf.asso.usage), lot 4.6 ; export de ses données (me.profile › export), lot 4.7.
  */
 @Module({
   imports: [MembersModule, IdentityModule],
@@ -34,6 +36,7 @@ import { SubscriberSpaceController } from './http/subscriber-space.controller.js
     SubscriberSpaceController,
     ExportsController,
     PlatformUsageController,
+    MeExportController,
   ],
   providers: [
     GetPlatformDashboardUseCase,
@@ -47,6 +50,7 @@ import { SubscriberSpaceController } from './http/subscriber-space.controller.js
     RequestExportUseCase,
     GetExportUseCase,
     GetUsageUseCase,
+    ExportMyDataUseCase,
   ],
 })
 export class ReportingModule {}

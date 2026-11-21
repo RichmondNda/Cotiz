@@ -714,6 +714,15 @@ export const AuditEntry = z.object({
   ip: z.string().nullable(),
 });
 
+/** Filtres du journal d'audit : acteur, action (préfixe : `payment.` ou `payment.validate`), association, période. */
+export const AuditFilters = z.object({
+  actorUserId: Uuid.optional(),
+  action: z.string().min(1).max(80).optional(),
+  associationId: Uuid.optional(),
+  from: Instant.optional(),
+  to: Instant.optional(),
+});
+
 export const pfAudit = defineEndpoint({
   id: 'pf.audit',
   space: 'platform',
@@ -725,15 +734,19 @@ export const pfAudit = defineEndpoint({
       method: 'GET',
       path: '/api/v1/platform/audit-logs',
       request: {
-        query: ListQuery.extend({
-          actorUserId: Uuid.optional(),
-          action: z.string().optional(),
-          associationId: Uuid.optional(),
-          from: Instant.optional(),
-          to: Instant.optional(),
-        }),
+        query: ListQuery.extend(AuditFilters.shape),
       },
       response: { status: 200, body: listOf(AuditEntry) },
+    },
+    /**
+     * Mêmes filtres que la liste, CSV (« ; », BOM UTF-8) des 10 000 entrées les plus récentes ; `X-Truncated: true`
+     * si d'autres entrées correspondent (resserrer la période).
+     */
+    export: {
+      method: 'GET',
+      path: '/api/v1/platform/audit-logs/export',
+      request: { query: AuditFilters },
+      response: { status: 200, body: z.string(), contentType: 'text/csv' },
     },
   },
 });

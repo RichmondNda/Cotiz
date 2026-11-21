@@ -1095,3 +1095,14 @@ Fin : relectures isolation-reviewer, test-skeptic (et contract-guardian), `pnpm 
   plateforme ; un compte en attente invité au personnel ne s'active jamais par une association (relecture B1).
 - Retrait : suppression de la ligne `platform_staff` (pas de donnée financière ; audit `staff.remove`) ;
   sessions plateforme révoquées par `StaffRemovedConsumer` (staff.changed `removed`).
+
+### Lot 4.7 · étape 3 — choix faits en autonome (2026-11-21)
+- pf.audit › export : CSV (« ; », BOM, formules neutralisées : `csvDocument` du lot 4.6) des 10 000 entrées les plus
+  récentes ; au-delà `X-Truncated: true` (resserrer la période). Contrat : `contentType: 'text/csv'` ajouté au registre,
+  le client renvoie la `Response`. Filtre `action` = préfixe (LIKE échappé). Audité `audit_log.export` (filtres, nombre).
+- me.profile › export : **module reporting** (il lit members et ledger ; members ne peut pas importer ledger, qui
+  l'importe déjà). Contenu : profil, compte, rôle plateforme, appartenances actives, 50 dernières sessions ;
+  `subscriber` (inscriptions retirées comprises + paiements déclarés, mêmes lectures que me.history) en espace
+  souscripteur seulement, `null` ailleurs (les paiements ne se lisent qu'en espace subscriber). Jamais de haché ni de
+  secret. Audité `user.export_data`. Test d'isolation `test/isolation/me-export.test.ts` (politiques élargies).
+- Aucun mock pf.audit n'existait : bascule `pf.audit` sans handler à supprimer.
