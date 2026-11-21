@@ -3,6 +3,7 @@ import type { Feature, Permission } from '@cotiz/contracts'
 import type { ApiClient } from './client'
 import type { CompteursNavigation, Role, UtilisateurSession } from '~~/types'
 import { initiales } from '~/utils/format'
+import { telechargerJson } from '~/utils/telechargement'
 import { AVEC_MOCKS, espaceBascule, lotsBascules } from '~/utils/bascule'
 import { fonctionnalitesActives } from '~/utils/fonctionnalites'
 import { useSession } from '~/composables/useSession'
@@ -80,6 +81,19 @@ export const useCompteursNavigation = () => {
 }
 
 /** Droits et fonctionnalités de la session (`GET /me`) : le front masque, le back refuse. */
+/**
+ * Export JSON de ses données (me.profile › export, lot 4.7) : profil, compte, rôles, connexions récentes (et, pour un
+ * souscripteur, inscriptions et paiements déclarés) ; enregistré
+ * sous « cotiz-mes-donnees-AAAA-MM-JJ.json ».
+ */
+export function useExportDonnees() {
+  const client = useClient()
+  return async () => {
+    const donnees = await client.call('me.profile', 'export')
+    telechargerJson(`cotiz-mes-donnees-${donnees.exportedAt.slice(0, 10)}.json`, donnees)
+  }
+}
+
 export function usePermissions() {
   const { data: moi } = useMoi()
   return {

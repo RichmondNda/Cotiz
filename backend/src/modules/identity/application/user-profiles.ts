@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { MfaFactors } from './mfa-factors.js';
 import { credentials, updateWithVersion, users } from '@cotiz/db';
 import { eq } from 'drizzle-orm';
 import { DomainProblem } from '../../../shared/http/index.js';
@@ -13,7 +14,7 @@ export interface UserProfile {
   phone: string | null;
   locale: string;
   passwordChangedAt: Date | null;
-  /** Double authentification : lot 4.7 (mfa_factors) ; aucune avant. */
+  /** Second facteur confirmé (mfa_factors, lot 4.7). */
   mfaEnabled: boolean;
   version: number;
 }
@@ -34,6 +35,8 @@ export interface UserProfileChanges {
  */
 @Injectable()
 export class UserProfiles {
+  constructor(private readonly factors: MfaFactors) {}
+
   async read(userId: string): Promise<UserProfile | null> {
     const [row] = await currentTx()
       .select({
@@ -50,7 +53,13 @@ export class UserProfiles {
       .leftJoin(credentials, eq(credentials.userId, users.id))
       .where(eq(users.id, userId))
       .limit(1);
-    return row ? { ...row, passwordChangedAt: row.passwordChangedAt ?? null, mfaEnabled: false } : null;
+    return row
+      ? {
+          ...row,
+          passwordChangedAt: row.passwordChangedAt ?? null,
+          mfaEnabled: await this.factors.hasConfirmed(row.id),
+        }
+      : null;
   }
 
   /**

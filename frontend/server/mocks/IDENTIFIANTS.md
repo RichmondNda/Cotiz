@@ -20,7 +20,7 @@ Mot de passe des comptes actifs : `Plateau-Dev-Cotiz-2026`.
 | Souscripteur | `/connexion` | 01 00 00 00 01 | Ibrahim Touré (Voyage solidaire) | `/accueil` |
 | Souscripteur | `/activer?espace=souscripteur&t=0122334455` | 01 22 33 44 55 | Fatou Traoré, **non activée** : code d'activation affiché par `seed-dev` (nouveau à chaque exécution), puis mot de passe au choix | `/accueil` |
 | Gestionnaire | `/connexion/association` | awa@entraide.ci | Awa Koné, owner d'Entraide Yopougon | `/asso` |
-| Super-admin | `/connexion/plateforme` | richy@cotiz.app | Richy, owner plateforme (pas de second facteur avant le lot 4.7) | `/plateforme` |
+| Super-admin | `/connexion/plateforme` | richy@cotiz.app | Richy, owner plateforme ; second facteur TOTP (lot 4.7) : clé `KRUGKIDROVUWG2ZAMJZG653OEBTG66BA` à saisir dans une application d'authentification (posée par seed-dev en local, sans `COTIZ_DEV_SEED_PASSWORD`) | `/plateforme` |
 
 Autre mot de passe : « Identifiant ou mot de passe incorrect » ; au 5ᵉ échec, blocage de 15 min (compteur Redis :
 `docker compose -f infra/compose/local.yml restart redis` pour l'effacer). Les écrans encore simulés montrent toujours

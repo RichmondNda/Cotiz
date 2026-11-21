@@ -18,6 +18,7 @@ import {
   type Tx,
   USERS,
 } from '../isolation/harness.js';
+import { platformLogin } from '../support/platform-mfa.js';
 
 /**
  * Lot 1.3 · étapes 5 et 6 : décision sur une demande, par la connexion plateforme. Approbation (pf.req.approve,
@@ -72,6 +73,8 @@ describe('décision sur une demande (pf.req.approve, pf.req.reject)', () => {
   let manager: string;
 
   const login = async (space: string, identifier: string, password = PASSWORD) => {
+    // Espace plateforme : second facteur obligatoire (lot 4.7), enrôlé à la première connexion.
+    if (space === 'platform') return (await platformLogin({ app, base, identifier, password })).accessToken;
     const res = await fetch(`${base}/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

@@ -28,8 +28,8 @@ export interface OperationDef {
     status: 200 | 201 | 202 | 204 | 302;
     /** Absent pour 204 et 302, facultatif pour 202. */
     body?: z.ZodType;
-    /** `application/json` par défaut ; flux SSE pour les notifications. */
-    contentType?: 'application/json' | 'text/event-stream';
+    /** `application/json` par défaut ; flux SSE pour les notifications ; CSV téléchargé (pf.audit › export). */
+    contentType?: 'application/json' | 'text/event-stream' | 'text/csv';
   };
 }
 

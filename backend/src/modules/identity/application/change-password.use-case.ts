@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { credentials, sessions, users } from '@cotiz/db';
 import { isStrongPassword } from '@cotiz/domain';
-import { and, eq, gt, isNull, ne } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Audited, recordAudit } from '../../../shared/audit/index.js';
 import { DomainProblem, requireActor } from '../../../shared/http/index.js';
 import { OutboxService } from '../../../shared/outbox/index.js';
 import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant-context/index.js';
-import { ACCESS_TOKEN_TTL_MS } from '../domain/login-policy.js';
 import { RevokedSessions } from '../infra/revoked-sessions.js';
 import { SecretHasher } from '../infra/secret-hasher.js';
 import { SessionFamilies } from './session-families.js';
@@ -66,24 +65,7 @@ export class ChangePasswordUseCase {
       .where(eq(credentials.userId, userId));
 
     // Les autres connexions, famille par famille (verrou de chaque famille : une rotation concurrente ne survit pas).
-    const others = await tx
-      .selectDistinct({ familyId: sessions.familyId })
-      .from(sessions)
-      .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt), ne(sessions.familyId, current.familyId)));
-    const blacklist: string[] = [];
-    for (const { familyId } of others) blacklist.push(...(await this.families.revoke(familyId, now)));
-    // Familles déjà révoquées dont un jeton d'accès vit encore (15 min) : en liste noire elles aussi.
-    const recent = await tx
-      .select({ id: sessions.id })
-      .from(sessions)
-      .where(
-        and(
-          eq(sessions.userId, userId),
-          ne(sessions.familyId, current.familyId),
-          gt(sessions.createdAt, new Date(now.getTime() - ACCESS_TOKEN_TTL_MS - 60_000)),
-        ),
-      );
-    blacklist.push(...recent.map((row) => row.id));
+    const blacklist = await this.families.revokeOthers(userId, current.familyId, now);
 
     await this.outbox.publish(tx, {
       type: 'user.password_changed',
@@ -94,7 +76,6 @@ export class ChangePasswordUseCase {
     });
     // Sans association : un profil n'appartient à aucune (en espace association, @Audited reprend celle du contexte).
     recordAudit({ entityType: 'user', entityId: userId, after: { passwordChangedAt: now } });
-    const ids = [...new Set(blacklist)];
-    return afterCommit(() => (ids.length ? this.revoked.revoke(ids) : Promise.resolve()));
+    return afterCommit(() => (blacklist.length ? this.revoked.revoke(blacklist) : Promise.resolve()));
   }
 }

@@ -22,6 +22,7 @@ import {
   startIsolationHarness,
   USERS,
 } from '../isolation/harness.js';
+import { platformLogin } from '../support/platform-mfa.js';
 
 /**
  * Lot 1.2 · étape 4 : plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive) à travers les vraies gardes, la
@@ -73,6 +74,8 @@ describe('plans (pub.plans, pf.plans, pf.plan.write, pf.plan.archive)', () => {
     });
   const codeOf = async (res: Response) => ((await res.json()) as { code?: string }).code;
   const login = async (space: string, identifier: string) => {
+    // Espace plateforme : second facteur obligatoire (lot 4.7), enrôlé à la première connexion.
+    if (space === 'platform') return (await platformLogin({ app, base, identifier, password: PASSWORD })).accessToken;
     const res = await call('POST', '/auth/login', undefined, { space, identifier, password: PASSWORD });
     expect(res.status).toBe(200);
     const body = LoginResponse.parse(await res.json());

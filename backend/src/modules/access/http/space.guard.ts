@@ -1,10 +1,7 @@
-import { type CanActivate, type ExecutionContext, Inject, Injectable } from '@nestjs/common';
+import { type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Space as ContractSpace } from '@cotiz/contracts';
-import { CONFIG, type Config } from '../../../config.js';
 import { DomainProblem, routeAccess } from '../../../shared/http/index.js';
-import { parseIpAllowList } from '../../../shared/net/index.js';
-import { currentRequestInfo } from '../../../shared/request-info/index.js';
 import { setRequestContext } from '../../../shared/tenant-context/index.js';
 import { markPlatformRoute } from '../../../shared/tenant-context/platform-route.js';
 import { type AccessClaims, authenticatedSession } from '../../identity/identity.public.js';
@@ -20,22 +17,21 @@ export function spaceAccepts(route: ContractSpace, token: AccessClaims['space'])
 }
 
 /**
+ * Routes ouvertes à une session restreinte à l'enrôlement du second facteur (claim `mfa: 'enroll'`, lot 4.7) : tout
+ * l'espace auth (renouvellement, déconnexion ; auth.mfa est public) et `GET /me`. Ni profil ni mot de passe : l'identité
+ * ne change pas avant la preuve du second facteur.
+ */
+const ENROLLMENT_ENDPOINTS: ReadonlySet<string> = new Set(['me']);
+
+/**
  * Deuxième garde globale : espace du jeton accepté par la route, sinon 404 `not_found` (comme une ressource
- * inexistante : rien n'est révélé). Jeton platform : adresse du client dans PLATFORM_ALLOWED_IPS à chaque requête
- * (403 `forbidden`), sauf dans l'espace auth (déconnexion). Pose le contexte tenant des jetons platform et subscriber ; celui d'un jeton association est posé
+ * inexistante : rien n'est révélé). Session plateforme sans second facteur (claim `mfa: 'enroll'`) : seulement les
+ * routes d'enrôlement, sinon 403 `forbidden` (lot 4.7 ; remplace la liste d'adresses de la V1). Pose le contexte tenant des jetons platform et subscriber ; celui d'un jeton association est posé
  * par MembershipGuard, après vérification de l'appartenance. Route /platform : connexion plateforme (markPlatformRoute).
  */
 @Injectable()
 export class SpaceGuard implements CanActivate {
-  private readonly platformIpAllowed: ((ip: string | null) => boolean) | null;
-
-  constructor(
-    private readonly reflector: Reflector,
-    @Inject(CONFIG) config: Config,
-  ) {
-    this.platformIpAllowed =
-      config.PLATFORM_ALLOWED_IPS === undefined ? null : parseIpAllowList(config.PLATFORM_ALLOWED_IPS);
-  }
+  constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     if (context.getType() !== 'http') return true;
@@ -44,16 +40,11 @@ export class SpaceGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<object>();
     const claims = authenticatedSession(request);
 
-    // Jamais pour l'espace auth : se déconnecter (révoquer) reste possible depuis toute adresse.
-    if (
-      claims.space === 'platform' &&
-      access.def.space !== 'auth' &&
-      this.platformIpAllowed &&
-      !this.platformIpAllowed(currentRequestInfo()?.ip ?? null)
-    ) {
+    if (!spaceAccepts(access.def.space, claims.space)) throw new DomainProblem('not_found');
+    // Se déconnecter et renouveler (espace auth) restent toujours possibles.
+    if (claims.mfa === 'enroll' && access.def.space !== 'auth' && !ENROLLMENT_ENDPOINTS.has(access.def.id)) {
       throw new DomainProblem('forbidden');
     }
-    if (!spaceAccepts(access.def.space, claims.space)) throw new DomainProblem('not_found');
     if (access.def.space !== 'auth' && claims.space !== 'association') {
       setRequestContext(request, { space: claims.space, userId: claims.sub });
     }

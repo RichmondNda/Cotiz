@@ -89,12 +89,10 @@ const moussaCentreLate = () => [
 /** Lecture : paramètres de chemin de chaque opération GET. */
 const READS: Record<string, Call> = {
   'me.prefs get': {},
-  'pf.staff list': {},
 }
 
 /** Écritures : entrées valides (le jeu est remis à zéro avant chaque appel). */
 const WRITES: Record<string, () => Call> = {
-  'auth.mfa verify': () => ({ body: { mfaToken: 'mfa.x', code: '481902' } }),
   'me.prefs replace': () => ({ as: 'association', body: { items: [{ type: 'payment.declared', channel: 'in_app', enabled: false }] } }),
 }
 
@@ -164,7 +162,7 @@ describe('scénarios de l’inventaire : réponses conformes', () => {
 
   it('un scénario ne modifie jamais le jeu', async () => {
     const avant = JSON.stringify(db)
-    await call('pf.staff', 'list', { scenario: 'tout-est-paye' })
+    await call('me.prefs', 'get', { as: 'association', scenario: 'tout-est-paye' })
     expect(JSON.stringify(db)).toBe(avant)
   })
 })
@@ -181,8 +179,9 @@ describe('erreurs déclenchables (v0-mapping § 4) et règles réelles', () => {
   // association_suspended et « ressource d'une autre association → 404 » : plus aucune route simulée de l'espace
   // association depuis la bascule de bl.inv (lot 4.6) ; vérifiés par les tests d'isolation et d'intégration du back.
 
-  it('espace d’un autre rôle → forbidden ; sans session → session_expired', async () => {
-    expect(await problem('pf.staff', 'list', { as: 'association' })).toBe('forbidden')
+  // forbidden (espace d'un autre rôle) : plus aucune route simulée réservée à un espace depuis la bascule de pf.staff
+  // (lot 4.7) ; vérifié par les tests de permissions du back.
+  it('sans session → session_expired', async () => {
     expect(await problem('me.prefs', 'get', { as: null })).toBe('session_expired')
   })
 })

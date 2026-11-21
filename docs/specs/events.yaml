@@ -416,7 +416,7 @@ events:
   - 'auth: révocation si retrait'
   - notifications
 - type: staff.changed
-  emitter: access
+  emitter: staff
   lot: '4.7'
   version: 1
   payload:

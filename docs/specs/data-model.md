@@ -135,6 +135,7 @@ Double authentification (obligatoire pour le personnel plateforme).
 | `type` | `enum` | totp |
 | `secret_encrypted` | `bytea` | chiffré côté application |
 | `confirmed_at` | `timestamptz` |  |
+| `recovery_code_hashes` | `text[]` | codes de secours hachés (argon2id), affichés une fois à la confirmation ; un code utilisé est retiré |
 
 ## `platform_staff` — lot 1.1
 

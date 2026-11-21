@@ -6,6 +6,7 @@ import { createApp } from '../../src/app.js';
 import { loadConfig } from '../../src/config.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { A, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
+import { platformLogin } from '../support/platform-mfa.js';
 
 /**
  * Lot 1.3 · étape 4 : file de traitement des demandes (pf.req.list, pf.req.get) par la connexion plateforme
@@ -40,6 +41,8 @@ describe('file des demandes de création (pf.req.list, pf.req.get)', () => {
     fetch(`${base}${path}`, { headers: token ? { authorization: `Bearer ${token}` } : {} });
   const codeOf = async (res: Response) => ((await res.json()) as { code?: string }).code;
   const login = async (space: string, identifier: string) => {
+    // Espace plateforme : second facteur obligatoire (lot 4.7), enrôlé à la première connexion.
+    if (space === 'platform') return (await platformLogin({ app, base, identifier, password: PASSWORD })).accessToken;
     const res = await fetch(`${base}/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

@@ -89,6 +89,22 @@ export function espaceDuJeton(jeton: string | null): string | null {
 }
 
 /**
+ * Session plateforme restreinte à l'enrôlement du second facteur (claim `mfa: 'enroll'`, lot 4.7), lu sans
+ * vérification : seulement pour l'interface ; le back refuse le reste (403).
+ */
+export function enrolementRequis(jeton: string | null): boolean {
+  const charge = jeton?.split('.')[1]
+  if (!charge) return false
+  try {
+    const base64 = charge.replace(/-/g, '+').replace(/_/g, '/')
+    return (JSON.parse(atob(base64)) as { mfa?: unknown }).mfa === 'enroll'
+  }
+  catch {
+    return false
+  }
+}
+
+/**
  * Déconnexion d'une vraie session : `auth.logout` révoque la connexion et efface le cookie de renouvellement. Il exige
  * un jeton d'accès valide : jeton absent ou expiré (onglet resté inactif), il est renouvelé d'abord, sinon le cookie
  * survivrait et rouvrirait la session sans mot de passe. Renvoie `false` s'il n'y avait plus de session à fermer.

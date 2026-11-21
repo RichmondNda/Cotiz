@@ -1,6 +1,5 @@
 import { createPrivateKey, createPublicKey } from 'node:crypto';
 import { z } from 'zod';
-import { parseIpAllowList } from './shared/net/ip-allow-list.js';
 
 /** PEM sur une ligne (`\n` littéraux, fréquent dans les gestionnaires de secrets) → PEM multiligne. */
 const Pem = z
@@ -53,11 +52,6 @@ export const ConfigSchema = z.object({
    */
   JWT_PRIVATE_KEY: Pem,
   JWT_PUBLIC_KEY: Pem,
-  /**
-   * Connexion à l'espace plateforme : adresses ou réseaux autorisés (`203.0.113.7, 10.0.0.0/8`, IPv4 ou IPv6).
-   * Absente : toute adresse (architecture/03 ; V2 : TOTP obligatoire, lot 4.7).
-   */
-  PLATFORM_ALLOWED_IPS: z.string().min(1).optional(),
   /**
    * Clé AES-256 (32 octets en base64) des codes d'activation ré-affichables (one_time_codes.code_encrypted) : exigée en
    * production ; ailleurs, une clé de développement fixe.
@@ -205,9 +199,6 @@ const ConfigSchemaChecked = ConfigSchema.superRefine((config, ctx) => {
   if ((config.VAPID_PUBLIC_KEY === undefined) !== (config.VAPID_PRIVATE_KEY === undefined)) {
     const missing = config.VAPID_PUBLIC_KEY === undefined ? 'VAPID_PUBLIC_KEY' : 'VAPID_PRIVATE_KEY';
     ctx.addIssue({ code: 'custom', path: [missing], message: 'exigée avec la seconde clé de la paire' });
-  }
-  if (config.PLATFORM_ALLOWED_IPS !== undefined && parseIpAllowList(config.PLATFORM_ALLOWED_IPS) === null) {
-    ctx.addIssue({ code: 'custom', path: ['PLATFORM_ALLOWED_IPS'], message: 'adresse ou réseau invalide' });
   }
   if (config.NODE_ENV !== 'production') return;
   for (const key of [

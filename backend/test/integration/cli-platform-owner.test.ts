@@ -18,6 +18,7 @@ import {
   SeedDevAccountsUseCase,
 } from '../../src/modules/identity/application/seed-dev-accounts.use-case.js';
 import type { CodeService } from '../../src/modules/identity/application/code-service.js';
+import type { MfaFactors } from '../../src/modules/identity/application/mfa-factors.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { type IsolationHarness, startIsolationHarness } from '../isolation/harness.js';
 
@@ -262,6 +263,12 @@ describe('CLI : create-platform-owner', () => {
       const richy = rows[0] as { id: string; status: string; password_hash: string; role: string };
       expect(richy).toMatchObject({ id: RICHY, status: 'active', role: 'owner' });
       expect(await verify(richy.password_hash, DEV_PASSWORD)).toBe(true);
+      // Second facteur obligatoire (lot 4.7) : un seul facteur confirmé, même après plusieurs passages.
+      const factors = await h.superuser(
+        'SELECT confirmed_at IS NOT NULL AS confirmed FROM mfa_factors WHERE user_id = $1',
+        [RICHY],
+      );
+      expect(factors.rows).toEqual([{ confirmed: true }]);
     });
 
     it('COTIZ_DEV_SEED_PASSWORD (environnement de dev en ligne) : remplace le mot de passe connu, jamais affiché', async () => {
@@ -905,7 +912,12 @@ describe('CLI : create-platform-owner', () => {
         { NODE_ENV: 'production', COTIZ_DEV_SEED: true },
         { NODE_ENV: 'development', COTIZ_DEV_SEED: false },
       ]) {
-        const useCase = new SeedDevAccountsUseCase(new SecretHasher(), {} as CodeService, config as Config);
+        const useCase = new SeedDevAccountsUseCase(
+          new SecretHasher(),
+          {} as CodeService,
+          config as Config,
+          {} as MfaFactors,
+        );
         await expect(useCase.execute()).rejects.toThrow(/COTIZ_DEV_SEED/);
         await expect(new SeedDevProjectsUseCase(config as Config).execute('entraide-yopougon')).rejects.toThrow(
           /COTIZ_DEV_SEED/,

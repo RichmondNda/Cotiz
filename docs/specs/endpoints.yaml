@@ -254,6 +254,7 @@ endpoints:
   - wrong_space
   emits:
   - user.activated
+  - staff.changed
   idempotencyKey: false
   ifMatch: false
   rateLimited: true
@@ -272,10 +273,12 @@ endpoints:
     path: /api/v1/me/mfa/totp
   - method: POST
     path: /api/v1/me/mfa/totp/confirm
-  summary: 'Second facteur TOTP : vérification à la connexion, enrôlement, confirmation, codes de secours'
+  summary: 'Second facteur TOTP : vérification à la connexion, enrôlement, confirmation, codes de secours (enrôlement et confirmation : session exigée)'
   errors:
   - invalid_code
   - too_many_attempts
+  - wrong_space
+  - invalid_state
   emits:
   - user.mfa_enabled
   idempotencyKey: false
@@ -697,6 +700,7 @@ endpoints:
   summary: Personnel plateforme ; invitation par lien/code affiché (pas d'email)
   errors:
   - last_owner
+  - not_found
   emits:
   - staff.changed
   idempotencyKey: false
@@ -712,7 +716,9 @@ endpoints:
   operations:
   - method: GET
     path: /api/v1/platform/audit-logs
-  summary: Journal d'audit filtrable, export
+  - method: GET
+    path: /api/v1/platform/audit-logs/export
+  summary: Journal d'audit filtrable, export CSV (mêmes filtres)
   errors: []
   emits: []
   idempotencyKey: false
@@ -1520,7 +1526,9 @@ endpoints:
     path: /api/v1/me/profile
   - method: PUT
     path: /api/v1/me/password
-  summary: Profil et changement de mot de passe
+  - method: GET
+    path: /api/v1/me/export
+  summary: Profil, changement de mot de passe et export JSON de ses données (lot 4.7)
   errors:
   - invalid_credentials
   - weak_password

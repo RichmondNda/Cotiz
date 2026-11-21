@@ -1,10 +1,10 @@
-import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject } from 'node:crypto';
+import { createPrivateKey, createPublicKey, generateKeyPairSync, type KeyObject, randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { jwtVerify, SignJWT } from 'jose';
 import { z } from 'zod';
 import { CONFIG, type Config } from '../../../config.js';
 import type { Space } from '../../../shared/tenant-context/index.js';
-import { ACCESS_TOKEN_TTL_MS, RESET_TOKEN_TTL_MS } from '../domain/login-policy.js';
+import { ACCESS_TOKEN_TTL_MS, MFA_TOKEN_TTL_MS, RESET_TOKEN_TTL_MS } from '../domain/login-policy.js';
 
 const ALG = 'EdDSA';
 const ISSUER = 'cotiz';
@@ -12,6 +12,15 @@ const AUDIENCE = 'cotiz-api';
 /** Jeton de réinitialisation : autre audience, jamais accepté comme jeton d'accès (ni l'inverse). */
 const RESET_AUDIENCE = 'cotiz-reset';
 const RESET_TTL_SECONDS = RESET_TOKEN_TTL_MS / 1000;
+/** Jeton de second facteur (auth.login → auth.mfa › verify) : autre audience, jamais un jeton d'accès. */
+const MFA_AUDIENCE = 'cotiz-mfa';
+const MFA_TTL_SECONDS = MFA_TOKEN_TTL_MS / 1000;
+
+const MfaClaims = z.object({ sub: z.uuid(), rememberMe: z.boolean(), jti: z.uuid() });
+/** Jeton de second facteur : la personne dont le mot de passe est vérifié, et son « rester connecté ». */
+export type MfaClaims = z.infer<typeof MfaClaims>;
+/** Ce que l'appelant fournit : `jti` (usage unique) est tiré à la signature. */
+export type MfaTokenInput = Omit<MfaClaims, 'jti'>;
 
 const ResetClaims = z.object({
   sub: z.uuid(),
@@ -30,6 +39,11 @@ const AccessClaims = z.object({
   sub: z.uuid(),
   space: z.enum(['platform', 'association', 'subscriber'] as const satisfies readonly Space[]),
   sid: z.uuid(),
+  /**
+   * `enroll` (lot 4.7) : session plateforme sans second facteur confirmé, restreinte à l'enrôlement (espace auth,
+   * `me`, `me.profile`) par SpaceGuard ; recalculé à chaque renouvellement. Absent : session complète.
+   */
+  mfa: z.literal('enroll').optional(),
 });
 export type AccessClaims = z.infer<typeof AccessClaims>;
 
@@ -102,6 +116,32 @@ export class AccessTokenSigner {
       audience: RESET_AUDIENCE,
     });
     return ResetClaims.parse(payload);
+  }
+
+  /** Jeton de second facteur de 5 min, émis après un mot de passe juste (auth.login, espace plateforme). */
+  async signMfaToken(claims: MfaTokenInput, now = new Date()): Promise<{ token: string; expiresAt: Date }> {
+    const issuedAt = Math.floor(now.getTime() / 1000);
+    const expiresAt = new Date((issuedAt + MFA_TTL_SECONDS) * 1000);
+    const token = await new SignJWT({ rememberMe: claims.rememberMe })
+      .setProtectedHeader({ alg: ALG, typ: 'JWT' })
+      .setSubject(claims.sub)
+      .setIssuer(ISSUER)
+      .setAudience(MFA_AUDIENCE)
+      .setJti(randomUUID())
+      .setIssuedAt(issuedAt)
+      .setExpirationTime(expiresAt)
+      .sign(this.privateKey);
+    return { token, expiresAt };
+  }
+
+  /** Lève une erreur si le jeton n'est pas un jeton de second facteur valide. */
+  async verifyMfaToken(token: string): Promise<MfaClaims> {
+    const { payload } = await jwtVerify(token, this.verifyKey, {
+      algorithms: [ALG],
+      issuer: ISSUER,
+      audience: MFA_AUDIENCE,
+    });
+    return MfaClaims.parse(payload);
   }
 
   /** Vérifie signature, algorithme, émetteur, audience, expiration et forme des claims ; lève une erreur sinon. */

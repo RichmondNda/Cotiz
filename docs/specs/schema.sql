@@ -187,11 +187,13 @@ CREATE TABLE mfa_factors (
   type mfa_factors_type NOT NULL,
   secret_encrypted bytea NOT NULL,
   confirmed_at timestamptz,
+  recovery_code_hashes text[] NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE mfa_factors IS 'Double authentification (obligatoire pour le personnel plateforme).';
 COMMENT ON COLUMN mfa_factors.type IS 'totp';
 COMMENT ON COLUMN mfa_factors.secret_encrypted IS 'chiffré côté application';
+COMMENT ON COLUMN mfa_factors.recovery_code_hashes IS 'codes de secours hachés (argon2id), affichés une fois à la confirmation ; un code utilisé est retiré';
 
 -- platform_staff · module access · V1 · lot 1.1
 -- Personnel de la plateforme Cotiz.

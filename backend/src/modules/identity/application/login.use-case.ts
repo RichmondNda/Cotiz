@@ -10,11 +10,19 @@ import { OutboxService } from '../../../shared/outbox/index.js';
 import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant-context/index.js';
 import { canonicalIdentifier, LOGIN_LOCK_MS } from '../domain/login-policy.js';
 import { type LoginSubject, LoginThrottle } from '../infra/login-throttle.js';
+import { AccessTokenSigner } from '../infra/access-token-signer.js';
 import { SecretHasher } from '../infra/secret-hasher.js';
+import { MfaFactors } from './mfa-factors.js';
 import { type OpenedSession, SessionOpener } from './session-opener.js';
 import { SpaceAccess } from './space-access.js';
 
 type Space = z.infer<typeof SessionSpace>;
+
+/** Mot de passe juste, second facteur exigé (plateforme, lot 4.7) : poursuivre avec auth.mfa › verify. */
+export interface MfaChallenge {
+  mfaToken: string;
+  expiresAt: Date;
+}
 
 export interface LoginInput {
   space: Space;
@@ -31,7 +39,9 @@ export interface LoginInput {
  *   email et téléphone partagent 5 essais ; qui connaît les deux peut constater qu'ils vont ensemble : accepté) ;
  * - `wrong_space` seulement après un mot de passe juste (message identique à l'écran) ;
  * - espace association : `association_suspended` si toutes les associations que la personne gère sont suspendues
- *   (après le mot de passe, comme `wrong_space`).
+ *   (après le mot de passe, comme `wrong_space`) ;
+ * - espace plateforme (lot 4.7) : second facteur confirmé → aucune session, un jeton de second facteur de 5 min
+ *   (`mfa_required`) ; sans facteur confirmé → session restreinte à l'enrôlement (claim `mfa: 'enroll'`).
  * Un échec écrit son compteur puis lève l'erreur APRÈS le COMMIT (`afterCommit`) : l'erreur annulerait sinon l'écriture.
  */
 @Injectable()
@@ -45,11 +55,13 @@ export class LoginUseCase {
     private readonly sessions: SessionOpener,
     private readonly outbox: OutboxService,
     private readonly spaceAccess: SpaceAccess,
+    private readonly factors: MfaFactors,
+    private readonly signer: AccessTokenSigner,
   ) {
     this.decoyHash = hasher.hash(randomBytes(32).toString('base64url'));
   }
 
-  async execute(input: LoginInput, now = new Date()): Promise<OpenedSession | AfterCommit<never>> {
+  async execute(input: LoginInput, now = new Date()): Promise<OpenedSession | MfaChallenge | AfterCommit<never>> {
     const tx = currentTx();
     const identifier = canonicalIdentifier(input.identifier);
     const [account] = await tx
@@ -100,6 +112,11 @@ export class LoginUseCase {
       .update(credentials)
       .set({ failedAttempts: 0, lockedUntil: null })
       .where(eq(credentials.userId, account.id));
+    // Connexion (dernière connexion, user.logged_in) comptée au second facteur, pas ici.
+    if (input.space === 'platform' && (await this.factors.hasConfirmed(account.id))) {
+      const mfa = await this.signer.signMfaToken({ sub: account.id, rememberMe: input.rememberMe }, now);
+      return { mfaToken: mfa.token, expiresAt: mfa.expiresAt };
+    }
     await tx.update(users).set({ lastLoginAt: now }).where(eq(users.id, account.id));
 
     const session = await this.sessions.open(

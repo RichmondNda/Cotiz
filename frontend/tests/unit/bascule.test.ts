@@ -35,8 +35,8 @@ describe('decide', () => {
   const base = { mocks: true, apiOrigin: 'http://api' }
 
   it('mock par défaut, NestJS pour un id du registre', () => {
-    expect(decide('GET', '/api/v1/platform/staff', base)).toBe('mock')
-    expect(decide('GET', '/api/v1/platform/staff', { ...base, real: new Set(['pf.staff']) })).toBe('proxy')
+    expect(decide('GET', '/api/v1/associations/00000000-0000-7000-8000-00000000000a/analytics', base)).toBe('mock')
+    expect(decide('GET', '/api/v1/associations/00000000-0000-7000-8000-00000000000a/analytics', { ...base, real: new Set(['rp.analytics']) })).toBe('proxy')
     expect(decide('GET', '/api/v1/health/live', base)).toBe('proxy')
   })
 
@@ -55,8 +55,8 @@ describe('decide', () => {
     expect(REAL_ENDPOINTS.get('fl.upload')).toEqual(['platform', 'subscriber'])
     expect(REAL_ENDPOINTS.get('fl.get')).toEqual(['platform', 'subscriber'])
     for (const id of ['pub.plans', 'pf.plans', 'pf.plan.write', 'pf.plan.archive'] as const) expect(REAL_ENDPOINTS.get(id), id).toBe('all')
-    // Second facteur du super-admin : simulé jusqu'au lot 4.7.
-    expect(REAL_ENDPOINTS.has('auth.mfa')).toBe(false)
+    // Second facteur du super-admin : réel depuis le lot 4.7.
+    expect(REAL_ENDPOINTS.get('auth.mfa')).toBe('all')
   })
 
   describe('bascule par espace', () => {

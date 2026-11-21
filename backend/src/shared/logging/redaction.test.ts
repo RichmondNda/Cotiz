@@ -37,6 +37,9 @@ describe('redact', () => {
     'secretAccessKey',
     'userId',
     'actorUserId',
+    'recoveryCodes',
+    'recoveryCodeHashes',
+    'recovery_code_hashes',
   ])('masque le champ %s', (key) => {
     expect(redact({ [key]: 'valeur' })).toEqual({ [key]: MASKED });
   });

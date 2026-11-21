@@ -5,6 +5,7 @@
 import { ApiError } from '@cotiz/api-client'
 import type { CodeErreurAuth, DemandeConnexion, EnvoiCode, ProfilMotDePasse, ResultatConnexion, Role } from '~~/types'
 import { espaceBascule } from '~/utils/bascule'
+import { enrolementRequis } from '~/utils/jeton-acces'
 import { formatTelephone } from '~/utils/format'
 import { versE164 } from './vues/communs'
 
@@ -55,6 +56,8 @@ export function useAuth() {
           return { etape: 'code-requis', role: demande.espace }
         }
         garderJeton(demande.espace, r.accessToken)
+        // Plateforme sans second facteur : session restreinte, double authentification à activer (lot 4.7).
+        if (demande.espace === 'superadmin' && enrolementRequis(r.accessToken)) return { etape: 'enrolement-2fa', role: 'superadmin' }
         return { etape: 'connecte', role: demande.espace }
       }
       catch (e) {
@@ -66,15 +69,35 @@ export function useAuth() {
         erreurAuth(e, demande.espace)
       }
     },
-    /** Plateforme : code de vérification à 6 chiffres. */
-    async verifierCodeConnexion(code: string): Promise<ResultatConnexion> {
+    /** Plateforme : code de vérification à 6 chiffres, ou code de secours (`ABCDE-FGHJK`). */
+    async verifierCodeConnexion(code: string, secours = false): Promise<ResultatConnexion> {
       try {
-        await client.call('auth.mfa', 'verify', { body: { mfaToken, code: code.replace(/\D/g, '') } })
+        const body = secours ? { mfaToken, recoveryCode: code.trim() } : { mfaToken, code: code.replace(/\D/g, '') }
+        const r = await client.call('auth.mfa', 'verify', { body })
+        garderJeton('superadmin', r.accessToken)
         return { etape: 'connecte', role: 'superadmin' }
       }
       catch (e) {
         erreurAuth(e, 'superadmin')
       }
+    },
+    /** Double authentification à activer : secret et URL `otpauth://` (QR code dessiné dans le navigateur). */
+    async demarrerEnrolement(): Promise<{ secret: string, otpauthUrl: string }> {
+      return client.call('auth.mfa', 'enroll', {})
+    },
+    /** Premier code de l'application : enrôlement confirmé, codes de secours (affichés une seule fois). */
+    async confirmerEnrolement(code: string): Promise<string[]> {
+      try {
+        const r = await client.call('auth.mfa', 'confirm', { body: { code: code.replace(/\D/g, '') } })
+        return r.recoveryCodes
+      }
+      catch (e) {
+        erreurAuth(e, 'superadmin')
+      }
+    },
+    /** Après l'enrôlement : jeton renouvelé, la session n'est plus restreinte. */
+    async terminerEnrolement(): Promise<boolean> {
+      return jeton.renouveler()
     },
     /** Première connexion : le code remis par l'association active le compte avec le mot de passe choisi. */
     async definirPremierMotDePasse(motDePasse: string): Promise<ResultatConnexion> {

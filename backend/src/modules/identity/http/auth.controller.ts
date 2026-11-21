@@ -52,6 +52,9 @@ export class AuthController {
   ): Promise<LoginResponse | AfterCommit<never>> {
     const result = await this.loginUseCase.execute(parseInput(LoginRequest, body));
     if (result instanceof AfterCommit) return result;
+    if ('mfaToken' in result) {
+      return { status: 'mfa_required', mfaToken: result.mfaToken, expiresAt: result.expiresAt.toISOString() };
+    }
     return { status: 'authenticated', ...opened(res, result) };
   }
 

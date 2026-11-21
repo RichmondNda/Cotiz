@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { oneTimeCodes } from '@cotiz/db';
 import { newId } from '@cotiz/domain';
-import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import { CODES_SECRET_BOX, type SecretBox } from '../../../shared/crypto/index.js';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import {
@@ -205,6 +205,26 @@ export class CodeService {
       .limit(1);
     if (!code) return false;
     return code.consumedAt === null && code.expiresAt > now && code.attempts < MAX_CODE_ATTEMPTS;
+  }
+
+  /**
+   * Usage du dernier code émis par la plateforme (sans association : CLI, personnel) pour la personne parmi `purposes`
+   * (`null` : aucun). Un code émis par une association n'entre jamais dans ce choix.
+   */
+  async latestPlatformPurpose(userId: string, purposes: readonly CodePurpose[]): Promise<CodePurpose | null> {
+    const [code] = await currentTx()
+      .select({ purpose: oneTimeCodes.purpose })
+      .from(oneTimeCodes)
+      .where(
+        and(
+          eq(oneTimeCodes.userId, userId),
+          inArray(oneTimeCodes.purpose, [...purposes]),
+          isNull(oneTimeCodes.associationId),
+        ),
+      )
+      .orderBy(desc(oneTimeCodes.createdAt), desc(oneTimeCodes.id))
+      .limit(1);
+    return code?.purpose ?? null;
   }
 
   /** Association émettrice du code (`null` : émis par la plateforme). */

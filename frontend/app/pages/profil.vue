@@ -7,6 +7,7 @@
 -->
 <script setup lang="ts">
 import type { ReglageNotification } from '~/composables/api/reglages-notifications'
+import { messageRefus } from '~/composables/api/client'
 import { formatTelephone, pluriel } from '~/utils/format'
 
 definePageMeta({ middleware: 'espace-souscripteur', layout: 'souscripteur' })
@@ -25,6 +26,23 @@ const nonLues = computed(() => compteurs.value?.notificationsNonLues ?? 0)
 const { data: reglages, refresh: relireReglages } = useReglagesNotifications()
 const enregistrerReglage = useActionReglageNotification()
 const toast = useToast()
+
+// Export JSON de ses données (me.profile › export, lot 4.7).
+const exporter = useExportDonnees()
+const exportEnCours = ref(false)
+async function exporterDonnees() {
+  exportEnCours.value = true
+  try {
+    await exporter()
+    toast.succes('Export téléchargé', { message: 'Le fichier contient votre profil, vos inscriptions, vos paiements déclarés et vos connexions récentes.' })
+  }
+  catch (e) {
+    toast.erreur('Export impossible', { message: messageRefus(e) ?? 'Vérifiez votre connexion, puis réessayez.' })
+  }
+  finally {
+    exportEnCours.value = false
+  }
+}
 
 async function regler(r: ReglageNotification, canal: 'in_app' | 'push', valeur: boolean) {
   const avant = canal === 'in_app' ? r.inApp : r.push
@@ -267,6 +285,17 @@ async function regler(r: ReglageNotification, canal: 'in_app' | 'push', valeur: 
           </NuxtLink>
           <button
             type="button"
+            :disabled="exportEnCours"
+            @click="exporterDonnees()"
+          >
+            <CzIcon
+              nom="telecharger"
+              class="profil__neutre"
+            />
+            <span>{{ exportEnCours ? 'Export en cours…' : 'Exporter mes données (JSON)' }}</span>
+          </button>
+          <button
+            type="button"
             class="profil__deconnexion"
             @click="deconnecter()"
           >
@@ -408,7 +437,8 @@ async function regler(r: ReglageNotification, canal: 'in_app' | 'push', valeur: 
   flex: none;
 }
 
-.profil__menu > a > .cz-icon.profil__neutre {
+.profil__menu > a > .cz-icon.profil__neutre,
+.profil__menu > button > .cz-icon.profil__neutre {
   color: var(--text-muted);
 }
 
