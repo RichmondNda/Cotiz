@@ -663,7 +663,7 @@ export const pfStaff = defineEndpoint({
   id: 'pf.staff',
   space: 'platform',
   permission: 'platform.staff.manage',
-  errors: ['last_owner'],
+  errors: ['last_owner', 'not_found'],
   flags: { ...noFlags, audited: true },
   operations: {
     list: {

@@ -240,6 +240,7 @@ screens:
   endpoints:
   - pf.staff
   - pf.audit
+  - pf.asso.list
   uiDeviations: 1
 - id: sa-profil
   space: super-admin
