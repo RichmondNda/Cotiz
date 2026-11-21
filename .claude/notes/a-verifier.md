@@ -357,3 +357,12 @@ Source : sous-agents money-reviewer et isolation-reviewer sur `git diff origin/d
 - **Dates relatives du front** (constaté le 2026-11-20) : `app/utils/date-reference.ts` fige « aujourd'hui » au
   25 septembre 2026 (maquettes) ; sur le vrai back, une date réelle s'affiche « dans 56 jours » (`formatRelatif`,
   `joursDepuis` : MgEquipe, SaUtilisateurs avant correction…). Proposition : `new Date()` hors mocks (chore dédiée).
+
+## Lot 4.7 — écarts de spec relevés par contract-guardian (2026-11-21), à accorder
+- `auth.mfa` : ajouter `wrong_space` et `invalid_state` à `errors` (endpoints.yaml + contrat auth.ts), régénérer l'OpenAPI.
+- `pf.staff` : `errors: [last_owner, not_found]` (not_found renvoyé par rôle/retrait).
+- events.yaml `staff.changed` : émetteur `staff` (et `identity` pour `joined`) au lieu d'`access` ; `auth.activate`
+  émet aussi `staff.changed` (à ajouter à ses `emits`).
+- `auth.mfa › enroll/confirm` : permission `public` dans la spec alors qu'une session est exigée (BearerSessionGuard) ;
+  documenter tel quel ou sortir dans un id `authenticated`.
+- screens.yaml `sa-users` : ajouter `pf.asso.list` (noms d'association du journal d'audit).
