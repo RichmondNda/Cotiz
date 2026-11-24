@@ -64,3 +64,5 @@ Vide jusqu'au lot 0.1. Plan : `docs/lots/`, avancement : `docs/progress.md`, arc
 - Valeur d'enum ajoutée par migration (`ALTER TYPE … ADD VALUE`) : inutilisable dans la même transaction, donc ni en littéral dans une politique ni dans un `INSERT` de cette migration (lot 4.6).
 - Requête Drizzle sur une seule table : colonnes non qualifiées ; dans une sous-requête corrélée sur la même table (`sessions` / `earlier`), écrire la colonne externe en SQL littéral (`sessions.family_id`), sinon elle désigne l'alias interne.
 - Effet différé après un délai métier (reçu après l'annulation possible) : job BullMQ retardé + revérification sous verrou à l'exécution, avec une marge pour l'écart d'horloge api/worker (`RECEIPT_MARGIN_MS`).
+- Réponse fichier synchrone (CSV, `pf.audit › export`) : `contentType: 'text/csv'` au contrat (le client rend la `Response`), `StreamableFile` + `@Res({ passthrough: true })` pour les en-têtes ; borner le nombre de lignes et le signaler (`X-Truncated`).
+- Lecture `/me` qui croise members et ledger (export de ses données, lot 4.7) : dans reporting ; members ne peut pas importer ledger (ledger importe déjà members : cycle).
