@@ -1,12 +1,14 @@
 // Espace plateforme : tableau de bord (pf.dashboard), facturation (pf.invoices), personnel (pf.staff), profil (me.profile, me.prefs).
+import type { CallOutput } from '@cotiz/api-client'
 import type {
-  FacturationPlateforme, ModificationProfilPlateforme, ProfilPlateforme, RolePlateforme, TableauDeBordPlateforme, UtilisateurPlateforme,
+  AccesARemettre, EntreeAudit, FacturationPlateforme, FiltresAudit, InvitationPersonnel, ModificationProfilPlateforme, ProfilPlateforme, RolePlateforme, TableauDeBordPlateforme, UtilisateurPlateforme,
 } from '~~/types'
 import type { ApiClient } from './client'
-import { email, jour, local, m } from './vues/communs'
+import { email, jour, local, m, vueAcces } from './vues/communs'
 import { statutFacture, vueActivite } from './vues/associations'
 import { vueDemande } from './vues/demandes'
 import { traduireErreur } from './vues/erreurs'
+import { telechargerBlob } from '~/utils/telechargement'
 
 const ROLE: Record<string, RolePlateforme> = { owner: 'proprietaire', admin: 'administrateur', support: 'support' }
 const SIGNAL = { unpaid: 'impaye', inactive: 'onboarding', quota: 'quota' } as const
@@ -70,6 +72,47 @@ export const useUtilisateursPlateforme = (options: { immediat?: boolean } = {}) 
     }))
   }, options)
 
+const ROLE_API: Record<RolePlateforme, 'owner' | 'admin' | 'support'> = { proprietaire: 'owner', administrateur: 'admin', support: 'support' }
+
+/** Invitation, renvoi, rôle et retrait d'une personne du personnel (pf.staff, propriétaires seulement). */
+export function useActionsPersonnel() {
+  const client = useClient()
+  const inviter = async (i: InvitationPersonnel): Promise<AccesARemettre> => {
+    try {
+      const r = await client.call('pf.staff', 'invite', { body: { firstName: i.prenom, lastName: i.nom, email: i.email, role: ROLE_API[i.role] } })
+      return vueAcces(r.handoff)
+    }
+    catch (e) {
+      traduireErreur(e, { 'champ:email': 'email-existant', 'champ:firstName': 'nom-requis', 'champ:lastName': 'nom-requis', 'validation_failed': 'email-invalide' })
+    }
+  }
+  return {
+    inviter,
+    /** Nouveau code d'invitation (l'ancien ne vaut plus), même rôle. */
+    renvoyer: async (u: UtilisateurPlateforme): Promise<AccesARemettre> => {
+      const membre = (await client.call('pf.staff', 'list')).items.find(x => x.user.id === u.id)
+      if (!membre) throw createError({ statusCode: 404, statusMessage: 'Personne introuvable' })
+      return inviter({ prenom: membre.user.firstName, nom: membre.user.lastName, email: membre.user.email, role: ROLE[membre.role]! })
+    },
+    changerRole: async (id: string, role: RolePlateforme) => {
+      try {
+        await client.call('pf.staff', 'patch', { params: { uid: id }, body: { role: ROLE_API[role] } })
+      }
+      catch (e) {
+        traduireErreur(e, { last_owner: 'dernier-proprietaire' })
+      }
+    },
+    retirer: async (id: string) => {
+      try {
+        await client.call('pf.staff', 'remove', { params: { uid: id } })
+      }
+      catch (e) {
+        traduireErreur(e, { last_owner: 'dernier-proprietaire' })
+      }
+    },
+  }
+}
+
 /** Préférences de SaProfil ↔ types d'événements (canal « dans l'application »). */
 const PREFERENCES = { nouvelleDemande: 'request.received', abonnementImpaye: 'subscription.past_due', nouvelleAssociation: 'association.created', resumeHebdomadaire: 'digest.weekly' } as const
 
@@ -77,7 +120,7 @@ async function profil(client: ApiClient): Promise<ProfilPlateforme> {
   const [me, p, prefs] = await Promise.all([client.call('me', 'get'), client.call('me.profile', 'get'), client.call('me.prefs', 'get')])
   const active = (type: string) => prefs.items.find(x => x.type === type && x.channel === 'in_app')?.enabled ?? false
   return {
-    prenom: p.firstName, nom: p.lastName || '[Nom]', email: email(p.email), role: ROLE[me.platformRole ?? 'owner']!,
+    prenom: p.firstName, nom: p.lastName || '[Nom]', email: email(p.email), role: ROLE[me.platformRole ?? 'owner']!, doubleAuthentification: p.mfaEnabled,
     preferences: { nouvelleDemande: active(PREFERENCES.nouvelleDemande), abonnementImpaye: active(PREFERENCES.abonnementImpaye), nouvelleAssociation: active(PREFERENCES.nouvelleAssociation), resumeHebdomadaire: active(PREFERENCES.resumeHebdomadaire) },
   }
 }
@@ -112,6 +155,93 @@ export function useActionsProfilPlateforme() {
       catch (e) {
         traduireErreur(e, { invalid_credentials: 'mot-de-passe-incorrect', weak_password: 'mot-de-passe-faible', validation_failed: 'mot-de-passe-faible' })
       }
+    },
+  }
+}
+
+// ---------------------------------------------------------------- Journal d'audit (pf.audit, lot 4.7)
+
+const requeteAudit = (f: FiltresAudit) => ({
+  ...(f.acteurId ? { actorUserId: f.acteurId } : {}),
+  ...(f.action ? { action: f.action } : {}),
+  ...(f.associationId ? { associationId: f.associationId } : {}),
+  ...(f.depuis ? { from: f.depuis } : {}),
+})
+
+/**
+ * Journal d'audit de la plateforme (SaUtilisateurs › Journal d'audit, `platform.audit.read`) : pages de 50, les plus
+ * récentes d'abord ; `charger(filtres)` repart du début, `suite()` ajoute la page suivante. Noms d'association lus
+ * dans pf.asso.list (100 premières), repli sur l'identifiant.
+ */
+export function useJournalAudit() {
+  const client = useClient()
+  const entrees = ref<EntreeAudit[]>([])
+  const total = ref(0)
+  const curseur = ref<string | null>(null)
+  const chargement = ref(false)
+  const erreur = ref(false)
+  const associations = ref(new Map<string, string>())
+  let filtres: FiltresAudit = {}
+  let demande = 0
+
+  async function nomsAssociations() {
+    if (associations.value.size) return
+    try {
+      const r = await client.call('pf.asso.list', 'list', { query: { limit: 100 } })
+      associations.value = new Map(r.items.map(a => [a.id, a.name]))
+    }
+    catch {
+      // Noms facultatifs : l'identifiant s'affiche à la place.
+    }
+  }
+
+  const vue = (e: CallOutput<'pf.audit', 'list'>['items'][number]): EntreeAudit => ({
+    id: e.id,
+    date: e.occurredAt,
+    acteur: e.actor ? { id: e.actor.id, nom: `${e.actor.firstName} ${e.actor.lastName}`.trim() } : null,
+    roleActeur: e.actorRole,
+    association: e.associationId ? { id: e.associationId, nom: associations.value.get(e.associationId) ?? e.associationId } : null,
+    action: e.action,
+    cible: e.entityId ? `${e.entityType} · ${e.entityId.slice(0, 8)}` : e.entityType,
+    ip: e.ip,
+  })
+
+  async function page(depuisCurseur: string | null) {
+    const numero = ++demande
+    chargement.value = true
+    erreur.value = false
+    try {
+      await nomsAssociations()
+      const r = await client.call('pf.audit', 'list', {
+        query: { ...requeteAudit(filtres), limit: 50, ...(depuisCurseur ? { cursor: depuisCurseur } : {}) },
+      })
+      if (numero !== demande) return
+      entrees.value = depuisCurseur ? [...entrees.value, ...r.items.map(vue)] : r.items.map(vue)
+      total.value = r.total
+      curseur.value = r.nextCursor
+    }
+    catch {
+      if (numero === demande) erreur.value = true
+    }
+    finally {
+      if (numero === demande) chargement.value = false
+    }
+  }
+
+  return {
+    entrees, total, chargement, erreur, associations,
+    aSuite: computed(() => curseur.value !== null),
+    charger: (f: FiltresAudit) => {
+      filtres = f
+      return page(null)
+    },
+    suite: () => page(curseur.value),
+    /** CSV des mêmes filtres (10 000 entrées au plus) ; `true` si l'export est tronqué. */
+    exporter: async (f: FiltresAudit): Promise<boolean> => {
+      const reponse = await client.call('pf.audit', 'export', { query: requeteAudit(f) })
+      const nom = /filename="([^"]+)"/.exec(reponse.headers.get('content-disposition') ?? '')?.[1] ?? 'journal-audit.csv'
+      telechargerBlob(nom, await reponse.blob())
+      return reponse.headers.get('x-truncated') === 'true'
     },
   }
 }

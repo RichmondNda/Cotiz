@@ -364,23 +364,6 @@ describe('auth.login', () => {
     });
   });
 
-  it('IP hors de PLATFORM_ALLOWED_IPS : wrong_space pour l’espace plateforme', async () => {
-    const restricted = await start(env(redis.getConnectionUrl(), { PLATFORM_ALLOWED_IPS: '203.0.113.0/24' }));
-    try {
-      const res = await login(platform(OWNER.email), restricted.base);
-      expect(res.status).toBe(401);
-      expect(await codeOf(res)).toBe('wrong_space');
-    } finally {
-      await restricted.app.close();
-    }
-    const open = await start(env(redis.getConnectionUrl(), { PLATFORM_ALLOWED_IPS: '127.0.0.1, 10.0.0.0/8' }));
-    try {
-      expect((await login(platform(OWNER.email), open.base)).status).toBe(200);
-    } finally {
-      await open.app.close();
-    }
-  });
-
   it('corps invalide : 422 validation_failed, sans la valeur reçue', async () => {
     const res = await login({ space: 'platform', identifier: 'pas-un-identifiant', password: PASSWORD });
     expect(res.status).toBe(422);

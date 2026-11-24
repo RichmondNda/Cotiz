@@ -28,8 +28,9 @@ describe('endpointDisponible', { timeout: 20_000 }, () => {
   it('build sans mocks : seulement les endpoints basculés pour l’espace', async () => {
     const b = await bascule(false)
     expect(b.AVEC_MOCKS).toBe(false)
-    // pf.staff (lot 4.7) n'est pas livré ; me.project (lot 3.2) l'est pour l'espace souscripteur.
-    expect(b.endpointDisponible('pf.staff', 'platform')).toBe(false)
+    // rp.analytics (lot 5.2) n'est pas encore livré ; me.project (lot 3.2) l'est pour l'espace souscripteur.
+    expect(b.endpointDisponible('rp.analytics', 'association')).toBe(false)
+    expect(b.endpointDisponible('pf.audit', 'platform')).toBe(true)
     expect(b.endpointDisponible('me.project', 'subscriber')).toBe(true)
   })
 })

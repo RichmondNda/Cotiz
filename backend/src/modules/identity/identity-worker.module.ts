@@ -4,6 +4,7 @@ import { ScheduledTasks } from '../../shared/scheduler/index.js';
 import { ExpireCodesUseCase } from './application/expire-codes.use-case.js';
 import { SessionFamilies } from './application/session-families.js';
 import { AssociationSuspendedConsumer } from './events/association-suspended.consumer.js';
+import { StaffRemovedConsumer } from './events/staff-removed.consumer.js';
 import { TeamRemovedConsumer } from './events/team-removed.consumer.js';
 import { RevokedSessions } from './infra/revoked-sessions.js';
 
@@ -13,7 +14,14 @@ import { RevokedSessions } from './infra/revoked-sessions.js';
  */
 @Module({
   imports: [RedisModule],
-  providers: [ExpireCodesUseCase, SessionFamilies, RevokedSessions, AssociationSuspendedConsumer, TeamRemovedConsumer],
+  providers: [
+    ExpireCodesUseCase,
+    SessionFamilies,
+    RevokedSessions,
+    AssociationSuspendedConsumer,
+    TeamRemovedConsumer,
+    StaffRemovedConsumer,
+  ],
   exports: [ExpireCodesUseCase],
 })
 export class IdentityWorkerModule implements OnModuleInit {

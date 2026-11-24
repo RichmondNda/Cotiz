@@ -118,15 +118,6 @@ describe('loadConfig', () => {
     }
   });
 
-  it('PLATFORM_ALLOWED_IPS : refusée si une entrée est invalide', () => {
-    expect(loadConfig({ ...valid, PLATFORM_ALLOWED_IPS: '10.0.0.0/8, 203.0.113.7' }).PLATFORM_ALLOWED_IPS).toBe(
-      '10.0.0.0/8, 203.0.113.7',
-    );
-    expect(() => loadConfig({ ...valid, PLATFORM_ALLOWED_IPS: '10.0.0.0/8, bureau' })).toThrow(
-      /PLATFORM_ALLOWED_IPS : invalide/,
-    );
-  });
-
   it('CODES_ENCRYPTION_KEY : 32 octets en base64, jamais recopiée dans le message', () => {
     expect(loadConfig({ ...valid, CODES_ENCRYPTION_KEY }).CODES_ENCRYPTION_KEY).toBe(CODES_ENCRYPTION_KEY);
     for (const key of [Buffer.alloc(16, 7).toString('base64'), 'pas-du-base64-secret!!']) {

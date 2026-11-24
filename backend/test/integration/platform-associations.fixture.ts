@@ -7,6 +7,7 @@ import { configureApp } from '../../src/app.js';
 import { AppModule } from '../../src/app.module.js';
 import { type Config, loadConfig } from '../../src/config.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
+import { platformLogin } from '../support/platform-mfa.js';
 import { A, B, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
 
 /**
@@ -92,6 +93,8 @@ export async function startPlatformFixture(
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     });
   const login = async (space: string, identifier: string) => {
+    // Espace plateforme : second facteur obligatoire (lot 4.7), enrôlé à la première connexion.
+    if (space === 'platform') return (await platformLogin({ app, base, identifier, password: PASSWORD })).accessToken;
     const res = await call('/auth/login', { method: 'POST', body: { space, identifier, password: PASSWORD } });
     expect(res.status).toBe(200);
     const body = LoginResponse.parse(await res.json());

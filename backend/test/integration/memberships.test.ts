@@ -12,6 +12,7 @@ import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js'
 import { Can, Endpoint, requireActor } from '../../src/shared/http/index.js';
 import { currentContext, currentTx } from '../../src/shared/tenant-context/index.js';
 import { A, B, type IsolationHarness, seedAssociations, startIsolationHarness, USERS } from '../isolation/harness.js';
+import { platformLogin } from '../support/platform-mfa.js';
 
 /**
  * Lot 1.2 · étape 3 : appartenances et connexion, à travers les vraies gardes et un vrai PostgreSQL.
@@ -93,6 +94,11 @@ describe('appartenances et connexion (association, souscripteur, plateforme)', (
 
   /** Connexion réussie : jeton d'accès et cookie de renouvellement. */
   const session = async (space: string, identifier: string) => {
+    // Espace plateforme : second facteur obligatoire (lot 4.7), enrôlé à la première connexion.
+    if (space === 'platform') {
+      const opened = await platformLogin({ app, base, identifier, password: PASSWORD });
+      return { token: opened.accessToken, refresh: opened.cookie.replace(/^cotiz_refresh=/, '') };
+    }
     const res = await login(space, identifier);
     expect(res.status).toBe(200);
     const body = LoginResponse.parse(await res.json());

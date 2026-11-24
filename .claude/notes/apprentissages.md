@@ -122,3 +122,13 @@ Format : **date** · contexte — apprentissage. *Source.*
 - **2026-11-12** · `projects_status` n'a pas `closed` : draft, enrolling, active, completed, archived (schema.sql).
 - **2026-11-12** · `exceljs` en lecture continue (`WorkbookReader`) : `styles: 'cache'` sinon les dates sortent en
   nombres de série. *spreadsheet-reader.ts, lot 4.4.*
+
+## Double authentification plateforme (lot 4.7, étape 1) — 2026-11-19
+- Connexion plateforme : sans facteur confirmé → session restreinte (claim `mfa: 'enroll'`, SpaceGuard : espace auth et
+  `me` seulement) ; avec facteur → `mfa_required` + `mfaToken` (audience `cotiz-mfa`, 5 min, `jti` à usage unique) puis
+  `POST /auth/mfa/verify`. La confirmation révoque toutes les autres connexions de la personne
+  (`SessionFamilies.revokeOthers`, partagée avec le changement de mot de passe). Source : `backend/src/modules/identity`.
+- Tests d'intégration : se connecter en plateforme par `platformLogin` (`backend/test/support/platform-mfa.ts`) ;
+  un `POST /auth/login` direct rend une session restreinte (403 partout hors auth et `/me`).
+- Seed local : super-admin avec facteur au secret public `DEV_TOTP_SECRET` ; `frontend/scripts/session-test.mjs` en
+  calcule le code (un pas de 30 s par connexion, file d'attente dans le processus).

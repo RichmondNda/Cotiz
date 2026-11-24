@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { sessions } from '@cotiz/db';
-import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, sql } from 'drizzle-orm';
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { ACCESS_TOKEN_TTL_MS } from '../domain/login-policy.js';
 
@@ -36,5 +36,42 @@ export class SessionFamilies {
         ),
       );
     return recent.map((row) => row.id);
+  }
+
+  /**
+   * Toutes les autres connexions de la personne (familles autres que `keepFamilyId`), famille par famille ; renvoie
+   * les sessions à mettre en liste noire après le COMMIT, dont celles de familles déjà révoquées dont un jeton
+   * d'accès vit encore (15 min). Changement de mot de passe, confirmation du second facteur (lot 4.7).
+   */
+  async revokeOthers(userId: string, keepFamilyId: string, now: Date): Promise<string[]> {
+    const tx = currentTx();
+    const others = await tx
+      .selectDistinct({ familyId: sessions.familyId })
+      .from(sessions)
+      .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt), ne(sessions.familyId, keepFamilyId)));
+    const blacklist: string[] = [];
+    for (const { familyId } of others) blacklist.push(...(await this.revoke(familyId, now)));
+    const recent = await tx
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(
+        and(
+          eq(sessions.userId, userId),
+          ne(sessions.familyId, keepFamilyId),
+          gt(sessions.createdAt, new Date(now.getTime() - ACCESS_TOKEN_TTL_MS - 60_000)),
+        ),
+      );
+    blacklist.push(...recent.map((row) => row.id));
+    return [...new Set(blacklist)];
+  }
+
+  /** Famille de la session `sessionId` de la personne ; `null` si elle n'est pas la sienne. */
+  async familyOf(sessionId: string, userId: string): Promise<string | null> {
+    const [row] = await currentTx()
+      .select({ familyId: sessions.familyId })
+      .from(sessions)
+      .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
+      .limit(1);
+    return row?.familyId ?? null;
   }
 }

@@ -1021,3 +1021,88 @@ Fin : `/verifier-ecran` sur `/plateforme/facturation`, `/plateforme/associations
   - Reçu lisible par le souscripteur (fl.get) et par les gestionnaires de l'association (as.file, tenant_isolation).
   - Front : « Télécharger le reçu » dans le détail d'un paiement validé (MbHistorique) ; pas encore produit → toast
     « Reçu bientôt disponible ». Pas de maquette pour ce bouton (CzButton secondaire, icône telecharger).
+
+## Lot 4.7 — Sécurité renforcée et audit consultable (plan du 2026-11-19)
+Branche `lot/4.7-securite-audit` (depuis `origin/dev`). Dépendance 3.5 terminée, aucune décision listée. Une PR pour
+le lot (accord du 2026-11-11 : un `pnpm verify` avant la PR, tests ciblés par étape).
+
+Réponses de l'utilisateur (2026-11-19) aux trous de la spec :
+- Enrôlement initial : **session restreinte**. Connexion plateforme sans facteur confirmé → session ouverte, mais
+  le jeton (claim `mfa: 'enroll'`) n'ouvre que l'espace `auth` (mfa, refresh, logout), `me` et `me.profile` ;
+  ailleurs 403 `forbidden`. Le renouvellement recalcule le claim : facteur confirmé → jeton complet.
+- Exports : **ajoutés à la spec** à l'étape 3 (`GET /platform/audit-logs/export` CSV dans pf.audit, `GET /me/export`
+  JSON), endpoints.yaml + contrats modifiés avec accord.
+- `PLATFORM_ALLOWED_IPS` : **retiré** du code (config, SpaceAccess, SpaceGuard). À retirer de Dokploy plus tard
+  (pas touché ici).
+- Codes de secours : **colonne** `mfa_factors.recovery_code_hashes text[] NOT NULL DEFAULT '{}'` (argon2id, un code
+  consommé est retiré). schema.sql + data-model.md modifiés à l'étape 1.
+
+Choix autonomes :
+- TOTP RFC 6238 (SHA-1, 6 chiffres, 30 s, ±1 pas) et base32 écrits dans `identity/domain` avec node:crypto (pas de
+  dépendance), testés sur les vecteurs de la RFC. Secret 20 octets chiffré par `shared/crypto` (SecretBox).
+- « QR généré côté serveur » : le serveur génère secret et `otpauthUrl` ; le QR est dessiné par le front (`qrcode`
+  déjà présent), comme le dit le contrat.
+- Double authentification exigée à la connexion **plateforme** seulement dans ce lot ; enrôlement réservé aux jetons
+  plateforme (autres espaces : 403 `forbidden`). Proposition « TOTP proposé aux gestionnaires » notée dans a-verifier.
+- `mfaToken` : JWT EdDSA d'audience `cotiz-mfa`, 5 min (sub, rememberMe). 5 codes faux par personne en 15 min →
+  `too_many_attempts` (Redis) ; un pas TOTP déjà utilisé est refusé (Redis, 90 s).
+- 10 codes de secours de 10 caractères (alphabet des codes d'activation), affichés une fois.
+
+### Étape 1 · TOTP (`auth.mfa`)
+- db : migration `0029_mfa_factors.sql` (enum `mfa_factors_type`, table, colonne des codes de secours, UNIQUE
+  `(user_id, type)`, FK users ; table globale sans RLS comme `sessions`), `schema/identity.ts`, conformance.
+- docs/specs : schema.sql, data-model.md (colonne ajoutée).
+- identity : `domain/totp.ts` (+ test vecteurs RFC), `infra/mfa-token.ts` (signer), `application/mfa-factors.ts`,
+  use cases enroll / confirm / verify, `LoginUseCase` (plateforme : facteur confirmé → `mfa_required` ; sinon session
+  restreinte), `RefreshSessionUseCase` (claim recalculé), `user-profiles.ts` (`mfaEnabled` réel), controller.
+  Événement `user.mfa_enabled`, audit `auth.mfa.enable` / `auth.mfa.verify`.
+- access : `SpaceGuard` (jeton `enroll` → seulement auth, me, me.profile) ; retrait de PLATFORM_ALLOWED_IPS (config,
+  space-access, tests).
+- dev seed : facteur confirmé au secret connu pour le super-admin de démo (documenté dans backend/CLAUDE.md).
+- tests : unitaires TOTP/base32/mfa-token ; intégration `auth-mfa.test.ts` (enrôlement, confirmation, codes de
+  secours à usage unique, verify, too_many_attempts, rejeu, jeton restreint → 403 puis complet après refresh,
+  **« sans second facteur, un compte plateforme ne se connecte plus »**) ; helper `test/support/platform-login.ts`
+  pour les tests existants qui se connectent en plateforme.
+- front : `auth.ts` (garder le jeton après verify ; étape d'enrôlement à la connexion si `mfaEnabled` faux :
+  QR + secret, code, codes de secours) ; `connexion/plateforme.vue` ; section 2FA du profil (statut réel) ;
+  bascule `auth.mfa`, mock supprimé.
+
+### Étape 2 · Personnel plateforme (`pf.staff`)
+- Nouveau module `staff` (comme `team`, lot 4.5) : list, invite (utilisateur `pending_activation` + platform_staff +
+  code `staff_invite` 72 h affiché avec message prêt), patch rôle, delete ; `last_owner` (au moins un owner actif,
+  verrou) ; `staff.changed` ; audit. access.public : fonctions du personnel ; identity : `StaffAccounts`,
+  `auth.activate` accepte `staff_invite` (espace platform).
+- Retrait : sessions plateforme de la personne révoquées (consommateur `staff.changed`, comme team.changed).
+- tests : intégration `platform-staff.test.ts` (permissions owner seul, admin/support 404/403, invitation →
+  activation → connexion avec enrôlement, last_owner, retrait révoque).
+- front : utilisateurs.vue onglet Équipe réel (invitation, HandoffCard, rôle, retrait) ; bascule `pf.staff`.
+
+### Étape 3 · Audit (`pf.audit`)
+- Spec : endpoints.yaml + contrats (`export` CSV dans pf.audit ; `me.export` JSON), screens/permissions si besoin.
+- Module `audit` : liste paginée filtrée (acteur, action, association, période), export CSV mêmes filtres (borné) ;
+  `GET /me/export` (identité, appartenances, paiements déclarés, sessions récentes ; jamais de haché ni secret).
+- tests : permissions (owner/admin lisent, support 403, association/souscripteur 404), filtres, export.
+- front : onglet Journal d'audit (filtres, export), « Exporter mes données » dans les profils ; bascule `pf.audit`.
+
+Fin : relectures isolation-reviewer, test-skeptic (et contract-guardian), `pnpm verify`, PR vers `dev`, `/fin-lot 4.7`.
+
+### Lot 4.7 · étape 2 — choix faits en autonome (2026-11-20)
+- `pf.staff › invite` n'invite qu'une adresse **sans compte** (ou un invité du personnel encore en attente, y compris
+  retiré avant activation) ; tout autre compte : 422 `validation_failed` (`email: account_exists`). Raison : ne jamais
+  ajouter un rôle plateforme à un compte existant sans son accord, et pas de colonne « invitation en attente » au schéma.
+- Statut `invited` = compte `pending_activation` ; la ligne `platform_staff` existe dès l'invitation (comme le CLI).
+- Activation : `auth.activate` espace plateforme compare le code `staff_invite` si c'est le dernier code émis par la
+  plateforme ; un compte en attente invité au personnel ne s'active jamais par une association (relecture B1).
+- Retrait : suppression de la ligne `platform_staff` (pas de donnée financière ; audit `staff.remove`) ;
+  sessions plateforme révoquées par `StaffRemovedConsumer` (staff.changed `removed`).
+
+### Lot 4.7 · étape 3 — choix faits en autonome (2026-11-21)
+- pf.audit › export : CSV (« ; », BOM, formules neutralisées : `csvDocument` du lot 4.6) des 10 000 entrées les plus
+  récentes ; au-delà `X-Truncated: true` (resserrer la période). Contrat : `contentType: 'text/csv'` ajouté au registre,
+  le client renvoie la `Response`. Filtre `action` = préfixe (LIKE échappé). Audité `audit_log.export` (filtres, nombre).
+- me.profile › export : **module reporting** (il lit members et ledger ; members ne peut pas importer ledger, qui
+  l'importe déjà). Contenu : profil, compte, rôle plateforme, appartenances actives, 50 dernières sessions ;
+  `subscriber` (inscriptions retirées comprises + paiements déclarés, mêmes lectures que me.history) en espace
+  souscripteur seulement, `null` ailleurs (les paiements ne se lisent qu'en espace subscriber). Jamais de haché ni de
+  secret. Audité `user.export_data`. Test d'isolation `test/isolation/me-export.test.ts` (politiques élargies).
+- Aucun mock pf.audit n'existait : bascule `pf.audit` sans handler à supprimer.

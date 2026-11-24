@@ -10,6 +10,7 @@ import { AccessTokenSigner } from '../../src/modules/identity/infra/access-token
 import { RevokedSessions } from '../../src/modules/identity/infra/revoked-sessions.js';
 import { SecretHasher } from '../../src/modules/identity/infra/secret-hasher.js';
 import { type IsolationHarness, startIsolationHarness } from '../isolation/harness.js';
+import { platformLogin } from '../support/platform-mfa.js';
 
 /**
  * auth.refresh et auth.logout (lot 1.1, étape 3) : rotation du jeton de renouvellement, réutilisation d'un jeton
@@ -237,25 +238,6 @@ describe('auth.refresh et auth.logout', () => {
       }
     });
 
-    it('adresse hors PLATFORM_ALLOWED_IPS au renouvellement : session_revoked', async () => {
-      const opened = await login();
-      const restricted = await createApp(loadConfig({ ...env, PLATFORM_ALLOWED_IPS: '203.0.113.0/24' }), {
-        logger: false,
-      });
-      await restricted.listen(0, '127.0.0.1');
-      try {
-        const res = await fetch(`${await restricted.getUrl()}/api/v1/auth/refresh`, {
-          method: 'POST',
-          headers: { cookie: `cotiz_refresh=${opened.refresh}` },
-        });
-        expect(res.status).toBe(401);
-        expect(await codeOf(res)).toBe('session_revoked');
-        expect((await sessionOf(opened.refresh))?.revoked_at).not.toBeNull();
-      } finally {
-        await restricted.close();
-      }
-    });
-
     it('Redis indisponible pendant un rejeu : la révocation en base est quand même validée', async () => {
       const opened = await login();
       const second = await rotate(opened.refresh);
@@ -345,10 +327,24 @@ describe('auth.refresh et auth.logout', () => {
       expect(none.status).toBe(401);
       expect(await codeOf(none)).toBe('session_expired');
 
-      const { accessToken } = await login();
+      // Session complète (second facteur, lot 4.7) d'un autre membre du personnel : celle d'OWNER reste restreinte
+      // à l'enrôlement pour les autres tests de ce fichier (403 ici, comme le vérifie auth-mfa.test.ts).
+      const admin = { id: '00000000-0000-7000-8000-0000000002a2', email: 'admin-session@cotiz.test' };
+      await h.superuser(
+        `INSERT INTO users (id, email, first_name, last_name, status) VALUES ($1, $2, 'Sali', 'Bamba', 'active')`,
+        [admin.id, admin.email],
+      );
+      await h.superuser(`INSERT INTO credentials (user_id, password_hash) VALUES ($1, $2)`, [
+        admin.id,
+        await new SecretHasher().hash(PASSWORD),
+      ]);
+      await h.superuser(`INSERT INTO platform_staff (user_id, role) VALUES ($1, 'admin')`, [admin.id]);
+      const { accessToken } = await platformLogin({ app, base, identifier: admin.email, password: PASSWORD });
       const res = await getFile({ authorization: `Bearer ${accessToken}` });
       expect(res.status).toBe(404);
       expect(await codeOf(res)).toBe('not_found');
+      const restricted = await getFile({ authorization: `Bearer ${(await login()).accessToken}` });
+      expect(await codeOf(restricted)).toBe('forbidden');
     });
 
     it('jeton d’une connexion fermée : refusé partout (liste noire)', async () => {

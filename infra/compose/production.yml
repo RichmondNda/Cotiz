@@ -33,7 +33,8 @@ x-backend-env: &backend-env
   # X-Forwarded-For sans y ajouter d'adresse ; à 2, une adresse falsifiée par le client serait retenue.
   TRUST_PROXY_HOPS: ${COTIZ_TRUST_PROXY_HOPS:-1}
   APP_VERSION: ${COTIZ_VERSION:-dev}
-  # Observabilité (GLITCHTIP_DSN, OTEL_*, ports de métriques) et PLATFORM_ALLOWED_IPS : ajoutés au lot 7.1. Une variable
+  # Observabilité (GLITCHTIP_DSN, OTEL_*, ports de métriques) : ajoutée au lot 7.1 (PLATFORM_ALLOWED_IPS retirée au
+  # lot 4.7 : second facteur obligatoire pour la plateforme). Une variable
   # optionnelle n'est jamais posée vide (le schéma de configuration refuse une chaîne vide).
 
 x-backend: &backend

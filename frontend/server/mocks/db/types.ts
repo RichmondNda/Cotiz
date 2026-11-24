@@ -119,12 +119,6 @@ export interface MembershipRow {
   joinedAt: string
 }
 
-export interface StaffRow {
-  userId: string
-  role: 'owner' | 'admin' | 'support'
-  status: 'active' | 'invited'
-}
-
 export interface ProjectRow {
   id: string
   key: string
@@ -302,7 +296,6 @@ export interface MockDb {
   invoices: InvoiceRow[]
   users: UserRow[]
   memberships: MembershipRow[]
-  staff: StaffRow[]
   projects: ProjectRow[]
   enrollments: EnrollmentRow[]
   installments: InstallmentRow[]

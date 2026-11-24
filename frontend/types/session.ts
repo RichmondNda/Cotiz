@@ -49,12 +49,14 @@ export interface DemandeConnexion {
  * Réponse de `auth.login › login` :
  * - `connecte` : session ouverte ;
  * - `premiere-connexion` : mot de passe provisoire, à remplacer (souscripteur) ;
- * - `code-requis` : second facteur à saisir (plateforme).
+ * - `code-requis` : second facteur à saisir (plateforme) ;
+ * - `enrolement-2fa` : session plateforme ouverte mais restreinte, double authentification à activer (lot 4.7).
  */
 export type ResultatConnexion
   = | { etape: 'connecte', role: Role }
     | { etape: 'premiere-connexion', role: Role, prenom: string }
     | { etape: 'code-requis', role: Role }
+    | { etape: 'enrolement-2fa', role: Role }
 
 /** Codes d'erreur des écrans d'authentification, traduits depuis le `code` du `Problem` (composables/api/auth.ts). */
 export type CodeErreurAuth

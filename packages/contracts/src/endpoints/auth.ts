@@ -187,7 +187,7 @@ export const authMfa = defineEndpoint({
   id: 'auth.mfa',
   space: 'auth',
   permission: 'public',
-  errors: ['invalid_code', 'too_many_attempts'],
+  errors: ['invalid_code', 'too_many_attempts', 'wrong_space', 'invalid_state'],
   flags: { ...noFlags, rateLimited: true, audited: true },
   operations: {
     verify: {

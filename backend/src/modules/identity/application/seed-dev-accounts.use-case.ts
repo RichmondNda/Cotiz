@@ -8,12 +8,20 @@ import { assertDevSeedAllowed, mockId, REFERENCE_CROWD, SeedRefusedError } from 
 import { currentTx } from '../../../shared/tenant-context/index.js';
 import { SecretHasher } from '../infra/secret-hasher.js';
 import { CodeService } from './code-service.js';
+import { MfaFactors } from './mfa-factors.js';
 
 /**
  * Mot de passe des comptes de développement : connu de tous (frontend/server/mocks/IDENTIFIANTS.md, script de capture,
  * parcours e2e). Jamais en production : la commande y est refusée.
  */
 export const DEV_PASSWORD = 'Plateau-Dev-Cotiz-2026';
+
+/**
+ * Secret TOTP (base 32) du super-admin de développement (lot 4.7), public comme DEV_PASSWORD : le script de capture et
+ * les parcours e2e en calculent le code (frontend/scripts/session-test.mjs). Posé seulement avec le mot de passe
+ * public : avec COTIZ_DEV_SEED_PASSWORD (dev en ligne), la personne enrôle son propre facteur à la première connexion.
+ */
+export const DEV_TOTP_SECRET = 'KRUGKIDROVUWG2ZAMJZG653OEBTG66BA';
 
 interface DevAccount {
   /** Clé des données simulées du front (`uid('user', clé)`). */
@@ -115,6 +123,7 @@ export class SeedDevAccountsUseCase {
     private readonly hasher: SecretHasher,
     private readonly codes: CodeService,
     @Inject(CONFIG) private readonly config: Config,
+    private readonly factors: MfaFactors,
   ) {}
 
   @Audited('platform_staff.seed_dev')
@@ -182,6 +191,17 @@ export class SeedDevAccountsUseCase {
         .onConflictDoUpdate({ target: credentials.userId, set: secret });
       if (account.platformRole && (await platformRoleOf(id)) === null)
         await grantPlatformRole(id, account.platformRole);
+      // Double authentification obligatoire pour la plateforme : facteur au secret public, en local seulement.
+      if (account.platformRole && custom === undefined)
+        await this.factors.replaceWithConfirmed(id, DEV_TOTP_SECRET, new Date());
+      // Dev en ligne semé une fois sans mot de passe secret : le facteur au secret public ne reste pas.
+      if (
+        account.platformRole &&
+        custom !== undefined &&
+        (await this.factors.confirmedFor(id))?.secret === DEV_TOTP_SECRET
+      ) {
+        await this.factors.removeAll(id);
+      }
       if (active) {
         seeded.push({ identifier, password: shownPassword });
       } else {

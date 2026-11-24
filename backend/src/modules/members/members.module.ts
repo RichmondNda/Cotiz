@@ -53,6 +53,6 @@ import { MeProfileController } from './http/me-profile.controller.js';
     QuotaService,
   ],
   // Registre (module ledger) : grille d'un projet.
-  exports: [MemberDirectory],
+  exports: [MemberDirectory, MyProfile],
 })
 export class MembersModule {}

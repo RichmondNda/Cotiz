@@ -9,7 +9,8 @@ import { type AfterCommit, afterCommit, currentTx } from '../../../shared/tenant
 import { AccessTokenSigner } from '../infra/access-token-signer.js';
 import { hashRefreshToken, newRefreshToken } from '../infra/refresh-token.js';
 import { RevokedSessions } from '../infra/revoked-sessions.js';
-import type { OpenedSession } from './session-opener.js';
+import { MfaFactors } from './mfa-factors.js';
+import { mfaClaimFor, type OpenedSession } from './session-opener.js';
 import { SessionFamilies } from './session-families.js';
 import { SpaceAccess } from './space-access.js';
 
@@ -31,6 +32,7 @@ export class RefreshSessionUseCase {
     private readonly families: SessionFamilies,
     private readonly revoked: RevokedSessions,
     private readonly spaceAccess: SpaceAccess,
+    private readonly factors: MfaFactors,
   ) {}
 
   async execute(token: string | undefined, now = new Date()): Promise<OpenedSession | AfterCommit<never>> {
@@ -64,7 +66,7 @@ export class RefreshSessionUseCase {
     if (!session) throw new DomainProblem('session_expired');
 
     // Réutilisation d'un jeton révoqué, compte qui n'est plus actif, ou espace qui n'est plus accessible (personnel
-    // retiré, adresse hors liste) : la connexion entière est fermée. Révocation validée, puis liste noire, puis erreur.
+    // retiré) : la connexion entière est fermée. Révocation validée, puis liste noire, puis erreur.
     if (
       session.revokedAt !== null ||
       session.userStatus !== 'active' ||
@@ -95,8 +97,9 @@ export class RefreshSessionUseCase {
       rememberMe: session.rememberMe,
     });
 
-    // `aid` des sessions d'association : lot 1.2 (aucune avant).
-    const access = await this.signer.sign({ sub: session.userId, space: session.space, sid: sessionId }, now);
+    // Second facteur confirmé depuis (enrôlement) : le jeton suivant n'est plus restreint (lot 4.7).
+    const mfa = await mfaClaimFor(this.factors, session.userId, session.space);
+    const access = await this.signer.sign({ sub: session.userId, space: session.space, sid: sessionId, ...mfa }, now);
     return {
       accessToken: access.token,
       expiresAt: access.expiresAt,
