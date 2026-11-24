@@ -132,3 +132,6 @@ Format : **date** · contexte — apprentissage. *Source.*
   un `POST /auth/login` direct rend une session restreinte (403 partout hors auth et `/me`).
 - Seed local : super-admin avec facteur au secret public `DEV_TOTP_SECRET` ; `frontend/scripts/session-test.mjs` en
   calcule le code (un pas de 30 s par connexion, file d'attente dans le processus).
+- **2026-11-24** · Seuils de durée sous charge pendant `pnpm verify` complet : `platform-dashboard.test.ts` (< 300 ms :
+  319 ms) et `file-scan.test.ts` (PDF sain < 2 s : 3,3 s) ont échoué une fois chacun, verts relancés seuls. Charge
+  machine, pas un défaut : relancer le fichier. *verify du 2026-11-21 et du 2026-11-24, lot 4.7.*
